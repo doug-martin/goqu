@@ -2,7 +2,6 @@ package gql
 
 import (
 	"fmt"
-	"github.com/c2fo/c2fo-go/lib/utils"
 	"reflect"
 	"regexp"
 	"strings"
@@ -412,7 +411,8 @@ func (me identifier) Gte(val interface{}) BooleanExpression { return gte(me, val
 func (me identifier) Lt(val interface{}) BooleanExpression { return lt(me, val) }
 
 //Returns a BooleanExpression for checking that a identifier is less than or equal to another value (e.g "my_col" <= 1)
-func (me identifier) Lte(val interface{}) BooleanExpression       { return lte(me, val) }
+func (me identifier) Lte(val interface{}) BooleanExpression { return lte(me, val) }
+
 //Returns a BooleanExpression for checking that a identifier is in a list of values or  (e.g "my_col" > 1)
 func (me identifier) In(vals ...interface{}) BooleanExpression    { return in(me, vals...) }
 func (me identifier) NotIn(vals ...interface{}) BooleanExpression { return notIn(me, vals...) }
@@ -675,8 +675,6 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 			op = in_op
 		case reflect.Struct:
 			switch rhs.(type) {
-			case utils.NullBool:
-				op = is_op
 			case *regexp.Regexp:
 				return checkLikeExp(like_op, lhs, rhs, invert)
 			}

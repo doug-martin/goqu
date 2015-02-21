@@ -30,7 +30,7 @@ type (
 		OrderSql(order ColumnList) (string, error)
 		LimitSql(limit interface{}) (string, error)
 		OffsetSql(offset uint) (string, error)
-		BuilderSql(builder Dataset) (string, error)
+		DatasetSql(builder Dataset) (string, error)
 		QuoteIdentifier(ident IdentifierExpression) (string, error)
 		LiteralNil() (string, error)
 		LiteralBool(b bool) (string, error)
@@ -148,6 +148,9 @@ func (me adapter) UpdateExpressionsSql(updates ...UpdateExpression) (string, err
 }
 
 func (me adapter) SelectSql(cols ColumnList) (string, error) {
+	if len(cols.Columns()) == 0 {
+		return "SELECT *", nil
+	}
 	lit, err := me.Literal(cols)
 	if err != nil {
 		return "", newGqlError(err.Error())
@@ -353,7 +356,7 @@ func (me adapter) OffsetSql(offset uint) (string, error) {
 	return "", nil
 }
 
-func (me adapter) BuilderSql(builder Dataset) (string, error) {
+func (me adapter) DatasetSql(builder Dataset) (string, error) {
 	sql, err := builder.Sql()
 	if err != nil {
 		return "", err

@@ -14,7 +14,8 @@ type (
 		FieldName  string
 		GoType     reflect.Type
 	}
-	database interface {
+	ColumnMap map[string]ColumnData
+	database  interface {
 		QueryAdapter(builder *Dataset) Adapter
 		From(cols ...interface{}) Dataset
 		Logger(logger Logger)
@@ -27,11 +28,12 @@ type (
 		Update(sql string, args ...interface{}) (int64, error)
 		Delete(sql string, args ...interface{}) (int64, error)
 	}
-	ColumnMap map[string]ColumnData
-	Database  struct {
+	Database struct {
 		dbAdapter *DbAdapter
 	}
 )
+
+var struct_map_cache = make(map[interface{}]ColumnMap)
 
 func New(db Db) Database {
 	return Database{newDbAdapter("", db)}
