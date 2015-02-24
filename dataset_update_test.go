@@ -107,3 +107,101 @@ func (me *datasetTest) TestUpdateSqlWithReturning() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL) RETURNING "items".*`)
 }
+
+func (me *datasetTest) TestPreparedUpdateSqlWithStructs() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, err := ds1.ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=?`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithMaps() {
+	t := me.T()
+	ds1 := From("items")
+	sql, args, err := ds1.ToUpdateSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=?`)
+
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithByteSlice() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Name string `db:"name"`
+		Data []byte `db:"data"`
+	}
+	sql, args, err := ds1.Returning(I("items").All()).ToUpdateSql(true, item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"Test", `{"someJson":"data"}`})
+	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithValuer() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Name string     `db:"name"`
+		Data valuerType `db:"data"`
+	}
+	sql, args, err := ds1.Returning(I("items").All()).ToUpdateSql(true, item{Name: "Test", Data: []byte(`Hello`)})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"Test", "Hello World"})
+	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithSkipupdateTag() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address" gql:"skipupdate"`
+		Name    string `db:"name"`
+	}
+	sql, args, err := ds1.ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "name"=?`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithWhere() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, err := ds1.Where(I("name").IsNull()).ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
+
+	sql, args, err = ds1.Where(I("name").IsNull()).ToUpdateSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithReturning() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, err := ds1.Returning(I("items").All()).ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? RETURNING "items".*`)
+
+	sql, args, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).ToUpdateSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?) RETURNING "items".*`)
+}

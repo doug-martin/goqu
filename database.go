@@ -17,26 +17,26 @@ type (
 	ColumnMap map[string]ColumnData
 	database  interface {
 		QueryAdapter(builder *Dataset) Adapter
-		From(cols ...interface{}) Dataset
+		From(cols ...interface{}) *Dataset
 		Logger(logger Logger)
 		Exec(query string, args ...interface{}) (sql.Result, error)
 		Prepare(query string) (*sql.Stmt, error)
 		Query(query string, args ...interface{}) (*sql.Rows, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
 		Select(i interface{}, query string, args ...interface{}) (bool, error)
-		SelectIntoMap(cm ColumnMap, query string, args ...interface{}) (selectResults, error)
+		SelectIntoMap(cm ColumnMap, query string, args ...interface{}) ([]Result, error)
 		Update(sql string, args ...interface{}) (int64, error)
 		Delete(sql string, args ...interface{}) (int64, error)
 	}
 	Database struct {
-		dbAdapter *DbAdapter
+		dbAdapter DbAdapter
 	}
 )
 
 var struct_map_cache = make(map[interface{}]ColumnMap)
 
 func New(db Db) Database {
-	return Database{newDbAdapter("", db)}
+	return Database{newDbAdapter("default", db)}
 }
 
 func (me Database) Begin() (TxDatabase, error) {
@@ -51,7 +51,7 @@ func (me Database) QueryAdapter(builder *Dataset) Adapter {
 	return me.dbAdapter.QueryAdapter(builder)
 }
 
-func (me Database) From(cols ...interface{}) Dataset {
+func (me Database) From(cols ...interface{}) *Dataset {
 	return withDatabase(me).From(cols...)
 
 }
@@ -77,7 +77,7 @@ func (me Database) QueryRow(query string, args ...interface{}) *sql.Row {
 func (me Database) Select(i interface{}, query string, args ...interface{}) (bool, error) {
 	var (
 		found   bool
-		results selectResults
+		results []Result
 	)
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
@@ -98,7 +98,7 @@ func (me Database) Select(i interface{}, query string, args ...interface{}) (boo
 	return found, nil
 }
 
-func (me Database) SelectIntoMap(cm ColumnMap, query string, args ...interface{}) (selectResults, error) {
+func (me Database) SelectIntoMap(cm ColumnMap, query string, args ...interface{}) ([]Result, error) {
 	return me.dbAdapter.Select(cm, query, args...)
 }
 
@@ -111,14 +111,14 @@ func (me Database) Delete(sql string, args ...interface{}) (int64, error) {
 }
 
 type TxDatabase struct {
-	dbAdapter *TxDbAdapter
+	dbAdapter TxDbAdapter
 }
 
 func (me TxDatabase) QueryAdapter(builder *Dataset) Adapter {
 	return me.dbAdapter.QueryAdapter(builder)
 }
 
-func (me TxDatabase) From(cols ...interface{}) Dataset {
+func (me TxDatabase) From(cols ...interface{}) *Dataset {
 	return withDatabase(me).From(cols...)
 
 }
@@ -144,7 +144,7 @@ func (me TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
 func (me TxDatabase) Select(i interface{}, query string, args ...interface{}) (bool, error) {
 	var (
 		found   bool
-		results selectResults
+		results []Result
 	)
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
@@ -165,7 +165,7 @@ func (me TxDatabase) Select(i interface{}, query string, args ...interface{}) (b
 	return found, nil
 }
 
-func (me TxDatabase) SelectIntoMap(cm ColumnMap, query string, args ...interface{}) (selectResults, error) {
+func (me TxDatabase) SelectIntoMap(cm ColumnMap, query string, args ...interface{}) ([]Result, error) {
 	return me.dbAdapter.Select(cm, query, args...)
 }
 
@@ -195,7 +195,7 @@ func (me TxDatabase) Wrap(fn func() error) error {
 	return me.Commit()
 }
 
-func assignVals(i interface{}, results selectResults, cm ColumnMap) error {
+func assignVals(i interface{}, results []Result, cm ColumnMap) error {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
 	switch val.Kind() {

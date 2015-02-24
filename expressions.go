@@ -35,18 +35,18 @@ type (
 )
 
 const (
-	and_type ExpressionListType = iota
-	or_type
+	AND_TYPE ExpressionListType = iota
+	OR_TYPE
 )
 
 // A list of expressions that should be ORed together
 func Or(expressions ...Expression) expressionList {
-	return expressionList{operator: or_type, expressions: expressions}
+	return expressionList{operator: OR_TYPE, expressions: expressions}
 }
 
 // A list of expressions that should be ANDed together
 func And(expressions ...Expression) expressionList {
-	return expressionList{operator: and_type, expressions: expressions}
+	return expressionList{operator: AND_TYPE, expressions: expressions}
 }
 
 func (me expressionList) Clone() Expression {
@@ -152,28 +152,47 @@ type (
 		Expression
 		JoinCondition() JoinCondition
 	}
-	joinClause struct {
+	JoiningClause struct {
+		JoinType      JoinType
+		IsConditioned bool
+		Table         Expression
+		Condition     JoinExpression
+	}
+	JoiningClauses []JoiningClause
+	joinClause     struct {
 		joinCondition JoinCondition
 	}
 )
 
 const (
-	inner_join JoinType = iota
-	full_outer_join
-	right_outer_join
-	left_outer_join
-	full_join
-	right_join
-	left_join
-	natural_join
-	natural_left_join
-	natural_right_join
-	natural_full_join
-	cross_join
+	INNER_JOIN JoinType = iota
+	FULL_OUTER_JOIN
+	RIGHT_OUTER_JOIN
+	LEFT_OUTER_JOIN
+	FULL_JOIN
+	RIGHT_JOIN
+	LEFT_JOIN
+	NATURAL_JOIN
+	NATURAL_LEFT_JOIN
+	NATURAL_RIGHT_JOIN
+	NATURAL_FULL_JOIN
+	CROSS_JOIN
 
-	using_cond JoinCondition = iota
-	on_cond
+	USING_COND JoinCondition = iota
+	ON_COND
 )
+
+func (me JoiningClause) Clone() JoiningClause {
+	return JoiningClause{JoinType: me.JoinType, IsConditioned: me.IsConditioned, Table: me.Table.Clone(), Condition: me.Condition.Clone().(JoinExpression)}
+}
+
+func (me JoiningClauses) Clone() JoiningClauses {
+	ret := make(JoiningClauses, len(me))
+	for i, jc := range me {
+		ret[i] = jc.Clone()
+	}
+	return ret
+}
 
 func (me joinClause) Clone() Expression {
 	return joinClause{me.joinCondition}
@@ -201,7 +220,7 @@ type (
 
 //Creates a new ON clause to be used within a join
 func On(expressions ...Expression) JoinExpression {
-	return joinOnClause{joinClause{on_cond}, And(expressions...)}
+	return joinOnClause{joinClause{ON_COND}, And(expressions...)}
 }
 
 func (me joinOnClause) Clone() Expression {
@@ -230,7 +249,7 @@ type (
 
 //Creates a new USING clause to be used within a join
 func Using(expressions ...interface{}) JoinExpression {
-	return joinUsingClause{joinClause{using_cond}, cols(expressions...)}
+	return joinUsingClause{joinClause{USING_COND}, cols(expressions...)}
 }
 
 func (me joinUsingClause) Clone() Expression {
@@ -439,16 +458,21 @@ type (
 		aliasMethods
 		comparisonMethods
 		orderedMethods
-		Literal(string) LiteralExpression
-		GetLiteral() string
+		Literal() string
+		Args() []interface{}
 	}
 	literal struct {
 		literal string
+		args    []interface{}
 	}
 )
 
-func Literal(val string) LiteralExpression {
-	return literal{literal: val}
+func Literal(val string, args ...interface{}) LiteralExpression {
+	return literal{literal: val, args: args}
+}
+
+func L(val string, args ...interface{}) LiteralExpression {
+	return Literal(val, args...)
 }
 
 func Default() LiteralExpression {
@@ -463,12 +487,12 @@ func (me literal) Clone() Expression {
 	return Literal(me.literal)
 }
 
-func (me literal) Literal(literal string) LiteralExpression {
-	return Literal(literal)
+func (me literal) Literal() string {
+	return me.literal
 }
 
-func (me literal) GetLiteral() string {
-	return me.literal
+func (me literal) Args() []interface{} {
+	return me.args
 }
 
 func (me literal) Expression() Expression                { return me }
@@ -529,45 +553,45 @@ type (
 )
 
 const (
-	eq_op BooleanOperation = iota
-	neq_op
-	is_op
-	is_not_op
-	gt_op
-	gte_op
-	lt_op
-	lte_op
-	in_op
-	not_in_op
-	like_op
-	not_like_op
-	i_like_op
-	not_i_like_op
-	regexp_like_op
-	regexp_not_like_op
-	regexp_i_like_op
-	regexp_not_i_like_op
+	EQ_OP BooleanOperation = iota
+	NEQ_OP
+	IS_OP
+	IS_NOT_OP
+	GT_OP
+	GTE_OP
+	LT_OP
+	LTE_OP
+	IN_OP
+	NOT_IN_OP
+	LIKE_OP
+	NOT_LIKE_OP
+	I_LIKE_OP
+	NOT_I_LIKE_OP
+	REGEXP_LIKE_OP
+	REGEXP_NOT_LIKE_OP
+	REGEXP_I_LIKE_OP
+	REGEXP_NOT_I_LIKE_OP
 )
 
 var operator_inversions = map[BooleanOperation]BooleanOperation{
-	is_op:                is_not_op,
-	eq_op:                neq_op,
-	gt_op:                lte_op,
-	gte_op:               lt_op,
-	lt_op:                gte_op,
-	lte_op:               gt_op,
-	in_op:                not_in_op,
-	like_op:              not_like_op,
-	i_like_op:            not_i_like_op,
-	regexp_like_op:       regexp_not_like_op,
-	regexp_i_like_op:     regexp_not_i_like_op,
-	is_not_op:            is_op,
-	neq_op:               eq_op,
-	not_in_op:            in_op,
-	not_like_op:          like_op,
-	not_i_like_op:        i_like_op,
-	regexp_not_like_op:   regexp_like_op,
-	regexp_not_i_like_op: regexp_i_like_op,
+	IS_OP:                IS_NOT_OP,
+	EQ_OP:                NEQ_OP,
+	GT_OP:                LTE_OP,
+	GTE_OP:               LT_OP,
+	LT_OP:                GTE_OP,
+	LTE_OP:               GT_OP,
+	IN_OP:                NOT_IN_OP,
+	LIKE_OP:              NOT_LIKE_OP,
+	I_LIKE_OP:            NOT_I_LIKE_OP,
+	REGEXP_LIKE_OP:       REGEXP_NOT_LIKE_OP,
+	REGEXP_I_LIKE_OP:     REGEXP_NOT_I_LIKE_OP,
+	IS_NOT_OP:            IS_OP,
+	NEQ_OP:               EQ_OP,
+	NOT_IN_OP:            IN_OP,
+	NOT_LIKE_OP:          LIKE_OP,
+	NOT_I_LIKE_OP:        I_LIKE_OP,
+	REGEXP_NOT_LIKE_OP:   REGEXP_LIKE_OP,
+	REGEXP_NOT_I_LIKE_OP: REGEXP_I_LIKE_OP,
 }
 
 func (me boolean) Clone() Expression {
@@ -591,70 +615,70 @@ func (me boolean) Op() BooleanOperation {
 }
 
 func eq(lhs Expression, rhs interface{}) BooleanExpression {
-	return checkBoolExpType(eq_op, lhs, rhs, false)
+	return checkBoolExpType(EQ_OP, lhs, rhs, false)
 }
 
 func neq(lhs Expression, rhs interface{}) BooleanExpression {
-	return checkBoolExpType(eq_op, lhs, rhs, true)
+	return checkBoolExpType(EQ_OP, lhs, rhs, true)
 }
 
 func gt(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: gt_op, lhs: lhs, rhs: rhs}
+	return boolean{op: GT_OP, lhs: lhs, rhs: rhs}
 }
 
 func gte(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: gte_op, lhs: lhs, rhs: rhs}
+	return boolean{op: GTE_OP, lhs: lhs, rhs: rhs}
 }
 
 func lt(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: lt_op, lhs: lhs, rhs: rhs}
+	return boolean{op: LT_OP, lhs: lhs, rhs: rhs}
 }
 
 func lte(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: lte_op, lhs: lhs, rhs: rhs}
+	return boolean{op: LTE_OP, lhs: lhs, rhs: rhs}
 }
 
 func in(lhs Expression, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return boolean{op: in_op, lhs: lhs, rhs: vals[0]}
+		return boolean{op: IN_OP, lhs: lhs, rhs: vals[0]}
 	}
-	return boolean{op: in_op, lhs: lhs, rhs: vals}
+	return boolean{op: IN_OP, lhs: lhs, rhs: vals}
 }
 
 func notIn(lhs Expression, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return boolean{op: not_in_op, lhs: lhs, rhs: vals[0]}
+		return boolean{op: NOT_IN_OP, lhs: lhs, rhs: vals[0]}
 	}
-	return boolean{op: not_in_op, lhs: lhs, rhs: vals}
+	return boolean{op: NOT_IN_OP, lhs: lhs, rhs: vals}
 }
 
 func is(lhs Expression, val interface{}) BooleanExpression {
-	return checkBoolExpType(is_op, lhs, val, false)
+	return checkBoolExpType(IS_OP, lhs, val, false)
 }
 func isNot(lhs Expression, val interface{}) BooleanExpression {
-	return checkBoolExpType(is_op, lhs, val, true)
+	return checkBoolExpType(IS_OP, lhs, val, true)
 }
 func like(lhs Expression, val interface{}) BooleanExpression {
-	return checkLikeExp(like_op, lhs, val, false)
+	return checkLikeExp(LIKE_OP, lhs, val, false)
 }
 func iLike(lhs Expression, val interface{}) BooleanExpression {
-	return checkLikeExp(i_like_op, lhs, val, false)
+	return checkLikeExp(I_LIKE_OP, lhs, val, false)
 }
 func notLike(lhs Expression, val interface{}) BooleanExpression {
-	return checkLikeExp(like_op, lhs, val, true)
+	return checkLikeExp(LIKE_OP, lhs, val, true)
 }
 func notILike(lhs Expression, val interface{}) BooleanExpression {
-	return checkLikeExp(i_like_op, lhs, val, true)
+	return checkLikeExp(I_LIKE_OP, lhs, val, true)
 }
 
 func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert bool) BooleanExpression {
 	rhs := val
 	switch val.(type) {
 	case *regexp.Regexp:
-		if op == like_op {
-			op = regexp_like_op
-		} else if op == i_like_op {
-			op = regexp_i_like_op
+		if op == LIKE_OP {
+			op = REGEXP_LIKE_OP
+		} else if op == I_LIKE_OP {
+			op = REGEXP_I_LIKE_OP
 		}
 		rhs = val.(*regexp.Regexp).String()
 	}
@@ -666,17 +690,17 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
 	if rhs == nil {
-		op = is_op
+		op = IS_OP
 	} else {
 		switch reflect.Indirect(reflect.ValueOf(rhs)).Kind() {
 		case reflect.Bool:
-			op = is_op
+			op = IS_OP
 		case reflect.Slice:
-			op = in_op
+			op = IN_OP
 		case reflect.Struct:
 			switch rhs.(type) {
 			case *regexp.Regexp:
-				return checkLikeExp(like_op, lhs, rhs, invert)
+				return checkLikeExp(LIKE_OP, lhs, rhs, invert)
 			}
 		}
 	}
@@ -737,20 +761,20 @@ type (
 )
 
 const (
-	no_nulls null_sort_type = iota
-	nulls_first
-	nulls_last
+	NO_NULLS null_sort_type = iota
+	NULLS_FIRST
+	NULLS_LAST
 
-	sort_asc sort_direction = iota
-	sort_desc
+	SORT_ASC sort_direction = iota
+	SORT_DESC
 )
 
 func asc(exp Expression) OrderedExpression {
-	return orderedExpression{sortExpression: exp, direction: sort_asc, nullSortType: no_nulls}
+	return orderedExpression{sortExpression: exp, direction: SORT_ASC, nullSortType: NO_NULLS}
 }
 
 func desc(exp Expression) OrderedExpression {
-	return orderedExpression{sortExpression: exp, direction: sort_desc, nullSortType: no_nulls}
+	return orderedExpression{sortExpression: exp, direction: SORT_DESC, nullSortType: NO_NULLS}
 }
 
 func (me orderedExpression) Clone() Expression {
@@ -774,11 +798,11 @@ func (me orderedExpression) NullSortType() null_sort_type {
 }
 
 func (me orderedExpression) NullsFirst() OrderedExpression {
-	return orderedExpression{sortExpression: me.sortExpression, direction: me.direction, nullSortType: nulls_first}
+	return orderedExpression{sortExpression: me.sortExpression, direction: me.direction, nullSortType: NULLS_FIRST}
 }
 
 func (me orderedExpression) NullsLast() OrderedExpression {
-	return orderedExpression{sortExpression: me.sortExpression, direction: me.direction, nullSortType: nulls_last}
+	return orderedExpression{sortExpression: me.sortExpression, direction: me.direction, nullSortType: NULLS_LAST}
 }
 
 type (
@@ -912,26 +936,26 @@ type (
 )
 
 const (
-	union compoundType = iota
-	union_all
-	intersect
-	intersect_all
+	UNION compoundType = iota
+	UNION_ALL
+	INTERSECT
+	INTERSECT_ALL
 )
 
 func Union(rhs SqlExpression) CompoundExpression {
-	return compound{t: union, rhs: rhs}
+	return compound{t: UNION, rhs: rhs}
 }
 
 func UnionAll(rhs SqlExpression) CompoundExpression {
-	return compound{t: union_all, rhs: rhs}
+	return compound{t: UNION_ALL, rhs: rhs}
 }
 
 func Intersect(rhs SqlExpression) CompoundExpression {
-	return compound{t: intersect, rhs: rhs}
+	return compound{t: INTERSECT, rhs: rhs}
 }
 
 func IntersectAll(rhs SqlExpression) CompoundExpression {
-	return compound{t: intersect_all, rhs: rhs}
+	return compound{t: INTERSECT_ALL, rhs: rhs}
 }
 
 func (me compound) Expression() Expression { return me }

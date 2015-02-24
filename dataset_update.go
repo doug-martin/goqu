@@ -3,12 +3,21 @@ package gql
 import (
 	"reflect"
 	"sort"
-	"strings"
 )
 
-func (me Dataset) UpdateSql(update interface{}) (string, error) {
+func (me *Dataset) UpdateSql(update interface{}) (string, error) {
+	sql, _, err := me.ToUpdateSql(false, update)
+	return sql, err
+}
+
+func (me *Dataset) canUpdateField(field reflect.StructField) bool {
+	gqlTag, dbTag := tagOptions(field.Tag.Get("gql")), field.Tag.Get("db")
+	return !gqlTag.Contains("skipupdate") && dbTag != "" && dbTag != "-"
+}
+
+func (me *Dataset) ToUpdateSql(isPrepared bool, update interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
-		return "", newGqlError("No source found when generating update sql")
+		return "", nil, newGqlError("No source found when generating update sql")
 	}
 	updateValue := reflect.Indirect(reflect.ValueOf(update))
 	var updates []UpdateExpression
@@ -28,44 +37,24 @@ func (me Dataset) UpdateSql(update interface{}) (string, error) {
 			}
 		}
 	default:
-		return "", newGqlError("Unsupported update interface type %+v", updateValue.Type())
+		return "", nil, newGqlError("Unsupported update interface type %+v", updateValue.Type())
 	}
-
-	return me.updateSql(updates...)
-}
-
-func (me Dataset) canUpdateField(field reflect.StructField) bool {
-	gqlTag, dbTag := tagOptions(field.Tag.Get("gql")), field.Tag.Get("db")
-	return !gqlTag.Contains("skipupdate") && dbTag != "" && dbTag != "-"
-}
-
-func (me Dataset) updateSql(updates ...UpdateExpression) (string, error) {
-	var (
-		err        error
-		sql        string
-		updateStmt []string
-	)
-	if sql, err = me.adapter.UpdateBeginSql(); err != nil {
-		return "", err
+	buf := NewSqlBuilder(isPrepared)
+	if err := me.adapter.UpdateBeginSql(buf); err != nil {
+		return "", nil, err
 	}
-	updateStmt = append(updateStmt, sql)
-	if sql, err = me.adapter.SourcesSql(me.clauses.From); err != nil {
-		return "", err
+	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
+		return "", nil, err
 	}
-	updateStmt = append(updateStmt, sql)
-	if sql, err = me.adapter.UpdateExpressionsSql(updates...); err != nil {
-		return "", err
+	if err := me.adapter.UpdateExpressionsSql(buf, updates...); err != nil {
+		return "", nil, err
 	}
-	updateStmt = append(updateStmt, sql)
-	sql, err = me.adapter.WhereSql(me.clauses.Where)
-	if err != nil {
-		return "", err
+	if err := me.adapter.WhereSql(buf, me.clauses.Where); err != nil {
+		return "", nil, err
 	}
-	updateStmt = append(updateStmt, sql)
-	sql, err = me.adapter.ReturningSql(me.clauses.Returning)
-	if err != nil {
-		return "", err
+	if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
+		return "", nil, err
 	}
-	updateStmt = append(updateStmt, sql)
-	return strings.Join(updateStmt, ""), nil
+	sql, args := buf.ToSql()
+	return sql, args, nil
 }

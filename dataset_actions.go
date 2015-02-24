@@ -31,7 +31,7 @@ func (me Dataset) Count() (int64, error) {
 
 func (me Dataset) Pluck(i interface{}, col string) error {
 	var (
-		results selectResults
+		results []Result
 		sql     string
 		err     error
 	)

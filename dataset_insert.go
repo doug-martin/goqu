@@ -3,20 +3,21 @@ package gql
 import (
 	"reflect"
 	"sort"
-	"strings"
 )
 
-func (me Dataset) InsertSql(rows ...interface{}) (string, error) {
+func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
 	if !me.hasSources() {
 		return "", newGqlError("No source found when generating insert sql")
 	}
 	switch len(rows) {
 	case 0:
-		return me.insertSql(nil, nil)
+		sql, _, err := me.insertSql(nil, nil, false)
+		return sql, err
 	case 1:
 		switch rows[0].(type) {
-		case Dataset:
-			return me.insertFromSql(rows[0].(Dataset))
+		case *Dataset:
+			sql, _, err := me.insertFromSql(*rows[0].(*Dataset), false)
+			return sql, err
 		}
 
 	}
@@ -24,15 +25,37 @@ func (me Dataset) InsertSql(rows ...interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return me.insertSql(columns, vals)
+	sql, _, err := me.insertSql(columns, vals, false)
+	return sql, err
 }
 
-func (me Dataset) canInsertField(field reflect.StructField) bool {
+func (me *Dataset) PreparedInsertSql(rows ...interface{}) (string, []interface{}, error) {
+	if !me.hasSources() {
+		return "", nil, newGqlError("No source found when generating insert sql")
+	}
+	switch len(rows) {
+	case 0:
+		return me.insertSql(nil, nil, true)
+	case 1:
+		switch rows[0].(type) {
+		case *Dataset:
+			return me.insertFromSql(*rows[0].(*Dataset), true)
+		}
+
+	}
+	columns, vals, err := me.getInsertColsAndVals(rows...)
+	if err != nil {
+		return "", nil, err
+	}
+	return me.insertSql(columns, vals, true)
+}
+
+func (me *Dataset) canInsertField(field reflect.StructField) bool {
 	gqlTag, dbTag := tagOptions(field.Tag.Get("gql")), field.Tag.Get("db")
 	return !gqlTag.Contains("skipinsert") && dbTag != "" && dbTag != "-"
 }
 
-func (me Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList, vals [][]interface{}, err error) {
+func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList, vals [][]interface{}, err error) {
 	var mapKeys valueSlice
 	rowValue := reflect.Indirect(reflect.ValueOf(rows[0]))
 	rowType := rowValue.Type()
@@ -92,67 +115,48 @@ func (me Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList,
 	return columns, vals, nil
 }
 
-func (me Dataset) insertSql(cols ColumnList, values [][]interface{}) (string, error) {
-	var (
-		err        error
-		sql        string
-		insertStmt []string
-	)
-
-	if sql, err = me.adapter.InsertBeginSql(); err != nil {
-		return "", err
+func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared bool) (string, []interface{}, error) {
+	buf := NewSqlBuilder(prepared)
+	if err := me.adapter.InsertBeginSql(buf); err != nil {
+		return "", nil, err
 	}
-	insertStmt = append(insertStmt, sql)
-	if sql, err = me.adapter.SourcesSql(me.clauses.From); err != nil {
-		return "", newGqlError(err.Error())
+	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
+		return "", nil, newGqlError(err.Error())
 	}
-	insertStmt = append(insertStmt, sql)
 	if cols == nil {
-		if sql, err = me.adapter.DefaultValuesSql(); err != nil {
-			return "", newGqlError(err.Error())
+		if err := me.adapter.DefaultValuesSql(buf); err != nil {
+			return "", nil, newGqlError(err.Error())
 		}
-		insertStmt = append(insertStmt, sql)
 	} else {
-		if sql, err = me.adapter.InsertColumnsSql(cols); err != nil {
-			return "", newGqlError(err.Error())
+		if err := me.adapter.InsertColumnsSql(buf, cols); err != nil {
+			return "", nil, newGqlError(err.Error())
 		}
-		insertStmt = append(insertStmt, sql)
-		if sql, err = me.adapter.InsertValuesSql(values); err != nil {
-			return "", newGqlError(err.Error())
+		if err := me.adapter.InsertValuesSql(buf, values); err != nil {
+			return "", nil, newGqlError(err.Error())
 		}
-		insertStmt = append(insertStmt, sql)
 	}
-	if sql, err = me.adapter.ReturningSql(me.clauses.Returning); err != nil {
-		return "", err
+	if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
+		return "", nil, err
 	}
-	insertStmt = append(insertStmt, sql)
-	return strings.Join(insertStmt, ""), nil
+	sql, args := buf.ToSql()
+	return sql, args, nil
 }
 
-func (me Dataset) insertFromSql(other Dataset) (string, error) {
-	var (
-		err        error
-		sql        string
-		insertStmt []string
-	)
-
-	if sql, err = me.adapter.InsertBeginSql(); err != nil {
-		return "", err
+func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interface{}, error) {
+	buf := NewSqlBuilder(prepared)
+	if err := me.adapter.InsertBeginSql(buf); err != nil {
+		return "", nil, err
 	}
-	insertStmt = append(insertStmt, sql)
-
-	if sql, err = me.adapter.SourcesSql(me.clauses.From); err != nil {
-		return "", newGqlError(err.Error())
+	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
+		return "", nil, newGqlError(err.Error())
 	}
-	insertStmt = append(insertStmt, sql)
-
-	if sql, err = other.Sql(); err != nil {
-		return "", err
+	buf.WriteString(" ")
+	if err := other.selectSqlWriteTo(buf); err != nil {
+		return "", nil, err
 	}
-	insertStmt = append(insertStmt, " "+sql)
-	if sql, err = me.adapter.ReturningSql(me.clauses.Returning); err != nil {
-		return "", err
+	if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
+		return "", nil, err
 	}
-	insertStmt = append(insertStmt, sql)
-	return strings.Join(insertStmt, ""), nil
+	sql, args := buf.ToSql()
+	return sql, args, nil
 }

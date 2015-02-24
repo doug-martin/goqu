@@ -12,7 +12,7 @@ func (me *datasetTest) TestDeleteSql() {
 	assert.Equal(t, sql, `DELETE FROM "items"`)
 }
 
-func (me *datasetTest) TestDeleteSqlNoSuorces() {
+func (me *datasetTest) TestDeleteSqlNoSources() {
 	t := me.T()
 	ds1 := From("items")
 	_, err := ds1.From().DeleteSql()
@@ -72,5 +72,32 @@ func (me *datasetTest) TestTruncateSqlWithOpts() {
 	sql, err = ds1.TruncateWithOptsSql(TruncateOptions{Identity: "continue"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `TRUNCATE "items" CONTINUE IDENTITY`)
+}
 
+func (me *datasetTest) TestPreparedDeleteSql() {
+	t := me.T()
+	ds1 := From("items")
+	sql, args, err := ds1.ToDeleteSql(true)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{})
+	assert.Equal(t, sql, `DELETE FROM "items"`)
+
+	sql, args, err = ds1.Where(I("id").Eq(1)).ToDeleteSql(true)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, sql, `DELETE FROM "items" WHERE ("id" = ?)`)
+
+	sql, args, err = ds1.Returning("id").Where(I("id").Eq(1)).ToDeleteSql(true)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, sql, `DELETE FROM "items" WHERE ("id" = ?) RETURNING "id"`)
+}
+
+func (me *datasetTest) TestPreparedTruncateSql() {
+	t := me.T()
+	ds1 := From("items")
+	sql, args, err := ds1.ToTruncateSql(true, TruncateOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{})
+	assert.Equal(t, sql, `TRUNCATE "items"`)
 }
