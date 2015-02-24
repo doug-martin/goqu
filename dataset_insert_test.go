@@ -205,12 +205,12 @@ func (me *datasetTest) TestPreparedInsertSqlWithStructs() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.PreparedInsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.ToInsertSql(true, item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?)`)
 
-	sql, args, err = ds1.PreparedInsertSql(
+	sql, args, err = ds1.ToInsertSql(true,
 		item{Address: "111 Test Addr", Name: "Test1"},
 		item{Address: "211 Test Addr", Name: "Test2"},
 		item{Address: "311 Test Addr", Name: "Test3"},
@@ -225,12 +225,12 @@ func (me *datasetTest) TestPreparedInsertSqlWithMaps() {
 	t := me.T()
 	ds1 := From("items")
 
-	sql, args, err := ds1.PreparedInsertSql(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err := ds1.ToInsertSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?)`)
 
-	sql, args, err = ds1.PreparedInsertSql(
+	sql, args, err = ds1.ToInsertSql(true,
 		map[string]interface{}{"address": "111 Test Addr", "name": "Test1"},
 		map[string]interface{}{"address": "211 Test Addr", "name": "Test2"},
 		map[string]interface{}{"address": "311 Test Addr", "name": "Test3"},
@@ -245,7 +245,7 @@ func (me *datasetTest) TestPreparedInsertSqlWitSqlBuilder() {
 	t := me.T()
 	ds1 := From("items")
 
-	sql, args, err := ds1.PreparedInsertSql(From("other_items").Where(I("b").Gt(10)))
+	sql, args, err := ds1.ToInsertSql(true, From("other_items").Where(I("b").Gt(10)))
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{10})
 	assert.Equal(t, sql, `INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > ?)`)
@@ -259,17 +259,17 @@ func (me *datasetTest) TestPreparedInsertReturning() {
 	}
 	ds1 := From("items").Returning("id")
 
-	sql, args, err := ds1.Returning("id").PreparedInsertSql(From("other_items").Where(I("b").Gt(10)))
+	sql, args, err := ds1.Returning("id").ToInsertSql(true, From("other_items").Where(I("b").Gt(10)))
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{10})
 	assert.Equal(t, sql, `INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > ?) RETURNING "id"`)
 
-	sql, args, err = ds1.PreparedInsertSql(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err = ds1.ToInsertSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?) RETURNING "id"`)
 
-	sql, args, err = ds1.PreparedInsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err = ds1.ToInsertSql(true, item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?) RETURNING "id"`)
@@ -283,17 +283,17 @@ func (me *datasetTest) TestPreparedInsertWithGqlPkTagSql() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.PreparedInsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.ToInsertSql(true, item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?)`)
 
-	sql, args, err = ds1.PreparedInsertSql(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err = ds1.ToInsertSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?)`)
 
-	sql, args, err = ds1.PreparedInsertSql(
+	sql, args, err = ds1.ToInsertSql(true,
 		item{Name: "Test1", Address: "111 Test Addr"},
 		item{Name: "Test2", Address: "211 Test Addr"},
 		item{Name: "Test3", Address: "311 Test Addr"},
@@ -312,12 +312,12 @@ func (me *datasetTest) TestPreparedInsertWithGqlSkipInsertTagSql() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.PreparedInsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.ToInsertSql(true, item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?)`)
 
-	sql, args, err = ds1.PreparedInsertSql(
+	sql, args, err = ds1.ToInsertSql(true,
 		item{Name: "Test1", Address: "111 Test Addr"},
 		item{Name: "Test2", Address: "211 Test Addr"},
 		item{Name: "Test3", Address: "311 Test Addr"},
@@ -332,12 +332,12 @@ func (me *datasetTest) TestPreparedInsertDefaultValues() {
 	t := me.T()
 	ds1 := From("items")
 
-	sql, args, err := ds1.PreparedInsertSql()
+	sql, args, err := ds1.ToInsertSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
 	assert.Equal(t, sql, `INSERT INTO "items" DEFAULT VALUES`)
 
-	sql, args, err = ds1.PreparedInsertSql(map[string]interface{}{"name": Default(), "address": Default()})
+	sql, args, err = ds1.ToInsertSql(true, map[string]interface{}{"name": Default(), "address": Default()})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`)

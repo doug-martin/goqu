@@ -6,40 +6,21 @@ import (
 )
 
 func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
-	if !me.hasSources() {
-		return "", newGqlError("No source found when generating insert sql")
-	}
-	switch len(rows) {
-	case 0:
-		sql, _, err := me.insertSql(nil, nil, false)
-		return sql, err
-	case 1:
-		switch rows[0].(type) {
-		case *Dataset:
-			sql, _, err := me.insertFromSql(*rows[0].(*Dataset), false)
-			return sql, err
-		}
-
-	}
-	columns, vals, err := me.getInsertColsAndVals(rows...)
-	if err != nil {
-		return "", err
-	}
-	sql, _, err := me.insertSql(columns, vals, false)
+	sql, _, err := me.ToInsertSql(false, rows...)
 	return sql, err
 }
 
-func (me *Dataset) PreparedInsertSql(rows ...interface{}) (string, []interface{}, error) {
+func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, newGqlError("No source found when generating insert sql")
 	}
 	switch len(rows) {
 	case 0:
-		return me.insertSql(nil, nil, true)
+		return me.insertSql(nil, nil, isPrepared)
 	case 1:
 		switch rows[0].(type) {
 		case *Dataset:
-			return me.insertFromSql(*rows[0].(*Dataset), true)
+			return me.insertFromSql(*rows[0].(*Dataset), isPrepared)
 		}
 
 	}
@@ -47,7 +28,7 @@ func (me *Dataset) PreparedInsertSql(rows ...interface{}) (string, []interface{}
 	if err != nil {
 		return "", nil, err
 	}
-	return me.insertSql(columns, vals, true)
+	return me.insertSql(columns, vals, isPrepared)
 }
 
 func (me *Dataset) canInsertField(field reflect.StructField) bool {
