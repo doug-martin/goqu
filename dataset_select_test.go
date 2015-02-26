@@ -650,8 +650,8 @@ func (me *datasetTest) TestPreparedWhere() {
 	)
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{true, true, false, false})
-	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" IS ?) AND ("a" IS NOT ?) AND ("a" IS ?) AND ("a" IS NOT ?))`)
+	assert.Equal(t, args, []interface{}{})
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("a" IS NOT TRUE) AND ("a" IS FALSE) AND ("a" IS NOT FALSE))`)
 
 	b = ds1.Where(
 		I("a").Eq("a"),
@@ -812,8 +812,8 @@ func (me *datasetTest) TestPreparedHaving() {
 	).GroupBy("created")
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{true, 1})
-	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("b" IS ?) GROUP BY "created" HAVING ("a" > ?)`)
+	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("b" IS TRUE) GROUP BY "created" HAVING ("a" > ?)`)
 
 	b = ds1.Having(
 		I("a").Gt(1),

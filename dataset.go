@@ -82,6 +82,15 @@ func withDatabase(db database) *Dataset {
 	return ret
 }
 
+func (me *Dataset) SetAdapter(adapter Adapter) *Dataset {
+	me.adapter = adapter
+	return me
+}
+
+func (me *Dataset) Adapter() Adapter {
+	return me.adapter
+}
+
 func (me *Dataset) Expression() Expression {
 	return me
 }
@@ -131,7 +140,7 @@ func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
 	} else if v, ok := val.(driver.Valuer); ok {
 		dVal, err := v.Value()
 		if err != nil {
-			return newGqlError(err.Error())
+			return NewGqlError(err.Error())
 		}
 		return me.Literal(buf, dVal)
 	}
@@ -170,7 +179,7 @@ func (me *Dataset) reflectSql(buf *SqlBuilder, val interface{}) error {
 		}
 		return me.adapter.SliceValueSql(buf, v)
 	} else if valKind == reflect.Struct {
-		return newGqlError(fmt.Sprintf("Unable to encode value %+v", val))
+		return NewGqlError(fmt.Sprintf("Unable to encode value %+v", val))
 	} else if me.isInt(valKind) {
 		return me.Literal(buf, v.Int())
 	} else if me.isUint(valKind) {
@@ -211,5 +220,5 @@ func (me *Dataset) expressionSql(buf *SqlBuilder, expression Expression) error {
 	} else if e, ok := expression.(CompoundExpression); ok {
 		return me.adapter.CompoundExpressionSql(buf, e)
 	}
-	return newGqlError("Unsupported expression type %T", expression)
+	return NewGqlError("Unsupported expression type %T", expression)
 }

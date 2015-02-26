@@ -6,7 +6,7 @@ func newEncodeError(message string, args ...interface{}) error {
 	return EncodeError{err: "gql: " + fmt.Sprintf(message, args...)}
 }
 
-func newGqlError(message string, args ...interface{}) error {
+func NewGqlError(message string, args ...interface{}) error {
 	return GqlError{err: "gql: " + fmt.Sprintf(message, args...)}
 }
 

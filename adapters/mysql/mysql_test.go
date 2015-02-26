@@ -1,41 +1,43 @@
-package postgres
+package mysql
 
 import (
 	"database/sql"
 	"fmt"
 	"github.com/doug-martin/gql"
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
 )
 
-const schema = `
-        DROP TABLE IF EXISTS "entry";
-        CREATE  TABLE "entry" (
-            "id" SERIAL PRIMARY KEY NOT NULL,
-            "int" INT NOT NULL ,
-            "float" NUMERIC NOT NULL ,
-            "string" VARCHAR(45) NOT NULL ,
-            "time" TIMESTAMP NOT NULL ,
-            "bool" BOOL NOT NULL ,
-            "bytes" VARCHAR(45) NOT NULL);
-        INSERT INTO "entry" ("int", "float", "string", "time", "bool", "bytes") VALUES
-            (0, 0.000000, '0.000000', '2015-02-22T18:19:55.000000000-06:00', TRUE,  '0.000000'),
-            (1, 0.100000, '0.100000', '2015-02-22T19:19:55.000000000-06:00', FALSE, '0.100000'),
-            (2, 0.200000, '0.200000', '2015-02-22T20:19:55.000000000-06:00', TRUE,  '0.200000'),
-            (3, 0.300000, '0.300000', '2015-02-22T21:19:55.000000000-06:00', FALSE, '0.300000'),
-            (4, 0.400000, '0.400000', '2015-02-22T22:19:55.000000000-06:00', TRUE,  '0.400000'),
-            (5, 0.500000, '0.500000', '2015-02-22T23:19:55.000000000-06:00', FALSE, '0.500000'),
-            (6, 0.600000, '0.600000', '2015-02-23T00:19:55.000000000-06:00', TRUE,  '0.600000'),
-            (7, 0.700000, '0.700000', '2015-02-23T01:19:55.000000000-06:00', FALSE, '0.700000'),
-            (8, 0.800000, '0.800000', '2015-02-23T02:19:55.000000000-06:00', TRUE,  '0.800000'),
-            (9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-06:00', FALSE, '0.900000');
-    `
+const (
+	drop_table   = "DROP TABLE IF EXISTS `entry`;"
+	create_table = "CREATE  TABLE `entry` (" +
+		"`id` INT NOT NULL AUTO_INCREMENT ," +
+		"`int` INT NOT NULL ," +
+		"`float` FLOAT NOT NULL ," +
+		"`string` VARCHAR(255) NOT NULL ," +
+		"`time` DATETIME NOT NULL ," +
+		"`bool` TINYINT NOT NULL ," +
+		"`bytes` BLOB NOT NULL ," +
+		"PRIMARY KEY (`id`) );"
+	insert_default_reords = "INSERT INTO `entry` (`int`, `float`, `string`, `time`, `bool`, `bytes`) VALUES" +
+		"(0, 0.000000, '0.000000', '2015-02-22 18:19:55', TRUE,  '0.000000')," +
+		"(1, 0.100000, '0.100000', '2015-02-22 19:19:55', FALSE, '0.100000')," +
+		"(2, 0.200000, '0.200000', '2015-02-22 20:19:55', TRUE,  '0.200000')," +
+		"(3, 0.300000, '0.300000', '2015-02-22 21:19:55', FALSE, '0.300000')," +
+		"(4, 0.400000, '0.400000', '2015-02-22 22:19:55', TRUE,  '0.400000')," +
+		"(5, 0.500000, '0.500000', '2015-02-22 23:19:55', FALSE, '0.500000')," +
+		"(6, 0.600000, '0.600000', '2015-02-23 00:19:55', TRUE,  '0.600000')," +
+		"(7, 0.700000, '0.700000', '2015-02-23 01:19:55', FALSE, '0.700000')," +
+		"(8, 0.800000, '0.800000', '2015-02-23 02:19:55', TRUE,  '0.800000')," +
+		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', FALSE, '0.900000');"
+)
 
 type (
-	postgresTest struct {
+	logger    struct{}
+	mysqlTest struct {
 		suite.Suite
 		db gql.Database
 	}
@@ -50,46 +52,56 @@ type (
 	}
 )
 
-func (me *postgresTest) SetupSuite() {
-	db, err := sql.Open("postgres", "user=postgres dbname=gqlpostgres sslmode=disable ")
+func (me logger) Printf(sql string, args ...interface{}) {
+	fmt.Printf("\n"+sql, args)
+}
+
+func (me *mysqlTest) SetupSuite() {
+	db, err := sql.Open("mysql", "root@/gqlmysql?parseTime=true")
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
-	me.db = gql.New("postgres", db)
+	me.db = gql.New("mysql", db)
 	//	me.db.Logger(logger{})
 }
 
-func (me *postgresTest) SetupTest() {
-	if _, err := me.db.Exec(schema); err != nil {
+func (me *mysqlTest) SetupTest() {
+	if _, err := me.db.Exec(drop_table); err != nil {
+		panic(err)
+	}
+	if _, err := me.db.Exec(create_table); err != nil {
+		panic(err)
+	}
+	if _, err := me.db.Exec(insert_default_reords); err != nil {
 		panic(err)
 	}
 }
 
-func (me *postgresTest) TestSelectSql() {
+func (me *mysqlTest) TestSelectSql() {
 	t := me.T()
 	ds := me.db.From("entry")
 	sql, err := ds.Select("id", "float", "string", "time", "bool").Sql()
 	assert.NoError(t, err)
-	assert.Equal(t, sql, `SELECT "id", "float", "string", "time", "bool" FROM "entry"`)
+	assert.Equal(t, sql, "SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`")
 
 	sql, err = ds.Where(gql.I("int").Eq(10)).Sql()
 	assert.NoError(t, err)
-	assert.Equal(t, sql, `SELECT * FROM "entry" WHERE ("int" = 10)`)
+	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE (`int` = 10)")
 
 	sql, args, err := ds.Where(gql.L("? = ?", gql.I("int"), 10)).ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{10})
-	assert.Equal(t, sql, `SELECT * FROM "entry" WHERE "int" = $1`)
+	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE `int` = ?")
 }
 
-func (me *postgresTest) TestQuery() {
+func (me *mysqlTest) TestQuery() {
 	t := me.T()
 	var entries []entry
 	ds := me.db.From("entry")
 	assert.NoError(t, ds.Order(gql.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 10)
 	floatVal := float64(0)
-	baseDate, err := time.Parse(time.RFC3339Nano, "2015-02-22T18:19:55.000000000-00:00")
+	baseDate, err := time.Parse(time_format, "2015-02-22 18:19:55")
 	assert.NoError(t, err)
 	for i, entry := range entries {
 		f := fmt.Sprintf("%f", floatVal)
@@ -171,7 +183,7 @@ func (me *postgresTest) TestQuery() {
 	assert.Len(t, entries, 0)
 }
 
-func (me *postgresTest) TestCount() {
+func (me *mysqlTest) TestCount() {
 	t := me.T()
 	ds := me.db.From("entry")
 	count, err := ds.Count()
@@ -191,7 +203,7 @@ func (me *postgresTest) TestCount() {
 	assert.Equal(t, count, 0)
 }
 
-func (me *postgresTest) TestInsert() {
+func (me *mysqlTest) TestInsert() {
 	t := me.T()
 	ds := me.db.From("entry")
 	now := time.Now()
@@ -231,40 +243,17 @@ func (me *postgresTest) TestInsert() {
 	assert.Len(t, newEntries, 4)
 }
 
-func (me *postgresTest) TestInsertReturning() {
+func (me *mysqlTest) TestInsertReturning() {
 	t := me.T()
 	ds := me.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	found, err := ds.Returning(gql.Star()).Insert(e).ScanStruct(&e)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.True(t, e.Id > 0)
+	_, err := ds.Returning(gql.Star()).Insert(e).ScanStruct(&e)
+	assert.Error(t, err)
 
-	var ids []uint32
-	assert.NoError(t, ds.Returning("id").Insert([]entry{
-		{Int: 11, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")},
-		{Int: 12, Float: 1.200000, String: "1.200000", Time: now, Bool: true, Bytes: []byte("1.200000")},
-		{Int: 13, Float: 1.300000, String: "1.300000", Time: now, Bool: false, Bytes: []byte("1.300000")},
-		{Int: 14, Float: 1.400000, String: "1.400000", Time: now, Bool: true, Bytes: []byte("1.400000")},
-	}).ScanVals(&ids))
-	assert.Len(t, ids, 4)
-	for _, id := range ids {
-		assert.True(t, id > 0)
-	}
-
-	var ints []int64
-	assert.NoError(t, ds.Returning("int").Insert(
-		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},
-		entry{Int: 16, Float: 1.600000, String: "1.600000", Time: now, Bool: true, Bytes: []byte("1.600000")},
-		entry{Int: 17, Float: 1.700000, String: "1.700000", Time: now, Bool: false, Bytes: []byte("1.700000")},
-		entry{Int: 18, Float: 1.800000, String: "1.800000", Time: now, Bool: true, Bytes: []byte("1.800000")},
-	).ScanVals(&ints))
-	assert.True(t, found)
-	assert.Equal(t, ints, []int64{15, 16, 17, 18})
 }
 
-func (me *postgresTest) TestUpdate() {
+func (me *mysqlTest) TestUpdate() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var e entry
@@ -278,15 +267,18 @@ func (me *postgresTest) TestUpdate() {
 	count, err := ds.Where(gql.I("int").Eq(11)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 1)
-
-	var id uint32
-	found, err = ds.Where(gql.I("int").Eq(11)).Returning("id").Update(map[string]interface{}{"int": 9}).ScanVal(&id)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.Equal(t, id, e.Id)
 }
 
-func (me *postgresTest) TestDelete() {
+func (me *mysqlTest) TestUpdateReturning() {
+	t := me.T()
+	ds := me.db.From("entry")
+	var id uint32
+	_, err := ds.Where(gql.I("int").Eq(11)).Returning("id").Update(map[string]interface{}{"int": 9}).ScanVal(&id)
+	assert.Error(t, err)
+	assert.Equal(t, err.Error(), "gql: Adapter does not support RETURNING clause")
+}
+
+func (me *mysqlTest) TestDelete() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var e entry
@@ -313,10 +305,9 @@ func (me *postgresTest) TestDelete() {
 
 	id = 0
 	_, err = ds.Where(gql.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)
-	assert.NoError(t, err)
-	assert.Equal(t, id, e.Id)
+	assert.Equal(t, err.Error(), "gql: Adapter does not support RETURNING clause")
 }
 
-func TestPostgresSuite(t *testing.T) {
-	suite.Run(t, new(postgresTest))
+func TestMysqlSuite(t *testing.T) {
+	suite.Run(t, new(mysqlTest))
 }

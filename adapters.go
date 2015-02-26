@@ -9,6 +9,11 @@ import (
 
 type (
 	Adapter interface {
+		SupportsOrderByOnDelete() bool
+		SupportsOrderByOnUpdate() bool
+		SupportsLimitOnDelete() bool
+		SupportsLimitOnUpdate() bool
+		SupportsReturn() bool
 		PlaceHolderSql(buf *SqlBuilder, i interface{}) error
 		UpdateBeginSql(buf *SqlBuilder) error
 		InsertBeginSql(buf *SqlBuilder) error

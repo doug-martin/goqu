@@ -42,10 +42,10 @@ func (me exec) ScanStructs(i interface{}) error {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return newGqlError("Type must be a pointer to a slice when calling ScanStructs")
+		return NewGqlError("Type must be a pointer to a slice when calling ScanStructs")
 	}
 	if reflect.Indirect(val).Kind() != reflect.Slice {
-		return newGqlError("Type must be a pointer to a slice when calling ScanStructs")
+		return NewGqlError("Type must be a pointer to a slice when calling ScanStructs")
 	}
 	_, err := me.scan(i, me.sql, me.args...)
 	return err
@@ -57,10 +57,10 @@ func (me exec) ScanStruct(i interface{}) (bool, error) {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return false, newGqlError("Type must be a pointer to a struct when calling ScanStruct")
+		return false, NewGqlError("Type must be a pointer to a struct when calling ScanStruct")
 	}
 	if reflect.Indirect(val).Kind() != reflect.Struct {
-		return false, newGqlError("Type must be a pointer to a struct when calling ScanStruct")
+		return false, NewGqlError("Type must be a pointer to a struct when calling ScanStruct")
 	}
 	return me.scan(i, me.sql, me.args...)
 }
@@ -71,11 +71,11 @@ func (me exec) ScanVals(i interface{}) error {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return newGqlError("Type must be a pointer to a slice when calling ScanVals")
+		return NewGqlError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	val = reflect.Indirect(val)
 	if val.Kind() != reflect.Slice {
-		return newGqlError("Type must be a pointer to a slice when calling ScanVals")
+		return NewGqlError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
 	rows, err := me.database.Query(me.sql, me.args...)
@@ -107,7 +107,7 @@ func (me exec) ScanVal(i interface{}) (bool, error) {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return false, newGqlError("Type must be a pointer to a slice when calling ScanVals")
+		return false, NewGqlError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	rows, err := me.database.Query(me.sql, me.args...)
 	if err != nil {
@@ -138,12 +138,12 @@ func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 	}
 	rows, err := me.database.Query(query, args...)
 	if err != nil {
-		return false, newGqlError(err.Error())
+		return false, NewGqlError(err.Error())
 	}
 	defer rows.Close()
 	columns, err := rows.Columns()
 	if err != nil {
-		return false, newGqlError(err.Error())
+		return false, NewGqlError(err.Error())
 	}
 	for rows.Next() {
 		scans := make([]interface{}, len(columns))
@@ -151,11 +151,11 @@ func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 			if data, ok := cm[col]; ok {
 				scans[i] = reflect.New(data.GoType).Interface()
 			} else {
-				return false, newGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
+				return false, NewGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
 			}
 		}
 		if err := rows.Scan(scans...); err != nil {
-			return false, newGqlError(err.Error())
+			return false, NewGqlError(err.Error())
 		}
 		result := Result{}
 		for index, col := range columns {
@@ -164,7 +164,7 @@ func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 		results = append(results, result)
 	}
 	if rows.Err() != nil {
-		return false, newGqlError(rows.Err().Error())
+		return false, NewGqlError(rows.Err().Error())
 	}
 	if len(results) > 0 {
 		found = true
@@ -176,7 +176,7 @@ func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 func (me exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Result, error) {
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, newGqlError(err.Error())
+		return nil, err
 	}
 	var results []Result
 	for rows.Next() {
@@ -185,11 +185,11 @@ func (me exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Result, 
 			if data, ok := columnMap[col]; ok {
 				scans[i] = reflect.New(data.GoType).Interface()
 			} else {
-				return nil, newGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
+				return nil, NewGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
 			}
 		}
 		if err := rows.Scan(scans...); err != nil {
-			return nil, newGqlError(err.Error())
+			return nil, err
 		}
 		result := Result{}
 		for index, col := range columns {
@@ -198,7 +198,7 @@ func (me exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Result, 
 		results = append(results, result)
 	}
 	if rows.Err() != nil {
-		return nil, newGqlError(rows.Err().Error())
+		return nil, err
 	}
 	return results, nil
 }
@@ -250,7 +250,7 @@ func getColumnMap(i interface{}) (columnMap, error) {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, valKind, _ := getTypeInfo(i, val)
 	if valKind != reflect.Struct {
-		return nil, newGqlError(fmt.Sprintf("Cannot SELECT into this type: %v", t))
+		return nil, NewGqlError(fmt.Sprintf("Cannot SELECT into this type: %v", t))
 	}
 	if _, ok := struct_map_cache[t]; !ok {
 		struct_map_cache[t] = createColumnMap(t)

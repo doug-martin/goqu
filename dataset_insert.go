@@ -12,7 +12,7 @@ func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
 
 func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
-		return "", nil, newGqlError("No source found when generating insert sql")
+		return "", nil, NewGqlError("No source found when generating insert sql")
 	}
 	switch len(rows) {
 	case 0:
@@ -52,7 +52,7 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 	vals = make([][]interface{}, len(rows))
 	for i, row := range rows {
 		if rowType != reflect.Indirect(reflect.ValueOf(row)).Type() {
-			return nil, nil, newGqlError("Rows must be all the same type expected %+v got %+v", rowType, reflect.Indirect(reflect.ValueOf(row)).Type())
+			return nil, nil, NewGqlError("Rows must be all the same type expected %+v got %+v", rowType, reflect.Indirect(reflect.ValueOf(row)).Type())
 		}
 		newRowValue := reflect.Indirect(reflect.ValueOf(row))
 		switch rowKind {
@@ -68,10 +68,10 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 			}
 			newMapKeys := valueSlice(newRowValue.MapKeys())
 			if len(newMapKeys) != len(mapKeys) {
-				return nil, nil, newGqlError("Rows with different value length expected %d got %d", len(mapKeys), len(newMapKeys))
+				return nil, nil, NewGqlError("Rows with different value length expected %d got %d", len(mapKeys), len(newMapKeys))
 			}
 			if !mapKeys.Equal(newMapKeys) {
-				return nil, nil, newGqlError("Rows with different keys expected %s got %s", mapKeys.String(), newMapKeys.String())
+				return nil, nil, NewGqlError("Rows with different keys expected %s got %s", mapKeys.String(), newMapKeys.String())
 			}
 			rowVals := make([]interface{}, len(mapKeys))
 			for j, key := range mapKeys {
@@ -98,7 +98,7 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 			}
 			vals[i] = rowVals
 		default:
-			return nil, nil, newGqlError("Unsupported insert must be map or struct type %+v", row)
+			return nil, nil, NewGqlError("Unsupported insert must be map or struct type %+v", row)
 		}
 	}
 	return columns, vals, nil
@@ -110,23 +110,28 @@ func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared b
 		return "", nil, err
 	}
 	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
-		return "", nil, newGqlError(err.Error())
+		return "", nil, NewGqlError(err.Error())
 	}
 	if cols == nil {
 		if err := me.adapter.DefaultValuesSql(buf); err != nil {
-			return "", nil, newGqlError(err.Error())
+			return "", nil, NewGqlError(err.Error())
 		}
 	} else {
 		if err := me.adapter.InsertColumnsSql(buf, cols); err != nil {
-			return "", nil, newGqlError(err.Error())
+			return "", nil, NewGqlError(err.Error())
 		}
 		if err := me.adapter.InsertValuesSql(buf, values); err != nil {
-			return "", nil, newGqlError(err.Error())
+			return "", nil, NewGqlError(err.Error())
 		}
 	}
-	if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
-		return "", nil, err
+	if me.adapter.SupportsReturn() {
+		if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
+			return "", nil, err
+		}
+	} else if me.clauses.Returning != nil {
+		return "", nil, NewGqlError("Adapter does not support RETURNING clause")
 	}
+
 	sql, args := buf.ToSql()
 	return sql, args, nil
 }
@@ -137,14 +142,18 @@ func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interf
 		return "", nil, err
 	}
 	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
-		return "", nil, newGqlError(err.Error())
+		return "", nil, NewGqlError(err.Error())
 	}
 	buf.WriteString(" ")
 	if err := other.selectSqlWriteTo(buf); err != nil {
 		return "", nil, err
 	}
-	if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
-		return "", nil, err
+	if me.adapter.SupportsReturn() {
+		if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
+			return "", nil, err
+		}
+	} else if me.clauses.Returning != nil {
+		return "", nil, NewGqlError("Adapter does not support RETURNING clause")
 	}
 	sql, args := buf.ToSql()
 	return sql, args, nil

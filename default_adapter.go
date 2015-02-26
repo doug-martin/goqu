@@ -56,6 +56,40 @@ var (
 	default_set_operator_rune       = '='
 	default_string_quote_rune       = '\''
 	default_place_holder_rune       = '?'
+	default_operator_lookup         = map[BooleanOperation][]byte{
+		EQ_OP:                []byte("="),
+		NEQ_OP:               []byte("!="),
+		GT_OP:                []byte(">"),
+		GTE_OP:               []byte(">="),
+		LT_OP:                []byte("<"),
+		LTE_OP:               []byte("<="),
+		IN_OP:                []byte("IN"),
+		NOT_IN_OP:            []byte("NOT IN"),
+		IS_OP:                []byte("IS"),
+		IS_NOT_OP:            []byte("IS NOT"),
+		LIKE_OP:              []byte("LIKE"),
+		NOT_LIKE_OP:          []byte("NOT LIKE"),
+		I_LIKE_OP:            []byte("ILIKE"),
+		NOT_I_LIKE_OP:        []byte("NOT ILIKE"),
+		REGEXP_LIKE_OP:       []byte("~"),
+		REGEXP_NOT_LIKE_OP:   []byte("!~"),
+		REGEXP_I_LIKE_OP:     []byte("~*"),
+		REGEXP_NOT_I_LIKE_OP: []byte("!~*"),
+	}
+	default_join_lookup = map[JoinType][]byte{
+		INNER_JOIN:         []byte(" INNER JOIN "),
+		FULL_OUTER_JOIN:    []byte(" FULL OUTER JOIN "),
+		RIGHT_OUTER_JOIN:   []byte(" RIGHT OUTER JOIN "),
+		LEFT_OUTER_JOIN:    []byte(" LEFT OUTER JOIN "),
+		FULL_JOIN:          []byte(" FULL JOIN "),
+		RIGHT_JOIN:         []byte(" RIGHT JOIN "),
+		LEFT_JOIN:          []byte(" LEFT JOIN "),
+		NATURAL_JOIN:       []byte(" NATURAL JOIN "),
+		NATURAL_LEFT_JOIN:  []byte(" NATURAL LEFT JOIN "),
+		NATURAL_RIGHT_JOIN: []byte(" NATURAL RIGHT JOIN "),
+		NATURAL_FULL_JOIN:  []byte(" NATURAL FULL JOIN "),
+		CROSS_JOIN:         []byte(" CROSS JOIN "),
+	}
 )
 
 type (
@@ -100,6 +134,9 @@ type (
 		SetOperatorRune       rune
 		PlaceHolderRune       rune
 		IncludePlaceholderNum bool
+		TimeFormat            string
+		BooleanOperatorLookup map[BooleanOperation][]byte
+		JoinTypeLookup        map[JoinType][]byte
 	}
 )
 
@@ -144,8 +181,30 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		IntersectFragment:     default_intersect_fragment,
 		IntersectAllFragment:  default_intersect_all_fragment,
 		PlaceHolderRune:       default_place_holder_rune,
-		IncludePlaceholderNum: false,
+		BooleanOperatorLookup: default_operator_lookup,
+		JoinTypeLookup:        default_join_lookup,
+		TimeFormat:            time.RFC3339Nano,
 	}
+}
+
+func (me *DefaultAdapter) SupportsReturn() bool {
+	return true
+}
+
+func (me *DefaultAdapter) SupportsLimitOnDelete() bool {
+	return false
+}
+
+func (me *DefaultAdapter) SupportsLimitOnUpdate() bool {
+	return false
+}
+
+func (me *DefaultAdapter) SupportsOrderByOnDelete() bool {
+	return false
+}
+
+func (me *DefaultAdapter) SupportsOrderByOnUpdate() bool {
+	return false
 }
 
 func (me *DefaultAdapter) Literal(buf *SqlBuilder, val interface{}) error {
@@ -230,7 +289,7 @@ func (me *DefaultAdapter) InsertValuesSql(buf *SqlBuilder, values [][]interface{
 
 func (me *DefaultAdapter) UpdateExpressionsSql(buf *SqlBuilder, updates ...UpdateExpression) error {
 	if len(updates) == 0 {
-		return newGqlError("No update values provided")
+		return NewGqlError("No update values provided")
 	}
 	updateLen := len(updates)
 	buf.Write(me.SetFragment)
@@ -287,43 +346,15 @@ func (me *DefaultAdapter) SourcesSql(buf *SqlBuilder, from ColumnList) error {
 func (me *DefaultAdapter) JoinSql(buf *SqlBuilder, joins JoiningClauses) error {
 	if len(joins) > 0 {
 		for _, j := range joins {
-			var joinType string
-			switch j.JoinType {
-			case INNER_JOIN:
-				joinType = " INNER JOIN "
-			case FULL_OUTER_JOIN:
-				joinType = " FULL OUTER JOIN "
-			case RIGHT_OUTER_JOIN:
-				joinType = " RIGHT OUTER JOIN "
-			case LEFT_OUTER_JOIN:
-				joinType = " LEFT OUTER JOIN "
-			case FULL_JOIN:
-				joinType = " FULL JOIN "
-			case RIGHT_JOIN:
-				joinType = " RIGHT JOIN "
-			case LEFT_JOIN:
-				joinType = " LEFT JOIN "
-			case NATURAL_JOIN:
-				joinType = " NATURAL JOIN "
-			case NATURAL_LEFT_JOIN:
-				joinType = " NATURAL LEFT JOIN "
-			case NATURAL_RIGHT_JOIN:
-				joinType = " NATURAL RIGHT JOIN "
-			case NATURAL_FULL_JOIN:
-				joinType = " NATURAL FULL JOIN "
-			case CROSS_JOIN:
-				joinType = " CROSS JOIN "
-			default:
-				return newGqlError("Unsupported join type %s", j.JoinType)
-			}
-			buf.WriteString(joinType)
+			joinType := me.JoinTypeLookup[j.JoinType]
+			buf.Write(joinType)
 			if err := me.Literal(buf, j.Table); err != nil {
 				return err
 			}
 			if j.IsConditioned {
 				buf.WriteRune(space_rune)
 				if j.Condition == nil {
-					return newGqlError("Join condition required for conditioned join %s", joinType)
+					return NewGqlError("Join condition required for conditioned join %s", string(joinType))
 				}
 				condition := j.Condition
 				if condition.JoinCondition() == USING_COND {
@@ -458,7 +489,7 @@ func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpre
 		}
 		return me.Literal(buf, col)
 	default:
-		return newGqlError("Unexpected col type must be string or LiteralExpression %+v", col)
+		return NewGqlError("Unexpected col type must be string or LiteralExpression %+v", col)
 	}
 	return nil
 }
@@ -488,7 +519,7 @@ func (me *DefaultAdapter) LiteralTime(buf *SqlBuilder, t time.Time) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, t)
 	}
-	return me.Literal(buf, t.Format(time.RFC3339Nano))
+	return me.Literal(buf, t.UTC().Format(me.TimeFormat))
 }
 
 func (me *DefaultAdapter) LiteralFloat(buf *SqlBuilder, f float64) error {
@@ -554,61 +585,30 @@ func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator Boolean
 		return err
 	}
 	buf.WriteRune(space_rune)
+	operatorOp := operator.Op()
 	if operator.Rhs() == nil {
-		switch operator.Op() {
+		switch operatorOp {
 		case EQ_OP:
-			buf.WriteString("IS")
+			operatorOp = IS_OP
 		case NEQ_OP:
-			buf.WriteString("IS NOT")
-		case IS_OP:
-			buf.WriteString("IS")
-		case IS_NOT_OP:
-			buf.WriteString("IS NOT")
+			operatorOp = IS_NOT_OP
 		}
+	}
+	if val, ok := me.BooleanOperatorLookup[operatorOp]; ok {
+		buf.Write(val)
 	} else {
-		switch operator.Op() {
-		case EQ_OP:
-			buf.WriteRune('=')
-		case NEQ_OP:
-			buf.WriteString("!=")
-		case GT_OP:
-			buf.WriteRune('>')
-		case GTE_OP:
-			buf.WriteString(">=")
-		case LT_OP:
-			buf.WriteRune('<')
-		case LTE_OP:
-			buf.WriteString("<=")
-		case IN_OP:
-			buf.WriteString("IN")
-		case NOT_IN_OP:
-			buf.WriteString("NOT IN")
-		case IS_OP:
-			buf.WriteString("IS")
-		case IS_NOT_OP:
-			buf.WriteString("IS NOT")
-		case LIKE_OP:
-			buf.WriteString("LIKE")
-		case NOT_LIKE_OP:
-			buf.WriteString("NOT LIKE")
-		case I_LIKE_OP:
-			buf.WriteString("ILIKE")
-		case NOT_I_LIKE_OP:
-			buf.WriteString("NOT ILIKE")
-		case REGEXP_LIKE_OP:
-			buf.WriteRune('~')
-		case REGEXP_NOT_LIKE_OP:
-			buf.WriteString("!~")
-		case REGEXP_I_LIKE_OP:
-			buf.WriteString("~*")
-		case REGEXP_NOT_I_LIKE_OP:
-			buf.WriteString("!~*")
-		default:
-			return newGqlError("unsupported boolean operator %s", operator.Op())
+		return NewGqlError("Boolean operator %+v not supported", operatorOp)
+	}
+	rhs := operator.Rhs()
+	if operatorOp == IS_OP || operatorOp == IS_NOT_OP {
+		if rhs == true {
+			rhs = L("TRUE")
+		} else if rhs == false {
+			rhs = L("FALSE")
 		}
 	}
 	buf.WriteRune(space_rune)
-	if err := me.Literal(buf, operator.Rhs()); err != nil {
+	if err := me.Literal(buf, rhs); err != nil {
 		return err
 	}
 	buf.WriteRune(right_paren_rune)
