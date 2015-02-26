@@ -64,7 +64,7 @@ func (me valueSlice) String() string {
 
 func From(table ...interface{}) *Dataset {
 	ret := new(Dataset)
-	ret.adapter = newDsAdapter("default", ret)
+	ret.adapter = NewDsAdapter("default", ret)
 	ret.clauses = clauses{
 		Select: cols(Star()),
 		From:   cols(table...),

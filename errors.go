@@ -10,7 +10,7 @@ func newGqlError(message string, args ...interface{}) error {
 	return GqlError{err: "gql: " + fmt.Sprintf(message, args...)}
 }
 
-func newGqlQueryError(message string, args ...interface{}) error {
+func NewGqlQueryError(message string, args ...interface{}) error {
 	return GqlQueryError{err: "gql: " + fmt.Sprintf(message, args...)}
 }
 

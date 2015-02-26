@@ -103,7 +103,7 @@ type (
 	}
 )
 
-func newDefaultAdapter(ds *Dataset) Adapter {
+func NewDefaultAdapter(ds *Dataset) Adapter {
 	return &DefaultAdapter{
 		dataset:               ds,
 		UpdateClause:          default_update_clause,
@@ -152,11 +152,12 @@ func (me *DefaultAdapter) Literal(buf *SqlBuilder, val interface{}) error {
 	return me.dataset.Literal(buf, val)
 }
 
-func (me *DefaultAdapter) PlaceHolderSql(buf *SqlBuilder) error {
+func (me *DefaultAdapter) PlaceHolderSql(buf *SqlBuilder, i interface{}) error {
 	buf.WriteRune(me.PlaceHolderRune)
 	if me.IncludePlaceholderNum {
 		buf.WriteString(strconv.FormatInt(int64(buf.CurrentArgPosition), 10))
 	}
+	buf.WriteArg(i)
 	return nil
 }
 
@@ -464,8 +465,7 @@ func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpre
 
 func (me *DefaultAdapter) LiteralNil(buf *SqlBuilder) error {
 	if buf.IsPrepared {
-		buf.WriteArg(nil)
-		return me.PlaceHolderSql(buf)
+		return me.PlaceHolderSql(buf, nil)
 	} else {
 		buf.Write(me.Null)
 	}
@@ -474,8 +474,7 @@ func (me *DefaultAdapter) LiteralNil(buf *SqlBuilder) error {
 
 func (me *DefaultAdapter) LiteralBool(buf *SqlBuilder, b bool) error {
 	if buf.IsPrepared {
-		buf.WriteArg(b)
-		return me.PlaceHolderSql(buf)
+		return me.PlaceHolderSql(buf, b)
 	}
 	if b {
 		buf.Write(me.True)
@@ -487,16 +486,14 @@ func (me *DefaultAdapter) LiteralBool(buf *SqlBuilder, b bool) error {
 
 func (me *DefaultAdapter) LiteralTime(buf *SqlBuilder, t time.Time) error {
 	if buf.IsPrepared {
-		buf.WriteArg(t)
-		return me.PlaceHolderSql(buf)
+		return me.PlaceHolderSql(buf, t)
 	}
 	return me.Literal(buf, t.Format(time.RFC3339Nano))
 }
 
 func (me *DefaultAdapter) LiteralFloat(buf *SqlBuilder, f float64) error {
 	if buf.IsPrepared {
-		buf.WriteArg(f)
-		return me.PlaceHolderSql(buf)
+		return me.PlaceHolderSql(buf, f)
 	}
 	buf.WriteString(strconv.FormatFloat(f, 'f', -1, 64))
 	return nil
@@ -504,8 +501,7 @@ func (me *DefaultAdapter) LiteralFloat(buf *SqlBuilder, f float64) error {
 
 func (me *DefaultAdapter) LiteralInt(buf *SqlBuilder, i int64) error {
 	if buf.IsPrepared {
-		buf.WriteArg(i)
-		return me.PlaceHolderSql(buf)
+		return me.PlaceHolderSql(buf, i)
 	}
 	buf.WriteString(strconv.FormatInt(i, 10))
 	return nil
@@ -513,8 +509,7 @@ func (me *DefaultAdapter) LiteralInt(buf *SqlBuilder, i int64) error {
 
 func (me *DefaultAdapter) LiteralString(buf *SqlBuilder, s string) error {
 	if buf.IsPrepared {
-		buf.WriteArg(s)
-		return me.PlaceHolderSql(buf)
+		return me.PlaceHolderSql(buf, s)
 	}
 	buf.WriteRune(me.StringQuote)
 	for _, char := range s {
@@ -744,227 +739,150 @@ func (me *DefaultAdapter) CompoundExpressionSql(buf *SqlBuilder, compound Compou
 }
 
 type (
+	TxAdapterGen     func(tx *sql.Tx) TxDbAdapter
 	DefaultDbAdapter struct {
-		db     Db
-		logger Logger
+		TxDbAdapter TxAdapterGen
+		Db          Db
+		logger      Logger
 	}
 )
 
-func (me DefaultDbAdapter) QueryAdapter(dataset *Dataset) Adapter {
-	return newDefaultAdapter(dataset)
+func NewDefaultDbAdapter(db Db, txDbAdapter TxAdapterGen) *DefaultDbAdapter {
+	ret := new(DefaultDbAdapter)
+	ret.Db = db
+	ret.TxDbAdapter = txDbAdapter
+	return ret
 }
 
-func (me *DefaultDbAdapter) Logger(logger Logger) {
+func (me DefaultDbAdapter) QueryAdapter(dataset *Dataset) Adapter {
+	return NewDefaultAdapter(dataset)
+}
+
+func (me *DefaultDbAdapter) SetLogger(logger Logger) {
 	me.logger = logger
 }
 
-func (me DefaultDbAdapter) Trace(message string, args ...interface{}) {
+func (me *DefaultDbAdapter) Logger() Logger {
+	return me.logger
+}
+
+func (me DefaultDbAdapter) Trace(op, sql string, args ...interface{}) {
 	if me.logger != nil {
-		me.logger.Printf("[gql] "+message, args...)
+		if sql != "" {
+			if len(args) != 0 {
+				me.logger.Printf("[gql] %s [query:=`%s` args:=%+v] ", op, sql, args)
+			} else {
+				me.logger.Printf("[gql] %s [query:=`%s`] ", op, sql)
+			}
+		} else {
+			me.logger.Printf("[gql] %s", op)
+		}
 	}
 }
 
 func (me DefaultDbAdapter) Exec(query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC [query:=`%s` args:=%+v]", query, args)
-	return me.db.Exec(query, args...)
+	me.Trace("EXEC", query, args...)
+	return me.Db.Exec(query, args...)
 }
 
 func (me DefaultDbAdapter) Prepare(query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE [query:=`%s`]", query)
-	return me.db.Prepare(query)
+	me.Trace("PREPARE", query)
+	return me.Db.Prepare(query)
 }
 
 func (me DefaultDbAdapter) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY [query:=`%s` args:=%+v]", query, args)
-	return me.db.Query(query, args...)
+	me.Trace("QUERY", query, args...)
+	return me.Db.Query(query, args...)
 }
 
 func (me DefaultDbAdapter) QueryRow(query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW [query:=`%s` args:=%+v]", query, args)
-	return me.db.QueryRow(query, args...)
-}
-
-func (me DefaultDbAdapter) Select(columnMap ColumnMap, query string, args ...interface{}) ([]Result, error) {
-	rows, err := me.Query(query, args...)
-	if err != nil {
-		return nil, newGqlError(err.Error())
-	}
-	defer rows.Close()
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, newGqlError(err.Error())
-	}
-	var results []Result
-	for rows.Next() {
-		scans := make([]interface{}, len(columns))
-		for i, col := range columns {
-			if data, ok := columnMap[col]; ok {
-				scans[i] = reflect.New(data.GoType).Interface()
-			} else {
-				return nil, newGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
-			}
-		}
-		if err := rows.Scan(scans...); err != nil {
-			return nil, newGqlError(err.Error())
-		}
-		result := Result{}
-		for index, col := range columns {
-			result[col] = scans[index]
-		}
-		results = append(results, result)
-	}
-	if rows.Err() != nil {
-		return nil, newGqlError(rows.Err().Error())
-	}
-	return results, nil
-}
-
-func (me DefaultDbAdapter) Insert(query string, args ...interface{}) ([]Result, error) {
-	me.Trace(query, args...)
-	return nil, nil
-}
-
-func (me DefaultDbAdapter) Update(query string, args ...interface{}) (int64, error) {
-	result, err := me.Exec(query, args...)
-	if err != nil {
-		return 0, newGqlError(err.Error())
-	}
-	return result.RowsAffected()
-}
-
-func (me DefaultDbAdapter) Delete(query string, args ...interface{}) (int64, error) {
-	result, err := me.Exec(query, args...)
-	if err != nil {
-		return 0, newGqlError(err.Error())
-	}
-	return result.RowsAffected()
+	me.Trace("QUERY ROW", query, args...)
+	return me.Db.QueryRow(query, args...)
 }
 
 func (me DefaultDbAdapter) Begin() (TxDbAdapter, error) {
-	me.Trace("BEGIN")
-	tx, err := me.db.Begin()
+	me.Trace("BEGIN", "")
+	tx, err := me.Db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	ret := newTxDbAdapter(tx)
-	ret.Logger(me.logger)
+	ret := me.TxDbAdapter(tx)
+	ret.SetLogger(me.logger)
 	return ret, nil
 }
 
 type DefaultTxDbAdapter struct {
-	db     *sql.Tx
+	Db     *sql.Tx
 	logger Logger
 }
 
-func newTxDbAdapter(db *sql.Tx) TxDbAdapter {
-	return &DefaultTxDbAdapter{db: db}
+func NewDefaultTxDbAdapter(db *sql.Tx) *DefaultTxDbAdapter {
+	return &DefaultTxDbAdapter{Db: db}
 }
 
 func (me DefaultTxDbAdapter) Commit() error {
-	me.Trace("COMMIT")
-	return me.db.Commit()
+	me.Trace("COMMIT", "")
+	return me.Db.Commit()
 }
 
 func (me DefaultTxDbAdapter) Rollback() error {
-	me.Trace("ROLLBACK")
-	return me.db.Rollback()
+	me.Trace("ROLLBACK", "")
+	return me.Db.Rollback()
 }
 
 func (me DefaultTxDbAdapter) QueryAdapter(dataset *Dataset) Adapter {
-	return newDefaultAdapter(dataset)
+	return NewDefaultAdapter(dataset)
 }
 
-func (me *DefaultTxDbAdapter) Logger(logger Logger) {
+func (me *DefaultTxDbAdapter) SetLogger(logger Logger) {
 	me.logger = logger
 }
 
-func (me DefaultTxDbAdapter) Trace(message string, args ...interface{}) {
+func (me *DefaultTxDbAdapter) Logger() Logger {
+	return me.logger
+}
+
+func (me DefaultTxDbAdapter) Trace(op, sql string, args ...interface{}) {
 	if me.logger != nil {
-		me.logger.Printf("[gql - transaction] "+message, args...)
+		if sql != "" {
+			if len(args) != 0 {
+				me.logger.Printf("[gql - transaction] %s [query:=`%s` args:=%+v] ", op, sql, args)
+			} else {
+				me.logger.Printf("[gql - transaction] %s [query:=`%s`] ", op, sql)
+			}
+		} else {
+			me.logger.Printf("[gql - transaction] %s", op)
+		}
 	}
 }
 
 func (me DefaultTxDbAdapter) Exec(query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC [query:=`%s` args:=%+v]", query, args)
-	return me.db.Exec(query, args...)
+	me.Trace("EXEC", query, args...)
+	return me.Db.Exec(query, args...)
 }
 
 func (me DefaultTxDbAdapter) Prepare(query string) (*sql.Stmt, error) {
-	me.Trace("PREPRE [query:=`%s`]", query)
-	return me.db.Prepare(query)
+	me.Trace("PREPARE", query)
+	return me.Db.Prepare(query)
 }
 
 func (me DefaultTxDbAdapter) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY [query:=`%s` args:=%+v]", query, args)
-	return me.db.Query(query, args...)
+	me.Trace("QUERY", query, args...)
+	return me.Db.Query(query, args...)
 }
 
 func (me DefaultTxDbAdapter) QueryRow(query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW [query:=`%s` args:=%+v]", query, args)
-	return me.db.QueryRow(query, args...)
-}
-
-func (me DefaultTxDbAdapter) Select(columnMap ColumnMap, query string, args ...interface{}) ([]Result, error) {
-	rows, err := me.Query(query, args...)
-	if err != nil {
-		return nil, newGqlError(err.Error())
-	}
-	defer rows.Close()
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, newGqlError(err.Error())
-	}
-	var results []Result
-	for rows.Next() {
-		scans := make([]interface{}, len(columns))
-		for i, col := range columns {
-			if data, ok := columnMap[col]; ok {
-				scans[i] = reflect.New(data.GoType).Interface()
-			} else {
-				return nil, newGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
-			}
-		}
-		if err := rows.Scan(scans...); err != nil {
-			return nil, newGqlError(err.Error())
-		}
-		result := Result{}
-		for index, col := range columns {
-			result[col] = scans[index]
-		}
-		results = append(results, result)
-	}
-	if rows.Err() != nil {
-		return nil, newGqlError(rows.Err().Error())
-	}
-	return results, nil
-}
-
-func (me DefaultTxDbAdapter) Insert(query string, args ...interface{}) ([]Result, error) {
-	me.Trace(query, args...)
-	return nil, nil
-}
-
-func (me DefaultTxDbAdapter) Update(query string, args ...interface{}) (int64, error) {
-	result, err := me.Exec(query, args...)
-	if err != nil {
-		return 0, newGqlError(err.Error())
-	}
-	return result.RowsAffected()
-}
-
-func (me DefaultTxDbAdapter) Delete(query string, args ...interface{}) (int64, error) {
-	result, err := me.Exec(query, args...)
-	if err != nil {
-		return 0, newGqlError(err.Error())
-	}
-	return result.RowsAffected()
+	me.Trace("QUERY ROW", query, args...)
+	return me.Db.QueryRow(query, args...)
 }
 
 func init() {
 	RegisterDbAdapter("default", func(db Db) DbAdapter {
-		return &DefaultDbAdapter{db: db}
+		return NewDefaultDbAdapter(db, func(tx *sql.Tx) TxDbAdapter {
+			return NewDefaultTxDbAdapter(tx)
+		})
 	})
 	RegisterDatasetAdapter("default", func(ds *Dataset) Adapter {
-		return newDefaultAdapter(ds)
+		return NewDefaultAdapter(ds)
 	})
 }

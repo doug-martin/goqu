@@ -18,6 +18,14 @@ func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []
 	case 0:
 		return me.insertSql(nil, nil, isPrepared)
 	case 1:
+		val := reflect.ValueOf(rows[0])
+		if val.Kind() == reflect.Slice {
+			vals := make([]interface{}, val.Len())
+			for i := 0; i < val.Len(); i++ {
+				vals[i] = val.Index(i).Interface()
+			}
+			return me.ToInsertSql(isPrepared, vals...)
+		}
 		switch rows[0].(type) {
 		case *Dataset:
 			return me.insertFromSql(*rows[0].(*Dataset), isPrepared)

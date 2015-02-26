@@ -9,7 +9,7 @@ import (
 
 type (
 	Adapter interface {
-		PlaceHolderSql(buf *SqlBuilder) error
+		PlaceHolderSql(buf *SqlBuilder, i interface{}) error
 		UpdateBeginSql(buf *SqlBuilder) error
 		InsertBeginSql(buf *SqlBuilder) error
 		DeleteBeginSql(buf *SqlBuilder) error
@@ -60,17 +60,14 @@ type (
 		Begin() (*sql.Tx, error)
 	}
 	baseDbAdapter interface {
-		Logger(logger Logger)
-		Trace(message string, args ...interface{})
+		SetLogger(logger Logger)
+		Logger() Logger
+		Trace(op, message string, args ...interface{})
 		QueryAdapter(dataset *Dataset) Adapter
 		Exec(query string, args ...interface{}) (sql.Result, error)
 		Prepare(query string) (*sql.Stmt, error)
 		Query(query string, args ...interface{}) (*sql.Rows, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
-		Select(columnMap ColumnMap, query string, args ...interface{}) ([]Result, error)
-		Insert(query string, args ...interface{}) ([]Result, error)
-		Update(query string, args ...interface{}) (int64, error)
-		Delete(query string, args ...interface{}) (int64, error)
 	}
 	DbAdapter interface {
 		baseDbAdapter
@@ -98,10 +95,10 @@ func RegisterDatasetAdapter(t string, gen func(db *Dataset) Adapter) {
 	ds_adapters[strings.ToLower(t)] = gen
 }
 
-func newDbAdapter(t string, db Db) DbAdapter {
+func NewDbAdapter(t string, db Db) DbAdapter {
 	return db_adapters[strings.ToLower(t)](db)
 }
 
-func newDsAdapter(t string, ds *Dataset) Adapter {
+func NewDsAdapter(t string, ds *Dataset) Adapter {
 	return ds_adapters[strings.ToLower(t)](ds)
 }
