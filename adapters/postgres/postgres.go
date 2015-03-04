@@ -4,11 +4,15 @@ import (
 	"github.com/doug-martin/gql"
 )
 
+const placeholder_rune = '$'
+
+func newDatasetAdapter(ds *gql.Dataset) gql.Adapter {
+	ret := gql.NewDefaultAdapter(ds).(*gql.DefaultAdapter)
+	ret.PlaceHolderRune = placeholder_rune
+	ret.IncludePlaceholderNum = true
+	return ret
+}
+
 func init() {
-	gql.RegisterDbAdapter("postgres", func(db gql.Db) gql.DbAdapter {
-		return newDbAdapter(db)
-	})
-	gql.RegisterDatasetAdapter("postgres", func(ds *gql.Dataset) gql.Adapter {
-		return newDatasetAdapter(ds)
-	})
+	gql.RegisterAdapter("postgres", newDatasetAdapter)
 }

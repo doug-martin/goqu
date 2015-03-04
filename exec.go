@@ -15,28 +15,37 @@ type (
 		GoType     reflect.Type
 	}
 	columnMap map[string]columnData
-	exec      struct {
+	Exec      struct {
 		database database
-		sql      string
-		args     []interface{}
+		Sql      string
+		Args     []interface{}
 		err      error
 	}
+	selectResults []Record
 )
 
 var struct_map_cache = make(map[interface{}]columnMap)
 
-func newExec(database database, err error, sql string, args ...interface{}) *exec {
-	return &exec{database: database, err: err, sql: sql, args: args}
+func newExec(database database, err error, sql string, args ...interface{}) *Exec {
+	return &Exec{database: database, err: err, Sql: sql, Args: args}
 }
 
-func (me exec) Exec() (sql.Result, error) {
+func (me Exec) Exec() (sql.Result, error) {
 	if me.err != nil {
 		return nil, me.err
 	}
-	return me.database.Exec(me.sql, me.args...)
+	return me.database.Exec(me.Sql, me.Args...)
 }
 
-func (me exec) ScanStructs(i interface{}) error {
+//This will execute the SQL and append results to the slice
+//    var myStructs []MyStruct
+//    if err := From("test").ScanStructs(&myStructs); err != nil{
+//        panic(err.Error()
+//    }
+//    //use your structs
+//
+//i: A pointer to a slice of structs.
+func (me Exec) ScanStructs(i interface{}) error {
 	if me.err != nil {
 		return me.err
 	}
@@ -47,11 +56,22 @@ func (me exec) ScanStructs(i interface{}) error {
 	if reflect.Indirect(val).Kind() != reflect.Slice {
 		return NewGqlError("Type must be a pointer to a slice when calling ScanStructs")
 	}
-	_, err := me.scan(i, me.sql, me.args...)
+	_, err := me.scan(i, me.Sql, me.Args...)
 	return err
 }
 
-func (me exec) ScanStruct(i interface{}) (bool, error) {
+//This will execute the SQL and fill out the struct with the fields returned. This method returns a boolean value that is false if no record was found
+//    var myStruct MyStruct
+//    found, err := From("test").Limit(1).ScanStruct(&myStruct)
+//    if err != nil{
+//        panic(err.Error()
+//    }
+//    if !found{
+//          fmt.Println("NOT FOUND")
+//    }
+//
+//i: A pointer to a struct
+func (me Exec) ScanStruct(i interface{}) (bool, error) {
 	if me.err != nil {
 		return false, me.err
 	}
@@ -62,10 +82,17 @@ func (me exec) ScanStruct(i interface{}) (bool, error) {
 	if reflect.Indirect(val).Kind() != reflect.Struct {
 		return false, NewGqlError("Type must be a pointer to a struct when calling ScanStruct")
 	}
-	return me.scan(i, me.sql, me.args...)
+	return me.scan(i, me.Sql, me.Args...)
 }
 
-func (me exec) ScanVals(i interface{}) error {
+//This will execute the SQL and append results to the slice.
+//    var ids []uint32
+//    if err := From("test").Select("id").ScanVals(&ids); err != nil{
+//        panic(err.Error()
+//    }
+//
+//i: Takes a pointer to a slice of primitive values.
+func (me Exec) ScanVals(i interface{}) error {
 	if me.err != nil {
 		return me.err
 	}
@@ -78,7 +105,7 @@ func (me exec) ScanVals(i interface{}) error {
 		return NewGqlError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
-	rows, err := me.database.Query(me.sql, me.args...)
+	rows, err := me.database.Query(me.Sql, me.Args...)
 	if err != nil {
 		return err
 	}
@@ -101,15 +128,26 @@ func (me exec) ScanVals(i interface{}) error {
 
 }
 
-func (me exec) ScanVal(i interface{}) (bool, error) {
+//This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
+//    var id uint32
+//    found, err := From("test").Select("id").Limit(1).ScanVal(&id)
+//    if err != nil{
+//        panic(err.Error()
+//    }
+//    if !found{
+//        fmt.Println("NOT FOUND")
+//    }
+//
+//i: Takes a pointer to a primitive value.
+func (me Exec) ScanVal(i interface{}) (bool, error) {
 	if me.err != nil {
 		return false, me.err
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return false, NewGqlError("Type must be a pointer to a slice when calling ScanVals")
+		return false, NewGqlError("Type must be a pointer calling ScanVal")
 	}
-	rows, err := me.database.Query(me.sql, me.args...)
+	rows, err := me.database.Query(me.Sql, me.Args...)
 	if err != nil {
 		return false, err
 	}
@@ -127,10 +165,10 @@ func (me exec) ScanVal(i interface{}) (bool, error) {
 	return count != 0, nil
 }
 
-func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me Exec) scan(i interface{}, query string, args ...interface{}) (bool, error) {
 	var (
 		found   bool
-		results []Result
+		results []Record
 	)
 	cm, err := getColumnMap(i)
 	if err != nil {
@@ -157,7 +195,7 @@ func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 		if err := rows.Scan(scans...); err != nil {
 			return false, NewGqlError(err.Error())
 		}
-		result := Result{}
+		result := Record{}
 		for index, col := range columns {
 			result[col] = scans[index]
 		}
@@ -173,12 +211,12 @@ func (me exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 	return found, nil
 }
 
-func (me exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Result, error) {
+func (me Exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Record, error) {
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
-	var results []Result
+	var results []Record
 	for rows.Next() {
 		scans := make([]interface{}, len(columns))
 		for i, col := range columns {
@@ -191,7 +229,7 @@ func (me exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Result, 
 		if err := rows.Scan(scans...); err != nil {
 			return nil, err
 		}
-		result := Result{}
+		result := Record{}
 		for index, col := range columns {
 			result[col] = scans[index]
 		}
@@ -203,7 +241,7 @@ func (me exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Result, 
 	return results, nil
 }
 
-func assignVals(i interface{}, results []Result, cm columnMap) error {
+func assignVals(i interface{}, results []Record, cm columnMap) error {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
 	switch val.Kind() {

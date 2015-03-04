@@ -32,6 +32,44 @@ type (
 		Returning      ColumnList
 		Compounds      []CompoundExpression
 	}
+	//A Dataset is used to build up an SQL statement, each method returns a copy of the current Dataset with options added to it.
+	//Once done building up your Dataset you can either call an action method on it to execute the statement or use one of the SQL generation methods.
+	//
+	//Common SQL clauses are represented as methods on the Dataset (e.g. Where, From, Select, Limit...)
+	//   * Sql() - Returns a SELECT statement
+	//   * UpdateSql() - Returns an UPDATE statement
+	//   * InsertSql() - Returns an INSERT statement
+	//   * DeleteSql() - Returns a DELETE statement
+	//   * TruncateSql() - Returns a TRUNCATE statement.
+	//
+	//Each SQL generation method returns an interpolated statement. Without interpolation each SQL statement could cause two calls to the database:
+	//   1. Prepare the statement
+	//   2. Execute the statment with arguments
+	//Instead with interpolation the database just executes the statement
+	//    sql, err := From("test").Where(I("a").Eq(10).Sql() //SELECT * FROM "test" WHERE "a" = 10
+	//
+	//Sometimes you might want to generated a prepared statement in which case you would use one of the "To" SQL generation methods, with the isPrepared argument set to true.
+	//  * ToSql(true) - generates a SELECT statement without the arguments interpolated
+	//  * ToUpdateSql(true, update) - generates an UPDATE statement without the arguments interpolated
+	//  * ToInsertSql(true, rows....) - generates an INSERT statement without the arguments interpolated
+	//  * ToDeleteSql(true) - generates a DELETE statement without arguments interpolated
+	//  * ToTruncateSql(true, opts) - generates a TRUNCATE statement without arguments interpolated
+	//
+	//    sql, args, err := From("test").Where(I("a").Eq(10).ToSql(true) //sql := SELECT * FROM "test" WHERE "a" = ? args:=[]interface{}{10}
+	//
+	//A Dataset can also execute statements directly. By calling:
+	//
+	//    * ScanStructs(i interface{}) - Scans returned rows into a slice of structs
+	//    * ScanStruct(i interface{}) - Scans a single rom into a struct, if no struct is found this method will return false
+	//    * ScanVals(i interface{}) - Scans rows of one columns into a slice of primitive values
+	//    * ScanVal(i interface{}) - Scans a single row of one column into a primitive value
+	//    * Count() - Returns a count of rows
+	//    * Pluck(i interface{}, col string) - Retrives a columns from rows and scans the resules into a slice of primitive values.
+	//
+	//Update, Delete, and Insert return an Exec struct which can be used to scan values or just execute the statment. You might
+	//use the scan methods if the database supports return values. For example
+	//    UPDATE "items" SET updated = NOW RETURNING "items".*
+	//Could be executed with ScanStructs.
 	Dataset struct {
 		adapter  Adapter
 		clauses  clauses
@@ -62,31 +100,34 @@ func (me valueSlice) String() string {
 	return fmt.Sprintf("[%s]", strings.Join(vals, ","))
 }
 
+//Returns a dataset with the DefaultAdapter. Typically you would use Database#From.
 func From(table ...interface{}) *Dataset {
 	ret := new(Dataset)
-	ret.adapter = NewDsAdapter("default", ret)
+	ret.adapter = NewDefaultAdapter(ret)
 	ret.clauses = clauses{
 		Select: cols(Star()),
-		From:   cols(table...),
 	}
-	return ret
+	return ret.From(table...)
 }
 
+//used internally by database to create a database with a specific adatper
 func withDatabase(db database) *Dataset {
 	ret := new(Dataset)
 	ret.database = db
 	ret.clauses = clauses{
 		Select: cols(Star()),
 	}
-	ret.adapter = db.QueryAdapter(ret)
+	ret.adapter = db.queryAdapter(ret)
 	return ret
 }
 
+//Sets the adapter used to serialize values and create the SQL statement
 func (me *Dataset) SetAdapter(adapter Adapter) *Dataset {
 	me.adapter = adapter
 	return me
 }
 
+//Returns the current adapter on the dataset
 func (me *Dataset) Adapter() Adapter {
 	return me.adapter
 }
@@ -95,22 +136,35 @@ func (me *Dataset) Expression() Expression {
 	return me
 }
 
+//Clones the dataset
 func (me *Dataset) Clone() Expression {
 	return me.copy()
 }
 
+//Returns the current clauses on the dataset.
 func (me *Dataset) GetClauses() clauses {
 	return me.clauses
 }
 
+//used interally to copy the dataset
 func (me Dataset) copy() *Dataset {
 	return &me
 }
 
+//Returns true if the dataset has a FROM clause
 func (me *Dataset) hasSources() bool {
 	return me.clauses.From != nil && len(me.clauses.From.Columns()) > 0
 }
 
+//This method is used to serialize:
+//   * Primitive Values (e.g. float64, int64, string, bool, time.Time, or nil)
+//   * Expressions
+//
+//buf: The SqlBuilder to write the generated SQL to
+//val: The value to serialize
+//
+//Errors:
+//   * If there is an error generating the SQL
 func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
 	if val == nil {
 		return me.adapter.LiteralNil(buf)

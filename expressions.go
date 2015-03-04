@@ -8,6 +8,8 @@ import (
 )
 
 type (
+	//Alternative to writing map[string]interface{}. Can be used for Inserts, Updates or Deletes
+	Record map[string]interface{}
 	//Parent of all expression types
 	Expression interface {
 		Clone() Expression
@@ -22,10 +24,16 @@ type (
 
 type (
 	ExpressionListType int
-	ExpressionList     interface {
+	//A list of expressions that should be joined together
+	//    And(I("a").Eq(10), I("b").Eq(11)) //(("a" = 10) AND ("b" = 11))
+	//    Or(I("a").Eq(10), I("b").Eq(11)) //(("a" = 10) OR ("b" = 11))
+	ExpressionList interface {
 		Expression
+		//Returns type (e.g. OR, AND)
 		Type() ExpressionListType
+		//Slice of expressions that should be joined togehter
 		Expressions() []Expression
+		//Returns a new expression list with the given expressions appended to the current Expressions list
 		Append(...Expression) ExpressionList
 	}
 	expressionList struct {
@@ -40,11 +48,13 @@ const (
 )
 
 // A list of expressions that should be ORed together
+//    Or(I("a").Eq(10), I("b").Eq(11)) //(("a" = 10) OR ("b" = 11))
 func Or(expressions ...Expression) expressionList {
 	return expressionList{operator: OR_TYPE, expressions: expressions}
 }
 
 // A list of expressions that should be ANDed together
+//    And(I("a").Eq(10), I("b").Eq(11)) //(("a" = 10) AND ("b" = 11))
 func And(expressions ...Expression) expressionList {
 	return expressionList{operator: AND_TYPE, expressions: expressions}
 }
@@ -81,9 +91,12 @@ func (me expressionList) Append(expressions ...Expression) ExpressionList {
 }
 
 type (
+	//A list of columns. Typically used internally by Select, Order, From
 	ColumnList interface {
 		Expression
+		//Returns the list of columns
 		Columns() []Expression
+		//Returns a new ColumnList with the columns appended.
 		Append(...Expression) ColumnList
 	}
 	columnList struct {
@@ -148,15 +161,20 @@ type (
 	JoinType      int
 	JoinCondition int
 	//Parent type for join expressions
-	JoinExpression interface {
+	joinExpression interface {
 		Expression
 		JoinCondition() JoinCondition
 	}
+	//Container for all joins within a dataset
 	JoiningClause struct {
-		JoinType      JoinType
+		//The JoinType
+		JoinType JoinType
+		//If this is a conditioned join (e.g. NATURAL, or INNER)
 		IsConditioned bool
-		Table         Expression
-		Condition     JoinExpression
+		//The table expressions (e.g. LEFT JOIN "my_table", ON (....))
+		Table Expression
+		//The condition to join (e.g. USING("a", "b"), ON("my_table"."fkey" = "other_table"."id")
+		Condition joinExpression
 	}
 	JoiningClauses []JoiningClause
 	joinClause     struct {
@@ -183,7 +201,7 @@ const (
 )
 
 func (me JoiningClause) Clone() JoiningClause {
-	return JoiningClause{JoinType: me.JoinType, IsConditioned: me.IsConditioned, Table: me.Table.Clone(), Condition: me.Condition.Clone().(JoinExpression)}
+	return JoiningClause{JoinType: me.JoinType, IsConditioned: me.IsConditioned, Table: me.Table.Clone(), Condition: me.Condition.Clone().(joinExpression)}
 }
 
 func (me JoiningClauses) Clone() JoiningClauses {
@@ -209,7 +227,7 @@ func (me joinClause) JoinCondition() JoinCondition {
 type (
 	//A join expression that uses an ON clause
 	JoinOnExpression interface {
-		JoinExpression
+		joinExpression
 		On() ExpressionList
 	}
 	joinOnClause struct {
@@ -219,7 +237,8 @@ type (
 )
 
 //Creates a new ON clause to be used within a join
-func On(expressions ...Expression) JoinExpression {
+//    ds.Join(I("my_table"), On(I("my_table.fkey").Eq(I("other_table.id")))
+func On(expressions ...Expression) joinExpression {
 	return joinOnClause{joinClause{ON_COND}, And(expressions...)}
 }
 
@@ -237,7 +256,7 @@ func (me joinOnClause) On() ExpressionList {
 
 type (
 	JoinUsingExpression interface {
-		JoinExpression
+		joinExpression
 		Using() ColumnList
 	}
 	//A join expression that uses an USING clause
@@ -248,7 +267,7 @@ type (
 )
 
 //Creates a new USING clause to be used within a join
-func Using(expressions ...interface{}) JoinExpression {
+func Using(expressions ...interface{}) joinExpression {
 	return joinUsingClause{joinClause{USING_COND}, cols(expressions...)}
 }
 
@@ -265,51 +284,105 @@ func (me joinUsingClause) Using() ColumnList {
 }
 
 type (
-	aliasMethods interface {
+	//Interface that an expression should implement if it can be aliased.
+	AliasMethods interface {
+		//Returns an AliasedExpression
+		//    I("col").As("other_col") //"col" AS "other_col"
 		As(string) AliasedExpression
 	}
-	equalityMethods interface {
+	//Interface that an expression should implement if it can be compared with other values.
+	ComparisonMethods interface {
+		//Creates a Boolean expression comparing equality
+		//    I("col").Eq(1) //("col" = 1)
 		Eq(interface{}) BooleanExpression
+		//Creates a Boolean expression comparing in-equality
+		//    I("col").Neq(1) //("col" != 1)
 		Neq(interface{}) BooleanExpression
-	}
-	comparisonMethods interface {
-		equalityMethods
+		//Creates a Boolean expression for greater than comparisons
+		//    I("col").Gt(1) //("col" > 1)
 		Gt(interface{}) BooleanExpression
+		//Creates a Boolean expression for greater than or equal to than comparisons
+		//    I("col").Gte(1) //("col" >= 1)
 		Gte(interface{}) BooleanExpression
+		//Creates a Boolean expression for less than comparisons
+		//    I("col").Lt(1) //("col" < 1)
 		Lt(interface{}) BooleanExpression
+		//Creates a Boolean expression for less than or equal to comparisons
+		//    I("col").Lte(1) //("col" <= 1)
 		Lte(interface{}) BooleanExpression
 	}
-	inMethods interface {
+	//Interface that an expression should implement if it can be used in an IN expression
+	InMethods interface {
+		//Creates a Boolean expression for IN clauses
+		//    I("col").In([]string{"a", "b", "c"}) //("col" IN ('a', 'b', 'c'))
 		In(...interface{}) BooleanExpression
+		//Creates a Boolean expression for NOT IN clauses
+		//    I("col").NotIn([]string{"a", "b", "c"}) //("col" NOT IN ('a', 'b', 'c'))
 		NotIn(...interface{}) BooleanExpression
 	}
-	orderedMethods interface {
+	//Interface that an expression should implement if it can be ORDERED.
+	OrderedMethods interface {
+		//Creates an Ordered Expression for sql ASC order
+		//   ds.Order(I("a").Asc()) //ORDER BY "a" ASC
 		Asc() OrderedExpression
+		//Creates an Ordered Expression for sql DESC order
+		//   ds.Order(I("a").Desc()) //ORDER BY "a" DESC
 		Desc() OrderedExpression
 	}
-	stringMethods interface {
+	//Interface that an expression should implement if it can be used in string operations (e.g. LIKE, NOT LIKE...).
+	StringMethods interface {
+		//Creates an Boolean expression for LIKE clauses
+		//   ds.Where(I("a").Like("a%")) //("a" LIKE 'a%')
 		Like(interface{}) BooleanExpression
+		//Creates an Boolean expression for NOT LIKE clauses
+		//   ds.Where(I("a").NotLike("a%")) //("a" NOT LIKE 'a%')
 		NotLike(interface{}) BooleanExpression
+		//Creates an Boolean expression for case insensitive LIKE clauses
+		//   ds.Where(I("a").ILike("a%")) //("a" ILIKE 'a%')
 		ILike(interface{}) BooleanExpression
+		//Creates an Boolean expression for case insensitive NOT LIKE clauses
+		//   ds.Where(I("a").NotILike("a%")) //("a" NOT ILIKE 'a%')
 		NotILike(interface{}) BooleanExpression
 	}
-	booleanMethods interface {
+	//Interface that an expression should implement if it can be used in simple boolean operations (e.g IS, IS NOT).
+	BooleanMethods interface {
+		//Creates an Boolean expression IS clauses
+		//   ds.Where(I("a").Is(nil)) //("a" IS NULL)
+		//   ds.Where(I("a").Is(true)) //("a" IS TRUE)
+		//   ds.Where(I("a").Is(false)) //("a" IS FALSE)
 		Is(interface{}) BooleanExpression
+		//Creates an Boolean expression IS NOT clauses
+		//   ds.Where(I("a").IsNot(nil)) //("a" IS NOT NULL)
+		//   ds.Where(I("a").IsNot(true)) //("a" IS NOT TRUE)
+		//   ds.Where(I("a").IsNot(false)) //("a" IS NOT FALSE)
 		IsNot(interface{}) BooleanExpression
+		//Shortcut for Is(nil)
 		IsNull() BooleanExpression
+		//Shortcut for IsNot(nil)
 		IsNotNull() BooleanExpression
+		//Shortcut for Is(true)
 		IsTrue() BooleanExpression
+		//Shortcut for IsNot(true)
 		IsNotTrue() BooleanExpression
+		//Shortcut for Is(false)
 		IsFalse() BooleanExpression
+		//Shortcut for IsNot(false)
 		IsNotFalse() BooleanExpression
 	}
-	castMethods interface {
+	//Interface that an expression should implement if it can be casted to another SQL type .
+	CastMethods interface {
+		//Casts an expression to the specified type
+		//   I("a").Cast("numeric")//CAST("a" AS numeric)
 		Cast(val string) CastExpression
 	}
 	updateMethods interface {
+		//Used internally by update sql
 		Set(interface{}) UpdateExpression
 	}
-	distinctMethods interface {
+	//Interface that an expression should implement if it can be used in a DISTINCT epxression.
+	DistinctMethods interface {
+		//Creates a DISTINCT clause
+		//   I("a").Distinct() //DISTINCT("a")
 		Distinct() SqlFunctionExpression
 	}
 )
@@ -318,21 +391,29 @@ type (
 	//An Identifier that can contain schema, table and column identifiers
 	IdentifierExpression interface {
 		Expression
-		aliasMethods
-		comparisonMethods
-		inMethods
-		stringMethods
-		booleanMethods
-		orderedMethods
+		AliasMethods
+		ComparisonMethods
+		InMethods
+		StringMethods
+		BooleanMethods
+		OrderedMethods
 		updateMethods
-		distinctMethods
-		castMethods
+		DistinctMethods
+		CastMethods
+		//Returns a new IdentifierExpression with the specified schema
 		Schema(string) IdentifierExpression
+		//Returns the current schema
 		GetSchema() string
+		//Returns a new IdentifierExpression with the specified table
 		Table(string) IdentifierExpression
+		//Returns the current table
 		GetTable() string
+		//Returns a new IdentifierExpression with the specified column
 		Col(interface{}) IdentifierExpression
+		//Returns the current column
 		GetCol() interface{}
+		//Returns a new IdentifierExpression with the column set to *
+		//   I("my_table").All() //"my_table".*
 		All() IdentifierExpression
 	}
 	identifier struct {
@@ -342,7 +423,12 @@ type (
 	}
 )
 
-//Creates a new Identifier to be used in queries see examples
+//Creates a new Identifier, the generated sql will use adapter specific quoting or '"' by default, this ensures case sensitivity and in certain databases allows for special characters, (e.g. "curr-table", "my table").
+//An Identifier can represent a one or a combination of schema, table, and/or column.
+//    I("column") -> "column" //A Column
+//    I("table.column") -> "table"."column" //A Column and table
+//    I("schema.table.column") //Schema table and column
+//    I("table.*") //Also handles the * operator
 func I(ident string) IdentifierExpression {
 	parts := strings.Split(ident, ".")
 	switch len(parts) {
@@ -362,6 +448,9 @@ func (me identifier) Clone() Expression {
 	return me.clone()
 }
 
+//Sets the table on the current identifier
+//  I("col").Table("table") -> "table"."col" //postgres
+//  I("col").Table("table") -> `table`.`col` //mysql
 func (me identifier) Table(table string) IdentifierExpression {
 	ret := me.clone()
 	if s, ok := me.col.(string); ok && s != "" && me.table == "" && me.schema == "" {
@@ -376,6 +465,9 @@ func (me identifier) GetTable() string {
 	return me.table
 }
 
+//Sets the table on the current identifier
+//  I("table").Schema("schema") -> "schema"."table" //postgres
+//  I("col").Schema("table") -> `schema`.`table` //mysql
 func (me identifier) Schema(schema string) IdentifierExpression {
 	ret := me.clone()
 	ret.schema = schema
@@ -386,6 +478,9 @@ func (me identifier) GetSchema() string {
 	return me.schema
 }
 
+//Sets the table on the current identifier
+//  I("table").Col("col") -> "table"."col" //postgres
+//  I("table").Schema("col") -> `table`.`col` //mysql
 func (me identifier) Col(col interface{}) IdentifierExpression {
 	ret := me.clone()
 	if s, ok := me.col.(string); ok && s != "" && me.table == "" {
@@ -453,12 +548,17 @@ func (me identifier) Distinct() SqlFunctionExpression             { return DISTI
 func (me identifier) Cast(t string) CastExpression                { return Cast(me, t) }
 
 type (
+	//Expression for representing "literal" sql.
+	//  L("col = 1") -> col = 1)
+	//  L("? = ?", I("col"), 1) -> "col" = 1
 	LiteralExpression interface {
 		Expression
-		aliasMethods
-		comparisonMethods
-		orderedMethods
+		AliasMethods
+		ComparisonMethods
+		OrderedMethods
+		//Returns the literal sql
 		Literal() string
+		//Arguments to be replaced within the sql
 		Args() []interface{}
 	}
 	literal struct {
@@ -467,18 +567,28 @@ type (
 	}
 )
 
+//Alias for L
 func Literal(val string, args ...interface{}) LiteralExpression {
+	return L(val, args...)
+}
+
+//Creates a new SQL literal with the provided arguments.
+//   L("a = 1") -> a = 1
+//You can also you placeholders. All placeholders within a Literal are represented by '?'
+//   L("a = ?", "b") -> a = 'b'
+//Literals can also contain placeholders for other expressions
+//   L("(? AND ?) OR (?)", I("a").Eq(1), I("b").Eq("b"), I("c").In([]string{"a", "b", "c"}))
+
+func L(val string, args ...interface{}) LiteralExpression {
 	return literal{literal: val, args: args}
 }
 
-func L(val string, args ...interface{}) LiteralExpression {
-	return Literal(val, args...)
-}
-
+//Returns a literal for DEFAULT sql keyword
 func Default() LiteralExpression {
 	return literal{literal: "DEFAULT"}
 }
 
+//Returns a literal for the '*' operator
 func Star() LiteralExpression {
 	return literal{literal: "*"}
 }
@@ -541,8 +651,11 @@ type (
 	BooleanOperation  int
 	BooleanExpression interface {
 		Expression
+		//Returns the operator for the expression
 		Op() BooleanOperation
+		//The left hand side of the expression (e.g. I("a")
 		Lhs() Expression
+		//The right hand side of the expression could be a primitive value, dataset, or expression
 		Rhs() interface{}
 	}
 	boolean struct {
@@ -553,26 +666,45 @@ type (
 )
 
 const (
+	//=
 	EQ_OP BooleanOperation = iota
+	//!= or <>
 	NEQ_OP
+	//IS
 	IS_OP
+	//IS NOT
 	IS_NOT_OP
+	//>
 	GT_OP
+	//>=
 	GTE_OP
+	//<
 	LT_OP
+	//<=
 	LTE_OP
+	//IN
 	IN_OP
+	//NOT IN
 	NOT_IN_OP
+	//LIKE, LIKE BINARY...
 	LIKE_OP
+	//NOT LIKE, NOT LIKE BINARY...
 	NOT_LIKE_OP
+	//ILIKE, LIKE
 	I_LIKE_OP
+	//NOT ILIKE, NOT LIKE
 	NOT_I_LIKE_OP
+	//~, REGEXP BINARY
 	REGEXP_LIKE_OP
+	//!~, NOT REGEXP BINARY
 	REGEXP_NOT_LIKE_OP
+	//~*, REGEXP
 	REGEXP_I_LIKE_OP
+	//!~*, NOT REGEXP
 	REGEXP_NOT_I_LIKE_OP
 )
 
+//used internally for inverting operators
 var operator_inversions = map[BooleanOperation]BooleanOperation{
 	IS_OP:                IS_NOT_OP,
 	EQ_OP:                NEQ_OP,
@@ -614,30 +746,37 @@ func (me boolean) Op() BooleanOperation {
 	return me.op
 }
 
+//used internally to create an equality BooleanExpression
 func eq(lhs Expression, rhs interface{}) BooleanExpression {
 	return checkBoolExpType(EQ_OP, lhs, rhs, false)
 }
 
+//used internally to create an in-equality BooleanExpression
 func neq(lhs Expression, rhs interface{}) BooleanExpression {
 	return checkBoolExpType(EQ_OP, lhs, rhs, true)
 }
 
+//used internally to create an gt comparison BooleanExpression
 func gt(lhs Expression, rhs interface{}) BooleanExpression {
 	return boolean{op: GT_OP, lhs: lhs, rhs: rhs}
 }
 
+//used internally to create an gte comparison BooleanExpression
 func gte(lhs Expression, rhs interface{}) BooleanExpression {
 	return boolean{op: GTE_OP, lhs: lhs, rhs: rhs}
 }
 
+//used internally to create an lt comparison BooleanExpression
 func lt(lhs Expression, rhs interface{}) BooleanExpression {
 	return boolean{op: LT_OP, lhs: lhs, rhs: rhs}
 }
 
+//used internally to create an lte comparison BooleanExpression
 func lte(lhs Expression, rhs interface{}) BooleanExpression {
 	return boolean{op: LTE_OP, lhs: lhs, rhs: rhs}
 }
 
+//used internally to create an IN BooleanExpression
 func in(lhs Expression, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
 		return boolean{op: IN_OP, lhs: lhs, rhs: vals[0]}
@@ -645,6 +784,7 @@ func in(lhs Expression, vals ...interface{}) BooleanExpression {
 	return boolean{op: IN_OP, lhs: lhs, rhs: vals}
 }
 
+//used internally to create a NOT IN BooleanExpression
 func notIn(lhs Expression, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
 		return boolean{op: NOT_IN_OP, lhs: lhs, rhs: vals[0]}
@@ -652,25 +792,37 @@ func notIn(lhs Expression, vals ...interface{}) BooleanExpression {
 	return boolean{op: NOT_IN_OP, lhs: lhs, rhs: vals}
 }
 
+//used internally to create an IS BooleanExpression
 func is(lhs Expression, val interface{}) BooleanExpression {
 	return checkBoolExpType(IS_OP, lhs, val, false)
 }
+
+//used internally to create an IS NOT BooleanExpression
 func isNot(lhs Expression, val interface{}) BooleanExpression {
 	return checkBoolExpType(IS_OP, lhs, val, true)
 }
+
+//used internally to create a LIKE BooleanExpression
 func like(lhs Expression, val interface{}) BooleanExpression {
 	return checkLikeExp(LIKE_OP, lhs, val, false)
 }
+
+//used internally to create an ILIKE BooleanExpression
 func iLike(lhs Expression, val interface{}) BooleanExpression {
 	return checkLikeExp(I_LIKE_OP, lhs, val, false)
 }
+
+//used internally to create a NOT LIKE BooleanExpression
 func notLike(lhs Expression, val interface{}) BooleanExpression {
 	return checkLikeExp(LIKE_OP, lhs, val, true)
 }
+
+//used internally to create a NOT ILIKE BooleanExpression
 func notILike(lhs Expression, val interface{}) BooleanExpression {
 	return checkLikeExp(I_LIKE_OP, lhs, val, true)
 }
 
+//checks an like rhs to create the proper like expression for strings or regexps
 func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert bool) BooleanExpression {
 	rhs := val
 	switch val.(type) {
@@ -688,6 +840,7 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	return boolean{op: op, lhs: lhs, rhs: rhs}
 }
 
+//checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
 	if rhs == nil {
 		op = IS_OP
@@ -711,9 +864,14 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 }
 
 type (
+	//Expression for Aliased expressions
+	//   I("a").As("b") -> "a" AS "b"
+	//   SUM("a").As("a_sum") -> SUM("a") AS "a_sum"
 	AliasedExpression interface {
 		Expression
+		//Returns the Epxression being aliased
 		Aliased() Expression
+		//Returns the alias value as an identiier expression
 		GetAs() IdentifierExpression
 	}
 	aliasExpression struct {
@@ -722,6 +880,7 @@ type (
 	}
 )
 
+//used internally by other expressions to create a new aliased expression
 func aliased(exp Expression, alias string) AliasedExpression {
 	return aliasExpression{aliased: exp, alias: I(alias)}
 }
@@ -743,14 +902,20 @@ func (me aliasExpression) GetAs() IdentifierExpression {
 }
 
 type (
-	null_sort_type    int
-	sort_direction    int
+	null_sort_type int
+	sort_direction int
+	//An expression for specifying sort order and options
 	OrderedExpression interface {
 		Expression
+		//The expression being sorted
 		SortExpression() Expression
+		//Sort direction (e.g. ASC, DESC)
 		Direction() sort_direction
+		//If the adapter supports it null sort type (e.g. NULLS FIRST, NULLS LAST)
 		NullSortType() null_sort_type
+		//Returns a new OrderedExpression with NullSortType set to NULLS_FIRST
 		NullsFirst() OrderedExpression
+		//Returns a new OrderedExpression with NullSortType set to NULLS_LAST
 		NullsLast() OrderedExpression
 	}
 	orderedExpression struct {
@@ -761,18 +926,25 @@ type (
 )
 
 const (
+	//Default null sort type with no null sort order
 	NO_NULLS null_sort_type = iota
+	//NULLS FIRST
 	NULLS_FIRST
+	//NULLS LAST
 	NULLS_LAST
 
+	//ASC
 	SORT_ASC sort_direction = iota
+	//DESC
 	SORT_DESC
 )
 
+//used internally to create a new SORT_ASC OrderedExpression
 func asc(exp Expression) OrderedExpression {
 	return orderedExpression{sortExpression: exp, direction: SORT_ASC, nullSortType: NO_NULLS}
 }
 
+//used internally to create a new SORT_DESC OrderedExpression
 func desc(exp Expression) OrderedExpression {
 	return orderedExpression{sortExpression: exp, direction: SORT_DESC, nullSortType: NO_NULLS}
 }
@@ -806,12 +978,15 @@ func (me orderedExpression) NullsLast() OrderedExpression {
 }
 
 type (
+	//Expression for representing a SqlFunction(e.g. COUNT, SUM, MIN, MAX...)
 	SqlFunctionExpression interface {
 		Expression
-		aliasMethods
-		comparisonMethods
-		orderedMethods
+		AliasMethods
+		ComparisonMethods
+		OrderedMethods
+		//The function name
 		Name() string
+		//Arguments to be passed to the function
 		Args() []interface{}
 	}
 	sqlFunctionExpression struct {
@@ -820,10 +995,12 @@ type (
 	}
 )
 
+//Creates a new SqlFunctionExpression with the given name and arguments
 func Func(name string, args ...interface{}) SqlFunctionExpression {
 	return sqlFunctionExpression{name: name, args: args}
 }
 
+//used internally to normalize the column name if passed in as a string it should be turned into an identifier
 func colFunc(name string, col interface{}) SqlFunctionExpression {
 	if s, ok := col.(string); ok {
 		col = I(s)
@@ -831,15 +1008,50 @@ func colFunc(name string, col interface{}) SqlFunctionExpression {
 	return Func(name, col)
 }
 
+//Creates a new DISTINCT sql function
+//   DISTINCT("a") -> DISTINCT("a")
+//   DISTINCT(I("a")) -> DISTINCT("a")
 func DISTINCT(col interface{}) SqlFunctionExpression { return colFunc("DISTINCT", col) }
-func COUNT(col interface{}) SqlFunctionExpression    { return colFunc("COUNT", col) }
-func MIN(col interface{}) SqlFunctionExpression      { return colFunc("MIN", col) }
-func MAX(col interface{}) SqlFunctionExpression      { return colFunc("MAX", col) }
-func AVG(col interface{}) SqlFunctionExpression      { return colFunc("AVG", col) }
-func FIRST(col interface{}) SqlFunctionExpression    { return colFunc("FIRST", col) }
-func LAST(col interface{}) SqlFunctionExpression     { return colFunc("LAST", col) }
-func SUM(col interface{}) SqlFunctionExpression      { return colFunc("SUM", col) }
 
+//Creates a new COUNT sql function
+//   COUNT("a") -> COUNT("a")
+//   COUNT("*") -> COUNT("*")
+//   COUNT(I("a")) -> COUNT("a")
+func COUNT(col interface{}) SqlFunctionExpression { return colFunc("COUNT", col) }
+
+//Creates a new MIN sql function
+//   MIN("a") -> MIN("a")
+//   MIN(I("a")) -> MIN("a")
+func MIN(col interface{}) SqlFunctionExpression { return colFunc("MIN", col) }
+
+//Creates a new MAX sql function
+//   MAX("a") -> MAX("a")
+//   MAX(I("a")) -> MAX("a")
+func MAX(col interface{}) SqlFunctionExpression { return colFunc("MAX", col) }
+
+//Creates a new AVG sql function
+//   AVG("a") -> AVG("a")
+//   AVG(I("a")) -> AVG("a")
+func AVG(col interface{}) SqlFunctionExpression { return colFunc("AVG", col) }
+
+//Creates a new FIRST sql function
+//   FIRST("a") -> FIRST("a")
+//   FIRST(I("a")) -> FIRST("a")
+func FIRST(col interface{}) SqlFunctionExpression { return colFunc("FIRST", col) }
+
+//Creates a new LAST sql function
+//   LAST("a") -> LAST("a")
+//   LAST(I("a")) -> LAST("a")
+func LAST(col interface{}) SqlFunctionExpression { return colFunc("LAST", col) }
+
+//Creates a new SUM sql function
+//   SUM("a") -> SUM("a")
+//   SUM(I("a")) -> SUM("a")
+func SUM(col interface{}) SqlFunctionExpression { return colFunc("SUM", col) }
+
+//Creates a new COALESCE sql function
+//   COALESCE(I("a"), "a") -> COALESCE("a", 'a')
+//   COALESCE(I("a"), I("b"), nil) -> COALESCE("a", "b", NULL)
 func COALESCE(vals ...interface{}) SqlFunctionExpression {
 	return Func("COALESCE", vals...)
 }
@@ -862,16 +1074,19 @@ func (me sqlFunctionExpression) Asc() OrderedExpression                { return 
 func (me sqlFunctionExpression) Desc() OrderedExpression               { return desc(me) }
 
 type (
+	//An Expression that represents another Expression casted to a SQL type
 	CastExpression interface {
 		Expression
-		aliasMethods
-		comparisonMethods
-		inMethods
-		stringMethods
-		booleanMethods
-		orderedMethods
-		distinctMethods
+		AliasMethods
+		ComparisonMethods
+		InMethods
+		StringMethods
+		BooleanMethods
+		OrderedMethods
+		DistinctMethods
+		//The exression being casted
 		Casted() Expression
+		//The the SQL type to cast the expression to
 		Type() LiteralExpression
 	}
 	cast struct {
@@ -880,6 +1095,8 @@ type (
 	}
 )
 
+//Creates a new Casted expression
+//  Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
 func Cast(e Expression, t string) CastExpression {
 	return cast{casted: e, t: Literal(t)}
 }
@@ -942,18 +1159,22 @@ const (
 	INTERSECT_ALL
 )
 
+//Creates a new UNION compound expression between SqlExpression, typically Datasets'. This function is used internally by Dataset when compounded with another Dataset
 func Union(rhs SqlExpression) CompoundExpression {
 	return compound{t: UNION, rhs: rhs}
 }
 
+//Creates a new UNION ALL compound expression between SqlExpression, typically Datasets'. This function is used internally by Dataset when compounded with another Dataset
 func UnionAll(rhs SqlExpression) CompoundExpression {
 	return compound{t: UNION_ALL, rhs: rhs}
 }
 
+//Creates a new INTERSECT compound expression between SqlExpression, typically Datasets'. This function is used internally by Dataset when compounded with another Dataset
 func Intersect(rhs SqlExpression) CompoundExpression {
 	return compound{t: INTERSECT, rhs: rhs}
 }
 
+//Creates a new INTERSECT ALL compound expression between SqlExpression, typically Datasets'. This function is used internally by Dataset when compounded with another Dataset
 func IntersectAll(rhs SqlExpression) CompoundExpression {
 	return compound{t: INTERSECT_ALL, rhs: rhs}
 }

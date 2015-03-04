@@ -1,7 +1,6 @@
 package gql
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -37,16 +36,16 @@ var (
 	default_returning_fragment      = []byte(" RETURNING ")
 	default_from_fragment           = []byte(" FROM")
 	default_where_fragment          = []byte(" WHERE ")
-	default_group_by_fragement      = []byte(" GROUP BY ")
+	default_group_by_fragment       = []byte(" GROUP BY ")
 	default_having_fragment         = []byte(" HAVING ")
 	default_order_by_fragment       = []byte(" ORDER BY ")
 	default_limit_fragment          = []byte(" LIMIT ")
 	default_offset_fragment         = []byte(" OFFSET ")
-	default_as_fragement            = []byte(" AS ")
-	default_asc_fragement           = []byte(" ASC")
-	default_desc_fragement          = []byte(" DESC")
-	default_nulls_first_fragement   = []byte(" NULLS FIRST")
-	default_nulls_last_fragement    = []byte(" NULLS LAST")
+	default_as_fragment             = []byte(" AS ")
+	default_asc_fragment            = []byte(" ASC")
+	default_desc_fragment           = []byte(" DESC")
+	default_nulls_first_fragment    = []byte(" NULLS FIRST")
+	default_nulls_last_fragment     = []byte(" NULLS LAST")
 	default_and_fragment            = []byte(" AND ")
 	default_or_fragment             = []byte(" OR ")
 	default_union_fragment          = []byte(" UNION ")
@@ -93,50 +92,94 @@ var (
 )
 
 type (
+	//The default adapter. This class should be used when building a new adapter. When creating a new adapter you can either override methods, or more typically update default values. See (github.com/doug-martin/gql/adapters/postgres)
 	DefaultAdapter struct {
-		dataset               *Dataset
-		UpdateClause          []byte
-		InsertClause          []byte
-		SelectClause          []byte
-		DeleteClause          []byte
-		TruncateClause        []byte
-		CascadeFragment       []byte
-		RestrictFragment      []byte
+		Adapter
+		dataset *Dataset
+		//The UPDATE fragment to use when generating sql. (DEFAULT=[]byte("UPDATE"))
+		UpdateClause []byte
+		//The INSERT fragment to use when generating sql. (DEFAULT=[]byte("INSERT"))
+		InsertClause []byte
+		//The SELECT fragment to use when generating sql. (DEFAULT=[]byte("SELECT"))
+		SelectClause []byte
+		//The DELETE fragment to use when generating sql. (DEFAULT=[]byte("DELETE"))
+		DeleteClause []byte
+		//The TRUNCATE fragment to use when generating sql. (DEFAULT=[]byte("TRUNCATE"))
+		TruncateClause []byte
+		//The CASCADE fragment to use when generating sql. (DEFAULT=[]byte(" CASCADE"))
+		CascadeFragment []byte
+		//The RESTRICT fragment to use when generating sql. (DEFAULT=[]byte(" RESTRICT"))
+		RestrictFragment []byte
+		//The SQL fragment to use when generating insert sql and using DEFAULT VALUES (e.g. postgres="DEFAULT VALUES", mysql= ""). (DEFAULT=[]byte(" DEFAULT VALUES"))
 		DefaultValuesFragment []byte
-		ValuesFragment        []byte
-		IdentityFragment      []byte
-		SetFragment           []byte
-		DistinctFragment      []byte
-		ReturningFragment     []byte
-		FromFragment          []byte
-		WhereFragment         []byte
-		GroupByFragment       []byte
-		HavingFragment        []byte
-		OrderByFragment       []byte
-		LimitFragment         []byte
-		OffsetFragment        []byte
-		AsFragment            []byte
-		QuoteRune             rune
-		Null                  []byte
-		True                  []byte
-		False                 []byte
-		AscFragment           []byte
-		DescFragment          []byte
-		NullsFirstFragment    []byte
-		NullsLastFragment     []byte
-		AndFragment           []byte
-		OrFragment            []byte
-		UnionFragment         []byte
-		UnionAllFragment      []byte
-		IntersectFragment     []byte
-		IntersectAllFragment  []byte
-		StringQuote           rune
-		SetOperatorRune       rune
-		PlaceHolderRune       rune
+		//The SQL fragment to use when generating insert sql and listing columns using a VALUES clause (DEFAULT=[]byte(" VALUES "))
+		ValuesFragment []byte
+		//The SQL fragment to use when generating truncate sql and using the IDENTITY clause (DEFAULT=[]byte(" IDENTITY"))
+		IdentityFragment []byte
+		//The SQL fragment to use when generating update sql and using the SET clause (DEFAULT=[]byte(" SET "))
+		SetFragment []byte
+		//The SQL DISTINCT keyword (DEFAULT=[]byte(" DISTINCT "))
+		DistinctFragment []byte
+		//The SQL RETURNING clause (DEFAULT=[]byte(" RETURNING "))
+		ReturningFragment []byte
+		//The SQL FROM clause fragment (DEFAULT=[]byte(" FROM"))
+		FromFragment []byte
+		//The SQL WHERE clause fragment (DEFAULT=[]byte(" WHERE"))
+		WhereFragment []byte
+		//The SQL GROUP BY clause fragment(DEFAULT=[]byte(" GROUP BY "))
+		GroupByFragment []byte
+		//The SQL HAVING clause fragment(DEFAULT=[]byte(" HAVING "))
+		HavingFragment []byte
+		//The SQL ORDER BY clause fragment(DEFAULT=[]byte(" ORDER BY "))
+		OrderByFragment []byte
+		//The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
+		LimitFragment []byte
+		//The SQL OFFSET BY clause fragment(DEFAULT=[]byte(" OFFSET "))
+		OffsetFragment []byte
+		//The SQL AS fragment when aliasing an Expression(DEFAULT=[]byte(" AS "))
+		AsFragment []byte
+		//The quote rune to use when quoting identifiers(DEFAULT='"')
+		QuoteRune rune
+		//The NULL literal to use when interpolating nulls values (DEFAULT=[]byte("NULL"))
+		Null []byte
+		//The TRUE literal to use when interpolating bool true values (DEFAULT=[]byte("TRUE"))
+		True []byte
+		//The FALSE literal to use when interpolating bool false values (DEFAULT=[]byte("FALSE"))
+		False []byte
+		//The ASC fragment when specifying column order (DEFAULT=[]byte(" ASC"))
+		AscFragment []byte
+		//The DESC fragment when specifying column order (DEFAULT=[]byte(" DESC"))
+		DescFragment []byte
+		//The NULLS FIRST fragment when specifying column order (DEFAULT=[]byte(" NULLS FIRST"))
+		NullsFirstFragment []byte
+		//The NULLS LAST fragment when specifying column order (DEFAULT=[]byte(" NULLS LAST"))
+		NullsLastFragment []byte
+		//The AND keyword used when joining ExpressionLists (DEFAULT=[]byte(" AND "))
+		AndFragment []byte
+		//The OR keyword used when joining ExpressionLists (DEFAULT=[]byte(" OR "))
+		OrFragment []byte
+		//The UNION keyword used when creating compound statements (DEFAULT=[]byte(" UNION "))
+		UnionFragment []byte
+		//The UNION ALL keyword used when creating compound statements (DEFAULT=[]byte(" UNION ALL "))
+		UnionAllFragment []byte
+		//The INTERSECT keyword used when creating compound statements (DEFAULT=[]byte(" INTERSECT "))
+		IntersectFragment []byte
+		//The INTERSECT ALL keyword used when creating compound statements (DEFAULT=[]byte(" INTERSECT ALL "))
+		IntersectAllFragment []byte
+		//The quote rune to use when quoting string literals (DEFAULT='\'')
+		StringQuote rune
+		//The operator to use when setting values in an update statement (DEFAULT='=')
+		SetOperatorRune rune
+		//The placeholder rune to use when generating a non interpolated statement (DEFAULT='?')
+		PlaceHolderRune rune
+		//Set to true to include positional argument numbers when creating a prepared statement
 		IncludePlaceholderNum bool
-		TimeFormat            string
+		//The time format to use when serializing time.Time (DEFAULT=time.RFC3339Nano)
+		TimeFormat string
+		//A map used to look up BooleanOperations and their SQL equivalents
 		BooleanOperatorLookup map[BooleanOperation][]byte
-		JoinTypeLookup        map[JoinType][]byte
+		//A map used to look up JoinTypes and their SQL equivalents
+		JoinTypeLookup map[JoinType][]byte
 	}
 )
 
@@ -158,21 +201,21 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		ReturningFragment:     default_returning_fragment,
 		FromFragment:          default_from_fragment,
 		WhereFragment:         default_where_fragment,
-		GroupByFragment:       default_group_by_fragement,
+		GroupByFragment:       default_group_by_fragment,
 		HavingFragment:        default_having_fragment,
 		OrderByFragment:       default_order_by_fragment,
 		LimitFragment:         default_limit_fragment,
 		OffsetFragment:        default_offset_fragment,
-		AsFragment:            default_as_fragement,
+		AsFragment:            default_as_fragment,
 		QuoteRune:             default_quote,
 		Null:                  default_null,
 		True:                  default_true,
 		False:                 default_false,
 		StringQuote:           default_string_quote_rune,
-		AscFragment:           default_asc_fragement,
-		DescFragment:          default_desc_fragement,
-		NullsFirstFragment:    default_nulls_first_fragement,
-		NullsLastFragment:     default_nulls_last_fragement,
+		AscFragment:           default_asc_fragment,
+		DescFragment:          default_desc_fragment,
+		NullsFirstFragment:    default_nulls_first_fragment,
+		NullsLastFragment:     default_nulls_last_fragment,
 		AndFragment:           default_and_fragment,
 		OrFragment:            default_or_fragment,
 		SetOperatorRune:       default_set_operator_rune,
@@ -187,30 +230,37 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 	}
 }
 
+//Override to prevent return statements from being generated when creating SQL
 func (me *DefaultAdapter) SupportsReturn() bool {
 	return true
 }
 
+//Override to allow LIMIT on DELETE statements
 func (me *DefaultAdapter) SupportsLimitOnDelete() bool {
 	return false
 }
 
+//Override to allow LIMIT on UPDATE statements
 func (me *DefaultAdapter) SupportsLimitOnUpdate() bool {
 	return false
 }
 
+//Override to allow ORDER BY on DELETE statements
 func (me *DefaultAdapter) SupportsOrderByOnDelete() bool {
 	return false
 }
 
+//Override to allow ORDER BY on UPDATE statements
 func (me *DefaultAdapter) SupportsOrderByOnUpdate() bool {
 	return false
 }
 
+//This is a proxy to Dataset.Literal. Used internally to ensure the correct method is called on any subclasses and to prevent duplication of code
 func (me *DefaultAdapter) Literal(buf *SqlBuilder, val interface{}) error {
 	return me.dataset.Literal(buf, val)
 }
 
+//Generates a placeholder (e.g. ?, $1)
 func (me *DefaultAdapter) PlaceHolderSql(buf *SqlBuilder, i interface{}) error {
 	buf.WriteRune(me.PlaceHolderRune)
 	if me.IncludePlaceholderNum {
@@ -220,21 +270,25 @@ func (me *DefaultAdapter) PlaceHolderSql(buf *SqlBuilder, i interface{}) error {
 	return nil
 }
 
+//Adds the correct fragment to being an UPDATE statement
 func (me *DefaultAdapter) UpdateBeginSql(buf *SqlBuilder) error {
 	buf.Write(me.UpdateClause)
 	return nil
 }
 
+//Adds the correct fragment to being an INSERT statement
 func (me *DefaultAdapter) InsertBeginSql(buf *SqlBuilder) error {
 	buf.Write(me.InsertClause)
 	return nil
 }
 
+//Adds the correct fragment to being an DELETE statement
 func (me *DefaultAdapter) DeleteBeginSql(buf *SqlBuilder) error {
 	buf.Write(me.DeleteClause)
 	return nil
 }
 
+//Generates a TRUNCATE statement
 func (me *DefaultAdapter) TruncateSql(buf *SqlBuilder, from ColumnList, opts TruncateOptions) error {
 	buf.Write(me.TruncateClause)
 	if err := me.SourcesSql(buf, from); err != nil {
@@ -253,11 +307,13 @@ func (me *DefaultAdapter) TruncateSql(buf *SqlBuilder, from ColumnList, opts Tru
 	return nil
 }
 
+//Adds the DefaultValuesFragment to an SQL statement
 func (me *DefaultAdapter) DefaultValuesSql(buf *SqlBuilder) error {
 	buf.Write(me.DefaultValuesFragment)
 	return nil
 }
 
+//Adds the columns list to an insert statement
 func (me *DefaultAdapter) InsertColumnsSql(buf *SqlBuilder, cols ColumnList) error {
 	buf.WriteRune(space_rune)
 	buf.WriteRune(left_paren_rune)
@@ -268,6 +324,7 @@ func (me *DefaultAdapter) InsertColumnsSql(buf *SqlBuilder, cols ColumnList) err
 	return nil
 }
 
+//Adds the values clause to an SQL statement
 func (me *DefaultAdapter) InsertValuesSql(buf *SqlBuilder, values [][]interface{}) error {
 	buf.Write(me.ValuesFragment)
 	rowLen := len(values[0])
@@ -287,6 +344,7 @@ func (me *DefaultAdapter) InsertValuesSql(buf *SqlBuilder, values [][]interface{
 	return nil
 }
 
+//Adds column setters in an update SET clause
 func (me *DefaultAdapter) UpdateExpressionsSql(buf *SqlBuilder, updates ...UpdateExpression) error {
 	if len(updates) == 0 {
 		return NewGqlError("No update values provided")
@@ -305,6 +363,7 @@ func (me *DefaultAdapter) UpdateExpressionsSql(buf *SqlBuilder, updates ...Updat
 
 }
 
+//Adds the SELECT clause and columns to a sql statement
 func (me *DefaultAdapter) SelectSql(buf *SqlBuilder, cols ColumnList) error {
 	buf.Write(me.SelectClause)
 	buf.WriteRune(space_rune)
@@ -316,6 +375,7 @@ func (me *DefaultAdapter) SelectSql(buf *SqlBuilder, cols ColumnList) error {
 	return nil
 }
 
+//Adds the SELECT DISTINCT clause and columns to a sql statement
 func (me *DefaultAdapter) SelectDistinctSql(buf *SqlBuilder, cols ColumnList) error {
 	buf.Write(me.SelectClause)
 	buf.Write(me.DistinctFragment)
@@ -330,6 +390,7 @@ func (me *DefaultAdapter) ReturningSql(buf *SqlBuilder, returns ColumnList) erro
 	return nil
 }
 
+//Adds the FROM clause and tables to an sql statement
 func (me *DefaultAdapter) FromSql(buf *SqlBuilder, from ColumnList) error {
 	if from != nil && len(from.Columns()) > 0 {
 		buf.Write(me.FromFragment)
@@ -338,11 +399,13 @@ func (me *DefaultAdapter) FromSql(buf *SqlBuilder, from ColumnList) error {
 	return nil
 }
 
+//Adds the generates the SQL for a column list
 func (me *DefaultAdapter) SourcesSql(buf *SqlBuilder, from ColumnList) error {
 	buf.WriteRune(space_rune)
 	return me.Literal(buf, from)
 }
 
+//Generates the JOIN clauses for an SQL statement
 func (me *DefaultAdapter) JoinSql(buf *SqlBuilder, joins JoiningClauses) error {
 	if len(joins) > 0 {
 		for _, j := range joins {
@@ -380,6 +443,7 @@ func (me *DefaultAdapter) JoinSql(buf *SqlBuilder, joins JoiningClauses) error {
 	return nil
 }
 
+//Generates the WHERE clause for an SQL statement
 func (me *DefaultAdapter) WhereSql(buf *SqlBuilder, where ExpressionList) error {
 	if where != nil && len(where.Expressions()) > 0 {
 		buf.Write(me.WhereFragment)
@@ -388,6 +452,7 @@ func (me *DefaultAdapter) WhereSql(buf *SqlBuilder, where ExpressionList) error 
 	return nil
 }
 
+//Generates the GROUP BY clause for an SQL statement
 func (me *DefaultAdapter) GroupBySql(buf *SqlBuilder, groupBy ColumnList) error {
 	if groupBy != nil && len(groupBy.Columns()) > 0 {
 		buf.Write(me.GroupByFragment)
@@ -396,6 +461,7 @@ func (me *DefaultAdapter) GroupBySql(buf *SqlBuilder, groupBy ColumnList) error 
 	return nil
 }
 
+//Generates the HAVING clause for an SQL statement
 func (me *DefaultAdapter) HavingSql(buf *SqlBuilder, having ExpressionList) error {
 	if having != nil && len(having.Expressions()) > 0 {
 		buf.Write(me.HavingFragment)
@@ -404,6 +470,7 @@ func (me *DefaultAdapter) HavingSql(buf *SqlBuilder, having ExpressionList) erro
 	return nil
 }
 
+//Generates the compound sql clause for an SQL statement (e.g. UNION, INTERSECT)
 func (me *DefaultAdapter) CompoundsSql(buf *SqlBuilder, compounds []CompoundExpression) error {
 	for _, compound := range compounds {
 		if err := me.Literal(buf, compound); err != nil {
@@ -413,6 +480,7 @@ func (me *DefaultAdapter) CompoundsSql(buf *SqlBuilder, compounds []CompoundExpr
 	return nil
 }
 
+//Generates the ORDER BY clause for an SQL statement
 func (me *DefaultAdapter) OrderSql(buf *SqlBuilder, order ColumnList) error {
 	if order != nil && len(order.Columns()) > 0 {
 		buf.Write(me.OrderByFragment)
@@ -421,6 +489,7 @@ func (me *DefaultAdapter) OrderSql(buf *SqlBuilder, order ColumnList) error {
 	return nil
 }
 
+//Generates the LIMIT clause for an SQL statement
 func (me *DefaultAdapter) LimitSql(buf *SqlBuilder, limit interface{}) error {
 	if limit != nil {
 		buf.Write(me.LimitFragment)
@@ -429,6 +498,7 @@ func (me *DefaultAdapter) LimitSql(buf *SqlBuilder, limit interface{}) error {
 	return nil
 }
 
+//Generates the OFFSET clause for an SQL statement
 func (me *DefaultAdapter) OffsetSql(buf *SqlBuilder, offset uint) error {
 	if offset > 0 {
 		buf.Write(me.OffsetFragment)
@@ -437,6 +507,7 @@ func (me *DefaultAdapter) OffsetSql(buf *SqlBuilder, offset uint) error {
 	return nil
 }
 
+//Generates creates the sql for a sub select on a Dataset
 func (me *DefaultAdapter) DatasetSql(buf *SqlBuilder, dataset Dataset) error {
 	buf.WriteRune(left_paren_rune)
 	if buf.IsPrepared {
@@ -459,6 +530,7 @@ func (me *DefaultAdapter) DatasetSql(buf *SqlBuilder, dataset Dataset) error {
 	return nil
 }
 
+//Quotes an identifier (e.g. "col", "table"."col"
 func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpression) error {
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
 	if schema != empty_string {
@@ -484,7 +556,7 @@ func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpre
 		buf.WriteString(col.(string))
 		buf.WriteRune(me.QuoteRune)
 	case LiteralExpression:
-		if table != empty_string || schema != "empty_string" {
+		if table != empty_string || schema != empty_string {
 			buf.WriteRune(period_rune)
 		}
 		return me.Literal(buf, col)
@@ -494,6 +566,7 @@ func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpre
 	return nil
 }
 
+//Generates SQL NULL value
 func (me *DefaultAdapter) LiteralNil(buf *SqlBuilder) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, nil)
@@ -503,6 +576,7 @@ func (me *DefaultAdapter) LiteralNil(buf *SqlBuilder) error {
 	return nil
 }
 
+//Generates SQL bool literal, (e.g. TRUE, FALSE, mysql 1, 0)
 func (me *DefaultAdapter) LiteralBool(buf *SqlBuilder, b bool) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, b)
@@ -515,6 +589,7 @@ func (me *DefaultAdapter) LiteralBool(buf *SqlBuilder, b bool) error {
 	return nil
 }
 
+//Generates SQL for a time.Time value
 func (me *DefaultAdapter) LiteralTime(buf *SqlBuilder, t time.Time) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, t)
@@ -522,6 +597,7 @@ func (me *DefaultAdapter) LiteralTime(buf *SqlBuilder, t time.Time) error {
 	return me.Literal(buf, t.UTC().Format(me.TimeFormat))
 }
 
+//Generates SQL for a Float Value
 func (me *DefaultAdapter) LiteralFloat(buf *SqlBuilder, f float64) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, f)
@@ -530,6 +606,7 @@ func (me *DefaultAdapter) LiteralFloat(buf *SqlBuilder, f float64) error {
 	return nil
 }
 
+//Generates SQL for an int value
 func (me *DefaultAdapter) LiteralInt(buf *SqlBuilder, i int64) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, i)
@@ -538,6 +615,7 @@ func (me *DefaultAdapter) LiteralInt(buf *SqlBuilder, i int64) error {
 	return nil
 }
 
+//Generates SQL for a string
 func (me *DefaultAdapter) LiteralString(buf *SqlBuilder, s string) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, s)
@@ -556,6 +634,7 @@ func (me *DefaultAdapter) LiteralString(buf *SqlBuilder, s string) error {
 	return nil
 }
 
+//Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)
 func (me *DefaultAdapter) SliceValueSql(buf *SqlBuilder, slice reflect.Value) error {
 	buf.WriteRune(left_paren_rune)
 	for i, l := 0, slice.Len(); i < l; i++ {
@@ -571,6 +650,7 @@ func (me *DefaultAdapter) SliceValueSql(buf *SqlBuilder, slice reflect.Value) er
 	return nil
 }
 
+//Generates SQL for an AliasedExpression (e.g. I("a").As("b") -> "a" AS "b")
 func (me *DefaultAdapter) AliasedExpressionSql(buf *SqlBuilder, aliased AliasedExpression) error {
 	if err := me.Literal(buf, aliased.Aliased()); err != nil {
 		return err
@@ -579,6 +659,7 @@ func (me *DefaultAdapter) AliasedExpressionSql(buf *SqlBuilder, aliased AliasedE
 	return me.Literal(buf, aliased.GetAs())
 }
 
+//Generates SQL for a BooleanExpresion (e.g. I("a").Eq(2) -> "a" = 2)
 func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator BooleanExpression) error {
 	buf.WriteRune(left_paren_rune)
 	if err := me.Literal(buf, operator.Lhs()); err != nil {
@@ -615,6 +696,7 @@ func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator Boolean
 	return nil
 }
 
+//Generates SQL for an OrderedExpression (e.g. I("a").Asc() -> "a" ASC)
 func (me *DefaultAdapter) OrderedExpressionSql(buf *SqlBuilder, order OrderedExpression) error {
 	if err := me.Literal(buf, order.SortExpression()); err != nil {
 		return err
@@ -633,6 +715,7 @@ func (me *DefaultAdapter) OrderedExpressionSql(buf *SqlBuilder, order OrderedExp
 	return nil
 }
 
+//Generates SQL for an ExpressionList (e.g. And(I("a").Eq("a"), I("b").Eq("b")) -> (("a" = 'a') AND ("b" = 'b')))
 func (me *DefaultAdapter) ExpressionListSql(buf *SqlBuilder, expressionList ExpressionList) error {
 	var op []byte
 	if expressionList.Type() == AND_TYPE {
@@ -660,6 +743,7 @@ func (me *DefaultAdapter) ExpressionListSql(buf *SqlBuilder, expressionList Expr
 	return nil
 }
 
+//Generates SQL for a ColumnList
 func (me *DefaultAdapter) ColumnListSql(buf *SqlBuilder, columnList ColumnList) error {
 	cols := columnList.Columns()
 	colLen := len(cols)
@@ -675,6 +759,7 @@ func (me *DefaultAdapter) ColumnListSql(buf *SqlBuilder, columnList ColumnList) 
 	return nil
 }
 
+//Generates SQL for an UpdateEpxresion
 func (me *DefaultAdapter) UpdateExpressionSql(buf *SqlBuilder, update UpdateExpression) error {
 	if err := me.Literal(buf, update.Col()); err != nil {
 		return err
@@ -683,6 +768,9 @@ func (me *DefaultAdapter) UpdateExpressionSql(buf *SqlBuilder, update UpdateExpr
 	return me.Literal(buf, update.Val())
 }
 
+//Generates SQL for a LiteralExpression
+//    L("a + b") -> a + b
+//    L("a = ?", 1) -> a = 1
 func (me *DefaultAdapter) LiteralExpressionSql(buf *SqlBuilder, literal LiteralExpression) error {
 	lit := literal.Literal()
 	args := literal.Args()
@@ -705,11 +793,15 @@ func (me *DefaultAdapter) LiteralExpressionSql(buf *SqlBuilder, literal LiteralE
 	return nil
 }
 
+//Generates SQL for a SqlFunctionExpression
+//   COUNT(I("a")) -> COUNT("a")
 func (me *DefaultAdapter) SqlFunctionExpressionSql(buf *SqlBuilder, sqlFunc SqlFunctionExpression) error {
 	buf.WriteString(sqlFunc.Name())
 	return me.Literal(buf, sqlFunc.Args())
 }
 
+//Generates SQL for a CastExpression
+//   I("a").Cast("NUMERIC") -> CAST("a" AS NUMERIC)
 func (me *DefaultAdapter) CastExpressionSql(buf *SqlBuilder, cast CastExpression) error {
 	buf.WriteString("CAST")
 	buf.WriteRune(left_paren_rune)
@@ -724,6 +816,7 @@ func (me *DefaultAdapter) CastExpressionSql(buf *SqlBuilder, cast CastExpression
 	return nil
 }
 
+//Generates SQL for a CompoundExpression
 func (me *DefaultAdapter) CompoundExpressionSql(buf *SqlBuilder, compound CompoundExpression) error {
 	switch compound.Type() {
 	case UNION:
@@ -738,151 +831,6 @@ func (me *DefaultAdapter) CompoundExpressionSql(buf *SqlBuilder, compound Compou
 	return me.Literal(buf, compound.Rhs())
 }
 
-type (
-	TxAdapterGen     func(tx *sql.Tx) TxDbAdapter
-	DefaultDbAdapter struct {
-		TxDbAdapter TxAdapterGen
-		Db          Db
-		logger      Logger
-	}
-)
-
-func NewDefaultDbAdapter(db Db, txDbAdapter TxAdapterGen) *DefaultDbAdapter {
-	ret := new(DefaultDbAdapter)
-	ret.Db = db
-	ret.TxDbAdapter = txDbAdapter
-	return ret
-}
-
-func (me DefaultDbAdapter) QueryAdapter(dataset *Dataset) Adapter {
-	return NewDefaultAdapter(dataset)
-}
-
-func (me *DefaultDbAdapter) SetLogger(logger Logger) {
-	me.logger = logger
-}
-
-func (me *DefaultDbAdapter) Logger() Logger {
-	return me.logger
-}
-
-func (me DefaultDbAdapter) Trace(op, sql string, args ...interface{}) {
-	if me.logger != nil {
-		if sql != "" {
-			if len(args) != 0 {
-				me.logger.Printf("[gql] %s [query:=`%s` args:=%+v] ", op, sql, args)
-			} else {
-				me.logger.Printf("[gql] %s [query:=`%s`] ", op, sql)
-			}
-		} else {
-			me.logger.Printf("[gql] %s", op)
-		}
-	}
-}
-
-func (me DefaultDbAdapter) Exec(query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC", query, args...)
-	return me.Db.Exec(query, args...)
-}
-
-func (me DefaultDbAdapter) Prepare(query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE", query)
-	return me.Db.Prepare(query)
-}
-
-func (me DefaultDbAdapter) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY", query, args...)
-	return me.Db.Query(query, args...)
-}
-
-func (me DefaultDbAdapter) QueryRow(query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW", query, args...)
-	return me.Db.QueryRow(query, args...)
-}
-
-func (me DefaultDbAdapter) Begin() (TxDbAdapter, error) {
-	me.Trace("BEGIN", "")
-	tx, err := me.Db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	ret := me.TxDbAdapter(tx)
-	ret.SetLogger(me.logger)
-	return ret, nil
-}
-
-type DefaultTxDbAdapter struct {
-	Db     *sql.Tx
-	logger Logger
-}
-
-func NewDefaultTxDbAdapter(db *sql.Tx) *DefaultTxDbAdapter {
-	return &DefaultTxDbAdapter{Db: db}
-}
-
-func (me DefaultTxDbAdapter) Commit() error {
-	me.Trace("COMMIT", "")
-	return me.Db.Commit()
-}
-
-func (me DefaultTxDbAdapter) Rollback() error {
-	me.Trace("ROLLBACK", "")
-	return me.Db.Rollback()
-}
-
-func (me DefaultTxDbAdapter) QueryAdapter(dataset *Dataset) Adapter {
-	return NewDefaultAdapter(dataset)
-}
-
-func (me *DefaultTxDbAdapter) SetLogger(logger Logger) {
-	me.logger = logger
-}
-
-func (me *DefaultTxDbAdapter) Logger() Logger {
-	return me.logger
-}
-
-func (me DefaultTxDbAdapter) Trace(op, sql string, args ...interface{}) {
-	if me.logger != nil {
-		if sql != "" {
-			if len(args) != 0 {
-				me.logger.Printf("[gql - transaction] %s [query:=`%s` args:=%+v] ", op, sql, args)
-			} else {
-				me.logger.Printf("[gql - transaction] %s [query:=`%s`] ", op, sql)
-			}
-		} else {
-			me.logger.Printf("[gql - transaction] %s", op)
-		}
-	}
-}
-
-func (me DefaultTxDbAdapter) Exec(query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC", query, args...)
-	return me.Db.Exec(query, args...)
-}
-
-func (me DefaultTxDbAdapter) Prepare(query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE", query)
-	return me.Db.Prepare(query)
-}
-
-func (me DefaultTxDbAdapter) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY", query, args...)
-	return me.Db.Query(query, args...)
-}
-
-func (me DefaultTxDbAdapter) QueryRow(query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW", query, args...)
-	return me.Db.QueryRow(query, args...)
-}
-
 func init() {
-	RegisterDbAdapter("default", func(db Db) DbAdapter {
-		return NewDefaultDbAdapter(db, func(tx *sql.Tx) TxDbAdapter {
-			return NewDefaultTxDbAdapter(tx)
-		})
-	})
-	RegisterDatasetAdapter("default", func(ds *Dataset) Adapter {
-		return NewDefaultAdapter(ds)
-	})
+	RegisterAdapter("default", NewDefaultAdapter)
 }

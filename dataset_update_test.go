@@ -21,7 +21,7 @@ func (me *datasetTest) TestUpdateSqlWithStructs() {
 func (me *datasetTest) TestUpdateSqlWithMaps() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.UpdateSql(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, err := ds1.UpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test'`)
 
@@ -87,7 +87,7 @@ func (me *datasetTest) TestUpdateSqlWithWhere() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL)`)
 
-	sql, err = ds1.Where(I("name").IsNull()).UpdateSql(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, err = ds1.Where(I("name").IsNull()).UpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL)`)
 }
@@ -103,7 +103,7 @@ func (me *datasetTest) TestUpdateSqlWithReturning() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' RETURNING "items".*`)
 
-	sql, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).UpdateSql(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).UpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL) RETURNING "items".*`)
 }
@@ -124,7 +124,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithStructs() {
 func (me *datasetTest) TestPreparedUpdateSqlWithMaps() {
 	t := me.T()
 	ds1 := From("items")
-	sql, args, err := ds1.ToUpdateSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err := ds1.ToUpdateSql(true, Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=?`)
@@ -182,7 +182,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithWhere() {
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
 
-	sql, args, err = ds1.Where(I("name").IsNull()).ToUpdateSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err = ds1.Where(I("name").IsNull()).ToUpdateSql(true, Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
@@ -200,7 +200,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithReturning() {
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? RETURNING "items".*`)
 
-	sql, args, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).ToUpdateSql(true, map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).ToUpdateSql(true, Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?) RETURNING "items".*`)

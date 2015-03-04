@@ -5,11 +5,42 @@ import (
 	"sort"
 )
 
+//Generates the default INSERT statement. This calls ToInsertSql with isPrepared set to false.
+//When using structs you may specify a column to be skipped in the insert, (e.g. id) by specifying a gql tag with `skipinsert`
+//    type Item struct{
+//       Id   uint32 `db:"id" gql:"skipinsert"`
+//       Name string `db:"name"`
+//    }
+//
+//rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
+//
+//Errors:
+//  * There is no FROM clause
+//  * Different row types passed in, all rows must be of the same type
+//  * Maps with different keys pairs (e.g. (Record{"name": "a"}, Record{"age": 10})
+//  * Rows of different lengths, (e.g. (Record{"name": "a"}, Record{"name": "a", "age": 10})
+//  * Error generating SQL
 func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
 	sql, _, err := me.ToInsertSql(false, rows...)
 	return sql, err
 }
 
+//Generates the default INSERT statement. This calls ToInsertSql with isPrepared set to false.
+//When using structs you may specify a column to be skipped in the insert, (e.g. id) by specifying a gql tag with `skipinsert`
+//    type Item struct{
+//       Id   uint32 `db:"id" gql:"skipinsert"`
+//       Name string `db:"name"`
+//    }
+//
+//isPrepared: Set to true to true to ensure values are NOT interpolated
+//rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
+//
+//Errors:
+//  * There is no FROM clause
+//  * Different row types passed in, all rows must be of the same type
+//  * Maps with different numbers of K/V pairs
+//  * Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
+//  * Error generating SQL
 func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, NewGqlError("No source found when generating insert sql")
@@ -44,6 +75,7 @@ func (me *Dataset) canInsertField(field reflect.StructField) bool {
 	return !gqlTag.Contains("skipinsert") && dbTag != "" && dbTag != "-"
 }
 
+//parses the rows gathering and sorting unique columns and values for each record
 func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList, vals [][]interface{}, err error) {
 	var mapKeys valueSlice
 	rowValue := reflect.Indirect(reflect.ValueOf(rows[0]))
@@ -98,12 +130,13 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 			}
 			vals[i] = rowVals
 		default:
-			return nil, nil, NewGqlError("Unsupported insert must be map or struct type %+v", row)
+			return nil, nil, NewGqlError("Unsupported insert must be map, gql.Record, or struct type %+v", row)
 		}
 	}
 	return columns, vals, nil
 }
 
+//Creates an INSERT statement with the columns and values passed in
 func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared bool) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
 	if err := me.adapter.InsertBeginSql(buf); err != nil {
@@ -136,6 +169,7 @@ func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared b
 	return sql, args, nil
 }
 
+//Creates an insert statement with values coming from another dataset
 func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
 	if err := me.adapter.InsertBeginSql(buf); err != nil {

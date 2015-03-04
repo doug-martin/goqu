@@ -5,6 +5,20 @@ import (
 	"sort"
 )
 
+//Generates the default UPDATE statement. This calls Dataset.ToUpdateSql with isPrepared set to false.
+//When using structs you may specify a column to be skipped in the update, (e.g. created) by specifying a gql tag with `skipupdate`
+//    type Item struct{
+//       Id      uint32    `db:"id"
+//       Created time.Time `db:"created" gql:"skipupdate"`
+//       Name    string    `db:"name"`
+//    }
+//
+//update: can either be a a map[string]interface or a struct
+//
+//Errors:
+//  * The update is not a struct, Record, or map[string]interface
+//  * The update statement has no FROM clause
+//  * There is an error generating the SQL
 func (me *Dataset) UpdateSql(update interface{}) (string, error) {
 	sql, _, err := me.ToUpdateSql(false, update)
 	return sql, err
@@ -15,6 +29,21 @@ func (me *Dataset) canUpdateField(field reflect.StructField) bool {
 	return !gqlTag.Contains("skipupdate") && dbTag != "" && dbTag != "-"
 }
 
+//Generates an UPDATE statement.
+//When using structs you may specify a column to be skipped in the update, (e.g. created) by specifying a gql tag with `skipupdate`
+//    type Item struct{
+//       Id      uint32    `db:"id"
+//       Created time.Time `db:"created" gql:"skipupdate"`
+//       Name    string    `db:"name"`
+//    }
+//
+//isPrepared: set to true to generate an sql statement with placeholders for primitive values
+//update: can either be a a map[string]interface{}, Record or a struct
+//
+//Errors:
+//  * The update is not a of type struct, Record, or map[string]interface{}
+//  * The update statement has no FROM clause
+//  * There is an error generating the SQL
 func (me *Dataset) ToUpdateSql(isPrepared bool, update interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, NewGqlError("No source found when generating update sql")
