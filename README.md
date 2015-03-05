@@ -1,3 +1,3 @@
-[![wercker status](https://app.wercker.com/status/b1087fd8bbf0ef4b192bc1e1c86854bf/s "wercker status")](https://app.wercker.com/project/bykey/b1087fd8bbf0ef4b192bc1e1c86854bf)
+[![wercker status](https://app.wercker.com/status/7eec67205c1ce1cc96ef81664f21256b/s "wercker status")](https://app.wercker.com/project/bykey/7eec67205c1ce1cc96ef81664f21256b)
 [![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![GoCover](http://gocover.io/_badge/github.com/doug-martin/goqu)](http://gocover.io/github.com/doug-martin/goqu)

@@ -10,7 +10,6 @@ import (
 	"os"
 	"testing"
 	"time"
-    "strings"
 )
 
 const (
@@ -42,7 +41,11 @@ var db_uri = "root@/goqumysql?parseTime=true"
 func init() {
 	uri := os.Getenv("WERCKER_MYSQL_URL")
 	if uri != "" {
-		db_uri = strings.Replace(uri, "mysql://", "", -1)
+		user := os.Getenv("WERCKER_MYSQL_USERNAME")
+		pass := os.Getenv("WERCKER_MYSQL_PASSWORD")
+		addr := os.Getenv("WERCKER_MYSQL_HOST") + ":" + os.Getenv("WERCKER_MYSQL_PORT")
+		dbname := os.Getenv("WERCKER_MYSQL_DATABASE")
+		db_uri = fmt.Sprintf("%s:%s@tcp(%s)/%s?timeout=30s&parseTime=true", user, pass, addr, dbname)
 	}
 }
 
@@ -68,6 +71,7 @@ func (me logger) Printf(sql string, args ...interface{}) {
 }
 
 func (me *mysqlTest) SetupSuite() {
+	fmt.Println(db_uri)
 	db, err := sql.Open("mysql", db_uri)
 	if err != nil {
 		panic(err.Error())
