@@ -1,5 +1,7 @@
 /*
-goqu is a library built with the following goals:
+goqu is an expressive SQL builder
+
+goqu was built with the following goals:
 
     1. Make the generation of SQL easy and enjoyable
     2. Provide a DSL that accounts for the common SQL expressions, NOT every nuance for each database.
