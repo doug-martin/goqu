@@ -1,6 +1,7 @@
 package gql
 
 import (
+	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -12,8 +13,47 @@ type testActionItem struct {
 	Name    string `db:"name"`
 }
 
+type dbTestMockLogger struct {
+	Messages []string
+}
+
+func (me *dbTestMockLogger) Printf(format string, v ...interface{}) {
+	me.Messages = append(me.Messages, fmt.Sprintf(format, v...))
+}
+
+func (me *dbTestMockLogger) Reset(format string, v ...interface{}) {
+	me.Messages = me.Messages[0:0]
+}
+
 type databaseTest struct {
 	suite.Suite
+}
+
+func (me *databaseTest) TestLogger() {
+	t := me.T()
+	mDb, err := sqlmock.New()
+	assert.NoError(t, err)
+	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	sqlmock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
+		WithArgs(1).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	db := New("db-mock", mDb)
+	logger := new(dbTestMockLogger)
+	db.Logger(logger)
+	var items []testActionItem
+	assert.NoError(t, db.ScanStructs(&items, `SELECT * FROM "items"`))
+	_, err = db.Exec(`SELECT * FROM "items" WHERE "id" = ?`, 1)
+	assert.NoError(t, err)
+	db.Trace("TEST", "")
+	assert.Equal(t, logger.Messages, []string{
+		"[gql] QUERY [query:=`SELECT * FROM \"items\"`]",
+		"[gql] EXEC [query:=`SELECT * FROM \"items\" WHERE \"id\" = ?` args:=[1]]",
+		"[gql] TEST",
+	})
 }
 
 func (me *databaseTest) TestScanStructs() {
@@ -171,15 +211,30 @@ func (me *databaseTest) TestQueryRow() {
 	assert.EqualError(t, rows.Scan(&address, &name), "gql: mock error")
 }
 
+func (me *databaseTest) TestPrepare() {
+	t := me.T()
+	mDb, err := sqlmock.New()
+	assert.NoError(t, err)
+	sqlmock.ExpectPrepare()
+	db := New("mock", mDb)
+	stmt, err := db.Prepare("SELECT * FROM test WHERE id = ?")
+	assert.NoError(t, err)
+	assert.NotNil(t, stmt)
+}
+
 func (me *databaseTest) TestBegin() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
 	sqlmock.ExpectBegin()
+	sqlmock.ExpectBegin().WillReturnError(NewGqlError("transaction error"))
 	db := New("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
 	assert.Equal(t, tx.Dialect, "mock")
+
+	_, err = db.Begin()
+	assert.EqualError(t, err, "gql: transaction error")
 }
 
 func TestDatabaseSuite(t *testing.T) {
@@ -188,6 +243,36 @@ func TestDatabaseSuite(t *testing.T) {
 
 type txDatabaseTest struct {
 	suite.Suite
+}
+
+func (me *txDatabaseTest) TestLogger() {
+	t := me.T()
+	mDb, err := sqlmock.New()
+	assert.NoError(t, err)
+	sqlmock.ExpectBegin()
+	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	sqlmock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
+		WithArgs(1).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	sqlmock.ExpectCommit()
+
+	tx, err := New("db-mock", mDb).Begin()
+	assert.NoError(t, err)
+	logger := new(dbTestMockLogger)
+	tx.Logger(logger)
+	var items []testActionItem
+	assert.NoError(t, tx.ScanStructs(&items, `SELECT * FROM "items"`))
+	_, err = tx.Exec(`SELECT * FROM "items" WHERE "id" = ?`, 1)
+	assert.NoError(t, err)
+	tx.Commit()
+	assert.Equal(t, logger.Messages, []string{
+		"[gql - transaction] QUERY [query:=`SELECT * FROM \"items\"`] ",
+		"[gql - transaction] EXEC [query:=`SELECT * FROM \"items\" WHERE \"id\" = ?` args:=[1]] ",
+		"[gql - transaction] COMMIT",
+	})
 }
 
 func (me *databaseTest) TestCommit() {
@@ -212,6 +297,19 @@ func (me *databaseTest) TestRollback() {
 	tx, err := db.Begin()
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Rollback())
+}
+
+func (me *databaseTest) TestFrom() {
+	t := me.T()
+	mDb, err := sqlmock.New()
+	assert.NoError(t, err)
+	sqlmock.ExpectBegin()
+	sqlmock.ExpectCommit()
+	db := New("mock", mDb)
+	tx, err := db.Begin()
+	assert.NoError(t, err)
+	assert.NotNil(t, tx.From("test"))
+	assert.NoError(t, tx.Commit())
 }
 
 func (me *txDatabaseTest) TestScanStructs() {
@@ -388,6 +486,26 @@ func (me *txDatabaseTest) TestQueryRow() {
 	rows = tx.QueryRow(`SELECT * FROM "items"`)
 	assert.EqualError(t, rows.Scan(&address, &name), "gql: mock error")
 	assert.NoError(t, tx.Commit())
+}
+
+func (me *txDatabaseTest) TestWrap() {
+	t := me.T()
+	mDb, err := sqlmock.New()
+	assert.NoError(t, err)
+	sqlmock.ExpectBegin()
+	sqlmock.ExpectCommit()
+	sqlmock.ExpectBegin()
+	sqlmock.ExpectRollback()
+	tx, err := New("mock", mDb).Begin()
+	assert.NoError(t, err)
+	assert.NoError(t, tx.Wrap(func() error {
+		return nil
+	}))
+	tx, err = New("mock", mDb).Begin()
+	assert.NoError(t, err)
+	assert.EqualError(t, tx.Wrap(func() error {
+		return NewGqlError("tx error")
+	}), "gql: tx error")
 }
 
 func TestTxDatabaseSuite(t *testing.T) {

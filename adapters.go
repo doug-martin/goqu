@@ -200,6 +200,23 @@ func RegisterAdapter(dialect string, factory func(ds *Dataset) Adapter) {
 	ds_adapters[dialect] = factory
 }
 
+//Returns true if the dialect has an adapter registered
+//
+//dialect: The dialect to test
+func HasAdapter(dialect string) bool {
+	dialect = strings.ToLower(dialect)
+	_, ok := ds_adapters[dialect]
+	return ok
+}
+
+//Clears the current adapter map, used internally for tests
+func removeAdapter(dialect string) {
+	if HasAdapter(dialect) {
+		dialect = strings.ToLower(dialect)
+		delete(ds_adapters, dialect)
+	}
+}
+
 //Creates the appropriate adapter for the given dialect.
 //
 //dialect: the dialect to create an adapter for
@@ -208,7 +225,6 @@ func NewAdapter(dialect string, dataset *Dataset) Adapter {
 	dialect = strings.ToLower(dialect)
 	if adapterGen, ok := ds_adapters[dialect]; ok {
 		return adapterGen(dataset)
-	} else {
-		panic("unable to find adapter for dialect " + dialect)
 	}
+	return NewDefaultAdapter(dataset)
 }

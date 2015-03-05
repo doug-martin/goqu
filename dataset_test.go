@@ -20,6 +20,32 @@ func (me *datasetTest) Truncate(buf *SqlBuilder) *SqlBuilder {
 	return buf
 }
 
+func (me *datasetTest) TestClone() {
+	t := me.T()
+	ds := From("test")
+	assert.Equal(t, ds.Clone(), ds)
+}
+
+func (me *datasetTest) TestExpression() {
+	t := me.T()
+	ds := From("test")
+	assert.Equal(t, ds.Expression(), ds)
+}
+
+func (me *datasetTest) TestAdapter() {
+	t := me.T()
+	ds := From("test")
+	assert.Equal(t, ds.Adapter(), ds.adapter)
+}
+
+func (me *datasetTest) TestSetAdapter() {
+	t := me.T()
+	ds := From("test")
+	adapter := NewAdapter("default", ds)
+	ds.SetAdapter(adapter)
+	assert.Equal(t, ds.Adapter(), adapter)
+}
+
 func (me *datasetTest) TestLiteralUnsupportedType() {
 	t := me.T()
 	assert.Error(t, From("test").Literal(NewSqlBuilder(false), struct{}{}))
@@ -28,11 +54,14 @@ func (me *datasetTest) TestLiteralUnsupportedType() {
 func (me *datasetTest) TestLiteralFloatTypes() {
 	t := me.T()
 	ds := From("test")
+	var float float64
 	buf := NewSqlBuilder(false)
 	assert.NoError(t, ds.Literal(buf, float32(10.01)))
 	assert.Equal(t, buf.String(), "10.010000228881836")
 	assert.NoError(t, ds.Literal(me.Truncate(buf), float64(10.01)))
 	assert.Equal(t, buf.String(), "10.01")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &float))
+	assert.Equal(t, buf.String(), "0")
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(buf, float32(10.01)))
@@ -41,11 +70,15 @@ func (me *datasetTest) TestLiteralFloatTypes() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), float64(10.01)))
 	assert.Equal(t, buf.args, []interface{}{float64(10.01)})
 	assert.Equal(t, buf.String(), "?")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &float))
+	assert.Equal(t, buf.args, []interface{}{float})
+	assert.Equal(t, buf.String(), "?")
 }
 
 func (me *datasetTest) TestLiteralIntTypes() {
 	t := me.T()
 	ds := From("test")
+	var i int64
 	buf := NewSqlBuilder(false)
 	assert.NoError(t, ds.Literal(buf, int(10)))
 	assert.Equal(t, buf.String(), "10")
@@ -67,6 +100,8 @@ func (me *datasetTest) TestLiteralIntTypes() {
 	assert.Equal(t, buf.String(), "10")
 	assert.NoError(t, ds.Literal(me.Truncate(buf), uint64(10)))
 	assert.Equal(t, buf.String(), "10")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &i))
+	assert.Equal(t, buf.String(), "0")
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(buf, int(10)))
@@ -99,17 +134,23 @@ func (me *datasetTest) TestLiteralIntTypes() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), uint64(10)))
 	assert.Equal(t, buf.args, []interface{}{int64(10)})
 	assert.Equal(t, buf.String(), "?")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &i))
+	assert.Equal(t, buf.args, []interface{}{i})
+	assert.Equal(t, buf.String(), "?")
 }
 
 func (me *datasetTest) TestLiteralStringTypes() {
 	t := me.T()
 	ds := From("test")
+	var str string
 	buf := NewSqlBuilder(false)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), "Hello"))
 	assert.Equal(t, buf.String(), "'Hello'")
 	//should esacpe single quotes
 	assert.NoError(t, ds.Literal(me.Truncate(buf), "hello'"))
 	assert.Equal(t, buf.String(), "'hello'''")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &str))
+	assert.Equal(t, buf.String(), "''")
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), "Hello"))
@@ -118,15 +159,21 @@ func (me *datasetTest) TestLiteralStringTypes() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), "hello'"))
 	assert.Equal(t, buf.args, []interface{}{"hello'"})
 	assert.Equal(t, buf.String(), "?")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &str))
+	assert.Equal(t, buf.args, []interface{}{str})
+	assert.Equal(t, buf.String(), "?")
 }
 
 func (me *datasetTest) TestLiteralBoolTypes() {
 	t := me.T()
+	var b bool
 	buf := NewSqlBuilder(false)
 	ds := From("test")
 	assert.NoError(t, ds.Literal(me.Truncate(buf), true))
 	assert.Equal(t, buf.String(), "TRUE")
 	assert.NoError(t, ds.Literal(me.Truncate(buf), false))
+	assert.Equal(t, buf.String(), "FALSE")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &b))
 	assert.Equal(t, buf.String(), "FALSE")
 
 	buf = NewSqlBuilder(true)
@@ -135,6 +182,9 @@ func (me *datasetTest) TestLiteralBoolTypes() {
 	assert.Equal(t, buf.String(), "?")
 	assert.NoError(t, ds.Literal(me.Truncate(buf), false))
 	assert.Equal(t, buf.args, []interface{}{false})
+	assert.Equal(t, buf.String(), "?")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), &b))
+	assert.Equal(t, buf.args, []interface{}{b})
 	assert.Equal(t, buf.String(), "?")
 }
 

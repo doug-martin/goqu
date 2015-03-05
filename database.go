@@ -75,23 +75,23 @@ func (me Database) queryAdapter(dataset *Dataset) Adapter {
 //          fmt.Printf("%+v", ids)
 //
 //from...: Sources for you dataset, could be table names (strings), a gql.Literal or another gql.Dataset
-func (me Database) From(from ...interface{}) *Dataset {
+func (me *Database) From(from ...interface{}) *Dataset {
 	return withDatabase(me).From(from...)
 }
 
 //Sets the logger for to use when logging queries
-func (me Database) Logger(logger Logger) {
+func (me *Database) Logger(logger Logger) {
 	me.logger = logger
 }
 
 //Logs a given operation with the specified sql and arguments
-func (me Database) Trace(op, sql string, args ...interface{}) {
+func (me *Database) Trace(op, sql string, args ...interface{}) {
 	if me.logger != nil {
 		if sql != "" {
 			if len(args) != 0 {
-				me.logger.Printf("[gql] %s [query:=`%s` args:=%+v] ", op, sql, args)
+				me.logger.Printf("[gql] %s [query:=`%s` args:=%+v]", op, sql, args)
 			} else {
-				me.logger.Printf("[gql] %s [query:=`%s`] ", op, sql)
+				me.logger.Printf("[gql] %s [query:=`%s`]", op, sql)
 			}
 		} else {
 			me.logger.Printf("[gql] %s", op)
@@ -103,7 +103,7 @@ func (me Database) Trace(op, sql string, args ...interface{}) {
 //
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (me *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
 	me.Trace("EXEC", query, args...)
 	return me.Db.Exec(query, args...)
 }
@@ -133,7 +133,7 @@ func (me Database) Exec(query string, args ...interface{}) (sql.Result, error) {
 //    }
 //
 //query: The SQL statement to prepare.
-func (me Database) Prepare(query string) (*sql.Stmt, error) {
+func (me *Database) Prepare(query string) (*sql.Stmt, error) {
 	me.Trace("PREPARE", query)
 	return me.Db.Prepare(query)
 }
@@ -159,7 +159,7 @@ func (me Database) Prepare(query string) (*sql.Stmt, error) {
 //
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	me.Trace("QUERY", query, args...)
 	return me.Db.Query(query, args...)
 }
@@ -179,7 +179,7 @@ func (me Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 //
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) QueryRow(query string, args ...interface{}) *sql.Row {
+func (me *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 	me.Trace("QUERY ROW", query, args...)
 	return me.Db.QueryRow(query, args...)
 }
@@ -189,7 +189,7 @@ func (me Database) QueryRow(query string, args ...interface{}) *sql.Row {
 //i: A pointer to a slice of structs
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
+func (me *Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanStructs(i)
 }
@@ -199,7 +199,7 @@ func (me Database) ScanStructs(i interface{}, query string, args ...interface{})
 //i: A pointer to a struct
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me *Database) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanStruct(i)
 }
@@ -209,7 +209,7 @@ func (me Database) ScanStruct(i interface{}, query string, args ...interface{}) 
 //i: A pointer to a slice of primitive values
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) ScanVals(i interface{}, query string, args ...interface{}) error {
+func (me *Database) ScanVals(i interface{}, query string, args ...interface{}) error {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanVals(i)
 }
@@ -219,7 +219,7 @@ func (me Database) ScanVals(i interface{}, query string, args ...interface{}) er
 //i: A pointer to a primitive value
 //query: The SQL to execute
 //args...: for any placeholder parameters in the query
-func (me Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me *Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanVal(i)
 }
@@ -232,22 +232,22 @@ type TxDatabase struct {
 }
 
 //used internally to create a new query adapter for a Dataset
-func (me TxDatabase) queryAdapter(dataset *Dataset) Adapter {
+func (me *TxDatabase) queryAdapter(dataset *Dataset) Adapter {
 	return NewAdapter(me.Dialect, dataset)
 }
 
 //Creates a new Dataset for querying a Database.
-func (me TxDatabase) From(cols ...interface{}) *Dataset {
+func (me *TxDatabase) From(cols ...interface{}) *Dataset {
 	return withDatabase(me).From(cols...)
 
 }
 
 //Sets the logger
-func (me TxDatabase) Logger(logger Logger) {
+func (me *TxDatabase) Logger(logger Logger) {
 	me.logger = logger
 }
 
-func (me TxDatabase) Trace(op, sql string, args ...interface{}) {
+func (me *TxDatabase) Trace(op, sql string, args ...interface{}) {
 	if me.logger != nil {
 		if sql != "" {
 			if len(args) != 0 {
@@ -262,60 +262,62 @@ func (me TxDatabase) Trace(op, sql string, args ...interface{}) {
 }
 
 //See Database#Exec
-func (me TxDatabase) Exec(query string, args ...interface{}) (sql.Result, error) {
+func (me *TxDatabase) Exec(query string, args ...interface{}) (sql.Result, error) {
 	me.Trace("EXEC", query, args...)
 	return me.Tx.Exec(query, args...)
 }
 
 //See Database#Prepare
-func (me TxDatabase) Prepare(query string) (*sql.Stmt, error) {
+func (me *TxDatabase) Prepare(query string) (*sql.Stmt, error) {
 	me.Trace("PREPARE", query)
 	return me.Tx.Prepare(query)
 }
 
 //See Database#Query
-func (me TxDatabase) Query(query string, args ...interface{}) (*sql.Rows, error) {
+func (me *TxDatabase) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	me.Trace("QUERY", query, args...)
 	return me.Tx.Query(query, args...)
 }
 
 //See Database#QueryRow
-func (me TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
+func (me *TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
 	me.Trace("QUERY ROW", query, args...)
 	return me.Tx.QueryRow(query, args...)
 }
 
 //See Database#ScanStructs
-func (me TxDatabase) ScanStructs(i interface{}, query string, args ...interface{}) error {
+func (me *TxDatabase) ScanStructs(i interface{}, query string, args ...interface{}) error {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanStructs(i)
 }
 
 //See Database#ScanStruct
-func (me TxDatabase) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me *TxDatabase) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanStruct(i)
 }
 
 //See Database#ScanVals
-func (me TxDatabase) ScanVals(i interface{}, query string, args ...interface{}) error {
+func (me *TxDatabase) ScanVals(i interface{}, query string, args ...interface{}) error {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanVals(i)
 }
 
 //See Database#ScanVal
-func (me TxDatabase) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me *TxDatabase) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newExec(me, nil, query, args...)
 	return exec.ScanVal(i)
 }
 
 //COMMIT the transaction
-func (me TxDatabase) Commit() error {
+func (me *TxDatabase) Commit() error {
+	me.Trace("COMMIT", "")
 	return me.Tx.Commit()
 }
 
 //ROLLBACK the transaction
-func (me TxDatabase) Rollback() error {
+func (me *TxDatabase) Rollback() error {
+	me.Trace("ROLLBACK", "")
 	return me.Tx.Rollback()
 }
 
@@ -334,7 +336,7 @@ func (me TxDatabase) Rollback() error {
 //      }); err != nil{
 //           panic(err.Error()) //you could gracefully handle the error also
 //      }
-func (me TxDatabase) Wrap(fn func() error) error {
+func (me *TxDatabase) Wrap(fn func() error) error {
 	if err := fn(); err != nil {
 		if rollbackErr := me.Rollback(); rollbackErr != nil {
 			return rollbackErr

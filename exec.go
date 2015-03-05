@@ -211,36 +211,6 @@ func (me Exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 	return found, nil
 }
 
-func (me Exec) scanRowsToResult(rows *sql.Rows, columnMap columnMap) ([]Record, error) {
-	columns, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	var results []Record
-	for rows.Next() {
-		scans := make([]interface{}, len(columns))
-		for i, col := range columns {
-			if data, ok := columnMap[col]; ok {
-				scans[i] = reflect.New(data.GoType).Interface()
-			} else {
-				return nil, NewGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
-			}
-		}
-		if err := rows.Scan(scans...); err != nil {
-			return nil, err
-		}
-		result := Record{}
-		for index, col := range columns {
-			result[col] = scans[index]
-		}
-		results = append(results, result)
-	}
-	if rows.Err() != nil {
-		return nil, err
-	}
-	return results, nil
-}
-
 func assignVals(i interface{}, results []Record, cm columnMap) error {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
