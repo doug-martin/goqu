@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import "github.com/stretchr/testify/assert"
 
@@ -46,7 +46,7 @@ func (me *datasetTest) TestInsertSqlWithMaps() {
 		map[string]interface{}{"address": "311 Test Addr", "name": "Test3"},
 		map[string]interface{}{"address": "411 Test Addr", "name": "Test4"},
 	)
-	assert.EqualError(t, err, "gql: Rows with different value length expected 2 got 1")
+	assert.EqualError(t, err, "goqu: Rows with different value length expected 2 got 1")
 }
 
 func (me *datasetTest) TestInsertSqlWitSqlBuilder() {
@@ -83,7 +83,7 @@ func (me *datasetTest) TestInsertSqlWithNoFrom() {
 	t := me.T()
 	ds1 := From("test").From()
 	_, err := ds1.InsertSql(map[string]interface{}{"address": "111 Test Addr", "name": "Test1"})
-	assert.EqualError(t, err, "gql: No source found when generating insert sql")
+	assert.EqualError(t, err, "goqu: No source found when generating insert sql")
 }
 
 func (me *datasetTest) TestInsertSqlWithMapsWithDifferentLengths() {
@@ -95,7 +95,7 @@ func (me *datasetTest) TestInsertSqlWithMapsWithDifferentLengths() {
 		map[string]interface{}{"address": "311 Test Addr", "name": "Test3"},
 		map[string]interface{}{"address": "411 Test Addr", "name": "Test4"},
 	)
-	assert.EqualError(t, err, "gql: Rows with different value length expected 2 got 1")
+	assert.EqualError(t, err, "goqu: Rows with different value length expected 2 got 1")
 }
 
 func (me *datasetTest) TestInsertSqlWitDifferentKeys() {
@@ -105,7 +105,7 @@ func (me *datasetTest) TestInsertSqlWitDifferentKeys() {
 		map[string]interface{}{"address": "111 Test Addr", "name": "test"},
 		map[string]interface{}{"phoneNumber": 10, "address": "111 Test Addr"},
 	)
-	assert.EqualError(t, err, `gql: Rows with different keys expected ["address","name"] got ["address","phoneNumber"]`)
+	assert.EqualError(t, err, `goqu: Rows with different keys expected ["address","name"] got ["address","phoneNumber"]`)
 }
 
 func (me *datasetTest) TestInsertSqlDifferentTypes() {
@@ -125,7 +125,7 @@ func (me *datasetTest) TestInsertSqlDifferentTypes() {
 		item{Address: "311 Test Addr", Name: "Test3"},
 		item2{Address: "411 Test Addr", Name: "Test4"},
 	)
-	assert.EqualError(t, err, "gql: Rows must be all the same type expected gql.item got gql.item2")
+	assert.EqualError(t, err, "goqu: Rows must be all the same type expected goqu.item got goqu.item2")
 
 	_, err = ds1.InsertSql(
 		item{Address: "111 Test Addr", Name: "Test1"},
@@ -133,14 +133,14 @@ func (me *datasetTest) TestInsertSqlDifferentTypes() {
 		item{Address: "311 Test Addr", Name: "Test3"},
 		map[string]interface{}{"address": "411 Test Addr", "name": "Test4"},
 	)
-	assert.EqualError(t, err, "gql: Rows must be all the same type expected gql.item got map[string]interface {}")
+	assert.EqualError(t, err, "goqu: Rows must be all the same type expected goqu.item got map[string]interface {}")
 }
 
-func (me *datasetTest) TestInsertWithGqlPkTagSql() {
+func (me *datasetTest) TestInsertWithGoquPkTagSql() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
-		Id      uint32 `db:"id" gql:"pk,skipinsert"`
+		Id      uint32 `db:"id" goqu:"pk,skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
@@ -162,11 +162,11 @@ func (me *datasetTest) TestInsertWithGqlPkTagSql() {
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('211 Test Addr', 'Test2'), ('311 Test Addr', 'Test3'), ('411 Test Addr', 'Test4')`)
 }
 
-func (me *datasetTest) TestInsertWithGqlSkipInsertTagSql() {
+func (me *datasetTest) TestInsertWithGoquSkipInsertTagSql() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
-		Id      uint32 `db:"id" gql:"skipinsert"`
+		Id      uint32 `db:"id" goqu:"skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
@@ -275,11 +275,11 @@ func (me *datasetTest) TestPreparedInsertReturning() {
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?) RETURNING "id"`)
 }
 
-func (me *datasetTest) TestPreparedInsertWithGqlPkTagSql() {
+func (me *datasetTest) TestPreparedInsertWithGoquPkTagSql() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
-		Id      uint32 `db:"id" gql:"pk,skipinsert"`
+		Id      uint32 `db:"id" goqu:"pk,skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
@@ -304,11 +304,11 @@ func (me *datasetTest) TestPreparedInsertWithGqlPkTagSql() {
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?), (?, ?), (?, ?)`)
 }
 
-func (me *datasetTest) TestPreparedInsertWithGqlSkipInsertTagSql() {
+func (me *datasetTest) TestPreparedInsertWithGoquSkipInsertTagSql() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
-		Id      uint32 `db:"id" gql:"skipinsert"`
+		Id      uint32 `db:"id" goqu:"skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}

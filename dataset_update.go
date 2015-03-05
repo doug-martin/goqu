@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"reflect"
@@ -6,10 +6,10 @@ import (
 )
 
 //Generates the default UPDATE statement. This calls Dataset.ToUpdateSql with isPrepared set to false.
-//When using structs you may specify a column to be skipped in the update, (e.g. created) by specifying a gql tag with `skipupdate`
+//When using structs you may specify a column to be skipped in the update, (e.g. created) by specifying a goqu tag with `skipupdate`
 //    type Item struct{
 //       Id      uint32    `db:"id"
-//       Created time.Time `db:"created" gql:"skipupdate"`
+//       Created time.Time `db:"created" goqu:"skipupdate"`
 //       Name    string    `db:"name"`
 //    }
 //
@@ -25,15 +25,15 @@ func (me *Dataset) UpdateSql(update interface{}) (string, error) {
 }
 
 func (me *Dataset) canUpdateField(field reflect.StructField) bool {
-	gqlTag, dbTag := tagOptions(field.Tag.Get("gql")), field.Tag.Get("db")
-	return !gqlTag.Contains("skipupdate") && dbTag != "" && dbTag != "-"
+	goquTag, dbTag := tagOptions(field.Tag.Get("goqu")), field.Tag.Get("db")
+	return !goquTag.Contains("skipupdate") && dbTag != "" && dbTag != "-"
 }
 
 //Generates an UPDATE statement.
-//When using structs you may specify a column to be skipped in the update, (e.g. created) by specifying a gql tag with `skipupdate`
+//When using structs you may specify a column to be skipped in the update, (e.g. created) by specifying a goqu tag with `skipupdate`
 //    type Item struct{
 //       Id      uint32    `db:"id"
-//       Created time.Time `db:"created" gql:"skipupdate"`
+//       Created time.Time `db:"created" goqu:"skipupdate"`
 //       Name    string    `db:"name"`
 //    }
 //
@@ -46,7 +46,7 @@ func (me *Dataset) canUpdateField(field reflect.StructField) bool {
 //  * There is an error generating the SQL
 func (me *Dataset) ToUpdateSql(isPrepared bool, update interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
-		return "", nil, NewGqlError("No source found when generating update sql")
+		return "", nil, NewGoquError("No source found when generating update sql")
 	}
 	updateValue := reflect.Indirect(reflect.ValueOf(update))
 	var updates []UpdateExpression
@@ -66,7 +66,7 @@ func (me *Dataset) ToUpdateSql(isPrepared bool, update interface{}) (string, []i
 			}
 		}
 	default:
-		return "", nil, NewGqlError("Unsupported update interface type %+v", updateValue.Type())
+		return "", nil, NewGoquError("Unsupported update interface type %+v", updateValue.Type())
 	}
 	buf := NewSqlBuilder(isPrepared)
 	if err := me.adapter.UpdateBeginSql(buf); err != nil {
@@ -96,7 +96,7 @@ func (me *Dataset) ToUpdateSql(isPrepared bool, update interface{}) (string, []i
 			return "", nil, err
 		}
 	} else if me.clauses.Returning != nil {
-		return "", nil, NewGqlError("Adapter does not support RETURNING clause")
+		return "", nil, NewGoquError("Adapter does not support RETURNING clause")
 	}
 	sql, args := buf.ToSql()
 	return sql, args, nil

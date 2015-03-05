@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"github.com/DATA-DOG/go-sqlmock"
@@ -33,9 +33,9 @@ func (me *datasetTest) TestScanStructs() {
 	assert.Equal(t, items[1].Name, "Test2")
 
 	items = items[0:0]
-	assert.EqualError(t, db.From("items").ScanStructs(items), "gql: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, db.From("items").ScanStructs(&dsTestActionItem{}), "gql: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, db.From("items").Select("test").ScanStructs(&items), `gql: Unable to find corresponding field to column "test" returned by query`)
+	assert.EqualError(t, db.From("items").ScanStructs(items), "goqu: Type must be a pointer to a slice when calling ScanStructs")
+	assert.EqualError(t, db.From("items").ScanStructs(&dsTestActionItem{}), "goqu: Type must be a pointer to a slice when calling ScanStructs")
+	assert.EqualError(t, db.From("items").Select("test").ScanStructs(&items), `goqu: Unable to find corresponding field to column "test" returned by query`)
 }
 
 func (me *datasetTest) TestScanStruct() {
@@ -59,11 +59,11 @@ func (me *datasetTest) TestScanStruct() {
 	assert.Equal(t, item.Name, "Test1")
 
 	_, err = db.From("items").ScanStruct(item)
-	assert.EqualError(t, err, "gql: Type must be a pointer to a struct when calling ScanStruct")
+	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
 	_, err = db.From("items").ScanStruct([]dsTestActionItem{})
-	assert.EqualError(t, err, "gql: Type must be a pointer to a struct when calling ScanStruct")
+	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
 	_, err = db.From("items").Select("test").ScanStruct(&item)
-	assert.EqualError(t, err, `gql: Unable to find corresponding field to column "test" returned by query`)
+	assert.EqualError(t, err, `goqu: Unable to find corresponding field to column "test" returned by query`)
 }
 
 func (me *datasetTest) TestScanVals() {
@@ -79,8 +79,8 @@ func (me *datasetTest) TestScanVals() {
 	assert.NoError(t, db.From("items").Select("id").ScanVals(&ids))
 	assert.Len(t, ids, 5)
 
-	assert.EqualError(t, db.From("items").ScanVals([]uint32{}), "gql: Type must be a pointer to a slice when calling ScanVals")
-	assert.EqualError(t, db.From("items").ScanVals(dsTestActionItem{}), "gql: Type must be a pointer to a slice when calling ScanVals")
+	assert.EqualError(t, db.From("items").ScanVals([]uint32{}), "goqu: Type must be a pointer to a slice when calling ScanVals")
+	assert.EqualError(t, db.From("items").ScanVals(dsTestActionItem{}), "goqu: Type must be a pointer to a slice when calling ScanVals")
 }
 
 func (me *datasetTest) TestScanVal() {
@@ -99,9 +99,9 @@ func (me *datasetTest) TestScanVal() {
 	assert.True(t, found)
 
 	found, err = db.From("items").ScanVal([]int64{})
-	assert.EqualError(t, err, "gql: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
 	found, err = db.From("items").ScanVal(10)
-	assert.EqualError(t, err, "gql: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
 }
 
 func (me *datasetTest) TestCount() {

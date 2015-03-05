@@ -1,7 +1,7 @@
 package mysql
 
 import (
-    "github.com/doug-martin/gql"
+    "github.com/doug-martin/goqu"
 )
 
 var (
@@ -12,30 +12,30 @@ var (
     mysql_true          = []byte("1")
     mysql_false         = []byte("0")
     time_format         = "2006-01-02 15:04:05"
-    operator_lookup     = map[gql.BooleanOperation][]byte{
-        gql.EQ_OP:                []byte("="),
-        gql.NEQ_OP:               []byte("!="),
-        gql.GT_OP:                []byte(">"),
-        gql.GTE_OP:               []byte(">="),
-        gql.LT_OP:                []byte("<"),
-        gql.LTE_OP:               []byte("<="),
-        gql.IN_OP:                []byte("IN"),
-        gql.NOT_IN_OP:            []byte("NOT IN"),
-        gql.IS_OP:                []byte("IS"),
-        gql.IS_NOT_OP:            []byte("IS NOT"),
-        gql.LIKE_OP:              []byte("LIKE BINARY"),
-        gql.NOT_LIKE_OP:          []byte("NOT LIKE BINARY"),
-        gql.I_LIKE_OP:            []byte("LIKE"),
-        gql.NOT_I_LIKE_OP:        []byte("NOT LIKE"),
-        gql.REGEXP_LIKE_OP:       []byte("REGEXP BINARY"),
-        gql.REGEXP_NOT_LIKE_OP:   []byte("NOT REGEXP BINARY"),
-        gql.REGEXP_I_LIKE_OP:     []byte("REGEXP"),
-        gql.REGEXP_NOT_I_LIKE_OP: []byte("NOT REGEXP"),
+    operator_lookup     = map[goqu.BooleanOperation][]byte{
+        goqu.EQ_OP:                []byte("="),
+        goqu.NEQ_OP:               []byte("!="),
+        goqu.GT_OP:                []byte(">"),
+        goqu.GTE_OP:               []byte(">="),
+        goqu.LT_OP:                []byte("<"),
+        goqu.LTE_OP:               []byte("<="),
+        goqu.IN_OP:                []byte("IN"),
+        goqu.NOT_IN_OP:            []byte("NOT IN"),
+        goqu.IS_OP:                []byte("IS"),
+        goqu.IS_NOT_OP:            []byte("IS NOT"),
+        goqu.LIKE_OP:              []byte("LIKE BINARY"),
+        goqu.NOT_LIKE_OP:          []byte("NOT LIKE BINARY"),
+        goqu.I_LIKE_OP:            []byte("LIKE"),
+        goqu.NOT_I_LIKE_OP:        []byte("NOT LIKE"),
+        goqu.REGEXP_LIKE_OP:       []byte("REGEXP BINARY"),
+        goqu.REGEXP_NOT_LIKE_OP:   []byte("NOT REGEXP BINARY"),
+        goqu.REGEXP_I_LIKE_OP:     []byte("REGEXP"),
+        goqu.REGEXP_NOT_I_LIKE_OP: []byte("NOT REGEXP"),
     }
 )
 
 type DatasetAdapter struct {
-    *gql.DefaultAdapter
+    *goqu.DefaultAdapter
 }
 
 func (me *DatasetAdapter) SupportsReturn() bool {
@@ -58,7 +58,7 @@ func (me *DatasetAdapter) SupportsOrderByOnUpdate() bool {
     return true
 }
 
-func (me *DatasetAdapter) LiteralString(buf *gql.SqlBuilder, s string) error {
+func (me *DatasetAdapter) LiteralString(buf *goqu.SqlBuilder, s string) error {
     if buf.IsPrepared {
         return me.PlaceHolderSql(buf, s)
     }
@@ -86,8 +86,8 @@ func (me *DatasetAdapter) LiteralString(buf *gql.SqlBuilder, s string) error {
     return nil
 }
 
-func newDatasetAdapter(ds *gql.Dataset) gql.Adapter {
-    def := gql.NewDefaultAdapter(ds).(*gql.DefaultAdapter)
+func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
+    def := goqu.NewDefaultAdapter(ds).(*goqu.DefaultAdapter)
     def.PlaceHolderRune = placeholder_rune
     def.IncludePlaceholderNum = false
     def.QuoteRune = quote_rune
@@ -101,5 +101,5 @@ func newDatasetAdapter(ds *gql.Dataset) gql.Adapter {
 
 
 func init() {
-	gql.RegisterAdapter("mysql", newDatasetAdapter)
+	goqu.RegisterAdapter("mysql", newDatasetAdapter)
 }

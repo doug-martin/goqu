@@ -1,18 +1,18 @@
 package postgres
 
 import (
-	"github.com/doug-martin/gql"
+	"github.com/doug-martin/goqu"
 )
 
 const placeholder_rune = '$'
 
-func newDatasetAdapter(ds *gql.Dataset) gql.Adapter {
-	ret := gql.NewDefaultAdapter(ds).(*gql.DefaultAdapter)
+func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
+	ret := goqu.NewDefaultAdapter(ds).(*goqu.DefaultAdapter)
 	ret.PlaceHolderRune = placeholder_rune
 	ret.IncludePlaceholderNum = true
 	return ret
 }
 
 func init() {
-	gql.RegisterAdapter("postgres", newDatasetAdapter)
+	goqu.RegisterAdapter("postgres", newDatasetAdapter)
 }

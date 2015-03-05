@@ -3,7 +3,7 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/gql"
+	"github.com/doug-martin/goqu"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -35,7 +35,7 @@ const schema = `
             (9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-06:00', FALSE, '0.900000');
     `
 
-var db_uri = "postgres://postgres:@/gqlpostgres?sslmode=disable"
+var db_uri = "postgres://postgres:@/goqupostgres?sslmode=disable"
 
 func init() {
 	uri := os.Getenv("WERCKER_MYSQL_URL")
@@ -47,10 +47,10 @@ func init() {
 type (
 	postgresTest struct {
 		suite.Suite
-		db gql.Database
+		db goqu.Database
 	}
 	entry struct {
-		Id     uint32    `db:"id" gql:"skipinsert,skipupdate"`
+		Id     uint32    `db:"id" goqu:"skipinsert,skipupdate"`
 		Int    int       `db:"int"`
 		Float  float64   `db:"float"`
 		String string    `db:"string"`
@@ -69,7 +69,7 @@ func (me *postgresTest) SetupSuite() {
 	if err != nil {
 		panic(err)
 	}
-	me.db = gql.New("postgres", db)
+	me.db = goqu.New("postgres", db)
 	//	me.db.Logger(logger{})
 }
 
@@ -86,11 +86,11 @@ func (me *postgresTest) TestSelectSql() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT "id", "float", "string", "time", "bool" FROM "entry"`)
 
-	sql, err = ds.Where(gql.I("int").Eq(10)).Sql()
+	sql, err = ds.Where(goqu.I("int").Eq(10)).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "entry" WHERE ("int" = 10)`)
 
-	sql, args, err := ds.Where(gql.L("? = ?", gql.I("int"), 10)).ToSql(true)
+	sql, args, err := ds.Where(goqu.L("? = ?", goqu.I("int"), 10)).ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{10})
 	assert.Equal(t, sql, `SELECT * FROM "entry" WHERE "int" = $1`)
@@ -100,7 +100,7 @@ func (me *postgresTest) TestQuery() {
 	t := me.T()
 	var entries []entry
 	ds := me.db.From("entry")
-	assert.NoError(t, ds.Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 10)
 	floatVal := float64(0)
 	baseDate, err := time.Parse(time.RFC3339Nano, "2015-02-22T18:19:55.000000000-00:00")
@@ -117,7 +117,7 @@ func (me *postgresTest) TestQuery() {
 		floatVal += float64(0.1)
 	}
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("bool").IsTrue()).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("bool").IsTrue()).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -125,7 +125,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Gt(4)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Gt(4)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -133,7 +133,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Gte(5)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Gte(5)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -141,7 +141,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Lt(5)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Lt(5)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -149,7 +149,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Lte(4)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Lte(4)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -157,7 +157,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").Eq("0.100000")).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").Eq("0.100000")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 1)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -165,7 +165,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").Like("0.1%")).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").Like("0.1%")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 1)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -173,7 +173,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").NotLike("0.1%")).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").NotLike("0.1%")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 9)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -181,7 +181,7 @@ func (me *postgresTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").IsNull()).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").IsNull()).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 0)
 }
 
@@ -191,16 +191,16 @@ func (me *postgresTest) TestCount() {
 	count, err := ds.Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 10)
-	count, err = ds.Where(gql.I("int").Gt(4)).Count()
+	count, err = ds.Where(goqu.I("int").Gt(4)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 5)
-	count, err = ds.Where(gql.I("int").Gte(4)).Count()
+	count, err = ds.Where(goqu.I("int").Gte(4)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 6)
-	count, err = ds.Where(gql.I("string").Like("0.1%")).Count()
+	count, err = ds.Where(goqu.I("string").Like("0.1%")).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 1)
-	count, err = ds.Where(gql.I("string").IsNull()).Count()
+	count, err = ds.Where(goqu.I("string").IsNull()).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 0)
 }
@@ -214,7 +214,7 @@ func (me *postgresTest) TestInsert() {
 	assert.NoError(t, err)
 
 	var insertedEntry entry
-	found, err := ds.Where(gql.I("int").Eq(10)).ScanStruct(&insertedEntry)
+	found, err := ds.Where(goqu.I("int").Eq(10)).ScanStruct(&insertedEntry)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.True(t, insertedEntry.Id > 0)
@@ -229,7 +229,7 @@ func (me *postgresTest) TestInsert() {
 	assert.NoError(t, err)
 
 	var newEntries []entry
-	assert.NoError(t, ds.Where(gql.I("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
+	assert.NoError(t, ds.Where(goqu.I("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
 	assert.Len(t, newEntries, 4)
 
 	_, err = ds.Insert(
@@ -241,7 +241,7 @@ func (me *postgresTest) TestInsert() {
 	assert.NoError(t, err)
 
 	newEntries = newEntries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
+	assert.NoError(t, ds.Where(goqu.I("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
 	assert.Len(t, newEntries, 4)
 }
 
@@ -250,7 +250,7 @@ func (me *postgresTest) TestInsertReturning() {
 	ds := me.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	found, err := ds.Returning(gql.Star()).Insert(e).ScanStruct(&e)
+	found, err := ds.Returning(goqu.Star()).Insert(e).ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.True(t, e.Id > 0)
@@ -282,19 +282,19 @@ func (me *postgresTest) TestUpdate() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var e entry
-	found, err := ds.Where(gql.I("int").Eq(9)).Select("id").ScanStruct(&e)
+	found, err := ds.Where(goqu.I("int").Eq(9)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	e.Int = 11
-	_, err = ds.Where(gql.I("id").Eq(e.Id)).Update(e).Exec()
+	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Update(e).Exec()
 	assert.NoError(t, err)
 
-	count, err := ds.Where(gql.I("int").Eq(11)).Count()
+	count, err := ds.Where(goqu.I("int").Eq(11)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 1)
 
 	var id uint32
-	found, err = ds.Where(gql.I("int").Eq(11)).Returning("id").Update(map[string]interface{}{"int": 9}).ScanVal(&id)
+	found, err = ds.Where(goqu.I("int").Eq(11)).Returning("id").Update(map[string]interface{}{"int": 9}).ScanVal(&id)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, id, e.Id)
@@ -304,10 +304,10 @@ func (me *postgresTest) TestDelete() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var e entry
-	found, err := ds.Where(gql.I("int").Eq(9)).Select("id").ScanStruct(&e)
+	found, err := ds.Where(goqu.I("int").Eq(9)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
-	_, err = ds.Where(gql.I("id").Eq(e.Id)).Delete().Exec()
+	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Delete().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Count()
@@ -315,18 +315,18 @@ func (me *postgresTest) TestDelete() {
 	assert.Equal(t, count, 9)
 
 	var id uint32
-	found, err = ds.Where(gql.I("id").Eq(e.Id)).ScanVal(&id)
+	found, err = ds.Where(goqu.I("id").Eq(e.Id)).ScanVal(&id)
 	assert.NoError(t, err)
 	assert.False(t, found)
 
 	e = entry{}
-	found, err = ds.Where(gql.I("int").Eq(8)).Select("id").ScanStruct(&e)
+	found, err = ds.Where(goqu.I("int").Eq(8)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.NotEqual(t, e.Id, 0)
 
 	id = 0
-	_, err = ds.Where(gql.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)
+	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)
 	assert.NoError(t, err)
 	assert.Equal(t, id, e.Id)
 }

@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"database/sql"
@@ -51,10 +51,10 @@ func (me Exec) ScanStructs(i interface{}) error {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return NewGqlError("Type must be a pointer to a slice when calling ScanStructs")
+		return NewGoquError("Type must be a pointer to a slice when calling ScanStructs")
 	}
 	if reflect.Indirect(val).Kind() != reflect.Slice {
-		return NewGqlError("Type must be a pointer to a slice when calling ScanStructs")
+		return NewGoquError("Type must be a pointer to a slice when calling ScanStructs")
 	}
 	_, err := me.scan(i, me.Sql, me.Args...)
 	return err
@@ -77,10 +77,10 @@ func (me Exec) ScanStruct(i interface{}) (bool, error) {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return false, NewGqlError("Type must be a pointer to a struct when calling ScanStruct")
+		return false, NewGoquError("Type must be a pointer to a struct when calling ScanStruct")
 	}
 	if reflect.Indirect(val).Kind() != reflect.Struct {
-		return false, NewGqlError("Type must be a pointer to a struct when calling ScanStruct")
+		return false, NewGoquError("Type must be a pointer to a struct when calling ScanStruct")
 	}
 	return me.scan(i, me.Sql, me.Args...)
 }
@@ -98,11 +98,11 @@ func (me Exec) ScanVals(i interface{}) error {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return NewGqlError("Type must be a pointer to a slice when calling ScanVals")
+		return NewGoquError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	val = reflect.Indirect(val)
 	if val.Kind() != reflect.Slice {
-		return NewGqlError("Type must be a pointer to a slice when calling ScanVals")
+		return NewGoquError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
 	rows, err := me.database.Query(me.Sql, me.Args...)
@@ -145,7 +145,7 @@ func (me Exec) ScanVal(i interface{}) (bool, error) {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return false, NewGqlError("Type must be a pointer calling ScanVal")
+		return false, NewGoquError("Type must be a pointer calling ScanVal")
 	}
 	rows, err := me.database.Query(me.Sql, me.Args...)
 	if err != nil {
@@ -176,12 +176,12 @@ func (me Exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 	}
 	rows, err := me.database.Query(query, args...)
 	if err != nil {
-		return false, NewGqlError(err.Error())
+		return false, NewGoquError(err.Error())
 	}
 	defer rows.Close()
 	columns, err := rows.Columns()
 	if err != nil {
-		return false, NewGqlError(err.Error())
+		return false, NewGoquError(err.Error())
 	}
 	for rows.Next() {
 		scans := make([]interface{}, len(columns))
@@ -189,11 +189,11 @@ func (me Exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 			if data, ok := cm[col]; ok {
 				scans[i] = reflect.New(data.GoType).Interface()
 			} else {
-				return false, NewGqlError(`Unable to find corresponding field to column "%s" returned by query`, col)
+				return false, NewGoquError(`Unable to find corresponding field to column "%s" returned by query`, col)
 			}
 		}
 		if err := rows.Scan(scans...); err != nil {
-			return false, NewGqlError(err.Error())
+			return false, NewGoquError(err.Error())
 		}
 		result := Record{}
 		for index, col := range columns {
@@ -202,7 +202,7 @@ func (me Exec) scan(i interface{}, query string, args ...interface{}) (bool, err
 		results = append(results, result)
 	}
 	if rows.Err() != nil {
-		return false, NewGqlError(rows.Err().Error())
+		return false, NewGoquError(rows.Err().Error())
 	}
 	if len(results) > 0 {
 		found = true
@@ -258,7 +258,7 @@ func getColumnMap(i interface{}) (columnMap, error) {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, valKind, _ := getTypeInfo(i, val)
 	if valKind != reflect.Struct {
-		return nil, NewGqlError(fmt.Sprintf("Cannot SELECT into this type: %v", t))
+		return nil, NewGoquError(fmt.Sprintf("Cannot SELECT into this type: %v", t))
 	}
 	if _, ok := struct_map_cache[t]; !ok {
 		struct_map_cache[t] = createColumnMap(t)

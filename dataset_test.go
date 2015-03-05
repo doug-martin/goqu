@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"database/sql/driver"

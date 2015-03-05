@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"fmt"
@@ -858,7 +858,7 @@ func ExampleDataset_ClearSelect() {
 
 func ExampleDataset_ToInsertSql() {
 	type item struct {
-		Id      uint32 `db:"id" gql:"skipinsert"`
+		Id      uint32 `db:"id" goqu:"skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
@@ -932,7 +932,7 @@ func ExampleDataset_ToInsertSql() {
 
 func ExampleDataset_InsertSql() {
 	type item struct {
-		Id      uint32 `db:"id" gql:"skipinsert"`
+		Id      uint32 `db:"id" goqu:"skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}

@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"github.com/doug-martin/gql"
+	"github.com/doug-martin/goqu"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -13,8 +13,8 @@ type datasetAdapterTest struct {
 
 func (me *datasetAdapterTest) TestPlaceholderSql() {
 	t := me.T()
-	buf := gql.NewSqlBuilder(true)
-	dsAdapter := newDatasetAdapter(gql.From("test"))
+	buf := goqu.NewSqlBuilder(true)
+	dsAdapter := newDatasetAdapter(goqu.From("test"))
 	dsAdapter.PlaceHolderSql(buf, 1)
 	dsAdapter.PlaceHolderSql(buf, 2)
 	dsAdapter.PlaceHolderSql(buf, 3)

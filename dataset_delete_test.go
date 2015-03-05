@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ func (me *datasetTest) TestDeleteSqlNoSources() {
 	t := me.T()
 	ds1 := From("items")
 	_, err := ds1.From().DeleteSql()
-	assert.EqualError(t, err, "gql: No source found when generating delete sql")
+	assert.EqualError(t, err, "goqu: No source found when generating delete sql")
 }
 
 func (me *datasetTest) TestDeleteSqlWithWhere() {
@@ -51,7 +51,7 @@ func (me *datasetTest) TestTruncateSqlNoSources() {
 	t := me.T()
 	ds1 := From("items")
 	_, err := ds1.From().TruncateSql()
-	assert.EqualError(t, err, "gql: No source found when generating truncate sql")
+	assert.EqualError(t, err, "goqu: No source found when generating truncate sql")
 }
 
 func (me *datasetTest) TestTruncateSqlWithOpts() {

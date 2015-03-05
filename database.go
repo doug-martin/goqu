@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import "database/sql"
 
@@ -24,28 +24,28 @@ type (
 	}
 )
 
-//This is the common entry point into gql.
+//This is the common entry point into goqu.
 //
-//dialect: This is the adapter dialect, you should see your database adapter for the string to use. Built in adpaters can be found at https://github.com/doug-martin/gql/tree/master/adapters
+//dialect: This is the adapter dialect, you should see your database adapter for the string to use. Built in adpaters can be found at https://github.com/doug-martin/goqu/tree/master/adapters
 //db: A sql.Db to use for querying the database
 //      import (
 //          "database/sql"
 //          "fmt"
-//          "github.com/doug-martin/gql"
-//          _ "github.com/doug-martin/gql/adapters/postgres"
+//          "github.com/doug-martin/goqu"
+//          _ "github.com/doug-martin/goqu/adapters/postgres"
 //          _ "github.com/lib/pq"
 //      )
 //
 //      func main() {
-//          sqlDb, err := sql.Open("postgres", "user=postgres dbname=gqlpostgres sslmode=disable ")
+//          sqlDb, err := sql.Open("postgres", "user=postgres dbname=goqupostgres sslmode=disable ")
 //          if err != nil {
 //              panic(err.Error())
 //          }
-//          db := gql.New("postgres", sqlDb)
+//          db := goqu.New("postgres", sqlDb)
 //      }
 //The most commonly used Database method is From, which creates a new Dataset that uses the correct adapter and supports queries.
 //          var ids []uint32
-//          if err := db.From("items").Where(gql.I("id").Gt(10)).Pluck("id", &ids); err != nil {
+//          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
@@ -69,12 +69,12 @@ func (me Database) queryAdapter(dataset *Dataset) Adapter {
 
 //Creates a new Dataset that uses the correct adapter and supports queries.
 //          var ids []uint32
-//          if err := db.From("items").Where(gql.I("id").Gt(10)).Pluck("id", &ids); err != nil {
+//          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
 //
-//from...: Sources for you dataset, could be table names (strings), a gql.Literal or another gql.Dataset
+//from...: Sources for you dataset, could be table names (strings), a goqu.Literal or another goqu.Dataset
 func (me *Database) From(from ...interface{}) *Dataset {
 	return withDatabase(me).From(from...)
 }
@@ -89,12 +89,12 @@ func (me *Database) Trace(op, sql string, args ...interface{}) {
 	if me.logger != nil {
 		if sql != "" {
 			if len(args) != 0 {
-				me.logger.Printf("[gql] %s [query:=`%s` args:=%+v]", op, sql, args)
+				me.logger.Printf("[goqu] %s [query:=`%s` args:=%+v]", op, sql, args)
 			} else {
-				me.logger.Printf("[gql] %s [query:=`%s`]", op, sql)
+				me.logger.Printf("[goqu] %s [query:=`%s`]", op, sql)
 			}
 		} else {
-			me.logger.Printf("[gql] %s", op)
+			me.logger.Printf("[goqu] %s", op)
 		}
 	}
 }
@@ -111,7 +111,7 @@ func (me *Database) Exec(query string, args ...interface{}) (sql.Result, error) 
 //Can be used to prepare a query.
 //
 //You can use this in tandem with a dataset by doing the following.
-//    sql, args, err := db.From("items").Where(gql.I("id").Gt(10)).ToSql(true)
+//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSql(true)
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -141,7 +141,7 @@ func (me *Database) Prepare(query string) (*sql.Stmt, error) {
 //Can be used to prepare a query.
 //
 //You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(gql.I("id").Gt(10)).Sql()
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Sql()
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -167,7 +167,7 @@ func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) 
 //Can be used to prepare a query.
 //
 //You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(gql.I("id").Gt(10)).Limit(1).Sql()
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).Sql()
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -251,12 +251,12 @@ func (me *TxDatabase) Trace(op, sql string, args ...interface{}) {
 	if me.logger != nil {
 		if sql != "" {
 			if len(args) != 0 {
-				me.logger.Printf("[gql - transaction] %s [query:=`%s` args:=%+v] ", op, sql, args)
+				me.logger.Printf("[goqu - transaction] %s [query:=`%s` args:=%+v] ", op, sql, args)
 			} else {
-				me.logger.Printf("[gql - transaction] %s [query:=`%s`] ", op, sql)
+				me.logger.Printf("[goqu - transaction] %s [query:=`%s`] ", op, sql)
 			}
 		} else {
-			me.logger.Printf("[gql - transaction] %s", op)
+			me.logger.Printf("[goqu - transaction] %s", op)
 		}
 	}
 }

@@ -1,13 +1,13 @@
-package gql
+package goqu
 
 import "fmt"
 
 func newEncodeError(message string, args ...interface{}) error {
-	return EncodeError{err: "gql: " + fmt.Sprintf(message, args...)}
+	return EncodeError{err: "goqu: " + fmt.Sprintf(message, args...)}
 }
 
-func NewGqlError(message string, args ...interface{}) error {
-	return GqlError{err: "gql: " + fmt.Sprintf(message, args...)}
+func NewGoquError(message string, args ...interface{}) error {
+	return GoquError{err: "goqu: " + fmt.Sprintf(message, args...)}
 }
 
 type EncodeError struct {
@@ -19,10 +19,10 @@ func (me EncodeError) Error() string {
 	return me.err
 }
 
-type GqlError struct {
+type GoquError struct {
 	err string
 }
 
-func (me GqlError) Error() string {
+func (me GoquError) Error() string {
 	return me.err
 }

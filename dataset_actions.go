@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 //Generates the SELECT sql for this dataset and uses Exec#ScanStructs to scan the results into a slice of structs
 //

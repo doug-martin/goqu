@@ -3,7 +3,7 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/gql"
+	"github.com/doug-martin/goqu"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -37,7 +37,7 @@ const (
 		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', FALSE, '0.900000');"
 )
 
-var db_uri = "root@/gqlmysql?parseTime=true"
+var db_uri = "root@/goqumysql?parseTime=true"
 
 func init() {
 	uri := os.Getenv("WERCKER_MYSQL_URL")
@@ -50,10 +50,10 @@ type (
 	logger    struct{}
 	mysqlTest struct {
 		suite.Suite
-		db gql.Database
+		db goqu.Database
 	}
 	entry struct {
-		Id     uint32    `db:"id" gql:"skipinsert,skipupdate"`
+		Id     uint32    `db:"id" goqu:"skipinsert,skipupdate"`
 		Int    int       `db:"int"`
 		Float  float64   `db:"float"`
 		String string    `db:"string"`
@@ -72,7 +72,7 @@ func (me *mysqlTest) SetupSuite() {
 	if err != nil {
 		panic(err.Error())
 	}
-	me.db = gql.New("mysql", db)
+	me.db = goqu.New("mysql", db)
 	//	me.db.Logger(logger{})
 }
 
@@ -95,11 +95,11 @@ func (me *mysqlTest) TestSelectSql() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`")
 
-	sql, err = ds.Where(gql.I("int").Eq(10)).Sql()
+	sql, err = ds.Where(goqu.I("int").Eq(10)).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE (`int` = 10)")
 
-	sql, args, err := ds.Where(gql.L("? = ?", gql.I("int"), 10)).ToSql(true)
+	sql, args, err := ds.Where(goqu.L("? = ?", goqu.I("int"), 10)).ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{10})
 	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE `int` = ?")
@@ -109,7 +109,7 @@ func (me *mysqlTest) TestQuery() {
 	t := me.T()
 	var entries []entry
 	ds := me.db.From("entry")
-	assert.NoError(t, ds.Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 10)
 	floatVal := float64(0)
 	baseDate, err := time.Parse(time_format, "2015-02-22 18:19:55")
@@ -126,7 +126,7 @@ func (me *mysqlTest) TestQuery() {
 		floatVal += float64(0.1)
 	}
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("bool").IsTrue()).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("bool").IsTrue()).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -134,7 +134,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Gt(4)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Gt(4)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -142,7 +142,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Gte(5)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Gte(5)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -150,7 +150,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Lt(5)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Lt(5)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -158,7 +158,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").Lte(4)).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Lte(4)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 5)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -166,7 +166,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").Eq("0.100000")).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").Eq("0.100000")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 1)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -174,7 +174,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").Like("0.1%")).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").Like("0.1%")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 1)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -182,7 +182,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").NotLike("0.1%")).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").NotLike("0.1%")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 9)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -190,7 +190,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(gql.I("string").IsNull()).Order(gql.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("string").IsNull()).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 0)
 }
 
@@ -200,16 +200,16 @@ func (me *mysqlTest) TestCount() {
 	count, err := ds.Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 10)
-	count, err = ds.Where(gql.I("int").Gt(4)).Count()
+	count, err = ds.Where(goqu.I("int").Gt(4)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 5)
-	count, err = ds.Where(gql.I("int").Gte(4)).Count()
+	count, err = ds.Where(goqu.I("int").Gte(4)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 6)
-	count, err = ds.Where(gql.I("string").Like("0.1%")).Count()
+	count, err = ds.Where(goqu.I("string").Like("0.1%")).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 1)
-	count, err = ds.Where(gql.I("string").IsNull()).Count()
+	count, err = ds.Where(goqu.I("string").IsNull()).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 0)
 }
@@ -223,7 +223,7 @@ func (me *mysqlTest) TestInsert() {
 	assert.NoError(t, err)
 
 	var insertedEntry entry
-	found, err := ds.Where(gql.I("int").Eq(10)).ScanStruct(&insertedEntry)
+	found, err := ds.Where(goqu.I("int").Eq(10)).ScanStruct(&insertedEntry)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.True(t, insertedEntry.Id > 0)
@@ -238,7 +238,7 @@ func (me *mysqlTest) TestInsert() {
 	assert.NoError(t, err)
 
 	var newEntries []entry
-	assert.NoError(t, ds.Where(gql.I("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
+	assert.NoError(t, ds.Where(goqu.I("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
 	assert.Len(t, newEntries, 4)
 
 	_, err = ds.Insert(
@@ -250,7 +250,7 @@ func (me *mysqlTest) TestInsert() {
 	assert.NoError(t, err)
 
 	newEntries = newEntries[0:0]
-	assert.NoError(t, ds.Where(gql.I("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
+	assert.NoError(t, ds.Where(goqu.I("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
 	assert.Len(t, newEntries, 4)
 }
 
@@ -259,7 +259,7 @@ func (me *mysqlTest) TestInsertReturning() {
 	ds := me.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	_, err := ds.Returning(gql.Star()).Insert(e).ScanStruct(&e)
+	_, err := ds.Returning(goqu.Star()).Insert(e).ScanStruct(&e)
 	assert.Error(t, err)
 
 }
@@ -268,14 +268,14 @@ func (me *mysqlTest) TestUpdate() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var e entry
-	found, err := ds.Where(gql.I("int").Eq(9)).Select("id").ScanStruct(&e)
+	found, err := ds.Where(goqu.I("int").Eq(9)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	e.Int = 11
-	_, err = ds.Where(gql.I("id").Eq(e.Id)).Update(e).Exec()
+	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Update(e).Exec()
 	assert.NoError(t, err)
 
-	count, err := ds.Where(gql.I("int").Eq(11)).Count()
+	count, err := ds.Where(goqu.I("int").Eq(11)).Count()
 	assert.NoError(t, err)
 	assert.Equal(t, count, 1)
 }
@@ -284,19 +284,19 @@ func (me *mysqlTest) TestUpdateReturning() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var id uint32
-	_, err := ds.Where(gql.I("int").Eq(11)).Returning("id").Update(map[string]interface{}{"int": 9}).ScanVal(&id)
+	_, err := ds.Where(goqu.I("int").Eq(11)).Returning("id").Update(map[string]interface{}{"int": 9}).ScanVal(&id)
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "gql: Adapter does not support RETURNING clause")
+	assert.Equal(t, err.Error(), "goqu: Adapter does not support RETURNING clause")
 }
 
 func (me *mysqlTest) TestDelete() {
 	t := me.T()
 	ds := me.db.From("entry")
 	var e entry
-	found, err := ds.Where(gql.I("int").Eq(9)).Select("id").ScanStruct(&e)
+	found, err := ds.Where(goqu.I("int").Eq(9)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
-	_, err = ds.Where(gql.I("id").Eq(e.Id)).Delete().Exec()
+	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Delete().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Count()
@@ -304,19 +304,19 @@ func (me *mysqlTest) TestDelete() {
 	assert.Equal(t, count, 9)
 
 	var id uint32
-	found, err = ds.Where(gql.I("id").Eq(e.Id)).ScanVal(&id)
+	found, err = ds.Where(goqu.I("id").Eq(e.Id)).ScanVal(&id)
 	assert.NoError(t, err)
 	assert.False(t, found)
 
 	e = entry{}
-	found, err = ds.Where(gql.I("int").Eq(8)).Select("id").ScanStruct(&e)
+	found, err = ds.Where(goqu.I("int").Eq(8)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.NotEqual(t, e.Id, 0)
 
 	id = 0
-	_, err = ds.Where(gql.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)
-	assert.Equal(t, err.Error(), "gql: Adapter does not support RETURNING clause")
+	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)
+	assert.Equal(t, err.Error(), "goqu: Adapter does not support RETURNING clause")
 }
 
 func TestMysqlSuite(t *testing.T) {

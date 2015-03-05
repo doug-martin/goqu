@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"database/sql/driver"
@@ -61,14 +61,14 @@ func (me *datasetTest) TestUpdateSqlWithUnsupportedType() {
 	t := me.T()
 	ds1 := From("items")
 	_, err := ds1.UpdateSql([]string{"HELLO"})
-	assert.EqualError(t, err, "gql: Unsupported update interface type []string")
+	assert.EqualError(t, err, "goqu: Unsupported update interface type []string")
 }
 
 func (me *datasetTest) TestUpdateSqlWithSkipupdateTag() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
-		Address string `db:"address" gql:"skipupdate"`
+		Address string `db:"address" goqu:"skipupdate"`
 		Name    string `db:"name"`
 	}
 	sql, err := ds1.UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
@@ -161,7 +161,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithSkipupdateTag() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
-		Address string `db:"address" gql:"skipupdate"`
+		Address string `db:"address" goqu:"skipupdate"`
 		Name    string `db:"name"`
 	}
 	sql, args, err := ds1.ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})

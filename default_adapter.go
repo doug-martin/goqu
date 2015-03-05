@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 import (
 	"fmt"
@@ -92,7 +92,7 @@ var (
 )
 
 type (
-	//The default adapter. This class should be used when building a new adapter. When creating a new adapter you can either override methods, or more typically update default values. See (github.com/doug-martin/gql/adapters/postgres)
+	//The default adapter. This class should be used when building a new adapter. When creating a new adapter you can either override methods, or more typically update default values. See (github.com/doug-martin/goqu/adapters/postgres)
 	DefaultAdapter struct {
 		Adapter
 		dataset *Dataset
@@ -347,7 +347,7 @@ func (me *DefaultAdapter) InsertValuesSql(buf *SqlBuilder, values [][]interface{
 //Adds column setters in an update SET clause
 func (me *DefaultAdapter) UpdateExpressionsSql(buf *SqlBuilder, updates ...UpdateExpression) error {
 	if len(updates) == 0 {
-		return NewGqlError("No update values provided")
+		return NewGoquError("No update values provided")
 	}
 	updateLen := len(updates)
 	buf.Write(me.SetFragment)
@@ -417,7 +417,7 @@ func (me *DefaultAdapter) JoinSql(buf *SqlBuilder, joins JoiningClauses) error {
 			if j.IsConditioned {
 				buf.WriteRune(space_rune)
 				if j.Condition == nil {
-					return NewGqlError("Join condition required for conditioned join %s", string(joinType))
+					return NewGoquError("Join condition required for conditioned join %s", string(joinType))
 				}
 				condition := j.Condition
 				if condition.JoinCondition() == USING_COND {
@@ -561,7 +561,7 @@ func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpre
 		}
 		return me.Literal(buf, col)
 	default:
-		return NewGqlError("Unexpected col type must be string or LiteralExpression %+v", col)
+		return NewGoquError("Unexpected col type must be string or LiteralExpression %+v", col)
 	}
 	return nil
 }
@@ -678,7 +678,7 @@ func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator Boolean
 	if val, ok := me.BooleanOperatorLookup[operatorOp]; ok {
 		buf.Write(val)
 	} else {
-		return NewGqlError("Boolean operator %+v not supported", operatorOp)
+		return NewGoquError("Boolean operator %+v not supported", operatorOp)
 	}
 	rhs := operator.Rhs()
 	if operatorOp == IS_OP || operatorOp == IS_NOT_OP {

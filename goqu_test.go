@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 func init() {
 	RegisterAdapter("mock", func(ds *Dataset) Adapter {

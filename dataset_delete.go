@@ -1,4 +1,4 @@
-package gql
+package goqu
 
 type (
 	//Options to use when generating a TRUNCATE statement
@@ -32,7 +32,7 @@ func (me *Dataset) DeleteSql() (string, error) {
 func (me *Dataset) ToDeleteSql(isPrepared bool) (string, []interface{}, error) {
 	buf := NewSqlBuilder(isPrepared)
 	if !me.hasSources() {
-		return "", nil, NewGqlError("No source found when generating delete sql")
+		return "", nil, NewGoquError("No source found when generating delete sql")
 	}
 	if err := me.adapter.DeleteBeginSql(buf); err != nil {
 		return "", nil, err
@@ -55,10 +55,10 @@ func (me *Dataset) ToDeleteSql(isPrepared bool) (string, []interface{}, error) {
 	}
 	if me.adapter.SupportsReturn() {
 		if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
-			return "", nil, NewGqlError(err.Error())
+			return "", nil, NewGoquError(err.Error())
 		}
 	} else if me.clauses.Returning != nil {
-		return "", nil, NewGqlError("Adapter does not support RETURNING clause")
+		return "", nil, NewGoquError("Adapter does not support RETURNING clause")
 	}
 	sql, args := buf.ToSql()
 	return sql, args, nil
@@ -95,7 +95,7 @@ func (me *Dataset) TruncateWithOptsSql(opts TruncateOptions) (string, error) {
 //  * Error generating SQL
 func (me *Dataset) ToTruncateSql(isPrepared bool, opts TruncateOptions) (string, []interface{}, error) {
 	if !me.hasSources() {
-		return "", nil, NewGqlError("No source found when generating truncate sql")
+		return "", nil, NewGoquError("No source found when generating truncate sql")
 	}
 	buf := NewSqlBuilder(false)
 	if err := me.adapter.TruncateSql(buf, me.clauses.From, opts); err != nil {
