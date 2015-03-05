@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/doug-martin/gql"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"os"
 	"testing"
 	"time"
 )
@@ -34,6 +35,15 @@ const schema = `
             (9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-06:00', FALSE, '0.900000');
     `
 
+var db_uri = "postgres://postgres:@/gqlpostgres?sslmode=disable"
+
+func init() {
+	uri := os.Getenv("WERCKER_MYSQL_URL")
+	if uri != "" {
+		db_uri = uri
+	}
+}
+
 type (
 	postgresTest struct {
 		suite.Suite
@@ -51,7 +61,11 @@ type (
 )
 
 func (me *postgresTest) SetupSuite() {
-	db, err := sql.Open("postgres", "user=postgres dbname=gqlpostgres sslmode=disable ")
+	uri, err := pq.ParseURL(db_uri)
+	if err != nil {
+		panic(err)
+	}
+	db, err := sql.Open("postgres", uri)
 	if err != nil {
 		panic(err)
 	}

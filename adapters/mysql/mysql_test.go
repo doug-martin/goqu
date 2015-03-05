@@ -7,8 +7,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"os"
 	"testing"
 	"time"
+    "strings"
 )
 
 const (
@@ -35,6 +37,15 @@ const (
 		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', FALSE, '0.900000');"
 )
 
+var db_uri = "root@/gqlmysql?parseTime=true"
+
+func init() {
+	uri := os.Getenv("WERCKER_MYSQL_URL")
+	if uri != "" {
+		db_uri = strings.Replace(uri, "mysql://", "", -1)
+	}
+}
+
 type (
 	logger    struct{}
 	mysqlTest struct {
@@ -57,7 +68,7 @@ func (me logger) Printf(sql string, args ...interface{}) {
 }
 
 func (me *mysqlTest) SetupSuite() {
-	db, err := sql.Open("mysql", "root@/gqlmysql?parseTime=true")
+	db, err := sql.Open("mysql", db_uri)
 	if err != nil {
 		panic(err.Error())
 	}
