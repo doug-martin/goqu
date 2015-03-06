@@ -27,6 +27,7 @@ type (
 //This is the common entry point into goqu.
 //
 //dialect: This is the adapter dialect, you should see your database adapter for the string to use. Built in adpaters can be found at https://github.com/doug-martin/goqu/tree/master/adapters
+//
 //db: A sql.Db to use for querying the database
 //      import (
 //          "database/sql"
@@ -102,6 +103,7 @@ func (me *Database) Trace(op, sql string, args ...interface{}) {
 //Uses the db to Execute the query with arguments and return the sql.Result
 //
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
 	me.Trace("EXEC", query, args...)
@@ -138,7 +140,7 @@ func (me *Database) Prepare(query string) (*sql.Stmt, error) {
 	return me.Db.Prepare(query)
 }
 
-//Can be used to prepare a query.
+//Used to query for multiple rows.
 //
 //You can use this in tandem with a dataset by doing the following.
 //    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Sql()
@@ -158,13 +160,14 @@ func (me *Database) Prepare(query string) (*sql.Stmt, error) {
 //    }
 //
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	me.Trace("QUERY", query, args...)
 	return me.Db.Query(query, args...)
 }
 
-//Can be used to prepare a query.
+//Used to query for a single row.
 //
 //You can use this in tandem with a dataset by doing the following.
 //    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).Sql()
@@ -178,49 +181,58 @@ func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) 
 //    //scan your row
 //
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 	me.Trace("QUERY ROW", query, args...)
 	return me.Db.QueryRow(query, args...)
 }
 
-//Queries the database using the supplied query, and args and uses Exec#ScanStructs to scan the results into a slice of structs
+//Queries the database using the supplied query, and args and uses CrudExec.ScanStructs to scan the results into a slice of structs
 //
 //i: A pointer to a slice of structs
+//
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanStructs(i)
 }
 
-//Queries the database using the supplied query, and args and uses Exec#ScanStruct to scan the results into a struct
+//Queries the database using the supplied query, and args and uses CrudExec.ScanStruct to scan the results into a struct
 //
 //i: A pointer to a struct
+//
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanStruct(i)
 }
 
-//Queries the database using the supplied query, and args and uses Exec#ScanVals to scan the results into a slice of primitive values
+//Queries the database using the supplied query, and args and uses CrudExec.ScanVals to scan the results into a slice of primitive values
 //
 //i: A pointer to a slice of primitive values
+//
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) ScanVals(i interface{}, query string, args ...interface{}) error {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanVals(i)
 }
 
-//Queries the database using the supplied query, and args and uses Exec#ScanVal to scan the results into a primitive value
+//Queries the database using the supplied query, and args and uses CrudExec.ScanVal to scan the results into a primitive value
 //
 //i: A pointer to a primitive value
+//
 //query: The SQL to execute
+//
 //args...: for any placeholder parameters in the query
 func (me *Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanVal(i)
 }
 
@@ -287,25 +299,25 @@ func (me *TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
 
 //See Database#ScanStructs
 func (me *TxDatabase) ScanStructs(i interface{}, query string, args ...interface{}) error {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanStructs(i)
 }
 
 //See Database#ScanStruct
 func (me *TxDatabase) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanStruct(i)
 }
 
 //See Database#ScanVals
 func (me *TxDatabase) ScanVals(i interface{}, query string, args ...interface{}) error {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanVals(i)
 }
 
 //See Database#ScanVal
 func (me *TxDatabase) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newExec(me, nil, query, args...)
+	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanVal(i)
 }
 

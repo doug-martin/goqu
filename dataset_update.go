@@ -38,6 +38,7 @@ func (me *Dataset) canUpdateField(field reflect.StructField) bool {
 //    }
 //
 //isPrepared: set to true to generate an sql statement with placeholders for primitive values
+//
 //update: can either be a a map[string]interface{}, Record or a struct
 //
 //Errors:

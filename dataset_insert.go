@@ -33,6 +33,7 @@ func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
 //    }
 //
 //isPrepared: Set to true to true to ensure values are NOT interpolated
+//
 //rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
 //
 //Errors:

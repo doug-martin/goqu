@@ -66,7 +66,7 @@ type (
 	//    * Count() - Returns a count of rows
 	//    * Pluck(i interface{}, col string) - Retrives a columns from rows and scans the resules into a slice of primitive values.
 	//
-	//Update, Delete, and Insert return an Exec struct which can be used to scan values or just execute the statment. You might
+	//Update, Delete, and Insert return an CrudExec struct which can be used to scan values or just execute the statment. You might
 	//use the scan methods if the database supports return values. For example
 	//    UPDATE "items" SET updated = NOW RETURNING "items".*
 	//Could be executed with ScanStructs.
@@ -161,6 +161,7 @@ func (me *Dataset) hasSources() bool {
 //   * Expressions
 //
 //buf: The SqlBuilder to write the generated SQL to
+//
 //val: The value to serialize
 //
 //Errors:

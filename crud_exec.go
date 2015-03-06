@@ -15,7 +15,7 @@ type (
 		GoType     reflect.Type
 	}
 	columnMap map[string]columnData
-	Exec      struct {
+	CrudExec      struct {
 		database database
 		Sql      string
 		Args     []interface{}
@@ -26,11 +26,11 @@ type (
 
 var struct_map_cache = make(map[interface{}]columnMap)
 
-func newExec(database database, err error, sql string, args ...interface{}) *Exec {
-	return &Exec{database: database, err: err, Sql: sql, Args: args}
+func newCrudExec(database database, err error, sql string, args ...interface{}) *CrudExec {
+	return &CrudExec{database: database, err: err, Sql: sql, Args: args}
 }
 
-func (me Exec) Exec() (sql.Result, error) {
+func (me CrudExec) Exec() (sql.Result, error) {
 	if me.err != nil {
 		return nil, me.err
 	}
@@ -44,8 +44,9 @@ func (me Exec) Exec() (sql.Result, error) {
 //    }
 //    //use your structs
 //
+//
 //i: A pointer to a slice of structs.
-func (me Exec) ScanStructs(i interface{}) error {
+func (me CrudExec) ScanStructs(i interface{}) error {
 	if me.err != nil {
 		return me.err
 	}
@@ -71,7 +72,7 @@ func (me Exec) ScanStructs(i interface{}) error {
 //    }
 //
 //i: A pointer to a struct
-func (me Exec) ScanStruct(i interface{}) (bool, error) {
+func (me CrudExec) ScanStruct(i interface{}) (bool, error) {
 	if me.err != nil {
 		return false, me.err
 	}
@@ -92,7 +93,7 @@ func (me Exec) ScanStruct(i interface{}) (bool, error) {
 //    }
 //
 //i: Takes a pointer to a slice of primitive values.
-func (me Exec) ScanVals(i interface{}) error {
+func (me CrudExec) ScanVals(i interface{}) error {
 	if me.err != nil {
 		return me.err
 	}
@@ -138,8 +139,8 @@ func (me Exec) ScanVals(i interface{}) error {
 //        fmt.Println("NOT FOUND")
 //    }
 //
-//i: Takes a pointer to a primitive value.
-func (me Exec) ScanVal(i interface{}) (bool, error) {
+//   i: Takes a pointer to a primitive value.
+func (me CrudExec) ScanVal(i interface{}) (bool, error) {
 	if me.err != nil {
 		return false, me.err
 	}
@@ -165,7 +166,7 @@ func (me Exec) ScanVal(i interface{}) (bool, error) {
 	return count != 0, nil
 }
 
-func (me Exec) scan(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me CrudExec) scan(i interface{}, query string, args ...interface{}) (bool, error) {
 	var (
 		found   bool
 		results []Record

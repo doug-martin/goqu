@@ -88,6 +88,7 @@ func (me *Dataset) TruncateWithOptsSql(opts TruncateOptions) (string, error) {
 //Generates a TRUNCATE statement.
 //
 //isPrepared: Set to true to true to ensure values are NOT interpolated. See examples.
+//
 //opts: Options to use when generating the TRUNCATE statement
 //
 //Errors:
