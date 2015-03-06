@@ -47,7 +47,7 @@ func init() {
 type (
 	postgresTest struct {
 		suite.Suite
-		db goqu.Database
+		db *goqu.Database
 	}
 	entry struct {
 		Id     uint32    `db:"id" goqu:"skipinsert,skipupdate"`

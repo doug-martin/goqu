@@ -50,21 +50,21 @@ type (
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
-func New(dialect string, db *sql.DB) Database {
-	return Database{Dialect: dialect, Db: db}
+func New(dialect string, db *sql.DB) *Database {
+	return &Database{Dialect: dialect, Db: db}
 }
 
 //Starts a new Transaction.
-func (me Database) Begin() (TxDatabase, error) {
+func (me *Database) Begin() (*TxDatabase, error) {
 	tx, err := me.Db.Begin()
 	if err != nil {
-		return TxDatabase{}, err
+		return nil, err
 	}
-	return TxDatabase{Dialect: me.Dialect, Tx: tx}, nil
+	return &TxDatabase{Dialect: me.Dialect, Tx: tx}, nil
 }
 
 //used internally to create a new Adapter for a dataset
-func (me Database) queryAdapter(dataset *Dataset) Adapter {
+func (me *Database) queryAdapter(dataset *Dataset) Adapter {
 	return NewAdapter(me.Dialect, dataset)
 }
 
