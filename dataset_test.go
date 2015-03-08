@@ -48,7 +48,21 @@ func (me *datasetTest) TestSetAdapter() {
 
 func (me *datasetTest) TestLiteralUnsupportedType() {
 	t := me.T()
-	assert.Error(t, From("test").Literal(NewSqlBuilder(false), struct{}{}))
+	assert.EqualError(t, From("test").Literal(NewSqlBuilder(false), struct{}{}), "goqu: Unable to encode value {}")
+}
+
+type unknowExpression struct {
+}
+
+func (me unknowExpression) Expression() Expression {
+	return me
+}
+func (me unknowExpression) Clone() Expression {
+	return me
+}
+func (me *datasetTest) TestLiteralUnsupportedExpression() {
+	t := me.T()
+	assert.EqualError(t, From("test").Literal(NewSqlBuilder(false), unknowExpression{}), "goqu: Unsupported expression type goqu.unknowExpression")
 }
 
 func (me *datasetTest) TestLiteralFloatTypes() {
@@ -650,6 +664,113 @@ func (me *datasetTest) TestLiteralIdentifierExpression() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.*")))
 	assert.Equal(t, buf.String(), `"a".*`)
 	assert.Equal(t, buf.args, []interface{}{})
+}
+
+func (me *datasetTest) TestLiteralExpressionMap() {
+	t := me.T()
+	buf := NewSqlBuilder(false)
+	ds := From("test")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": 1}))
+	assert.Equal(t, buf.String(), `("a" = 1)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": true}))
+	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": false}))
+	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": nil}))
+	assert.Equal(t, buf.String(), `("a" IS NULL)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": []string{"a", "b", "c"}}))
+	assert.Equal(t, buf.String(), `("a" IN ('a', 'b', 'c'))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"neq": 1}}))
+	assert.Equal(t, buf.String(), `("a" != 1)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"isnot": true}}))
+	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gt": 1}}))
+	assert.Equal(t, buf.String(), `("a" > 1)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gte": 1}}))
+	assert.Equal(t, buf.String(), `("a" >= 1)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lt": 1}}))
+	assert.Equal(t, buf.String(), `("a" < 1)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lte": 1}}))
+	assert.Equal(t, buf.String(), `("a" <= 1)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"like": "a%"}}))
+	assert.Equal(t, buf.String(), `("a" LIKE 'a%')`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notLike": "a%"}}))
+	assert.Equal(t, buf.String(), `("a" NOT LIKE 'a%')`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notLike": "a%"}}))
+	assert.Equal(t, buf.String(), `("a" NOT LIKE 'a%')`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"in": []string{"a", "b", "c"}}}))
+	assert.Equal(t, buf.String(), `("a" IN ('a', 'b', 'c'))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notIn": []string{"a", "b", "c"}}}))
+	assert.Equal(t, buf.String(), `("a" NOT IN ('a', 'b', 'c'))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
+	assert.Equal(t, buf.String(), `(("a" = 10) OR ("a" IS NULL))`)
+
+	buf = NewSqlBuilder(true)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": 1}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `("a" = ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": true}))
+	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": false}))
+	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": nil}))
+	assert.Equal(t, buf.args, []interface{}{nil})
+	assert.Equal(t, buf.String(), `("a" IS ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": []string{"a", "b", "c"}}))
+	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
+	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"neq": 1}}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `("a" != ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"isnot": true}}))
+	assert.Equal(t, buf.args, []interface{}{})
+	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gt": 1}}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `("a" > ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gte": 1}}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `("a" >= ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lt": 1}}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `("a" < ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lte": 1}}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `("a" <= ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"like": "a%"}}))
+	assert.Equal(t, buf.args, []interface{}{"a%"})
+	assert.Equal(t, buf.String(), `("a" LIKE ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notLike": "a%"}}))
+	assert.Equal(t, buf.args, []interface{}{"a%"})
+	assert.Equal(t, buf.String(), `("a" NOT LIKE ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"in": []string{"a", "b", "c"}}}))
+	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
+	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notIn": []string{"a", "b", "c"}}}))
+	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
+	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
+	assert.Equal(t, buf.args, []interface{}{10, nil})
+	assert.Equal(t, buf.String(), `(("a" = ?) OR ("a" IS ?))`)
+}
+
+func (me *datasetTest) TestLiteralExpressionOrMap() {
+	t := me.T()
+	buf := NewSqlBuilder(false)
+	ds := From("test")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": true}))
+	assert.Equal(t, buf.String(), `(("a" = 1) OR ("b" IS TRUE))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": []string{"a", "b", "c"}}))
+	assert.Equal(t, buf.String(), `(("a" = 1) OR ("b" IN ('a', 'b', 'c')))`)
+
+	buf = NewSqlBuilder(true)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": true}))
+	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.String(), `(("a" = ?) OR ("b" IS TRUE))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": []string{"a", "b", "c"}}))
+	assert.Equal(t, buf.args, []interface{}{1, "a", "b", "c"})
+	assert.Equal(t, buf.String(), `(("a" = ?) OR ("b" IN (?, ?, ?)))`)
+
 }
 
 func TestDatasetSuite(t *testing.T) {

@@ -1,6 +1,21 @@
 package goqu
 
-import "github.com/stretchr/testify/assert"
+import (
+    "github.com/stretchr/testify/assert"
+    "github.com/DATA-DOG/go-sqlmock"
+)
+
+func (me *datasetTest) TestInsertSqlNoReturning() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("no-return", mDb).From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	_, err := ds1.Returning("id").InsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.EqualError(t, err, "goqu: Adapter does not support RETURNING clause")
+}
 
 func (me *datasetTest) TestInsertSqlWithStructs() {
 	t := me.T()

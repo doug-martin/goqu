@@ -233,8 +233,6 @@ func (me *Dataset) reflectSql(buf *SqlBuilder, val interface{}) error {
 			return me.Literal(buf, b)
 		}
 		return me.adapter.SliceValueSql(buf, v)
-	} else if valKind == reflect.Struct {
-		return NewGoquError(fmt.Sprintf("Unable to encode value %+v", val))
 	} else if me.isInt(valKind) {
 		return me.Literal(buf, v.Int())
 	} else if me.isUint(valKind) {
@@ -274,6 +272,10 @@ func (me *Dataset) expressionSql(buf *SqlBuilder, expression Expression) error {
 		return me.adapter.DatasetSql(buf, *e)
 	} else if e, ok := expression.(CompoundExpression); ok {
 		return me.adapter.CompoundExpressionSql(buf, e)
+	} else if e, ok := expression.(Ex); ok {
+		return me.adapter.ExpressionMapSql(buf, e)
+	} else if e, ok := expression.(ExOr); ok {
+		return me.adapter.ExpressionOrMapSql(buf, e)
 	}
 	return NewGoquError("Unsupported expression type %T", expression)
 }

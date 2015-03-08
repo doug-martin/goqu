@@ -40,6 +40,22 @@ func (me *datasetTest) TestSelect() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT (SELECT "id" FROM "test_1") AS "test_id"`)
 
+	sql, err = ds1.From().
+		Select(
+		DISTINCT("a").As("distinct"),
+		COUNT("a").As("count"),
+		L("CASE WHEN ? THEN ? ELSE ? END", MIN("a").Eq(10), true, false),
+		L("CASE WHEN ? THEN ? ELSE ? END", AVG("a").Neq(10), true, false),
+		L("CASE WHEN ? THEN ? ELSE ? END", FIRST("a").Gt(10), true, false),
+		L("CASE WHEN ? THEN ? ELSE ? END", FIRST("a").Gte(10), true, false),
+		L("CASE WHEN ? THEN ? ELSE ? END", LAST("a").Lt(10), true, false),
+		L("CASE WHEN ? THEN ? ELSE ? END", LAST("a").Lte(10), true, false),
+		SUM("a").As("sum"),
+		COALESCE(I("a"), "a").As("colaseced"),
+	).Sql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT("a") AS "distinct", COUNT("a") AS "count", CASE WHEN (MIN("a") = 10) THEN TRUE ELSE FALSE END, CASE WHEN (AVG("a") != 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") > 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") >= 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") < 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") <= 10) THEN TRUE ELSE FALSE END, SUM("a") AS "sum", COALESCE("a", 'a') AS "colaseced"`)
+
 	//should not change original
 	sql, err = ds1.Sql()
 	assert.NoError(t, err)
@@ -178,6 +194,18 @@ func (me *datasetTest) TestWhere() {
 	sql, err = b.Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" = 'a') AND ("b" != 'b') AND ("c" > 'c') AND ("d" >= 'd') AND ("e" < 'e') AND ("f" <= 'f'))`)
+
+	b = ds1.Where(Ex{
+		"a": "a",
+		"b": Op{"neq": "b"},
+		"c": Op{"gt": "c"},
+		"d": Op{"gte": "d"},
+		"e": Op{"lt": "e"},
+		"f": Op{"lte": "f"},
+	})
+	sql, err = b.Sql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" = 'a') AND ("b" != 'b') AND ("c" > 'c') AND ("d" >= 'd') AND ("e" < 'e') AND ("f" <= 'f'))`)
 }
 
 func (me *datasetTest) TestClearWhere() {
@@ -310,25 +338,21 @@ func (me *datasetTest) TestHaving() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Having(
-		I("a").Gt(1),
-	).GroupBy("created")
+	b := ds1.Having(Ex{
+		"a": Op{"gt": 1},
+	}).GroupBy("created")
 	sql, err := b.Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "test" GROUP BY "created" HAVING ("a" > 1)`)
 
-	b = ds1.Where(
-		I("b").IsTrue(),
-	).Having(
-		I("a").Gt(1),
-	).GroupBy("created")
+	b = ds1.Where(Ex{"b": true}).
+		Having(Ex{"a": Op{"gt": 1}}).
+		GroupBy("created")
 	sql, err = b.Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("b" IS TRUE) GROUP BY "created" HAVING ("a" > 1)`)
 
-	b = ds1.Having(
-		I("a").Gt(1),
-	)
+	b = ds1.Having(Ex{"a": Op{"gt": 1}})
 	sql, err = b.Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "test" HAVING ("a" > 1)`)
@@ -366,15 +390,15 @@ func (me *datasetTest) TestJoin() {
 	t := me.T()
 	ds1 := From("items")
 
-	sql, err := ds1.Join(I("players").As("p"), On(I("p.id").Eq(I("items.playerId")))).Sql()
+	sql, err := ds1.Join(I("players").As("p"), On(Ex{"p.id": I("items.playerId")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN "players" AS "p" ON ("p"."id" = "items"."playerId")`)
 
-	sql, err = ds1.Join(ds1.From("players").As("p"), On(I("p.id").Eq(I("items.playerId")))).Sql()
+	sql, err = ds1.Join(ds1.From("players").As("p"), On(Ex{"p.id": I("items.playerId")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN (SELECT * FROM "players") AS "p" ON ("p"."id" = "items"."playerId")`)
 
-	sql, err = ds1.Join(I("v1").Table("test"), On(I("v1.test.id").Eq(I("items.playerId")))).Sql()
+	sql, err = ds1.Join(I("v1").Table("test"), On(Ex{"v1.test.id": I("items.playerId")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN "v1"."test" ON ("v1"."test"."id" = "items"."playerId")`)
 
@@ -392,7 +416,9 @@ func (me *datasetTest) TestLeftOuterJoin() {
 	t := me.T()
 	ds1 := From("items")
 
-	sql, err := ds1.LeftOuterJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err := ds1.LeftOuterJoin(I("categories"), On(Ex{
+		"categories.categoryId": I("items.id"),
+	})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" LEFT OUTER JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 
@@ -400,17 +426,19 @@ func (me *datasetTest) TestLeftOuterJoin() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" LEFT OUTER JOIN "categories" ON (("categories"."categoryId" = "items"."id") AND ("categories"."categoryId" IN (1, 2, 3)))`)
 
-	sql, err = ds1.Where(I("price").Lt(100)).RightOuterJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err = ds1.Where(I("price").Lt(100)).RightOuterJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 }
 
 func (me *datasetTest) TestFullOuterJoin() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.FullOuterJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Order(I("stamp").Asc()).Sql()
+	sql, err := ds1.
+		FullOuterJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).
+		Order(I("stamp").Asc()).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" FULL OUTER JOIN "categories" ON ("categories"."categoryId" = "items"."id") ORDER BY "stamp" ASC`)
 
-	sql, err = ds1.FullOuterJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err = ds1.FullOuterJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" FULL OUTER JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 }
@@ -418,15 +446,21 @@ func (me *datasetTest) TestFullOuterJoin() {
 func (me *datasetTest) TestInnerJoin() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.InnerJoin(I("b"), On(I("b.itemsId").Eq(I("items.id")))).LeftOuterJoin(I("c"), On(I("c.b_id").Eq(I("b.id")))).Sql()
+	sql, err := ds1.
+		InnerJoin(I("b"), On(Ex{"b.itemsId": I("items.id")})).
+		LeftOuterJoin(I("c"), On(Ex{"c.b_id": I("b.id")})).
+		Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN "b" ON ("b"."itemsId" = "items"."id") LEFT OUTER JOIN "c" ON ("c"."b_id" = "b"."id")`)
 
-	sql, err = ds1.InnerJoin(I("b"), On(I("b.itemsId").Eq(I("items.id")))).LeftOuterJoin(I("c"), On(I("c.b_id").Eq(I("b.id")))).Sql()
+	sql, err = ds1.
+		InnerJoin(I("b"), On(Ex{"b.itemsId": I("items.id")})).
+		LeftOuterJoin(I("c"), On(Ex{"c.b_id": I("b.id")})).
+		Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN "b" ON ("b"."itemsId" = "items"."id") LEFT OUTER JOIN "c" ON ("c"."b_id" = "b"."id")`)
 
-	sql, err = ds1.InnerJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err = ds1.InnerJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 }
@@ -434,7 +468,7 @@ func (me *datasetTest) TestInnerJoin() {
 func (me *datasetTest) TestRightOuterJoin() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.RightOuterJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err := ds1.RightOuterJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" RIGHT OUTER JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 }
@@ -442,7 +476,7 @@ func (me *datasetTest) TestRightOuterJoin() {
 func (me *datasetTest) TestLeftJoin() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.LeftJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err := ds1.LeftJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" LEFT JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 }
@@ -450,7 +484,7 @@ func (me *datasetTest) TestLeftJoin() {
 func (me *datasetTest) TestRightJoin() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.RightJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err := ds1.RightJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" RIGHT JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 }
@@ -458,7 +492,7 @@ func (me *datasetTest) TestRightJoin() {
 func (me *datasetTest) TestFullJoin() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.FullJoin(I("categories"), On(I("categories.categoryId").Eq(I("items.id")))).Sql()
+	sql, err := ds1.FullJoin(I("categories"), On(Ex{"categories.categoryId": I("items.id")})).Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "items" FULL JOIN "categories" ON ("categories"."categoryId" = "items"."id")`)
 }
@@ -642,25 +676,25 @@ func (me *datasetTest) TestPreparedWhere() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Eq(true),
-		I("a").Neq(true),
-		I("a").Eq(false),
-		I("a").Neq(false),
-	)
+	b := ds1.Where(Ex{
+		"a": true,
+		"b": Op{"neq": true},
+		"c": false,
+		"d": Op{"neq": false},
+	})
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
-	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("a" IS NOT TRUE) AND ("a" IS FALSE) AND ("a" IS NOT FALSE))`)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("b" IS NOT TRUE) AND ("c" IS FALSE) AND ("d" IS NOT FALSE))`)
 
-	b = ds1.Where(
-		I("a").Eq("a"),
-		I("b").Neq("b"),
-		I("c").Gt("c"),
-		I("d").Gte("d"),
-		I("e").Lt("e"),
-		I("f").Lte("f"),
-	)
+	b = ds1.Where(Ex{
+		"a": "a",
+		"b": Op{"neq": "b"},
+		"c": Op{"gt": "c"},
+		"d": Op{"gte": "d"},
+		"e": Op{"lt": "e"},
+		"f": Op{"lte": "f"},
+	})
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"a", "b", "c", "d", "e", "f"})
@@ -671,17 +705,13 @@ func (me *datasetTest) TestPreparedLimit() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Gt(1),
-	).Limit(10)
+	b := ds1.Where(I("a").Gt(1)).Limit(10)
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1, 10})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) LIMIT ?`)
 
-	b = ds1.Where(
-		I("a").Gt(1),
-	).Limit(0)
+	b = ds1.Where(I("a").Gt(1)).Limit(0)
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
@@ -692,17 +722,13 @@ func (me *datasetTest) TestPreparedLimitAll() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Gt(1),
-	).LimitAll()
+	b := ds1.Where(I("a").Gt(1)).LimitAll()
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) LIMIT ALL`)
 
-	b = ds1.Where(
-		I("a").Gt(1),
-	).Limit(0).LimitAll()
+	b = ds1.Where(I("a").Gt(1)).Limit(0).LimitAll()
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
@@ -713,17 +739,13 @@ func (me *datasetTest) TestPreparedClearLimit() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Gt(1),
-	).LimitAll().ClearLimit()
+	b := ds1.Where(I("a").Gt(1)).LimitAll().ClearLimit()
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?)`)
 
-	b = ds1.Where(
-		I("a").Gt(1),
-	).Limit(10).ClearLimit()
+	b = ds1.Where(I("a").Gt(1)).Limit(10).ClearLimit()
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
@@ -734,17 +756,13 @@ func (me *datasetTest) TestPreparedOffset() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Gt(1),
-	).Offset(10)
+	b := ds1.Where(I("a").Gt(1)).Offset(10)
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1, 10})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) OFFSET ?`)
 
-	b = ds1.Where(
-		I("a").Gt(1),
-	).Offset(0)
+	b = ds1.Where(I("a").Gt(1)).Offset(0)
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
@@ -755,9 +773,7 @@ func (me *datasetTest) TestPreparedClearOffset() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Gt(1),
-	).Offset(10).ClearOffset()
+	b := ds1.Where(I("a").Gt(1)).Offset(10).ClearOffset()
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
@@ -768,25 +784,19 @@ func (me *datasetTest) TestPreparedGroupBy() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Where(
-		I("a").Gt(1),
-	).GroupBy("created")
+	b := ds1.Where(I("a").Gt(1)).GroupBy("created")
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) GROUP BY "created"`)
 
-	b = ds1.Where(
-		I("a").Gt(1),
-	).GroupBy(Literal("created::DATE"))
+	b = ds1.Where(I("a").Gt(1)).GroupBy(Literal("created::DATE"))
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) GROUP BY created::DATE`)
 
-	b = ds1.Where(
-		I("a").Gt(1),
-	).GroupBy("name", Literal("created::DATE"))
+	b = ds1.Where(I("a").Gt(1)).GroupBy("name", Literal("created::DATE"))
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
@@ -797,27 +807,22 @@ func (me *datasetTest) TestPreparedHaving() {
 	t := me.T()
 	ds1 := From("test")
 
-	b := ds1.Having(
-		I("a").Gt(1),
-	).GroupBy("created")
+	b := ds1.Having(I("a").Gt(1)).GroupBy("created")
 	sql, args, err := b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
 	assert.Equal(t, sql, `SELECT * FROM "test" GROUP BY "created" HAVING ("a" > ?)`)
 
-	b = ds1.Where(
-		I("b").IsTrue(),
-	).Having(
-		I("a").Gt(1),
-	).GroupBy("created")
+	b = ds1.
+		Where(I("b").IsTrue()).
+		Having(I("a").Gt(1)).
+		GroupBy("created")
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("b" IS TRUE) GROUP BY "created" HAVING ("a" > ?)`)
 
-	b = ds1.Having(
-		I("a").Gt(1),
-	)
+	b = ds1.Having(I("a").Gt(1))
 	sql, args, err = b.ToSql(true)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{1})

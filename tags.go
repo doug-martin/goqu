@@ -13,6 +13,7 @@ func (o tagOptions) Contains(optionName string) bool {
 	if len(o) == 0 {
 		return false
 	}
+	ret := false
 	s := string(o)
 	for s != "" {
 		var next string
@@ -21,9 +22,10 @@ func (o tagOptions) Contains(optionName string) bool {
 			s, next = s[:i], s[i+1:]
 		}
 		if s == optionName {
-			return true
+			ret = true
+			break
 		}
 		s = next
 	}
-	return false
+	return ret
 }

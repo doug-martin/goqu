@@ -145,9 +145,9 @@ func (me *databaseTest) TestScanVal() {
 	assert.True(t, found)
 
 	found, err = db.ScanVal([]int64{}, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
 	found, err = db.ScanVal(10, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
 }
 
 func (me *databaseTest) TestExec() {
@@ -275,7 +275,7 @@ func (me *txDatabaseTest) TestLogger() {
 	})
 }
 
-func (me *databaseTest) TestCommit() {
+func (me *txDatabaseTest) TestCommit() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -287,7 +287,7 @@ func (me *databaseTest) TestCommit() {
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *databaseTest) TestRollback() {
+func (me *txDatabaseTest) TestRollback() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -299,7 +299,7 @@ func (me *databaseTest) TestRollback() {
 	assert.NoError(t, tx.Rollback())
 }
 
-func (me *databaseTest) TestFrom() {
+func (me *txDatabaseTest) TestFrom() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -412,9 +412,9 @@ func (me *txDatabaseTest) TestScanVal() {
 	assert.True(t, found)
 
 	found, err = tx.ScanVal([]int64{}, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
 	found, err = tx.ScanVal(10, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
 	assert.NoError(t, tx.Commit())
 }
 

@@ -32,15 +32,15 @@ This library was built with the following goals:
 While goqu may support the scanning of rows into structs it is not intended to be used as an ORM if you are looking for common ORM features like associations,
 or hooks I would recommend looking at some of the great ORM libraries such as:
 
-*  https://github.com/jinzhu/gorm
-* https://github.com/eaigner/hood
+* [gorm](https://github.com/jinzhu/gorm)
+* [hood](https://github.com/eaigner/hood)
 
 ## Basics
 
 In order to start using goqu with your database you need to load an adapter. We have included some adapters by default.
 
-1. Postgres - github.com/doug-martin/goqu/adapters/postgres
-2. MySQL - github.com/doug-martin/goqu/adapters/mysql
+1. Postgres - `import "github.com/doug-martin/goqu/adapters/postgres"`
+2. MySQL - `import "github.com/doug-martin/goqu/adapters/mysql"`
 
 Adapters in goqu work the same way as a driver with the database in that they register themselves with goqu once loaded.
 
@@ -63,39 +63,106 @@ if err != nil {
 }
 db := goqu.New("postgres", pgDb)
 ```
-Once you have your goqu.Database you can build your SQL and it will be formatted appropriately for the provided dialect.
+Now that you have your goqu.Database you can build your SQL and it will be formatted appropriately for the provided dialect.
 
 ```go
-sql, _ := db.From("user").Where(goqu.I("password").IsNotNull()).Sql()
+//without place holders
+sql, _ := db.From("user").Where(goqu.Ex{
+    "id": 10,
+}).Sql()
 fmt.Println(sql)
 
-sql, args, _ := db.From("user").Where(goqu.I("id").Eq(10)).ToSql(true)
+sql, args, _ := db.From("user").Where(goqu.Ex{
+    "id": 10,
+}).ToSql(true)
 fmt.Println(sql)
 ```
 Output
 ```sql
-SELECT * FROM "user" WHERE "password" IS NOT NULL
+SELECT * FROM "user" WHERE "id" = 10
 SELECT * FROM "user" WHERE "id" = $1
 ```
 
-## Expressions
+### Expressions
 
-goqu provides a DSL for generating the SQL however the Dataset only provides the the different clause methods (e.g. Where, From, Select), most of these clause methods accept Expressions(with a few exceptions) which are the building blocks for your SQL statement, you can think of them as fragments of SQL.
+`goqu` provides an idiomatic DSL for generating SQL however the Dataset only provides the the different clause methods (e.g. Where, From, Select), most of these clause methods accept Expressions(with a few exceptions) which are the building blocks for your SQL statement, you can think of them as fragments of SQL.
 
 The entry points for expressions are:
 
-* [`I()`](https://godoc.org/github.com/doug-martin/goqu#example-I) - An Identifier represents a schema, table, or column or any combination
+* [`Ex{}`](https://godoc.org/github.com/doug-martin/goqu#Ex) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `Ex` will use the equality operator except in cases where the equality operator will not work, see the example below.
+```go
+sql, _ := db.From("items").Where(goqu.Ex{
+	"col1": "a",
+	"col2": 1,
+	"col3": true,
+	"col4": false,
+	"col5": nil,
+	"col6": []string{"a", "b", "c"},
+}).Sql()
+fmt.Println(sql)
+```
+Output:
+```sql
+SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c')))
+```
+You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
+```go
+sql, _ := db.From("items").Where(goqu.Ex{
+    "col1": goqu.Op{"neq": "a"},
+    "col3": goqu.Op{"isNot": true},
+    "col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
+}).Sql()
+fmt.Println(sql)
+```
+Output:
+```sql
+SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
+```
+For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`Ex`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
+
+* [`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu#ExOr) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `ExOr` will use the equality operator except in cases where the equality operator will not work, see the example below.
+```go
+sql, _ := db.From("items").Where(goqu.ExOr{
+	"col1": "a",
+	"col2": 1,
+	"col3": true,
+	"col4": false,
+	"col5": nil,
+	"col6": []string{"a", "b", "c"},
+}).Sql()
+fmt.Println(sql)
+```
+Output:
+```sql
+SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c')))
+```
+You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
+```go
+sql, _ := db.From("items").Where(goqu.ExOr{
+    "col1": goqu.Op{"neq": "a"},
+    "col3": goqu.Op{"isNot": true},
+    "col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
+}).Sql()
+fmt.Println(sql)
+```
+Output:
+```sql
+SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
+```
+For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`ExOr`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
+
+* [`I()`](https://godoc.org/github.com/doug-martin/goqu#I) - An Identifier represents a schema, table, or column or any combination. You can use this when your expression cannot be expressed via the [`Ex`](https://godoc.org/github.com/doug-martin/goqu#Ex) map (e.g. Cast).
 ```go
 goqu.I("my_schema.table.col")
 goqu.I("table.col")
 goqu.I("col")
 ```
-If you look at the IdentiferExpression it implements many of your common sql operations that you would perform.
+If you look at the [`IdentiferExpression`](https://godoc.org/github.com/doug-martin/goqu#IdentifierExpression) docs it implements many of your common sql operations that you would perform.
 ```go
-    goqu.I("col").Eq(10)
-    goqu.I("col").In([]int64{1,2,3,4})
-    goqu.I("col").Like(regexp.MustCompile("^(a|b)")
-    goqu.I("col").IsNull()
+goqu.I("col").Eq(10)
+goqu.I("col").In([]int64{1,2,3,4})
+goqu.I("col").Like(regexp.MustCompile("^(a|b)")
+goqu.I("col").IsNull()
 ```
 Please see the exmaples for [`I()`](https://godoc.org/github.com/doug-martin/goqu#example-I) to see more in depth examples
 
@@ -103,16 +170,17 @@ Please see the exmaples for [`I()`](https://godoc.org/github.com/doug-martin/goq
 ```go
 goqu.L(`"col"::TEXT = ""other_col"::text`)
 ```
-You can also use placeholders in your literal. When using the LiteralExpressions placeholders are normalized to the ? character and will be transformed to the correct placeholder for your adapter (e.g. ? - $1 in postgres)
+You can also use placeholders in your literal. When using the LiteralExpressions placeholders are normalized to the ? character and will be transformed to the correct placeholder for your adapter (e.g. `?` mysql, `$1` postgres)
 ```go
 goqu.L("col IN (?, ?, ?)", "a", "b", "c")
 ```
 Putting it together
 ```go
-   db.From("test").Where(
-      goqu.I("col").Eq(10),
-      goqu.L(`"json"::TEXT = "other_json"::TEXT`),
-   )
+sql, _ := db.From("test").Where(
+   goqu.I("col").Eq(10),
+   goqu.L(`"json"::TEXT = "other_json"::TEXT`),
+).Sql()
+fmt.Println(sql)
 ```
 ```sql
 SELECT * FROM "test" WHERE (("col" = 10) AND "json"::TEXT = "other_json"::TEXT)
@@ -120,53 +188,117 @@ SELECT * FROM "test" WHERE (("col" = 10) AND "json"::TEXT = "other_json"::TEXT)
 Both the Identifier and Literal expressions will be ANDed together by default.
 You may however want to have your expressions ORed together you can use the [`Or()`](https://godoc.org/github.com/doug-martin/goqu#example-Or) function to create an ExpressionList
 ```go
-   db.From("test").Where(
-      Or(
-         goqu.I("col").Eq(10),
-         goqu.L(`"col"::TEXT = "other_col"::TEXT`),
-      ),
-   )
+gql, _ := db.From("test").Where(
+   goqu.Or(
+      goqu.I("col").Eq(10),
+      goqu.L(`"col"::TEXT = "other_col"::TEXT`),
+   ),
+).Sql()
+fmt.Println(sql)
 ```  
 ```sql
 SELECT * FROM "test" WHERE (("col" = 10) OR "col"::TEXT = "other_col"::TEXT)
 ```
+
+```go
+sql, _ := db.From("test").Where(
+   Or(
+      goqu.I("col").Eq(10),
+      goqu.L(`"col"::TEXT = "other_col"::TEXT`),
+   ),
+).Sql()
+fmt.Println(sql)
+```
+```sql
+SELECT * FROM "test" WHERE (("col" = 10) OR "col"::TEXT = "other_col"::TEXT)
+```
+
 You can also use Or and the And function in tandem which will give you control not only over how the Expressions are joined together, but also how they are grouped
 ```go
-   db.From("test").Where(
-      Or(
-         I("a").Gt(10),
-         And(
-            I("b").Eq(100),
-            I("c").Neq("test"),
-         ),
+sql, _ := db.From("test").Where(
+   goqu.Or(
+      goqu.I("a").Gt(10),
+      goqu.And(
+         goqu.I("b").Eq(100),
+         goqu.I("c").Neq("test"),
       ),
-   )
+   ),
+).Sql()
+fmt.Println(sql)
 ```
+Output:
 ```sql
 SELECT * FROM "test" WHERE (("a" > 10) OR (("b" = 100) AND ("c" != 'test')))
 ```
 
-### Complex Example
-
+You can also use Or with the map syntax
 ```go
-db.From("test").
-    Select(goqu.COUNT("*")).
-    InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
-    LeftJoin(goqu.I("test3"), goqu.On(goqu.I("test2.fkey").Eq(goqu.I("test3.id")))).
-    Where(
-        goqu.I("test.name").Like(regexp.MustCompile("^(a|b)")),
-        goqu.I("test2.amount").IsNotNull(),
-        goqu.Or(
-			       goqu.I("test3.id").IsNull(),
-			       goqu.I("test3.status").In("passed", "active", "registered"),
-		    ),
-    ).
-    Order(goqu.I("test.created").Desc().NullsLast()).
-    GroupBy(goqu.I("test.user_id")).
-    Having(goqu.AVG("test3.age").Gt(10))
+sql, _ := db.From("test").Where(
+	goqu.Or(
+        //Ex will be anded together
+		goqu.Ex{
+			"col1": nil,
+			"col2": true,
+		},
+		goqu.Ex{
+			"col3": nil,
+			"col4": false,
+		},
+		goqu.L(`"col"::TEXT = "other_col"::TEXT`),
+	),
+).Sql()
+fmt.Println(sql)
+```
+Output:
+```sql
+SELECT * FROM "test" WHERE ((("col1" IS NULL) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" IS FALSE)) OR "col"::TEXT = "other_col"::TEXT)
 ```
 
-Would generate the following SQL
+### Complex Example
+
+Using the Ex map syntax
+```go
+sql, _ = db.From("test").
+	Select(goqu.COUNT("*")).
+	InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
+	LeftJoin(goqu.I("test3"), goqu.On(goqu.I("test2.fkey").Eq(goqu.I("test3.id")))).
+	Where(
+	goqu.Ex{
+		"test.name":    goqu.Op{"like": regexp.MustCompile("^(a|b)")},
+		"test2.amount": goqu.Op{"isNot": nil},
+	},
+	goqu.ExOr{
+		"test3.id":     nil,
+		"test3.status": []string{"passed", "active", "registered"},
+	}).
+	Order(goqu.I("test.created").Desc().NullsLast()).
+	GroupBy(goqu.I("test.user_id")).
+	Having(goqu.AVG("test3.age").Gt(10)).
+	Sql()
+fmt.Println(sql)
+```
+
+Using the Expression syntax
+```go
+sql, _ = db.From("test").
+		Select(goqu.COUNT("*")).
+		InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
+		LeftJoin(goqu.I("test3"), goqu.On(goqu.I("test2.fkey").Eq(goqu.I("test3.id")))).
+		Where(
+		    goqu.I("test.name").Like(regexp.MustCompile("^(a|b)")),
+		    goqu.I("test2.amount").IsNotNull(),
+		    goqu.Or(
+			    goqu.I("test3.id").IsNull(),
+			    goqu.I("test3.status").In("passed", "active", "registered"),
+		)).
+		Order(goqu.I("test.created").Desc().NullsLast()).
+		GroupBy(goqu.I("test.user_id")).
+		Having(goqu.AVG("test3.age").Gt(10)).
+		Sql()
+	fmt.Println(sql)
+```
+
+Both examples generate the following SQL
 
 ```sql
 SELECT COUNT(*)
@@ -310,8 +442,8 @@ If your database supports the `RETURN` clause you can also use the different Sca
 ```go
 var ids []int64
 update := db.From("user").
-    Where(goqu.I("status").Eq("inactive")).
-    Returning(goqu.I("id")).
+    Where(goqu.Ex{"status":"inactive"}).
+    Returning("id").
     Update(goqu.Record{"password": nil, "updated": time.Now()})
 if err := update.ScanVals(&ids); err != nil{
     fmt.Println(err.Error())
@@ -321,13 +453,13 @@ if err := update.ScanVals(&ids); err != nil{
 * [`Delete`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Delete) - Creates an `DELETE` statement and returns a [`CrudExec`](http://godoc.org/github.com/doug-martin/goqu#CrudExec) to execute the statement
 ```go
 delete := db.From("invoice").
-    Where(goqu.I("status").Eq("paid")).
+    Where(goqu.Ex{"status":"paid"}).
     Delete()
 if _, err := delete.Exec(); err != nil{
     fmt.Println(err.Error())
     return
 }
-``````
+```
 If your database supports the `RETURN` clause you can also use the different Scan methods to get results
 ```go
 var ids []int64
@@ -365,7 +497,9 @@ if err != nil{
    return err
 }
 //use tx.From to get a dataset that will execute within this transaction
-update := tx.From("user").Where(goqu.I("password").IsNull()).Update(goqu.Record{"status": "inactive"})
+update := tx.From("user").
+    Where(goqu.Ex("password": nil}).
+    Update(goqu.Record{"status": "inactive"})
 if _, err = update.Exec(); err != nil{
     if rErr := tx.Rollback(); rErr != nil{
         return rErr
@@ -394,7 +528,9 @@ if err != nil{
    return err
 }
 err = tx.Wrap(func() error{
-  update := tx.From("user").Where(goqu.I("password").IsNull()).Update(goqu.Record{"status": "inactive"})
+  update := tx.From("user").
+      Where(goqu.Ex("password": nil}).
+      Update(goqu.Record{"status": "inactive"})
   if _, err = update.Exec(); err != nil{
       return err
   }
@@ -487,3 +623,7 @@ If you are issuing a PR also also include the following
 If you find an issue you want to work on please comment on it letting other people know you are looking at it and I will assign the issue to you.
 
 If want to work on an issue but dont know where to start just leave a comment and I'll be more than happy to point you in the right direction.
+
+## License
+
+`goqu` is released under the [MIT License](http://www.opensource.org/licenses/MIT).

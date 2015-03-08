@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -47,6 +48,73 @@ const (
 	OR_TYPE
 )
 
+func getExMapKeys(ex map[string]interface{}) []string {
+	var keys []string
+	for key, _ := range ex {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (ExpressionList, error) {
+	keys := getExMapKeys(ex)
+	ret := make([]Expression, len(keys))
+	for i, key := range keys {
+		lhs := I(key)
+		rhs := ex[key]
+		var exp Expression
+		if op, ok := rhs.(Op); ok {
+			opKeys := getExMapKeys(op)
+			ors := make([]Expression, len(opKeys))
+			for j, opKey := range opKeys {
+				var ored Expression
+				switch strings.ToLower(opKey) {
+				case "eq":
+					ored = lhs.Eq(op[opKey])
+				case "neq":
+					ored = lhs.Neq(op[opKey])
+				case "is":
+					ored = lhs.Is(op[opKey])
+				case "isnot":
+					ored = lhs.IsNot(op[opKey])
+				case "gt":
+					ored = lhs.Gt(op[opKey])
+				case "gte":
+					ored = lhs.Gte(op[opKey])
+				case "lt":
+					ored = lhs.Lt(op[opKey])
+				case "lte":
+					ored = lhs.Lte(op[opKey])
+				case "in":
+					ored = lhs.In(op[opKey])
+				case "notin":
+					ored = lhs.NotIn(op[opKey])
+				case "like":
+					ored = lhs.Like(op[opKey])
+				case "notlike":
+					ored = lhs.NotLike(op[opKey])
+				case "ilike":
+					ored = lhs.ILike(op[opKey])
+				case "notilike":
+					ored = lhs.NotILike(op[opKey])
+				default:
+					return nil, NewGoquError("Unsupported expression type %s", op)
+				}
+				ors[j] = ored
+			}
+			exp = Or(ors...)
+		} else {
+			exp = lhs.Eq(rhs)
+		}
+		ret[i] = exp
+	}
+	if eType == OR_TYPE {
+		return Or(ret...), nil
+	}
+	return And(ret...), nil
+}
+
 // A list of expressions that should be ORed together
 //    Or(I("a").Eq(10), I("b").Eq(11)) //(("a" = 10) OR ("b" = 11))
 func Or(expressions ...Expression) expressionList {
@@ -88,6 +156,49 @@ func (me expressionList) Append(expressions ...Expression) ExpressionList {
 	}
 	ret.expressions = exps
 	return ret
+}
+
+type (
+	//A map of expressions to be ANDed together where the keys are string that will be used as Identifiers and values will be used in a boolean operation.
+	//The Ex map can be used in tandem with Op map to create more complex expression such as LIKE, GT, LT... See examples.
+	Ex map[string]interface{}
+	//A map of expressions to be ORed together where the keys are string that will be used as Identifiers and values will be used in a boolean operation.
+	//The Ex map can be used in tandem with Op map to create more complex expression such as LIKE, GT, LT... See examples.
+	ExOr map[string]interface{}
+	//Used in tandem with the Ex map to create complex comparisons such as LIKE, GT, LT... See examples
+	Op map[string]interface{}
+)
+
+func (me Ex) Expression() Expression {
+	return me
+}
+
+func (me Ex) Clone() Expression {
+	ret := Ex{}
+	for key, val := range me {
+		ret[key] = val
+	}
+	return ret
+}
+
+func (me Ex) ToExpressions() (ExpressionList, error) {
+	return mapToExpressionList(me, AND_TYPE)
+}
+
+func (me ExOr) Expression() Expression {
+	return me
+}
+
+func (me ExOr) Clone() Expression {
+	ret := Ex{}
+	for key, val := range me {
+		ret[key] = val
+	}
+	return ret
+}
+
+func (me ExOr) ToExpressions() (ExpressionList, error) {
+	return mapToExpressionList(me, OR_TYPE)
 }
 
 type (
@@ -983,7 +1094,6 @@ type (
 		Expression
 		AliasMethods
 		ComparisonMethods
-		OrderedMethods
 		//The function name
 		Name() string
 		//Arguments to be passed to the function
@@ -1070,8 +1180,6 @@ func (me sqlFunctionExpression) Gt(val interface{}) BooleanExpression  { return 
 func (me sqlFunctionExpression) Gte(val interface{}) BooleanExpression { return gte(me, val) }
 func (me sqlFunctionExpression) Lt(val interface{}) BooleanExpression  { return lt(me, val) }
 func (me sqlFunctionExpression) Lte(val interface{}) BooleanExpression { return lte(me, val) }
-func (me sqlFunctionExpression) Asc() OrderedExpression                { return asc(me) }
-func (me sqlFunctionExpression) Desc() OrderedExpression               { return desc(me) }
 
 type (
 	//An Expression that represents another Expression casted to a SQL type

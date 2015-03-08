@@ -3,8 +3,58 @@ package goqu
 import (
 	"database/sql/driver"
 	"fmt"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
+
+func (me *datasetTest) TestUpdateSqlWithNoSources() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	_, err := ds1.From().UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.EqualError(t, err, "goqu: No source found when generating update sql")
+}
+
+func (me *datasetTest) TestUpdateSqlNoReturning() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("no-return", mDb).From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	_, err := ds1.Returning("id").UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.EqualError(t, err, "goqu: Adapter does not support RETURNING clause")
+}
+
+func (me *datasetTest) TestUpdateSqlWithLimit() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("limit", mDb).From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, err := ds1.Limit(10).UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.Nil(t, err)
+	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' LIMIT 10`)
+}
+
+func (me *datasetTest) TestUpdateSqlWithOrder() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("order", mDb).From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, err := ds1.Order(I("name").Desc()).UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.Nil(t, err)
+	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' ORDER BY "name" DESC`)
+}
 
 func (me *datasetTest) TestUpdateSqlWithStructs() {
 	t := me.T()

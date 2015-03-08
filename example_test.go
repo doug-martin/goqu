@@ -17,19 +17,36 @@ func init() {
 
 func ExampleOr() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(
+	sql, _ := db.From("test").Where(goqu.Ex{
+		"a": goqu.Op{"gt": 10, "lt": 5},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("test").Where(
 		goqu.Or(
 			goqu.I("a").Gt(10),
 			goqu.I("a").Lt(5),
 		),
 	).Sql()
 	fmt.Println(sql)
-	// Output: SELECT * FROM "test" WHERE (("a" > 10) OR ("a" < 5))
+	// Output:
+	// SELECT * FROM "test" WHERE (("a" > 10) OR ("a" < 5))
+	// SELECT * FROM "test" WHERE (("a" > 10) OR ("a" < 5))
 }
 
 func ExampleOr_withAnd() {
 	db := goqu.New("default", driver)
 	sql, _ := db.From("items").Where(
+		goqu.Or(
+			goqu.I("a").Gt(10),
+			goqu.Ex{
+				"b": 100,
+				"c": goqu.Op{"neq": "test"},
+			},
+		),
+	).Sql()
+	fmt.Println(sql)
+	sql, _ = db.From("items").Where(
 		goqu.Or(
 			goqu.I("a").Gt(10),
 			goqu.And(
@@ -41,17 +58,25 @@ func ExampleOr_withAnd() {
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "items" WHERE (("a" > 10) OR (("b" = 100) AND ("c" != 'test')))
+	// SELECT * FROM "items" WHERE (("a" > 10) OR (("b" = 100) AND ("c" != 'test')))
 }
 
 func ExampleAnd() {
 	db := goqu.New("default", driver)
 	//by default Where assumes an And
-	sql, _ := db.From("test").Where(
+	sql, _ := db.From("test").Where(goqu.Ex{
+		"a": goqu.Op{"gt": 10},
+		"b": goqu.Op{"lt": 5},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("test").Where(
 		goqu.I("a").Gt(10),
 		goqu.I("b").Lt(5),
 	).Sql()
 	fmt.Println(sql)
 	// Output:
+	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 5))
 	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 5))
 }
 
@@ -118,6 +143,7 @@ func ExampleAliasMethods() {
 
 func ExampleComparisonMethods() {
 	db := goqu.New("default", driver)
+	//used from an identifier
 	sql, _ := db.From("test").Where(goqu.I("a").Eq(10)).Sql()
 	fmt.Println(sql)
 
@@ -135,7 +161,7 @@ func ExampleComparisonMethods() {
 
 	sql, _ = db.From("test").Where(goqu.I("a").Lte(10)).Sql()
 	fmt.Println(sql)
-
+	//used from a literal expression
 	sql, _ = db.From("test").Where(goqu.L("(a + b)").Eq(10)).Sql()
 	fmt.Println(sql)
 
@@ -153,6 +179,17 @@ func ExampleComparisonMethods() {
 
 	sql, _ = db.From("test").Where(goqu.L("(a + b)").Lte(10)).Sql()
 	fmt.Println(sql)
+
+	//used with Ex expression map
+	sql, _ = db.From("test").Where(goqu.Ex{
+		"a": 10,
+		"b": goqu.Op{"neq": 10},
+		"c": goqu.Op{"gte": 10},
+		"d": goqu.Op{"lt": 10},
+		"e": goqu.Op{"lte": 10},
+	}).Sql()
+	fmt.Println(sql)
+
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" = 10)
 	// SELECT * FROM "test" WHERE ("a" != 10)
@@ -166,10 +203,12 @@ func ExampleComparisonMethods() {
 	// SELECT * FROM "test" WHERE ((a + b) >= 10)
 	// SELECT * FROM "test" WHERE ((a + b) < 10)
 	// SELECT * FROM "test" WHERE ((a + b) <= 10)
+	// SELECT * FROM "test" WHERE (("a" = 10) AND ("b" != 10) AND ("c" >= 10) AND ("d" < 10) AND ("e" <= 10))
 }
 
 func ExampleInMethods() {
 	db := goqu.New("default", driver)
+	//using identifiers
 	sql, _ := db.From("test").Where(goqu.I("a").In("a", "b", "c")).Sql()
 	fmt.Println(sql)
 
@@ -183,10 +222,23 @@ func ExampleInMethods() {
 	//with a slice
 	sql, _ = db.From("test").Where(goqu.I("a").NotIn([]string{"a", "b", "c"})).Sql()
 	fmt.Println(sql)
+
+	//using an Ex expression map
+	sql, _ = db.From("test").Where(goqu.Ex{
+		"a": []string{"a", "b", "c"},
+	}).Sql()
+	fmt.Println(sql)
+	sql, _ = db.From("test").Where(goqu.Ex{
+		"a": goqu.Op{"notIn": []string{"a", "b", "c"}},
+	}).Sql()
+	fmt.Println(sql)
+
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" IN ('a', 'b', 'c'))
 	// SELECT * FROM "test" WHERE ("a" IN ('a', 'b', 'c'))
 	// SELECT * FROM "test" WHERE ("a" NOT IN ('a', 'b', 'c'))
+	// SELECT * FROM "test" WHERE ("a" NOT IN ('a', 'b', 'c'))
+	// SELECT * FROM "test" WHERE ("a" IN ('a', 'b', 'c'))
 	// SELECT * FROM "test" WHERE ("a" NOT IN ('a', 'b', 'c'))
 }
 
@@ -212,6 +264,7 @@ func ExampleOrderedMethods() {
 
 func ExampleStringMethods() {
 	db := goqu.New("default", driver)
+	//using identifiers
 	sql, _ := db.From("test").Where(goqu.I("a").Like("%a%")).Sql()
 	fmt.Println(sql)
 
@@ -235,6 +288,20 @@ func ExampleStringMethods() {
 
 	sql, _ = db.From("test").Where(goqu.I("a").NotILike(regexp.MustCompile("(a|b)"))).Sql()
 	fmt.Println(sql)
+
+	//using an Ex expression map
+	sql, _ = db.From("test").Where(goqu.Ex{
+		"a": goqu.Op{"like": "%a%"},
+		"b": goqu.Op{"like": regexp.MustCompile("(a|b)")},
+		"c": goqu.Op{"iLike": "%a%"},
+		"d": goqu.Op{"iLike": regexp.MustCompile("(a|b)")},
+		"e": goqu.Op{"notlike": "%a%"},
+		"f": goqu.Op{"notLike": regexp.MustCompile("(a|b)")},
+		"g": goqu.Op{"notILike": "%a%"},
+		"h": goqu.Op{"notILike": regexp.MustCompile("(a|b)")},
+	}).Sql()
+	fmt.Println(sql)
+
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" LIKE '%a%')
 	// SELECT * FROM "test" WHERE ("a" ~ '(a|b)')
@@ -244,6 +311,7 @@ func ExampleStringMethods() {
 	// SELECT * FROM "test" WHERE ("a" ~* '(a|b)')
 	// SELECT * FROM "test" WHERE ("a" NOT ILIKE '%a%')
 	// SELECT * FROM "test" WHERE ("a" !~* '(a|b)')
+	// SELECT * FROM "test" WHERE (("a" LIKE '%a%') AND ("b" ~ '(a|b)') AND ("c" ILIKE '%a%') AND ("d" ~* '(a|b)') AND ("e" NOT LIKE '%a%') AND ("f" !~ '(a|b)') AND ("g" NOT ILIKE '%a%') AND ("h" !~* '(a|b)'))
 }
 
 func ExampleBooleanMethods() {
@@ -271,6 +339,17 @@ func ExampleBooleanMethods() {
 
 	sql, _ = db.From("test").Where(goqu.I("a").IsFalse(), goqu.I("b").IsNotFalse()).Sql()
 	fmt.Println(sql)
+
+	//with an ex expression map
+	sql, _ = db.From("test").Where(goqu.Ex{
+		"a": true,
+		"b": false,
+		"c": nil,
+		"d": goqu.Op{"isNot": true},
+		"e": goqu.Op{"isNot": false},
+		"f": goqu.Op{"isNot": nil},
+	}).Sql()
+	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" IS NULL)
 	// SELECT * FROM "test" WHERE ("a" IS TRUE)
@@ -280,6 +359,7 @@ func ExampleBooleanMethods() {
 	// SELECT * FROM "test" WHERE (("a" IS NULL) AND ("b" IS NULL))
 	// SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("b" IS NOT TRUE))
 	// SELECT * FROM "test" WHERE (("a" IS FALSE) AND ("b" IS NOT FALSE))
+	// SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("b" IS FALSE) AND ("c" IS NULL) AND ("d" IS NOT TRUE) AND ("e" IS NOT FALSE) AND ("f" IS NOT NULL))
 }
 
 func ExampleCastMethods() {
@@ -333,10 +413,17 @@ func ExampleOn() {
 	db := goqu.New("default", driver)
 	sql, _ := db.From("test").Join(
 		goqu.I("my_table"),
+		goqu.On(goqu.Ex{"my_table.fkey": goqu.I("test.id")}),
+	).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("test").Join(
+		goqu.I("my_table"),
 		goqu.On(goqu.I("my_table.fkey").Eq(goqu.I("test.id"))),
 	).Sql()
 	fmt.Println(sql)
 	// Output:
+	// SELECT * FROM "test" INNER JOIN "my_table" ON ("my_table"."fkey" = "test"."id")
 	// SELECT * FROM "test" INNER JOIN "my_table" ON ("my_table"."fkey" = "test"."id")
 }
 
@@ -645,11 +732,46 @@ func ExampleDataset_Having() {
 
 func ExampleDataset_Where() {
 	db := goqu.New("default", driver)
-	//By default everyting is added together
-	sql, _ := db.From("test").Where(
+
+	//By default everything is anded together
+	sql, _ := db.From("test").Where(goqu.Ex{
+		"a": goqu.Op{"gt": 10},
+		"b": goqu.Op{"lt": 10},
+		"c": nil,
+		"d": []string{"a", "b", "c"},
+	}).Sql()
+	fmt.Println(sql)
+
+	//You can use ExOr to get ORed expressions together
+	sql, _ = db.From("test").Where(goqu.ExOr{
+		"a": goqu.Op{"gt": 10},
+		"b": goqu.Op{"lt": 10},
+		"c": nil,
+		"d": []string{"a", "b", "c"},
+	}).Sql()
+	fmt.Println(sql)
+
+	//You can use Or with Ex to Or multiple Ex maps together
+	sql, _ = db.From("test").Where(
+		goqu.Or(
+			goqu.Ex{
+				"a": goqu.Op{"gt": 10},
+				"b": goqu.Op{"lt": 10},
+			},
+			goqu.Ex{
+				"c": nil,
+				"d": []string{"a", "b", "c"},
+			},
+		),
+	).Sql()
+	fmt.Println(sql)
+
+	//By default everything is anded together
+	sql, _ = db.From("test").Where(
 		goqu.I("a").Gt(10),
 		goqu.I("b").Lt(10),
 		goqu.I("c").IsNull(),
+		goqu.I("d").In("a", "b", "c"),
 	).Sql()
 	fmt.Println(sql)
 
@@ -665,7 +787,10 @@ func ExampleDataset_Where() {
 	).Sql()
 	fmt.Println(sql)
 	// Output:
-	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL))
+	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
+    // SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" IS NULL) OR ("d" IN ('a', 'b', 'c')))
+    // SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" IS NULL) AND ("d" IN ('a', 'b', 'c'))))
+	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
 	// SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
 }
 
@@ -688,7 +813,7 @@ func ExampleDataset_ClearWhere() {
 
 func ExampleDataset_Join() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Join(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").Join(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").Join(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -706,7 +831,7 @@ func ExampleDataset_Join() {
 
 func ExampleDataset_InnerJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").InnerJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").InnerJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -722,7 +847,7 @@ func ExampleDataset_InnerJoin() {
 }
 func ExampleDataset_FullOuterJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").FullOuterJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").FullOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").FullOuterJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -738,7 +863,7 @@ func ExampleDataset_FullOuterJoin() {
 }
 func ExampleDataset_RightOuterJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").RightOuterJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").RightOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").RightOuterJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -760,7 +885,7 @@ func ExampleDataset_RightOuterJoin() {
 }
 func ExampleDataset_LeftOuterJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -776,7 +901,7 @@ func ExampleDataset_LeftOuterJoin() {
 }
 func ExampleDataset_FullJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").FullJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").FullJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").FullJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -792,7 +917,7 @@ func ExampleDataset_FullJoin() {
 }
 func ExampleDataset_RightJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").RightJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").RightJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").RightJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -808,7 +933,7 @@ func ExampleDataset_RightJoin() {
 }
 func ExampleDataset_LeftJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").LeftJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _ := db.From("test").LeftJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
 	fmt.Println(sql)
 	sql, _ = db.From("test").LeftJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
 	fmt.Println(sql)
@@ -1248,4 +1373,171 @@ func ExampleDataset_TruncateWithOptsSql() {
 	// TRUNCATE "items" CONTINUE IDENTITY
 	// TRUNCATE "items" CONTINUE IDENTITY CASCADE
 	// TRUNCATE "items" CONTINUE IDENTITY RESTRICT
+}
+
+func ExampleEx() {
+	db := goqu.New("default", driver)
+	sql, _ := db.From("items").Where(goqu.Ex{
+		"col1": "a",
+		"col2": 1,
+		"col3": true,
+		"col4": false,
+		"col5": nil,
+		"col6": []string{"a", "b", "c"},
+	}).Sql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c')))
+
+}
+
+func ExampleEx_withOp() {
+	db := goqu.New("default", driver)
+	sql, _ := db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"neq": "a"},
+		"col3": goqu.Op{"isNot": true},
+		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"gt": 1},
+		"col2": goqu.Op{"gte": 1},
+		"col3": goqu.Op{"lt": 1},
+		"col4": goqu.Op{"lte": 1},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"like": "a%"},
+		"col2": goqu.Op{"notLike": "a%"},
+		"col3": goqu.Op{"iLike": "a%"},
+		"col4": goqu.Op{"notILike": "a%"},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
+		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
+		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
+		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
+	}).Sql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
+	// SELECT * FROM "items" WHERE (("col1" > 1) AND ("col2" >= 1) AND ("col3" < 1) AND ("col4" <= 1))
+	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') AND ("col2" NOT LIKE 'a%') AND ("col3" ILIKE 'a%') AND ("col4" NOT ILIKE 'a%'))
+	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') AND ("col2" !~ '^(a|b)') AND ("col3" ~* '^(a|b)') AND ("col4" !~* '^(a|b)'))
+
+}
+
+func ExampleOp() {
+	db := goqu.New("default", driver)
+	sql, _ := db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"neq": "a"},
+		"col3": goqu.Op{"isNot": true},
+		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"gt": 1},
+		"col2": goqu.Op{"gte": 1},
+		"col3": goqu.Op{"lt": 1},
+		"col4": goqu.Op{"lte": 1},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"like": "a%"},
+		"col2": goqu.Op{"notLike": "a%"},
+		"col3": goqu.Op{"iLike": "a%"},
+		"col4": goqu.Op{"notILike": "a%"},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
+		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
+		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
+		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
+	}).Sql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
+	// SELECT * FROM "items" WHERE (("col1" > 1) AND ("col2" >= 1) AND ("col3" < 1) AND ("col4" <= 1))
+	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') AND ("col2" NOT LIKE 'a%') AND ("col3" ILIKE 'a%') AND ("col4" NOT ILIKE 'a%'))
+	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') AND ("col2" !~ '^(a|b)') AND ("col3" ~* '^(a|b)') AND ("col4" !~* '^(a|b)'))
+}
+
+func ExampleOp_withMultipleKeys() {
+	db := goqu.New("default", driver)
+	sql, _ := db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"is": nil, "eq": 10},
+	}).Sql()
+	fmt.Println(sql)
+
+	// Output:
+	//SELECT * FROM "items" WHERE (("col1" = 10) OR ("col1" IS NULL))
+}
+
+func ExampleExOr() {
+	db := goqu.New("default", driver)
+	sql, _ := db.From("items").Where(goqu.ExOr{
+		"col1": "a",
+		"col2": 1,
+		"col3": true,
+		"col4": false,
+		"col5": nil,
+		"col6": []string{"a", "b", "c"},
+	}).Sql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c')))
+
+}
+
+func ExampleExOr_withOp() {
+	db := goqu.New("default", driver)
+	sql, _ := db.From("items").Where(goqu.ExOr{
+		"col1": goqu.Op{"neq": "a"},
+		"col3": goqu.Op{"isNot": true},
+		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.ExOr{
+		"col1": goqu.Op{"gt": 1},
+		"col2": goqu.Op{"gte": 1},
+		"col3": goqu.Op{"lt": 1},
+		"col4": goqu.Op{"lte": 1},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.ExOr{
+		"col1": goqu.Op{"like": "a%"},
+		"col2": goqu.Op{"notLike": "a%"},
+		"col3": goqu.Op{"iLike": "a%"},
+		"col4": goqu.Op{"notILike": "a%"},
+	}).Sql()
+	fmt.Println(sql)
+
+	sql, _ = db.From("items").Where(goqu.ExOr{
+		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
+		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
+		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
+		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
+	}).Sql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
+	// SELECT * FROM "items" WHERE (("col1" > 1) OR ("col2" >= 1) OR ("col3" < 1) OR ("col4" <= 1))
+	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') OR ("col2" NOT LIKE 'a%') OR ("col3" ILIKE 'a%') OR ("col4" NOT ILIKE 'a%'))
+	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') OR ("col2" !~ '^(a|b)') OR ("col3" ~* '^(a|b)') OR ("col4" !~* '^(a|b)'))
+
 }

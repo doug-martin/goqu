@@ -831,6 +831,22 @@ func (me *DefaultAdapter) CompoundExpressionSql(buf *SqlBuilder, compound Compou
 	return me.Literal(buf, compound.Rhs())
 }
 
+func (me *DefaultAdapter) ExpressionMapSql(buf *SqlBuilder, ex Ex) error {
+	expressionList, err := ex.ToExpressions()
+	if err != nil {
+		return err
+	}
+	return me.Literal(buf, expressionList)
+}
+
+func (me *DefaultAdapter) ExpressionOrMapSql(buf *SqlBuilder, ex ExOr) error {
+	expressionList, err := ex.ToExpressions()
+	if err != nil {
+		return err
+	}
+	return me.Literal(buf, expressionList)
+}
+
 func init() {
 	RegisterAdapter("default", NewDefaultAdapter)
 }

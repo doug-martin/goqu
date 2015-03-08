@@ -178,6 +178,14 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		LiteralExpressionSql(buf *SqlBuilder, literal LiteralExpression) error
+		//Generates SQL value for an Ex Expression map
+		//
+		//buf: The current SqlBuilder to write the sql to
+		ExpressionMapSql(buf *SqlBuilder, ex Ex) error
+		//Generates SQL value for an ExOr Expression map
+		//
+		//buf: The current SqlBuilder to write the sql to
+		ExpressionOrMapSql(buf *SqlBuilder, ex ExOr) error
 		//Generates SQL value for the columns in an INSERT statement
 		//
 		//buf: The current SqlBuilder to write the sql to

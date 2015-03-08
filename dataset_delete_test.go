@@ -1,8 +1,39 @@
 package goqu
 
 import (
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
+
+func (me *datasetTest) TestDeleteSqlNoReturning() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("no-return", mDb).From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	_, err := ds1.Returning("id").DeleteSql()
+	assert.EqualError(t, err, "goqu: Adapter does not support RETURNING clause")
+}
+
+func (me *datasetTest) TestDeleteSqlWithLimit() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("limit", mDb).From("items")
+	sql, err := ds1.Limit(10).DeleteSql()
+	assert.Nil(t, err)
+	assert.Equal(t, sql, `DELETE FROM "items" LIMIT 10`)
+}
+
+func (me *datasetTest) TestDeleteSqlWithOrder() {
+	t := me.T()
+	mDb, _ := sqlmock.New()
+	ds1 := New("order", mDb).From("items")
+	sql, err := ds1.Order(I("name").Desc()).DeleteSql()
+	assert.Nil(t, err)
+	assert.Equal(t, sql, `DELETE FROM "items" ORDER BY "name" DESC`)
+}
 
 func (me *datasetTest) TestDeleteSql() {
 	t := me.T()

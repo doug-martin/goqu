@@ -15,7 +15,7 @@ type (
 		GoType     reflect.Type
 	}
 	columnMap map[string]columnData
-	CrudExec      struct {
+	CrudExec  struct {
 		database database
 		Sql      string
 		Args     []interface{}
@@ -117,7 +117,7 @@ func (me CrudExec) ScanVals(i interface{}) error {
 			return err
 		}
 		if isSliceOfPointers {
-			val.Set(reflect.Append(val, row.Addr()))
+			val.Set(reflect.Append(val, row))
 		} else {
 			val.Set(reflect.Append(val, reflect.Indirect(row)))
 		}
@@ -146,7 +146,11 @@ func (me CrudExec) ScanVal(i interface{}) (bool, error) {
 	}
 	val := reflect.ValueOf(i)
 	if val.Kind() != reflect.Ptr {
-		return false, NewGoquError("Type must be a pointer calling ScanVal")
+		return false, NewGoquError("Type must be a pointer when calling ScanVal")
+	}
+	val = reflect.Indirect(val)
+	if val.Kind() == reflect.Slice {
+		return false, NewGoquError("Cannot scan into a slice when calling ScanVal")
 	}
 	rows, err := me.database.Query(me.Sql, me.Args...)
 	if err != nil {
@@ -177,12 +181,12 @@ func (me CrudExec) scan(i interface{}, query string, args ...interface{}) (bool,
 	}
 	rows, err := me.database.Query(query, args...)
 	if err != nil {
-		return false, NewGoquError(err.Error())
+		return false, err
 	}
 	defer rows.Close()
 	columns, err := rows.Columns()
 	if err != nil {
-		return false, NewGoquError(err.Error())
+		return false, err
 	}
 	for rows.Next() {
 		scans := make([]interface{}, len(columns))

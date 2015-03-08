@@ -99,9 +99,9 @@ func (me *datasetTest) TestScanVal() {
 	assert.True(t, found)
 
 	found, err = db.From("items").ScanVal([]int64{})
-	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
 	found, err = db.From("items").ScanVal(10)
-	assert.EqualError(t, err, "goqu: Type must be a pointer calling ScanVal")
+	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
 }
 
 func (me *datasetTest) TestCount() {
