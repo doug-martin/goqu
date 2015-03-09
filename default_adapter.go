@@ -110,7 +110,7 @@ type (
 		CascadeFragment []byte
 		//The RESTRICT fragment to use when generating sql. (DEFAULT=[]byte(" RESTRICT"))
 		RestrictFragment []byte
-		//The SQL fragment to use when generating insert sql and using DEFAULT VALUES (e.g. postgres="DEFAULT VALUES", mysql= ""). (DEFAULT=[]byte(" DEFAULT VALUES"))
+		//The SQL fragment to use when generating insert sql and using DEFAULT VALUES (e.g. postgres="DEFAULT VALUES", mysql="", sqlite3=""). (DEFAULT=[]byte(" DEFAULT VALUES"))
 		DefaultValuesFragment []byte
 		//The SQL fragment to use when generating insert sql and listing columns using a VALUES clause (DEFAULT=[]byte(" VALUES "))
 		ValuesFragment []byte
@@ -576,7 +576,7 @@ func (me *DefaultAdapter) LiteralNil(buf *SqlBuilder) error {
 	return nil
 }
 
-//Generates SQL bool literal, (e.g. TRUE, FALSE, mysql 1, 0)
+//Generates SQL bool literal, (e.g. TRUE, FALSE, mysql 1, 0, sqlite3 1, 0)
 func (me *DefaultAdapter) LiteralBool(buf *SqlBuilder, b bool) error {
 	if buf.IsPrepared {
 		return me.PlaceHolderSql(buf, b)
