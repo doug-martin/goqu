@@ -14,25 +14,25 @@ import (
 const (
 	drop_table   = "DROP TABLE IF EXISTS `entry`;"
 	create_table = "CREATE  TABLE `entry` (" +
-		"`id` INT NOT NULL AUTO_INCREMENT ," +
+		"`id` INTEGER PRIMARY KEY," +
 		"`int` INT NOT NULL ," +
 		"`float` FLOAT NOT NULL ," +
 		"`string` VARCHAR(255) NOT NULL ," +
 		"`time` DATETIME NOT NULL ," +
 		"`bool` TINYINT NOT NULL ," +
-		"`bytes` BLOB NOT NULL ," +
-		"PRIMARY KEY (`id`) );"
+		"`bytes` BLOB NOT NULL" +
+		");"
 	insert_default_reords = "INSERT INTO `entry` (`int`, `float`, `string`, `time`, `bool`, `bytes`) VALUES" +
-		"(0, 0.000000, '0.000000', '2015-02-22 18:19:55', TRUE,  '0.000000')," +
-		"(1, 0.100000, '0.100000', '2015-02-22 19:19:55', FALSE, '0.100000')," +
-		"(2, 0.200000, '0.200000', '2015-02-22 20:19:55', TRUE,  '0.200000')," +
-		"(3, 0.300000, '0.300000', '2015-02-22 21:19:55', FALSE, '0.300000')," +
-		"(4, 0.400000, '0.400000', '2015-02-22 22:19:55', TRUE,  '0.400000')," +
-		"(5, 0.500000, '0.500000', '2015-02-22 23:19:55', FALSE, '0.500000')," +
-		"(6, 0.600000, '0.600000', '2015-02-23 00:19:55', TRUE,  '0.600000')," +
-		"(7, 0.700000, '0.700000', '2015-02-23 01:19:55', FALSE, '0.700000')," +
-		"(8, 0.800000, '0.800000', '2015-02-23 02:19:55', TRUE,  '0.800000')," +
-		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', FALSE, '0.900000');"
+		"(0, 0.000000, '0.000000', '2015-02-22 18:19:55', 1,  '0.000000')," +
+		"(1, 0.100000, '0.100000', '2015-02-22 19:19:55', 0, '0.100000')," +
+		"(2, 0.200000, '0.200000', '2015-02-22 20:19:55', 1,  '0.200000')," +
+		"(3, 0.300000, '0.300000', '2015-02-22 21:19:55', 0, '0.300000')," +
+		"(4, 0.400000, '0.400000', '2015-02-22 22:19:55', 1,  '0.400000')," +
+		"(5, 0.500000, '0.500000', '2015-02-22 23:19:55', 0, '0.500000')," +
+		"(6, 0.600000, '0.600000', '2015-02-23 00:19:55', 1,  '0.600000')," +
+		"(7, 0.700000, '0.700000', '2015-02-23 01:19:55', 0, '0.700000')," +
+		"(8, 0.800000, '0.800000', '2015-02-23 02:19:55', 1,  '0.800000')," +
+		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', 0, '0.900000');"
 )
 
 var db_uri = ":memory:"
@@ -65,7 +65,7 @@ func (me *sqlite3Test) SetupSuite() {
 		panic(err.Error())
 	}
 	me.db = goqu.New("sqlite3", db)
-	//	me.db.Logger(logger{})
+	//		me.db.Logger(logger{})
 }
 
 func (me *sqlite3Test) SetupTest() {
@@ -311,6 +311,6 @@ func (me *sqlite3Test) TestDelete() {
 	assert.Equal(t, err.Error(), "goqu: Adapter does not support RETURNING clause")
 }
 
-func Testsqlite3Suite(t *testing.T) {
+func TestSqlite3Suite(t *testing.T) {
 	suite.Run(t, new(sqlite3Test))
 }

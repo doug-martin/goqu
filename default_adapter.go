@@ -180,6 +180,8 @@ type (
 		BooleanOperatorLookup map[BooleanOperation][]byte
 		//A map used to look up JoinTypes and their SQL equivalents
 		JoinTypeLookup map[JoinType][]byte
+		//Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
+		UseLiteralIsBools bool
 	}
 )
 
@@ -227,6 +229,7 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		BooleanOperatorLookup: default_operator_lookup,
 		JoinTypeLookup:        default_join_lookup,
 		TimeFormat:            time.RFC3339Nano,
+		UseLiteralIsBools:     true,
 	}
 }
 
@@ -681,7 +684,7 @@ func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator Boolean
 		return NewGoquError("Boolean operator %+v not supported", operatorOp)
 	}
 	rhs := operator.Rhs()
-	if operatorOp == IS_OP || operatorOp == IS_NOT_OP {
+	if (operatorOp == IS_OP || operatorOp == IS_NOT_OP) && me.UseLiteralIsBools {
 		if rhs == true {
 			rhs = L("TRUE")
 		} else if rhs == false {

@@ -23,12 +23,12 @@ var (
 		goqu.NOT_IN_OP:            []byte("NOT IN"),
 		goqu.IS_OP:                []byte("IS"),
 		goqu.IS_NOT_OP:            []byte("IS NOT"),
-		goqu.LIKE_OP:              []byte("LIKE BINARY"),
-		goqu.NOT_LIKE_OP:          []byte("NOT LIKE BINARY"),
+		goqu.LIKE_OP:              []byte("LIKE"),
+		goqu.NOT_LIKE_OP:          []byte("NOT LIKE"),
 		goqu.I_LIKE_OP:            []byte("LIKE"),
 		goqu.NOT_I_LIKE_OP:        []byte("NOT LIKE"),
-		goqu.REGEXP_LIKE_OP:       []byte("REGEXP BINARY"),
-		goqu.REGEXP_NOT_LIKE_OP:   []byte("NOT REGEXP BINARY"),
+		goqu.REGEXP_LIKE_OP:       []byte("REGEXP"),
+		goqu.REGEXP_NOT_LIKE_OP:   []byte("NOT REGEXP"),
 		goqu.REGEXP_I_LIKE_OP:     []byte("REGEXP"),
 		goqu.REGEXP_NOT_I_LIKE_OP: []byte("NOT REGEXP"),
 	}
@@ -96,6 +96,7 @@ func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
 	def.False = sqlite3_false
 	def.TimeFormat = time_format
 	def.BooleanOperatorLookup = operator_lookup
+	def.UseLiteralIsBools = false
 	return &DatasetAdapter{def}
 }
 

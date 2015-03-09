@@ -1,3 +1,7 @@
+## v0.1.1
+
+* Added SQLite3 adapter [#1](https://github.com/doug-martin/goqu/pull/1) - [@mattn](https://github.com/mattn)
+
 ## v0.1.0
 
 * Added:
