@@ -562,6 +562,7 @@ func (me identifier) Clone() Expression {
 //Sets the table on the current identifier
 //  I("col").Table("table") -> "table"."col" //postgres
 //  I("col").Table("table") -> `table`.`col` //mysql
+//  I("col").Table("table") -> `table`.`col` //sqlite3
 func (me identifier) Table(table string) IdentifierExpression {
 	ret := me.clone()
 	if s, ok := me.col.(string); ok && s != "" && me.table == "" && me.schema == "" {
@@ -579,6 +580,7 @@ func (me identifier) GetTable() string {
 //Sets the table on the current identifier
 //  I("table").Schema("schema") -> "schema"."table" //postgres
 //  I("col").Schema("table") -> `schema`.`table` //mysql
+//  I("col").Schema("table") -> `schema`.`table` //sqlite3
 func (me identifier) Schema(schema string) IdentifierExpression {
 	ret := me.clone()
 	ret.schema = schema
@@ -592,6 +594,7 @@ func (me identifier) GetSchema() string {
 //Sets the table on the current identifier
 //  I("table").Col("col") -> "table"."col" //postgres
 //  I("table").Schema("col") -> `table`.`col` //mysql
+//  I("table").Schema("col") -> `table`.`col` //sqlite3
 func (me identifier) Col(col interface{}) IdentifierExpression {
 	ret := me.clone()
 	if s, ok := me.col.(string); ok && s != "" && me.table == "" {

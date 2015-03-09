@@ -41,6 +41,7 @@ In order to start using goqu with your database you need to load an adapter. We 
 
 1. Postgres - `import "github.com/doug-martin/goqu/adapters/postgres"`
 2. MySQL - `import "github.com/doug-martin/goqu/adapters/mysql"`
+3. SQLite3 - `import "github.com/doug-martin/goqu/adapters/sqlite3"`
 
 Adapters in goqu work the same way as a driver with the database in that they register themselves with goqu once loaded.
 
@@ -170,7 +171,7 @@ Please see the exmaples for [`I()`](https://godoc.org/github.com/doug-martin/goq
 ```go
 goqu.L(`"col"::TEXT = ""other_col"::text`)
 ```
-You can also use placeholders in your literal. When using the LiteralExpressions placeholders are normalized to the ? character and will be transformed to the correct placeholder for your adapter (e.g. `?` mysql, `$1` postgres)
+You can also use placeholders in your literal. When using the LiteralExpressions placeholders are normalized to the ? character and will be transformed to the correct placeholder for your adapter (e.g. `?` mysql, `$1` postgres, `?` sqlite3)
 ```go
 goqu.L("col IN (?, ?, ?)", "a", "b", "c")
 ```
@@ -590,7 +591,7 @@ func init() {
 }
 ```
 
-If you are looking to write your own adapter take a look at the postgres or mysql adapter located at https://github.com/doug-martin/goqu/tree/master/adapters.
+If you are looking to write your own adapter take a look at the postgres/mysql or sqlite3 adapter located at https://github.com/doug-martin/goqu/tree/master/adapters.
 
 ## Contributions
 
