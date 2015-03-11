@@ -13,7 +13,7 @@
 
 `goqu` is an expressive SQL builder
 
-* [Basic](#basics)
+* [Basics](#basics)
 * [Expressions](#expressions)
     * [Complex Example](#complex-example)
 * [Querying](#querying)
