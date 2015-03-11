@@ -3,11 +3,12 @@ package goqu
 import (
 	"database/sql/driver"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type datasetTest struct {
@@ -373,6 +374,8 @@ func (me *datasetTest) TestBooleanExpression() {
 	assert.Equal(t, buf.String(), `("a" IS NULL)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq([]int64{1, 2, 3})))
 	assert.Equal(t, buf.String(), `("a" IN (1, 2, 3))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(From("test2").Select("id"))))
+	assert.Equal(t, buf.String(), `("a" IN (SELECT "id" FROM "test2"))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(1)))
 	assert.Equal(t, buf.String(), `("a" != 1)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(true)))
@@ -383,6 +386,8 @@ func (me *datasetTest) TestBooleanExpression() {
 	assert.Equal(t, buf.String(), `("a" IS NOT NULL)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq([]int64{1, 2, 3})))
 	assert.Equal(t, buf.String(), `("a" NOT IN (1, 2, 3))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(From("test2").Select("id"))))
+	assert.Equal(t, buf.String(), `("a" NOT IN (SELECT "id" FROM "test2"))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(nil)))
 	assert.Equal(t, buf.String(), `("a" IS NULL)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(false)))

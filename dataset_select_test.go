@@ -195,6 +195,13 @@ func (me *datasetTest) TestWhere() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" = 'a') AND ("b" != 'b') AND ("c" > 'c') AND ("d" >= 'd') AND ("e" < 'e') AND ("f" <= 'f'))`)
 
+	b = ds1.Where(
+		I("a").Eq(From("test2").Select("id")),
+	)
+	sql, err = b.Sql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" IN (SELECT "id" FROM "test2"))`)
+
 	b = ds1.Where(Ex{
 		"a": "a",
 		"b": Op{"neq": "b"},
@@ -206,6 +213,13 @@ func (me *datasetTest) TestWhere() {
 	sql, err = b.Sql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" = 'a') AND ("b" != 'b') AND ("c" > 'c') AND ("d" >= 'd') AND ("e" < 'e') AND ("f" <= 'f'))`)
+
+	b = ds1.Where(Ex{
+		"a": From("test2").Select("id"),
+	})
+	sql, err = b.Sql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" IN (SELECT "id" FROM "test2"))`)
 }
 
 func (me *datasetTest) TestClearWhere() {

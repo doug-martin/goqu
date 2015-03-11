@@ -966,6 +966,8 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 			op = IN_OP
 		case reflect.Struct:
 			switch rhs.(type) {
+			case SqlExpression:
+				op = IN_OP
 			case *regexp.Regexp:
 				return checkLikeExp(LIKE_OP, lhs, rhs, invert)
 			}

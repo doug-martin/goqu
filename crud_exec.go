@@ -198,7 +198,7 @@ func (me CrudExec) scan(i interface{}, query string, args ...interface{}) (bool,
 			}
 		}
 		if err := rows.Scan(scans...); err != nil {
-			return false, NewGoquError(err.Error())
+			return false, err
 		}
 		result := Record{}
 		for index, col := range columns {
@@ -207,7 +207,7 @@ func (me CrudExec) scan(i interface{}, query string, args ...interface{}) (bool,
 		results = append(results, result)
 	}
 	if rows.Err() != nil {
-		return false, NewGoquError(rows.Err().Error())
+		return false, rows.Err()
 	}
 	if len(results) > 0 {
 		found = true

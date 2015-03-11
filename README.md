@@ -5,11 +5,26 @@
  \__, |\___/ \__, |\__,_|
  |___/          |_|
 ```
+[![GitHub tag](https://img.shields.io/github/tag/doug-martin/goqu.svg?style=flat)](https://github.com/doug-martin/goqu/releases)
 [![wercker status](https://app.wercker.com/status/7eec67205c1ce1cc96ef81664f21256b/s "wercker status")](https://app.wercker.com/project/bykey/7eec67205c1ce1cc96ef81664f21256b)
 [![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![GoCover](http://gocover.io/_badge/github.com/doug-martin/goqu)](http://gocover.io/github.com/doug-martin/goqu)
+[![Join the chat at https://gitter.im/doug-martin/goqu](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/doug-martin/goqu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 `goqu` is an expressive SQL builder
+
+* [Basic](#basics)
+* [Expressions](#expressions)
+    * [Complex Example](#complex-example)
+* [Querying](#querying)
+    * [Dataset](#dataset)
+    * [Database](#database)
+    * [Transactions](#transactions)
+* [Logging](#logging)
+* [Adapters](#adapters)
+* [Contributions](#contributions)
+* [Changelog](https://github.com/doug-martin/goqu/tree/master/HISTORY.md)
+
 
 This library was built with the following goals:
 
@@ -35,6 +50,7 @@ or hooks I would recommend looking at some of the great ORM libraries such as:
 * [gorm](https://github.com/jinzhu/gorm)
 * [hood](https://github.com/eaigner/hood)
 
+<a name="basics"></a>
 ## Basics
 
 In order to start using goqu with your database you need to load an adapter. We have included some adapters by default.
@@ -84,6 +100,7 @@ SELECT * FROM "user" WHERE "id" = 10
 SELECT * FROM "user" WHERE "id" = $1
 ```
 
+<a name="expressions"></a>
 ### Expressions
 
 `goqu` provides an idiomatic DSL for generating SQL however the Dataset only provides the the different clause methods (e.g. Where, From, Select), most of these clause methods accept Expressions(with a few exceptions) which are the building blocks for your SQL statement, you can think of them as fragments of SQL.
@@ -254,7 +271,7 @@ Output:
 ```sql
 SELECT * FROM "test" WHERE ((("col1" IS NULL) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" IS FALSE)) OR "col"::TEXT = "other_col"::TEXT)
 ```
-
+<a name="complex-example"></a>
 ### Complex Example
 
 Using the Ex map syntax
@@ -319,10 +336,12 @@ HAVING (AVG("test3"."age") > 10)
 ORDER BY "test"."created" DESC NULLS LAST
 ```
 
-### Querying
+<a name="querying"></a>
+## Querying
 
 goqu also has basic query support through the use of either the Database or the Dataset.
 
+<a name="dataset"></a>
 ### Dataset
 
 * [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStructs) - scans rows into a slice of structs
@@ -474,6 +493,7 @@ if err := delete.ScanVals(&ids); err != nil{
 }
 ```
 
+<a name="database"></a>
 ### Database
 
 The Database also allows you to execute queries but expects raw SQL to execute. The supported methods are
@@ -488,7 +508,8 @@ The Database also allows you to execute queries but expects raw SQL to execute. 
 * [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu#Database.ScanVal)
 * [`Begin`](http://godoc.org/github.com/doug-martin/goqu#Database.Begin)
 
-## Transactions
+<a name="transactions"></a>
+### Transactions
 
 `goqu` has builtin support for transactions to make the use of the Datasets and querying seamless
 
@@ -519,7 +540,7 @@ The [`TxDatabase`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase)  al
 * [`Rollback`](http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Rollback)
 * [`Wrap`](http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Wrap)
 
-### Wrap
+#### Wrap
 
 The [`TxDatabase.Wrap`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase.Wrap) is a convience method for automatically handling `COMMIT` and `ROLLBACK`
 
@@ -543,6 +564,7 @@ if err != nil{
 }
 ```
 
+<a name="logging"></a>
 ## Logging
 
 To enable trace logging of SQL statments use the [`Database.Logger`](http://godoc.org/github.com/doug-martin/goqu/#Database.Logger) method to set your logger.
@@ -552,17 +574,20 @@ To enable trace logging of SQL statments use the [`Database.Logger`](http://godo
 **NOTE** If you start a transaction using a database your set a logger on the transaction will inherit that logger automatically
 
 
+<a name="adapters"></a>
 ## Adapters
 
 Adapters in goqu are the foundation of building the correct SQL for each DB dialect.
 
+Between most dialects there is a large portion of shared syntax, for this reason we have a [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter) that can be used as a base for any new Dialect specific adapter.
+In fact for most use cases you will not have to override any methods but instead just override the default values as documented for [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter).
+
+
 When creating your adapters you must register your adapter with [`RegisterAdapter`](http://godoc.org/github.com/doug-martin/goqu/#RegisterAdapter). This method requires 2 arguments.
 
-1. Dialect - The dialect for your adapter.
-2. DatasetAdapterFactory - This is a factory function that will return a new goqu.Adapter  used to create the the dialect specific SQL.
+1. dialect - The dialect for your adapter.
+2. datasetAdapterFactory - This is a factory function that will return a new goqu.Adapter  used to create the the dialect specific SQL.
 
-Between most dialects there is a large portion of shared syntax, for this reason we have a DefaultAdapter that can be used as a base for any new Dialect specific adapter.
-In fact for most use cases you will not have to override any methods but instead just override the default values as documented for DefaultAdapter.
 
 For example the code for the postgres adapter is fairly short.
 ```go
@@ -591,8 +616,9 @@ func init() {
 }
 ```
 
-If you are looking to write your own adapter take a look at the postgres/mysql or sqlite3 adapter located at https://github.com/doug-martin/goqu/tree/master/adapters.
+If you are looking to write your own adapter take a look at the postgresm, mysql or sqlite3 adapter located at <https://github.com/doug-martin/goqu/tree/master/adapters>.
 
+<a name="contributions"></a>
 ## Contributions
 
 I am always welcoming contributions of any type. Please open an issue or create a PR if you find an issue with any of the following.
