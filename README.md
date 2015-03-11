@@ -21,6 +21,8 @@ This library was built with the following goals:
 
 ## Features
 
+[![Join the chat at https://gitter.im/doug-martin/goqu](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/doug-martin/goqu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 `goqu` comes with many features but here are a few of the more notable ones
 
 * Query Builder
