@@ -19,7 +19,7 @@ type (
 	//An Expression that generates its own sql (e.g Dataset)
 	SqlExpression interface {
 		Expression
-		Sql() (string, error)
+		ToSql() (string, []interface{}, error)
 	}
 )
 

@@ -518,7 +518,7 @@ func (me *DefaultAdapter) DatasetSql(buf *SqlBuilder, dataset Dataset) error {
 			return err
 		}
 	} else {
-		sql, err := dataset.Sql()
+		sql, _, err := dataset.Prepared(false).ToSql()
 		if err != nil {
 			return err
 		}

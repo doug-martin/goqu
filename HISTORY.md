@@ -1,3 +1,12 @@
+## v0.3.0
+
+* Changed sql generation methods to use a common naming convention. `To(Sql|Insert|Update|Delete)`
+   * Also changed to have common return values `string, []interface{}, error)`
+* Added `Dataset.Prepared` which allows a user to specify whether or not SQL should be interpolated. [#7](https://github.com/doug-martin/goqu/issues/7)
+* Updated Docs
+    * More examples
+* Increased test coverage.
+
 ## v0.2.0
 
 * Changed `CrudExec` to not wrap driver errors in a GoquError [#2](https://github.com/doug-martin/goqu/issues/2)

@@ -3,9 +3,10 @@ package goqu_test
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/doug-martin/goqu"
-	"regexp"
 )
 
 var driver *sql.DB
@@ -17,17 +18,17 @@ func init() {
 
 func ExampleOr() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(goqu.Ex{
+	sql, _, _ := db.From("test").Where(goqu.Ex{
 		"a": goqu.Op{"gt": 10, "lt": 5},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(
+	sql, _, _ = db.From("test").Where(
 		goqu.Or(
 			goqu.I("a").Gt(10),
 			goqu.I("a").Lt(5),
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (("a" > 10) OR ("a" < 5))
@@ -36,7 +37,7 @@ func ExampleOr() {
 
 func ExampleOr_withAnd() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(
+	sql, _, _ := db.From("items").Where(
 		goqu.Or(
 			goqu.I("a").Gt(10),
 			goqu.Ex{
@@ -44,9 +45,9 @@ func ExampleOr_withAnd() {
 				"c": goqu.Op{"neq": "test"},
 			},
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("items").Where(
+	sql, _, _ = db.From("items").Where(
 		goqu.Or(
 			goqu.I("a").Gt(10),
 			goqu.And(
@@ -54,7 +55,7 @@ func ExampleOr_withAnd() {
 				goqu.I("c").Neq("test"),
 			),
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "items" WHERE (("a" > 10) OR (("b" = 100) AND ("c" != 'test')))
@@ -64,16 +65,16 @@ func ExampleOr_withAnd() {
 func ExampleAnd() {
 	db := goqu.New("default", driver)
 	//by default Where assumes an And
-	sql, _ := db.From("test").Where(goqu.Ex{
+	sql, _, _ := db.From("test").Where(goqu.Ex{
 		"a": goqu.Op{"gt": 10},
 		"b": goqu.Op{"lt": 5},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(
+	sql, _, _ = db.From("test").Where(
 		goqu.I("a").Gt(10),
 		goqu.I("b").Lt(5),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 5))
@@ -82,13 +83,13 @@ func ExampleAnd() {
 
 func ExampleAnd_withOr() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(
+	sql, _, _ := db.From("test").Where(
 		goqu.I("a").Gt(10),
 		goqu.Or(
 			goqu.I("b").Lt(5),
 			goqu.I("c").In([]string{"hello", "world"}),
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (("a" > 10) AND (("b" < 5) OR ("c" IN ('hello', 'world'))))
@@ -96,25 +97,25 @@ func ExampleAnd_withOr() {
 
 func ExampleI() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(
+	sql, _, _ := db.From("test").Where(
 		goqu.I("a").Eq(10),
 		goqu.I("b").Lt(10),
 		goqu.I("d").IsTrue(),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 
 	//qualify with schema
-	sql, _ = db.From(goqu.I("test").Schema("my_schema")).Sql()
+	sql, _, _ = db.From(goqu.I("test").Schema("my_schema")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From(goqu.I("mychema.test")).Where(
+	sql, _, _ = db.From(goqu.I("mychema.test")).Where(
 		//qualify with schema, table, and col
 		goqu.I("my_schema.test.a").Eq(10),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 
 	//* will be taken literally and no quoted
-	sql, _ = db.From(goqu.I("test")).Select(goqu.I("test.*")).Sql()
+	sql, _, _ = db.From(goqu.I("test")).Select(goqu.I("test.*")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (("a" = 10) AND ("b" < 10) AND ("d" IS TRUE))
@@ -126,13 +127,13 @@ func ExampleI() {
 
 func ExampleAliasMethods() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Select(goqu.I("a").As("as_a")).Sql()
+	sql, _, _ := db.From("test").Select(goqu.I("a").As("as_a")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Select(goqu.COUNT("*").As("count")).Sql()
+	sql, _, _ = db.From("test").Select(goqu.COUNT("*").As("count")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Select(goqu.L("sum(amount)").As("total_amount")).Sql()
+	sql, _, _ = db.From("test").Select(goqu.L("sum(amount)").As("total_amount")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT "a" AS "as_a" FROM "test"
@@ -144,50 +145,50 @@ func ExampleAliasMethods() {
 func ExampleComparisonMethods() {
 	db := goqu.New("default", driver)
 	//used from an identifier
-	sql, _ := db.From("test").Where(goqu.I("a").Eq(10)).Sql()
+	sql, _, _ := db.From("test").Where(goqu.I("a").Eq(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Neq(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Neq(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Gt(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Gt(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Gte(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Gte(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Lt(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Lt(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Lte(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Lte(10)).ToSql()
 	fmt.Println(sql)
 	//used from a literal expression
-	sql, _ = db.From("test").Where(goqu.L("(a + b)").Eq(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Eq(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.L("(a + b)").Neq(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Neq(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.L("(a + b)").Gt(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Gt(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.L("(a + b)").Gte(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Gte(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.L("(a + b)").Lt(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Lt(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.L("(a + b)").Lte(10)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Lte(10)).ToSql()
 	fmt.Println(sql)
 
 	//used with Ex expression map
-	sql, _ = db.From("test").Where(goqu.Ex{
+	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": 10,
 		"b": goqu.Op{"neq": 10},
 		"c": goqu.Op{"gte": 10},
 		"d": goqu.Op{"lt": 10},
 		"e": goqu.Op{"lte": 10},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -209,28 +210,28 @@ func ExampleComparisonMethods() {
 func ExampleInMethods() {
 	db := goqu.New("default", driver)
 	//using identifiers
-	sql, _ := db.From("test").Where(goqu.I("a").In("a", "b", "c")).Sql()
+	sql, _, _ := db.From("test").Where(goqu.I("a").In("a", "b", "c")).ToSql()
 	fmt.Println(sql)
 
 	//with a slice
-	sql, _ = db.From("test").Where(goqu.I("a").In([]string{"a", "b", "c"})).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").In([]string{"a", "b", "c"})).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").NotIn("a", "b", "c")).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").NotIn("a", "b", "c")).ToSql()
 	fmt.Println(sql)
 
 	//with a slice
-	sql, _ = db.From("test").Where(goqu.I("a").NotIn([]string{"a", "b", "c"})).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").NotIn([]string{"a", "b", "c"})).ToSql()
 	fmt.Println(sql)
 
 	//using an Ex expression map
-	sql, _ = db.From("test").Where(goqu.Ex{
+	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": []string{"a", "b", "c"},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").Where(goqu.Ex{
+	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": goqu.Op{"notIn": []string{"a", "b", "c"}},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -244,16 +245,16 @@ func ExampleInMethods() {
 
 func ExampleOrderedMethods() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Order(goqu.I("a").Asc()).Sql()
+	sql, _, _ := db.From("test").Order(goqu.I("a").Asc()).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Order(goqu.I("a").Desc()).Sql()
+	sql, _, _ = db.From("test").Order(goqu.I("a").Desc()).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Order(goqu.I("a").Desc().NullsFirst()).Sql()
+	sql, _, _ = db.From("test").Order(goqu.I("a").Desc().NullsFirst()).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Order(goqu.I("a").Desc().NullsLast()).Sql()
+	sql, _, _ = db.From("test").Order(goqu.I("a").Desc().NullsLast()).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" ORDER BY "a" ASC
@@ -265,32 +266,32 @@ func ExampleOrderedMethods() {
 func ExampleStringMethods() {
 	db := goqu.New("default", driver)
 	//using identifiers
-	sql, _ := db.From("test").Where(goqu.I("a").Like("%a%")).Sql()
+	sql, _, _ := db.From("test").Where(goqu.I("a").Like("%a%")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Like(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Like(regexp.MustCompile("(a|b)"))).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").NotLike("%a%")).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").NotLike("%a%")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").NotLike(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").NotLike(regexp.MustCompile("(a|b)"))).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").ILike("%a%")).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").ILike("%a%")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").ILike(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").ILike(regexp.MustCompile("(a|b)"))).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").NotILike("%a%")).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").NotILike("%a%")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").NotILike(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").NotILike(regexp.MustCompile("(a|b)"))).ToSql()
 	fmt.Println(sql)
 
 	//using an Ex expression map
-	sql, _ = db.From("test").Where(goqu.Ex{
+	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": goqu.Op{"like": "%a%"},
 		"b": goqu.Op{"like": regexp.MustCompile("(a|b)")},
 		"c": goqu.Op{"iLike": "%a%"},
@@ -299,7 +300,7 @@ func ExampleStringMethods() {
 		"f": goqu.Op{"notLike": regexp.MustCompile("(a|b)")},
 		"g": goqu.Op{"notILike": "%a%"},
 		"h": goqu.Op{"notILike": regexp.MustCompile("(a|b)")},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -316,39 +317,39 @@ func ExampleStringMethods() {
 
 func ExampleBooleanMethods() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(goqu.I("a").Is(nil)).Sql()
+	sql, _, _ := db.From("test").Where(goqu.I("a").Is(nil)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Is(true)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Is(true)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").Is(false)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").Is(false)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").IsNot(nil)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").IsNot(nil)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").IsNot(true)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").IsNot(true)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").IsNull(), goqu.I("b").IsNull()).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").IsNull(), goqu.I("b").IsNull()).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").IsTrue(), goqu.I("b").IsNotTrue()).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").IsTrue(), goqu.I("b").IsNotTrue()).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.I("a").IsFalse(), goqu.I("b").IsNotFalse()).Sql()
+	sql, _, _ = db.From("test").Where(goqu.I("a").IsFalse(), goqu.I("b").IsNotFalse()).ToSql()
 	fmt.Println(sql)
 
 	//with an ex expression map
-	sql, _ = db.From("test").Where(goqu.Ex{
+	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": true,
 		"b": false,
 		"c": nil,
 		"d": goqu.Op{"isNot": true},
 		"e": goqu.Op{"isNot": false},
 		"f": goqu.Op{"isNot": nil},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" IS NULL)
@@ -364,7 +365,7 @@ func ExampleBooleanMethods() {
 
 func ExampleCastMethods() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(goqu.I("json1").Cast("TEXT").Neq(goqu.I("json2").Cast("TEXT"))).Sql()
+	sql, _, _ := db.From("test").Where(goqu.I("json1").Cast("TEXT").Neq(goqu.I("json2").Cast("TEXT"))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (CAST("json1" AS TEXT) != CAST("json2" AS TEXT))
@@ -372,7 +373,7 @@ func ExampleCastMethods() {
 
 func ExampleCast() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(goqu.I("json1").Cast("TEXT").Neq(goqu.I("json2").Cast("TEXT"))).Sql()
+	sql, _, _ := db.From("test").Where(goqu.I("json1").Cast("TEXT").Neq(goqu.I("json2").Cast("TEXT"))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (CAST("json1" AS TEXT) != CAST("json2" AS TEXT))
@@ -380,7 +381,7 @@ func ExampleCast() {
 
 func ExampleDistinctMethods() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Select(goqu.COUNT(goqu.I("a").Distinct())).Sql()
+	sql, _, _ := db.From("test").Select(goqu.COUNT(goqu.I("a").Distinct())).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT COUNT(DISTINCT("a")) FROM "test"
@@ -388,20 +389,20 @@ func ExampleDistinctMethods() {
 
 func ExampleL() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Where(goqu.L("a = 1")).Sql()
+	sql, _, _ := db.From("test").Where(goqu.L("a = 1")).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(goqu.L("a = 1 AND (b = ? OR ? = ?)", "a", goqu.I("c"), 0.01)).Sql()
+	sql, _, _ = db.From("test").Where(goqu.L("a = 1 AND (b = ? OR ? = ?)", "a", goqu.I("c"), 0.01)).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Where(
+	sql, _, _ = db.From("test").Where(
 		goqu.L(
 			"(? AND ?) OR ?",
 			goqu.I("a").Eq(1),
 			goqu.I("b").Eq("b"),
 			goqu.I("c").In([]string{"a", "b", "c"}),
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE a = 1
@@ -411,16 +412,16 @@ func ExampleL() {
 
 func ExampleOn() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Join(
+	sql, _, _ := db.From("test").Join(
 		goqu.I("my_table"),
 		goqu.On(goqu.Ex{"my_table.fkey": goqu.I("test.id")}),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("test").Join(
+	sql, _, _ = db.From("test").Join(
 		goqu.I("my_table"),
 		goqu.On(goqu.I("my_table.fkey").Eq(goqu.I("test.id"))),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" INNER JOIN "my_table" ON ("my_table"."fkey" = "test"."id")
@@ -429,119 +430,33 @@ func ExampleOn() {
 
 func ExampleUsing() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Join(goqu.I("my_table"), goqu.Using(goqu.I("common_column"))).Sql()
+	sql, _, _ := db.From("test").Join(goqu.I("my_table"), goqu.Using(goqu.I("common_column"))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" INNER JOIN "my_table" USING ("common_column")
 }
 
-func ExampleDataset_ToUpdateSql() {
-	db := goqu.New("default", driver)
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	sql, args, _ := db.From("items").ToUpdateSql(
-		false,
-		item{Name: "Test", Address: "111 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v)", sql, args)
-
-	sql, args, _ = db.From("items").ToUpdateSql(
-		true,
-		item{Name: "Test", Address: "111 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v)", sql, args)
-
-	sql, args, _ = db.From("items").ToUpdateSql(
-		false,
-		goqu.Record{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v)", sql, args)
-
-	sql, args, _ = db.From("items").ToUpdateSql(
-		true,
-		goqu.Record{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v)", sql, args)
-
-	sql, args, _ = db.From("items").ToUpdateSql(
-		false,
-		map[string]interface{}{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v)", sql, args)
-
-	sql, args, _ = db.From("items").ToUpdateSql(
-		true,
-		map[string]interface{}{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v)", sql, args)
-	// Output:
-	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' [])
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test])
-	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' [])
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test])
-	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' [])
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test])
-}
-
-func ExampleDataset_UpdateSql() {
-	db := goqu.New("default", driver)
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	sql, _ := db.From("items").UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
-	fmt.Println(sql)
-
-	sql, _ = db.From("items").UpdateSql(goqu.Record{"name": "Test", "address": "111 Test Addr"})
-	fmt.Println(sql)
-	// Output:
-	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test'
-	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test'
-}
-
-func ExampleDataset_ToSql() {
-	db := goqu.New("default", driver)
-	sql, args, _ := db.From("items").Where(goqu.I("a").Eq(1)).ToSql(false)
-	fmt.Printf("\n%s %+v)", sql, args)
-	// Output:
-
-	sql, args, _ = db.From("items").Where(goqu.I("a").Eq(1)).ToSql(true)
-	fmt.Printf("\n%s %+v)", sql, args)
-	// Output:
-	// SELECT * FROM "items" WHERE ("a" = 1) [])
-	// SELECT * FROM "items" WHERE ("a" = ?) [1])
-}
-
-func ExampleDataset_Sql() {
-	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.I("a").Eq(1)).Sql()
-	fmt.Println(sql)
-	// Output: SELECT * FROM "items" WHERE ("a" = 1)
-}
-
 func ExampleDataset_As() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").As("t")
-	sql, _ := db.From(ds).Sql()
+	sql, _, _ := db.From(ds).ToSql()
 	fmt.Println(sql)
 	// Output: SELECT * FROM (SELECT * FROM "test") AS "t"
 }
 
 func ExampleDataset_Returning() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").
+	sql, _, _ := db.From("test").
 		Returning("id").
-		InsertSql(goqu.Record{"a": "a", "b": "b"})
+		ToInsertSql(goqu.Record{"a": "a", "b": "b"})
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Returning(goqu.I("test.*")).
-		InsertSql(goqu.Record{"a": "a", "b": "b"})
+		ToInsertSql(goqu.Record{"a": "a", "b": "b"})
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Returning("a", "b").
-		InsertSql(goqu.Record{"a": "a", "b": "b"})
+		ToInsertSql(goqu.Record{"a": "a", "b": "b"})
 	fmt.Println(sql)
 	// Output:
 	// INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "id"
@@ -551,20 +466,20 @@ func ExampleDataset_Returning() {
 
 func ExampleDataset_Union() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").
+	sql, _, _ := db.From("test").
 		Union(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		Union(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		Union(db.From("test2").
 		Order(goqu.I("id").Desc())).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" UNION (SELECT * FROM "test2")
@@ -574,20 +489,20 @@ func ExampleDataset_Union() {
 
 func ExampleDataset_UnionAll() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").
+	sql, _, _ := db.From("test").
 		UnionAll(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		UnionAll(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		UnionAll(db.From("test2").
 		Order(goqu.I("id").Desc())).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" UNION ALL (SELECT * FROM "test2")
@@ -597,20 +512,20 @@ func ExampleDataset_UnionAll() {
 
 func ExampleDataset_Intersect() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").
+	sql, _, _ := db.From("test").
 		Intersect(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		Intersect(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		Intersect(db.From("test2").
 		Order(goqu.I("id").Desc())).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" INTERSECT (SELECT * FROM "test2")
@@ -620,21 +535,21 @@ func ExampleDataset_Intersect() {
 
 func ExampleDataset_IntersectAll() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").
+	sql, _, _ := db.From("test").
 		IntersectAll(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").
+	sql, _, _ = db.From("test").
 		Limit(1).
 		IntersectAll(db.From("test2")).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
-	sql, _ = goqu.
+	sql, _, _ = goqu.
 		From("test").
 		Limit(1).
 		IntersectAll(db.From("test2").
 		Order(goqu.I("id").Desc())).
-		Sql()
+		ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" INTERSECT ALL (SELECT * FROM "test2")
@@ -646,9 +561,9 @@ func ExampleDataset_ClearOffset() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").
 		Offset(2)
-	sql, _ := ds.
+	sql, _, _ := ds.
 		ClearOffset().
-		Sql()
+		ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test"
@@ -658,7 +573,7 @@ func ExampleDataset_Offset() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").
 		Offset(2)
-	sql, _ := ds.Sql()
+	sql, _, _ := ds.ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" OFFSET 2
@@ -667,7 +582,7 @@ func ExampleDataset_Offset() {
 func ExampleDataset_Limit() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").Limit(10)
-	sql, _ := ds.Sql()
+	sql, _, _ := ds.ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" LIMIT 10
@@ -676,7 +591,7 @@ func ExampleDataset_Limit() {
 func ExampleDataset_LimitAll() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").LimitAll()
-	sql, _ := ds.Sql()
+	sql, _, _ := ds.ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" LIMIT ALL
@@ -685,7 +600,7 @@ func ExampleDataset_LimitAll() {
 func ExampleDataset_ClearLimit() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").Limit(10)
-	sql, _ := ds.ClearLimit().Sql()
+	sql, _, _ := ds.ClearLimit().ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test"
@@ -695,7 +610,7 @@ func ExampleDataset_Order() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").
 		Order(goqu.I("a").Asc())
-	sql, _ := ds.Sql()
+	sql, _, _ := ds.ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" ORDER BY "a" ASC
@@ -704,7 +619,7 @@ func ExampleDataset_Order() {
 func ExampleDataset_OrderAppend() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").Order(goqu.I("a").Asc())
-	sql, _ := ds.OrderAppend(goqu.I("b").Desc().NullsLast()).Sql()
+	sql, _, _ := ds.OrderAppend(goqu.I("b").Desc().NullsLast()).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC NULLS LAST
@@ -713,7 +628,7 @@ func ExampleDataset_OrderAppend() {
 func ExampleDataset_ClearOrder() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").Order(goqu.I("a").Asc())
-	sql, _ := ds.ClearOrder().Sql()
+	sql, _, _ := ds.ClearOrder().ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test"
@@ -721,9 +636,9 @@ func ExampleDataset_ClearOrder() {
 
 func ExampleDataset_Having() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Having(goqu.SUM("income").Gt(1000)).Sql()
+	sql, _, _ := db.From("test").Having(goqu.SUM("income").Gt(1000)).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").GroupBy("age").Having(goqu.SUM("income").Gt(1000)).Sql()
+	sql, _, _ = db.From("test").GroupBy("age").Having(goqu.SUM("income").Gt(1000)).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" HAVING (SUM("income") > 1000)
@@ -734,25 +649,25 @@ func ExampleDataset_Where() {
 	db := goqu.New("default", driver)
 
 	//By default everything is anded together
-	sql, _ := db.From("test").Where(goqu.Ex{
+	sql, _, _ := db.From("test").Where(goqu.Ex{
 		"a": goqu.Op{"gt": 10},
 		"b": goqu.Op{"lt": 10},
 		"c": nil,
 		"d": []string{"a", "b", "c"},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	//You can use ExOr to get ORed expressions together
-	sql, _ = db.From("test").Where(goqu.ExOr{
+	sql, _, _ = db.From("test").Where(goqu.ExOr{
 		"a": goqu.Op{"gt": 10},
 		"b": goqu.Op{"lt": 10},
 		"c": nil,
 		"d": []string{"a", "b", "c"},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	//You can use Or with Ex to Or multiple Ex maps together
-	sql, _ = db.From("test").Where(
+	sql, _, _ = db.From("test").Where(
 		goqu.Or(
 			goqu.Ex{
 				"a": goqu.Op{"gt": 10},
@@ -763,20 +678,20 @@ func ExampleDataset_Where() {
 				"d": []string{"a", "b", "c"},
 			},
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 
 	//By default everything is anded together
-	sql, _ = db.From("test").Where(
+	sql, _, _ = db.From("test").Where(
 		goqu.I("a").Gt(10),
 		goqu.I("b").Lt(10),
 		goqu.I("c").IsNull(),
 		goqu.I("d").In("a", "b", "c"),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 
 	//You can use a combination of Ors and Ands
-	sql, _ = db.From("test").Where(
+	sql, _, _ = db.From("test").Where(
 		goqu.Or(
 			goqu.I("a").Gt(10),
 			goqu.And(
@@ -784,14 +699,78 @@ func ExampleDataset_Where() {
 				goqu.I("c").IsNull(),
 			),
 		),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
-    // SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" IS NULL) OR ("d" IN ('a', 'b', 'c')))
-    // SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" IS NULL) AND ("d" IN ('a', 'b', 'c'))))
+	// SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" IS NULL) OR ("d" IN ('a', 'b', 'c')))
+	// SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" IS NULL) AND ("d" IN ('a', 'b', 'c'))))
 	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
 	// SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
+}
+
+func ExampleDataset_Where_prepared() {
+	db := goqu.New("default", driver)
+
+	//By default everything is anded together
+	sql, args, _ := db.From("test").Prepared(true).Where(goqu.Ex{
+		"a": goqu.Op{"gt": 10},
+		"b": goqu.Op{"lt": 10},
+		"c": nil,
+		"d": []string{"a", "b", "c"},
+	}).ToSql()
+	fmt.Println(sql, args)
+
+	//You can use ExOr to get ORed expressions together
+	sql, args, _ = db.From("test").Prepared(true).Where(goqu.ExOr{
+		"a": goqu.Op{"gt": 10},
+		"b": goqu.Op{"lt": 10},
+		"c": nil,
+		"d": []string{"a", "b", "c"},
+	}).ToSql()
+	fmt.Println(sql, args)
+
+	//You can use Or with Ex to Or multiple Ex maps together
+	sql, args, _ = db.From("test").Prepared(true).Where(
+		goqu.Or(
+			goqu.Ex{
+				"a": goqu.Op{"gt": 10},
+				"b": goqu.Op{"lt": 10},
+			},
+			goqu.Ex{
+				"c": nil,
+				"d": []string{"a", "b", "c"},
+			},
+		),
+	).ToSql()
+	fmt.Println(sql, args)
+
+	//By default everything is anded together
+	sql, args, _ = db.From("test").Prepared(true).Where(
+		goqu.I("a").Gt(10),
+		goqu.I("b").Lt(10),
+		goqu.I("c").IsNull(),
+		goqu.I("d").In("a", "b", "c"),
+	).ToSql()
+	fmt.Println(sql, args)
+
+	//You can use a combination of Ors and Ands
+	sql, args, _ = db.From("test").Prepared(true).Where(
+		goqu.Or(
+			goqu.I("a").Gt(10),
+			goqu.And(
+				goqu.I("b").Lt(10),
+				goqu.I("c").IsNull(),
+			),
+		),
+	).ToSql()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS ?) OR ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS ?) AND ("d" IN (?, ?, ?)))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS ?))) [10 10 <nil>]
 }
 
 func ExampleDataset_ClearWhere() {
@@ -805,7 +784,7 @@ func ExampleDataset_ClearWhere() {
 			),
 		),
 	)
-	sql, _ := ds.ClearWhere().Sql()
+	sql, _, _ := ds.ClearWhere().ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test"
@@ -813,13 +792,13 @@ func ExampleDataset_ClearWhere() {
 
 func ExampleDataset_Join() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Join(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").Join(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").Join(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").Join(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").Join(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").Join(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").Join(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").Join(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -831,13 +810,13 @@ func ExampleDataset_Join() {
 
 func ExampleDataset_InnerJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").InnerJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").InnerJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").InnerJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").InnerJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").InnerJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").InnerJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").InnerJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").InnerJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -845,15 +824,16 @@ func ExampleDataset_InnerJoin() {
 	// SELECT * FROM "test" INNER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" INNER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_FullOuterJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").FullOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").FullOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").FullOuterJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").FullOuterJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").FullOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").FullOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").FullOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").FullOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" FULL OUTER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -861,21 +841,22 @@ func ExampleDataset_FullOuterJoin() {
 	// SELECT * FROM "test" FULL OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" FULL OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_RightOuterJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").RightOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").RightOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").RightOuterJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").RightOuterJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").RightOuterJoin(
+	sql, _, _ = db.From("test").RightOuterJoin(
 		db.From("test2").Where(goqu.I("amount").Gt(0)),
 		goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id"))),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").RightOuterJoin(
+	sql, _, _ = db.From("test").RightOuterJoin(
 		db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"),
 		goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id"))),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" RIGHT OUTER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -883,15 +864,16 @@ func ExampleDataset_RightOuterJoin() {
 	// SELECT * FROM "test" RIGHT OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" RIGHT OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_LeftOuterJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").LeftOuterJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").LeftOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").LeftOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").LeftOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").LeftOuterJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" LEFT OUTER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -899,15 +881,16 @@ func ExampleDataset_LeftOuterJoin() {
 	// SELECT * FROM "test" LEFT OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" LEFT OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_FullJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").FullJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").FullJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").FullJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").FullJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").FullJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").FullJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").FullJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").FullJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" FULL JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -915,15 +898,16 @@ func ExampleDataset_FullJoin() {
 	// SELECT * FROM "test" FULL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" FULL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_RightJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").RightJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").RightJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").RightJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").RightJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").RightJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").RightJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").RightJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").RightJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" RIGHT JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -931,15 +915,16 @@ func ExampleDataset_RightJoin() {
 	// SELECT * FROM "test" RIGHT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" RIGHT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_LeftJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").LeftJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).Sql()
+	sql, _, _ := db.From("test").LeftJoin(goqu.I("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").LeftJoin(goqu.I("test2"), goqu.Using("common_column")).Sql()
+	sql, _, _ = db.From("test").LeftJoin(goqu.I("test2"), goqu.Using("common_column")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").LeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).Sql()
+	sql, _, _ = db.From("test").LeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0)), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id")))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").LeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).Sql()
+	sql, _, _ = db.From("test").LeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id")))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" LEFT JOIN "test2" ON ("test"."fkey" = "test2"."Id")
@@ -947,52 +932,56 @@ func ExampleDataset_LeftJoin() {
 	// SELECT * FROM "test" LEFT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON ("test"."fkey" = "test2"."Id")
 	// SELECT * FROM "test" LEFT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
+
 func ExampleDataset_NaturalJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").NaturalJoin(goqu.I("test2")).Sql()
+	sql, _, _ := db.From("test").NaturalJoin(goqu.I("test2")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).Sql()
+	sql, _, _ = db.From("test").NaturalJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).Sql()
+	sql, _, _ = db.From("test").NaturalJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" NATURAL JOIN "test2"
 	// SELECT * FROM "test" NATURAL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0))
 	// SELECT * FROM "test" NATURAL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
+
 func ExampleDataset_NaturalLeftJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").NaturalLeftJoin(goqu.I("test2")).Sql()
+	sql, _, _ := db.From("test").NaturalLeftJoin(goqu.I("test2")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalLeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).Sql()
+	sql, _, _ = db.From("test").NaturalLeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalLeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).Sql()
+	sql, _, _ = db.From("test").NaturalLeftJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" NATURAL LEFT JOIN "test2"
 	// SELECT * FROM "test" NATURAL LEFT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0))
 	// SELECT * FROM "test" NATURAL LEFT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
+
 func ExampleDataset_NaturalRightJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").NaturalRightJoin(goqu.I("test2")).Sql()
+	sql, _, _ := db.From("test").NaturalRightJoin(goqu.I("test2")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalRightJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).Sql()
+	sql, _, _ = db.From("test").NaturalRightJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalRightJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).Sql()
+	sql, _, _ = db.From("test").NaturalRightJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" NATURAL RIGHT JOIN "test2"
 	// SELECT * FROM "test" NATURAL RIGHT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0))
 	// SELECT * FROM "test" NATURAL RIGHT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
+
 func ExampleDataset_NaturalFullJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").NaturalFullJoin(goqu.I("test2")).Sql()
+	sql, _, _ := db.From("test").NaturalFullJoin(goqu.I("test2")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalFullJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).Sql()
+	sql, _, _ = db.From("test").NaturalFullJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").NaturalFullJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).Sql()
+	sql, _, _ = db.From("test").NaturalFullJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" NATURAL FULL JOIN "test2"
@@ -1002,11 +991,11 @@ func ExampleDataset_NaturalFullJoin() {
 
 func ExampleDataset_CrossJoin() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").CrossJoin(goqu.I("test2")).Sql()
+	sql, _, _ := db.From("test").CrossJoin(goqu.I("test2")).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").CrossJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).Sql()
+	sql, _, _ = db.From("test").CrossJoin(db.From("test2").Where(goqu.I("amount").Gt(0))).ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").CrossJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).Sql()
+	sql, _, _ = db.From("test").CrossJoin(db.From("test2").Where(goqu.I("amount").Gt(0)).As("t")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" CROSS JOIN "test2"
@@ -1016,9 +1005,9 @@ func ExampleDataset_CrossJoin() {
 
 func ExampleDataset_FromSelf() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").FromSelf().Sql()
+	sql, _, _ := db.From("test").FromSelf().ToSql()
 	fmt.Println(sql)
-	sql, _ = db.From("test").As("my_test_table").FromSelf().Sql()
+	sql, _, _ = db.From("test").As("my_test_table").FromSelf().ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM (SELECT * FROM "test") AS "t1"
@@ -1028,7 +1017,7 @@ func ExampleDataset_FromSelf() {
 func ExampleDataset_From() {
 	db := goqu.New("default", driver)
 	ds := db.From("test")
-	sql, _ := ds.From("test2").Sql()
+	sql, _, _ := ds.From("test2").ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test2"
@@ -1038,7 +1027,7 @@ func ExampleDataset_From_withDataset() {
 	db := goqu.New("default", driver)
 	ds := db.From("test")
 	fromDs := ds.Where(goqu.I("age").Gt(10))
-	sql, _ := ds.From(fromDs).Sql()
+	sql, _, _ := ds.From(fromDs).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM (SELECT * FROM "test" WHERE ("age" > 10)) AS "t1"
@@ -1048,7 +1037,7 @@ func ExampleDataset_From_withAliasedDataset() {
 	db := goqu.New("default", driver)
 	ds := db.From("test")
 	fromDs := ds.Where(goqu.I("age").Gt(10))
-	sql, _ := ds.From(fromDs.As("test2")).Sql()
+	sql, _, _ := ds.From(fromDs.As("test2")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM (SELECT * FROM "test" WHERE ("age" > 10)) AS "test2"
@@ -1056,7 +1045,7 @@ func ExampleDataset_From_withAliasedDataset() {
 
 func ExampleDataset_Select() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Select("a", "b", "c").Sql()
+	sql, _, _ := db.From("test").Select("a", "b", "c").ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT "a", "b", "c" FROM "test"
@@ -1066,7 +1055,7 @@ func ExampleDataset_Select_withDataset() {
 	db := goqu.New("default", driver)
 	ds := db.From("test")
 	fromDs := ds.Select("age").Where(goqu.I("age").Gt(10))
-	sql, _ := ds.From().Select(fromDs).Sql()
+	sql, _, _ := ds.From().Select(fromDs).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT (SELECT "age" FROM "test" WHERE ("age" > 10))
@@ -1076,7 +1065,7 @@ func ExampleDataset_Select_withAliasedDataset() {
 	db := goqu.New("default", driver)
 	ds := db.From("test")
 	fromDs := ds.Select("age").Where(goqu.I("age").Gt(10))
-	sql, _ := ds.From().Select(fromDs.As("ages")).Sql()
+	sql, _, _ := ds.From().Select(fromDs.As("ages")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT (SELECT "age" FROM "test" WHERE ("age" > 10)) AS "ages"
@@ -1084,7 +1073,7 @@ func ExampleDataset_Select_withAliasedDataset() {
 
 func ExampleDataset_Select_withLiteral() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Select(goqu.L("a + b").As("sum")).Sql()
+	sql, _, _ := db.From("test").Select(goqu.L("a + b").As("sum")).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT a + b AS "sum" FROM "test"
@@ -1092,11 +1081,11 @@ func ExampleDataset_Select_withLiteral() {
 
 func ExampleDataset_Select_withSqlFunctionExpression() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").Select(
+	sql, _, _ := db.From("test").Select(
 		goqu.COUNT("*").As("age_count"),
 		goqu.MAX("age").As("max_age"),
 		goqu.AVG("age").As("avg_age"),
-	).Sql()
+	).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT COUNT(*) AS "age_count", MAX("age") AS "max_age", AVG("age") AS "avg_age" FROM "test"
@@ -1104,7 +1093,7 @@ func ExampleDataset_Select_withSqlFunctionExpression() {
 
 func ExampleDataset_SelectDistinct() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("test").SelectDistinct("a", "b").Sql()
+	sql, _, _ := db.From("test").SelectDistinct("a", "b").ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT DISTINCT "a", "b" FROM "test"
@@ -1113,10 +1102,10 @@ func ExampleDataset_SelectDistinct() {
 func ExampleDataset_SelectAppend() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").Select("a", "b")
-	sql, _ := ds.SelectAppend("c").Sql()
+	sql, _, _ := ds.SelectAppend("c").ToSql()
 	fmt.Println(sql)
 	ds = db.From("test").SelectDistinct("a", "b")
-	sql, _ = ds.SelectAppend("c").Sql()
+	sql, _, _ = ds.SelectAppend("c").ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT "a", "b", "c" FROM "test"
@@ -1126,14 +1115,84 @@ func ExampleDataset_SelectAppend() {
 func ExampleDataset_ClearSelect() {
 	db := goqu.New("default", driver)
 	ds := db.From("test").Select("a", "b")
-	sql, _ := ds.ClearSelect().Sql()
+	sql, _, _ := ds.ClearSelect().ToSql()
 	fmt.Println(sql)
 	ds = db.From("test").SelectDistinct("a", "b")
-	sql, _ = ds.ClearSelect().Sql()
+	sql, _, _ = ds.ClearSelect().ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test"
 	// SELECT * FROM "test"
+}
+
+func ExampleDataset_ToSql() {
+	db := goqu.New("default", driver)
+	sql, args, _ := db.From("items").Where(goqu.Ex{"a": 1}).ToSql()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "items" WHERE ("a" = 1) []
+}
+
+func ExampleDataset_ToSql_prepared() {
+	db := goqu.New("default", driver)
+	sql, args, _ := db.From("items").Where(goqu.Ex{"a": 1}).Prepared(true).ToSql()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "items" WHERE ("a" = ?) [1]
+}
+
+func ExampleDataset_ToUpdateSql() {
+	db := goqu.New("default", driver)
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, _ := db.From("items").ToUpdateSql(
+		item{Name: "Test", Address: "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToUpdateSql(
+		goqu.Record{"name": "Test", "address": "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToUpdateSql(
+		map[string]interface{}{"name": "Test", "address": "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+}
+
+func ExampleDataset_ToUpdateSql_prepared() {
+	db := goqu.New("default", driver)
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+
+	sql, args, _ := db.From("items").Prepared(true).ToUpdateSql(
+		item{Name: "Test", Address: "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").Prepared(true).ToUpdateSql(
+		goqu.Record{"name": "Test", "address": "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").Prepared(true).ToUpdateSql(
+		map[string]interface{}{"name": "Test", "address": "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+	// Output:
+	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
+	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
+	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
 }
 
 func ExampleDataset_ToInsertSql() {
@@ -1144,223 +1203,144 @@ func ExampleDataset_ToInsertSql() {
 		Name    string `db:"name"`
 	}
 	sql, args, _ := db.From("items").ToInsertSql(
-		false,
 		item{Name: "Test1", Address: "111 Test Addr"},
 		item{Name: "Test2", Address: "112 Test Addr"},
 	)
-	fmt.Printf("\n%s %+v", sql, args)
+	fmt.Println(sql, args)
 
 	sql, args, _ = db.From("items").ToInsertSql(
-		false,
 		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
 		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
 	)
-	fmt.Printf("\n%s %+v", sql, args)
+	fmt.Println(sql, args)
 
 	sql, args, _ = db.From("items").ToInsertSql(
-		false,
 		[]item{
 			{Name: "Test1", Address: "111 Test Addr"},
 			{Name: "Test2", Address: "112 Test Addr"},
 		})
-	fmt.Printf("\n%s %+v", sql, args)
+	fmt.Println(sql, args)
 
 	sql, args, _ = db.From("items").ToInsertSql(
-		false,
 		[]goqu.Record{
 			{"name": "Test1", "address": "111 Test Addr"},
 			{"name": "Test2", "address": "112 Test Addr"},
 		})
-
-	sql, args, _ = db.From("items").ToInsertSql(
-		true,
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v", sql, args)
-
-	sql, args, _ = db.From("items").ToInsertSql(
-		true,
-		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
-		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
-	)
-	fmt.Printf("\n%s %+v", sql, args)
-
-	sql, args, _ = db.From("items").ToInsertSql(
-		true,
-		[]item{
-			{Name: "Test1", Address: "111 Test Addr"},
-			{Name: "Test2", Address: "112 Test Addr"},
-		})
-	fmt.Printf("\n%s %+v", sql, args)
-
-	sql, args, _ = db.From("items").ToInsertSql(
-		true,
-		[]goqu.Record{
-			{"name": "Test1", "address": "111 Test Addr"},
-			{"name": "Test2", "address": "112 Test Addr"},
-		})
-	fmt.Printf("\n%s %+v", sql, args)
+	fmt.Println(sql, args)
 	// Output:
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
 }
 
-func ExampleDataset_InsertSql() {
+func ExampleDataset_ToInsertSql_prepared() {
 	db := goqu.New("default", driver)
 	type item struct {
 		Id      uint32 `db:"id" goqu:"skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, _ := db.From("items").InsertSql(
+
+	sql, args, _ := db.From("items").Prepared(true).ToInsertSql(
 		item{Name: "Test1", Address: "111 Test Addr"},
 		item{Name: "Test2", Address: "112 Test Addr"},
 	)
-	fmt.Println(sql)
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").InsertSql(
+	sql, args, _ = db.From("items").Prepared(true).ToInsertSql(
 		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
 		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
 	)
-	fmt.Println(sql)
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").InsertSql([]item{
-		{Name: "Test1", Address: "111 Test Addr"},
-		{Name: "Test2", Address: "112 Test Addr"},
-	})
-	fmt.Println(sql)
+	sql, args, _ = db.From("items").Prepared(true).ToInsertSql(
+		[]item{
+			{Name: "Test1", Address: "111 Test Addr"},
+			{Name: "Test2", Address: "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").InsertSql([]goqu.Record{
-		{"name": "Test1", "address": "111 Test Addr"},
-		{"name": "Test2", "address": "112 Test Addr"},
-	})
-	fmt.Println(sql)
+	sql, args, _ = db.From("items").Prepared(true).ToInsertSql(
+		[]goqu.Record{
+			{"name": "Test1", "address": "111 Test Addr"},
+			{"name": "Test2", "address": "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
 	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2')
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2')
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2')
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2')
+	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
+	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
+	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
+	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
 }
 
 func ExampleDataset_ToDeleteSql() {
 	db := goqu.New("default", driver)
-	sql, args, _ := db.From("items").ToDeleteSql(false)
-	fmt.Printf("\n%s %+v", sql, args)
+	sql, args, _ := db.From("items").ToDeleteSql()
+	fmt.Println(sql, args)
 
 	sql, args, _ = db.From("items").
-		Where(goqu.I("id").Gt(10)).
-		ToDeleteSql(false)
-	fmt.Printf("\n%s %+v", sql, args)
-
-	sql, args, _ = db.From("items").
-		Where(goqu.I("id").Gt(10)).
-		ToDeleteSql(true)
-	fmt.Printf("\n%s %+v", sql, args)
+		Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
+		ToDeleteSql()
+	fmt.Println(sql, args)
 
 	// Output:
 	// DELETE FROM "items" []
 	// DELETE FROM "items" WHERE ("id" > 10) []
-	// DELETE FROM "items" WHERE ("id" > ?) [10]
 }
 
-func ExampleDataset_DeleteSql() {
+func ExampleDataset_ToDeleteSql_prepared() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").DeleteSql()
-	fmt.Println(sql)
+	sql, args, _ := db.From("items").Prepared(true).ToDeleteSql()
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").
-		Where(goqu.I("id").Gt(10)).
-		DeleteSql()
-	fmt.Println(sql)
+	sql, args, _ = db.From("items").
+		Prepared(true).
+		Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
+		ToDeleteSql()
+	fmt.Println(sql, args)
 
 	// Output:
-	// DELETE FROM "items"
-	// DELETE FROM "items" WHERE ("id" > 10)
+	// DELETE FROM "items" []
+	// DELETE FROM "items" WHERE ("id" > ?) [10]
 }
 
 func ExampleDataset_ToTruncateSql() {
 	db := goqu.New("default", driver)
-	sql, args, _ := db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Cascade: true})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Restrict: true})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Identity: "RESTART"})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Identity: "RESTART", Cascade: true})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Identity: "RESTART", Restrict: true})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Identity: "CONTINUE"})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Identity: "CONTINUE", Cascade: true})
-	fmt.Printf("\n%s %+v", sql, args)
-	sql, args, _ = db.From("items").
-		ToTruncateSql(false, goqu.TruncateOptions{Identity: "CONTINUE", Restrict: true})
-	fmt.Printf("\n%s %+v", sql, args)
+	sql, args, _ := db.From("items").ToTruncateSql()
+	fmt.Println(sql, args)
 	// Output:
 	// TRUNCATE "items" []
-	// TRUNCATE "items" CASCADE []
-	// TRUNCATE "items" RESTRICT []
-	// TRUNCATE "items" RESTART IDENTITY []
-	// TRUNCATE "items" RESTART IDENTITY CASCADE []
-	// TRUNCATE "items" RESTART IDENTITY RESTRICT []
-	// TRUNCATE "items" CONTINUE IDENTITY []
-	// TRUNCATE "items" CONTINUE IDENTITY CASCADE []
-	// TRUNCATE "items" CONTINUE IDENTITY RESTRICT []
 }
 
-func ExampleDataset_TruncateSql() {
+func ExampleDataset_ToTruncateWithOptsSql() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").TruncateSql()
+	sql, _, _ := db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{})
 	fmt.Println(sql)
-	// Output:
-	// TRUNCATE "items"
-}
-
-func ExampleDataset_TruncateWithOptsSql() {
-	db := goqu.New("default", driver)
-	sql, _ := db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Cascade: true})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Cascade: true})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Restrict: true})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Restrict: true})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Identity: "RESTART"})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Identity: "RESTART"})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Identity: "RESTART", Cascade: true})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Identity: "RESTART", Cascade: true})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Identity: "RESTART", Restrict: true})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Identity: "RESTART", Restrict: true})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Identity: "CONTINUE"})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Identity: "CONTINUE"})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Identity: "CONTINUE", Cascade: true})
 	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Identity: "CONTINUE", Cascade: true})
-	fmt.Println(sql)
-	sql, _ = db.From("items").
-		TruncateWithOptsSql(goqu.TruncateOptions{Identity: "CONTINUE", Restrict: true})
+	sql, _, _ = db.From("items").
+		ToTruncateWithOptsSql(goqu.TruncateOptions{Identity: "CONTINUE", Restrict: true})
 	fmt.Println(sql)
 
 	// Output:
@@ -1377,52 +1357,68 @@ func ExampleDataset_TruncateWithOptsSql() {
 
 func ExampleEx() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.Ex{
+	sql, args, _ := db.From("items").Where(goqu.Ex{
 		"col1": "a",
 		"col2": 1,
 		"col3": true,
 		"col4": false,
 		"col5": nil,
 		"col6": []string{"a", "b", "c"},
-	}).Sql()
-	fmt.Println(sql)
+	}).ToSql()
+	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c')))
+	// SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c'))) []
+
+}
+
+func ExampleEx_prepared() {
+	db := goqu.New("default", driver)
+	sql, args, _ := db.From("items").Prepared(true).Where(goqu.Ex{
+		"col1": "a",
+		"col2": 1,
+		"col3": true,
+		"col4": false,
+		"col5": []string{"a", "b", "c"},
+	}).ToSql()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
 
 }
 
 func ExampleEx_withOp() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.Ex{
+	sql, _, _ := db.From("items").Where(goqu.Ex{
 		"col1": goqu.Op{"neq": "a"},
 		"col3": goqu.Op{"isNot": true},
 		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("items").Where(goqu.Ex{
+	sql, _, _ = db.From("items").Where(goqu.Ex{
 		"col1": goqu.Op{"gt": 1},
 		"col2": goqu.Op{"gte": 1},
 		"col3": goqu.Op{"lt": 1},
 		"col4": goqu.Op{"lte": 1},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("items").Where(goqu.Ex{
+	sql, _, _ = db.From("items").Where(goqu.Ex{
 		"col1": goqu.Op{"like": "a%"},
 		"col2": goqu.Op{"notLike": "a%"},
 		"col3": goqu.Op{"iLike": "a%"},
 		"col4": goqu.Op{"notILike": "a%"},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("items").Where(goqu.Ex{
+	sql, _, _ = db.From("items").Where(goqu.Ex{
 		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
 		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
 		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
 		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -1433,37 +1429,78 @@ func ExampleEx_withOp() {
 
 }
 
-func ExampleOp() {
+func ExampleEx_withOpPrepared() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.Ex{
+	sql, args, _ := db.From("items").Prepared(true).Where(goqu.Ex{
 		"col1": goqu.Op{"neq": "a"},
 		"col3": goqu.Op{"isNot": true},
 		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
-	}).Sql()
-	fmt.Println(sql)
+	}).ToSql()
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").Where(goqu.Ex{
+	sql, args, _ = db.From("items").Prepared(true).Where(goqu.Ex{
 		"col1": goqu.Op{"gt": 1},
 		"col2": goqu.Op{"gte": 1},
 		"col3": goqu.Op{"lt": 1},
 		"col4": goqu.Op{"lte": 1},
-	}).Sql()
-	fmt.Println(sql)
+	}).ToSql()
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").Where(goqu.Ex{
+	sql, args, _ = db.From("items").Prepared(true).Where(goqu.Ex{
 		"col1": goqu.Op{"like": "a%"},
 		"col2": goqu.Op{"notLike": "a%"},
 		"col3": goqu.Op{"iLike": "a%"},
 		"col4": goqu.Op{"notILike": "a%"},
-	}).Sql()
-	fmt.Println(sql)
+	}).ToSql()
+	fmt.Println(sql, args)
 
-	sql, _ = db.From("items").Where(goqu.Ex{
+	sql, args, _ = db.From("items").Prepared(true).Where(goqu.Ex{
 		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
 		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
 		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
 		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
-	}).Sql()
+	}).ToSql()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" != ?) AND ("col3" IS NOT TRUE) AND ("col6" NOT IN (?, ?, ?))) [a a b c]
+	// SELECT * FROM "items" WHERE (("col1" > ?) AND ("col2" >= ?) AND ("col3" < ?) AND ("col4" <= ?)) [1 1 1 1]
+	// SELECT * FROM "items" WHERE (("col1" LIKE ?) AND ("col2" NOT LIKE ?) AND ("col3" ILIKE ?) AND ("col4" NOT ILIKE ?)) [a% a% a% a%]
+	// SELECT * FROM "items" WHERE (("col1" ~ ?) AND ("col2" !~ ?) AND ("col3" ~* ?) AND ("col4" !~* ?)) [^(a|b) ^(a|b) ^(a|b) ^(a|b)]
+
+}
+
+func ExampleOp() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"neq": "a"},
+		"col3": goqu.Op{"isNot": true},
+		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
+	}).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"gt": 1},
+		"col2": goqu.Op{"gte": 1},
+		"col3": goqu.Op{"lt": 1},
+		"col4": goqu.Op{"lte": 1},
+	}).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"like": "a%"},
+		"col2": goqu.Op{"notLike": "a%"},
+		"col3": goqu.Op{"iLike": "a%"},
+		"col4": goqu.Op{"notILike": "a%"},
+	}).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
+		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
+		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
+		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -1475,9 +1512,9 @@ func ExampleOp() {
 
 func ExampleOp_withMultipleKeys() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.Ex{
+	sql, _, _ := db.From("items").Where(goqu.Ex{
 		"col1": goqu.Op{"is": nil, "eq": 10},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -1486,14 +1523,14 @@ func ExampleOp_withMultipleKeys() {
 
 func ExampleExOr() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.ExOr{
+	sql, _, _ := db.From("items").Where(goqu.ExOr{
 		"col1": "a",
 		"col2": 1,
 		"col3": true,
 		"col4": false,
 		"col5": nil,
 		"col6": []string{"a", "b", "c"},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -1503,35 +1540,35 @@ func ExampleExOr() {
 
 func ExampleExOr_withOp() {
 	db := goqu.New("default", driver)
-	sql, _ := db.From("items").Where(goqu.ExOr{
+	sql, _, _ := db.From("items").Where(goqu.ExOr{
 		"col1": goqu.Op{"neq": "a"},
 		"col3": goqu.Op{"isNot": true},
 		"col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("items").Where(goqu.ExOr{
+	sql, _, _ = db.From("items").Where(goqu.ExOr{
 		"col1": goqu.Op{"gt": 1},
 		"col2": goqu.Op{"gte": 1},
 		"col3": goqu.Op{"lt": 1},
 		"col4": goqu.Op{"lte": 1},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("items").Where(goqu.ExOr{
+	sql, _, _ = db.From("items").Where(goqu.ExOr{
 		"col1": goqu.Op{"like": "a%"},
 		"col2": goqu.Op{"notLike": "a%"},
 		"col3": goqu.Op{"iLike": "a%"},
 		"col4": goqu.Op{"notILike": "a%"},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
-	sql, _ = db.From("items").Where(goqu.ExOr{
+	sql, _, _ = db.From("items").Where(goqu.ExOr{
 		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
 		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
 		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
 		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
-	}).Sql()
+	}).ToSql()
 	fmt.Println(sql)
 
 	// Output:
@@ -1539,5 +1576,42 @@ func ExampleExOr_withOp() {
 	// SELECT * FROM "items" WHERE (("col1" > 1) OR ("col2" >= 1) OR ("col3" < 1) OR ("col4" <= 1))
 	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') OR ("col2" NOT LIKE 'a%') OR ("col3" ILIKE 'a%') OR ("col4" NOT ILIKE 'a%'))
 	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') OR ("col2" !~ '^(a|b)') OR ("col3" ~* '^(a|b)') OR ("col4" !~* '^(a|b)'))
+
+}
+
+func ExampleDataset_Prepared() {
+
+	db := goqu.New("default", driver)
+	sql, args, _ := db.From("items").Prepared(true).Where(goqu.Ex{
+		"col1": "a",
+		"col2": 1,
+		"col3": true,
+		"col4": false,
+		"col5": []string{"a", "b", "c"},
+	}).ToSql()
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").Prepared(true).ToInsertSql(
+		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
+		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").Prepared(true).ToUpdateSql(
+		goqu.Record{"name": "Test", "address": "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").
+		Prepared(true).
+		Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
+		ToDeleteSql()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
+	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
+	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
+	// DELETE FROM "items" WHERE ("id" > ?) [10]
 
 }

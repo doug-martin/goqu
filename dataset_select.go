@@ -333,23 +333,12 @@ func (me *Dataset) As(alias string) *Dataset {
 	return ret
 }
 
-//Generates a SELECT sql statement with all values interpolated. See examples.
+//Generates a SELECT sql statement, if Prepared has been called with true then the parameters will not be interpolated. See examples.
 //
 //Errors:
 //  * There is an error generating the SQL
-func (me *Dataset) Sql() (string, error) {
-	sql, _, err := me.ToSql(false)
-	return sql, err
-}
-
-//Generates a SELECT sql statement. See examples.
-//
-//isPrepared: Set to true to generate an sql statement with placeholders for primitive values and return the arguemnts to use when querying
-//
-//Errors:
-//  * There is an error generating the SQL
-func (me *Dataset) ToSql(isPrepared bool) (string, []interface{}, error) {
-	buf := NewSqlBuilder(isPrepared)
+func (me *Dataset) ToSql() (string, []interface{}, error) {
+	buf := NewSqlBuilder(me.isPrepared)
 	if err := me.selectSqlWriteTo(buf); err != nil {
 		return "", nil, err
 	}

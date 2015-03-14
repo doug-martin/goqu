@@ -3,6 +3,7 @@ package goqu
 import (
 	"database/sql/driver"
 	"fmt"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +15,7 @@ func (me *datasetTest) TestUpdateSqlWithNoSources() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	_, err := ds1.From().UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	_, _, err := ds1.From().ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.EqualError(t, err, "goqu: No source found when generating update sql")
 }
 
@@ -26,7 +27,7 @@ func (me *datasetTest) TestUpdateSqlNoReturning() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	_, err := ds1.Returning("id").UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	_, _, err := ds1.Returning("id").ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.EqualError(t, err, "goqu: Adapter does not support RETURNING clause")
 }
 
@@ -38,7 +39,7 @@ func (me *datasetTest) TestUpdateSqlWithLimit() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, err := ds1.Limit(10).UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, _, err := ds1.Limit(10).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.Nil(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' LIMIT 10`)
 }
@@ -51,7 +52,7 @@ func (me *datasetTest) TestUpdateSqlWithOrder() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, err := ds1.Order(I("name").Desc()).UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, _, err := ds1.Order(I("name").Desc()).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.Nil(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' ORDER BY "name" DESC`)
 }
@@ -63,7 +64,7 @@ func (me *datasetTest) TestUpdateSqlWithStructs() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, err := ds1.UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, _, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test'`)
 }
@@ -71,7 +72,7 @@ func (me *datasetTest) TestUpdateSqlWithStructs() {
 func (me *datasetTest) TestUpdateSqlWithMaps() {
 	t := me.T()
 	ds1 := From("items")
-	sql, err := ds1.UpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
+	sql, _, err := ds1.ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test'`)
 
@@ -84,7 +85,7 @@ func (me *datasetTest) TestUpdateSqlWithByteSlice() {
 		Name string `db:"name"`
 		Data []byte `db:"data"`
 	}
-	sql, err := ds1.Returning(I("items").All()).UpdateSql(item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
+	sql, _, err := ds1.Returning(I("items").All()).ToUpdateSql(item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test',"data"='{"someJson":"data"}' RETURNING "items".*`)
 }
@@ -102,7 +103,7 @@ func (me *datasetTest) TestUpdateSqlWithValuer() {
 		Name string     `db:"name"`
 		Data valuerType `db:"data"`
 	}
-	sql, err := ds1.Returning(I("items").All()).UpdateSql(item{Name: "Test", Data: []byte(`Hello`)})
+	sql, _, err := ds1.Returning(I("items").All()).ToUpdateSql(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test',"data"='Hello World' RETURNING "items".*`)
 }
@@ -110,7 +111,7 @@ func (me *datasetTest) TestUpdateSqlWithValuer() {
 func (me *datasetTest) TestUpdateSqlWithUnsupportedType() {
 	t := me.T()
 	ds1 := From("items")
-	_, err := ds1.UpdateSql([]string{"HELLO"})
+	_, _, err := ds1.ToUpdateSql([]string{"HELLO"})
 	assert.EqualError(t, err, "goqu: Unsupported update interface type []string")
 }
 
@@ -121,7 +122,7 @@ func (me *datasetTest) TestUpdateSqlWithSkipupdateTag() {
 		Address string `db:"address" goqu:"skipupdate"`
 		Name    string `db:"name"`
 	}
-	sql, err := ds1.UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, _, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test'`)
 }
@@ -133,11 +134,11 @@ func (me *datasetTest) TestUpdateSqlWithWhere() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, err := ds1.Where(I("name").IsNull()).UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, _, err := ds1.Where(I("name").IsNull()).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL)`)
 
-	sql, err = ds1.Where(I("name").IsNull()).UpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
+	sql, _, err = ds1.Where(I("name").IsNull()).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL)`)
 }
@@ -149,11 +150,11 @@ func (me *datasetTest) TestUpdateSqlWithReturning() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, err := ds1.Returning(I("items").All()).UpdateSql(item{Name: "Test", Address: "111 Test Addr"})
+	sql, _, err := ds1.Returning(I("items").All()).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' RETURNING "items".*`)
 
-	sql, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).UpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
+	sql, _, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "address"='111 Test Addr',"name"='Test' WHERE ("name" IS NULL) RETURNING "items".*`)
 }
@@ -165,7 +166,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithStructs() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=?`)
@@ -174,7 +175,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithStructs() {
 func (me *datasetTest) TestPreparedUpdateSqlWithMaps() {
 	t := me.T()
 	ds1 := From("items")
-	sql, args, err := ds1.ToUpdateSql(true, Record{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=?`)
@@ -188,7 +189,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithByteSlice() {
 		Name string `db:"name"`
 		Data []byte `db:"data"`
 	}
-	sql, args, err := ds1.Returning(I("items").All()).ToUpdateSql(true, item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
+	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"Test", `{"someJson":"data"}`})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
@@ -201,7 +202,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithValuer() {
 		Name string     `db:"name"`
 		Data valuerType `db:"data"`
 	}
-	sql, args, err := ds1.Returning(I("items").All()).ToUpdateSql(true, item{Name: "Test", Data: []byte(`Hello`)})
+	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"Test", "Hello World"})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
@@ -214,7 +215,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithSkipupdateTag() {
 		Address string `db:"address" goqu:"skipupdate"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?`)
@@ -227,12 +228,12 @@ func (me *datasetTest) TestPreparedUpdateSqlWithWhere() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.Where(I("name").IsNull()).ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.Where(I("name").IsNull()).Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
 
-	sql, args, err = ds1.Where(I("name").IsNull()).ToUpdateSql(true, Record{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err = ds1.Where(I("name").IsNull()).Prepared(true).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
@@ -245,12 +246,12 @@ func (me *datasetTest) TestPreparedUpdateSqlWithReturning() {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, err := ds1.Returning(I("items").All()).ToUpdateSql(true, item{Name: "Test", Address: "111 Test Addr"})
+	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? RETURNING "items".*`)
 
-	sql, args, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).ToUpdateSql(true, Record{"name": "Test", "address": "111 Test Addr"})
+	sql, args, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).Prepared(true).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
 	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?) RETURNING "items".*`)

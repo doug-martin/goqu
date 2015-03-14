@@ -12,25 +12,15 @@ type (
 	}
 )
 
-//Generates the default DELETE statement. This calls ToDeleteSql with isPrepared set to false. See examples.
-//
-//Errors:
-//  * There is no FROM clause
-//  * Error generating SQL
-func (me *Dataset) DeleteSql() (string, error) {
-	sql, _, err := me.ToDeleteSql(false)
-	return sql, err
-}
-
-//Generates a DELETE statement. See examples.
+//Generates a DELETE statement, if Prepared has been called with true then the statement will not be interpolated. See examples.
 //
 //isPrepared: Set to true to true to ensure values are NOT interpolated
 //
 //Errors:
 //  * There is no FROM clause
 //  * Error generating SQL
-func (me *Dataset) ToDeleteSql(isPrepared bool) (string, []interface{}, error) {
-	buf := NewSqlBuilder(isPrepared)
+func (me *Dataset) ToDeleteSql() (string, []interface{}, error) {
+	buf := NewSqlBuilder(me.isPrepared)
 	if !me.hasSources() {
 		return "", nil, NewGoquError("No source found when generating delete sql")
 	}
@@ -64,25 +54,24 @@ func (me *Dataset) ToDeleteSql(isPrepared bool) (string, []interface{}, error) {
 	return sql, args, nil
 }
 
-//Generates the default TRUNCATE statement. This calls ToTruncateSql with isPrepared set to false. See examples.
+//Generates the default TRUNCATE statement. See examples.
 //
 //Errors:
 //  * There is no FROM clause
 //  * Error generating SQL
-func (me *Dataset) TruncateSql() (string, error) {
-	return me.TruncateWithOptsSql(TruncateOptions{})
+func (me *Dataset) ToTruncateSql() (string, []interface{}, error) {
+	return me.ToTruncateWithOptsSql(TruncateOptions{})
 }
 
-//Generates the default TRUNCATE statement with the specified options. This calls ToTruncateSql with isPrepared set to false. See examples.
+//Generates the default TRUNCATE statement with the specified options. See examples.
 //
 //opts: Options to use when generating the TRUNCATE statement
 //
 //Errors:
 //  * There is no FROM clause
 //  * Error generating SQL
-func (me *Dataset) TruncateWithOptsSql(opts TruncateOptions) (string, error) {
-	sql, _, err := me.ToTruncateSql(false, opts)
-	return sql, err
+func (me *Dataset) ToTruncateWithOptsSql(opts TruncateOptions) (string, []interface{}, error) {
+	return me.toTruncateSql(opts)
 }
 
 //Generates a TRUNCATE statement.
@@ -94,11 +83,11 @@ func (me *Dataset) TruncateWithOptsSql(opts TruncateOptions) (string, error) {
 //Errors:
 //  * There is no FROM clause
 //  * Error generating SQL
-func (me *Dataset) ToTruncateSql(isPrepared bool, opts TruncateOptions) (string, []interface{}, error) {
+func (me *Dataset) toTruncateSql(opts TruncateOptions) (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, NewGoquError("No source found when generating truncate sql")
 	}
-	buf := NewSqlBuilder(false)
+	buf := NewSqlBuilder(me.isPrepared)
 	if err := me.adapter.TruncateSql(buf, me.clauses.From, opts); err != nil {
 		return "", nil, err
 	}

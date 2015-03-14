@@ -1,0 +1,13 @@
+language: go
+
+go:
+  - 1.3
+  - tip
+
+
+addons:
+  postgresql: "9.3"
+
+before_script:
+  - psql -c 'create database goqupostgres;' -U postgres
+  - mysql -e 'create database goqumysql;'

@@ -6,7 +6,7 @@
  |___/          |_|
 ```
 [![GitHub tag](https://img.shields.io/github/tag/doug-martin/goqu.svg?style=flat)](https://github.com/doug-martin/goqu/releases)
-[![wercker status](https://app.wercker.com/status/7eec67205c1ce1cc96ef81664f21256b/s "wercker status")](https://app.wercker.com/project/bykey/7eec67205c1ce1cc96ef81664f21256b)
+[![Build Status](https://travis-ci.org/doug-martin/goqu.svg?branch=master)](https://travis-ci.org/doug-martin/goqu)
 [![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![GoCover](http://gocover.io/_badge/github.com/doug-martin/goqu)](http://gocover.io/github.com/doug-martin/goqu)
 [![Join the chat at https://gitter.im/doug-martin/goqu](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/doug-martin/goqu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -18,6 +18,7 @@
     * [Complex Example](#complex-example)
 * [Querying](#querying)
     * [Dataset](#dataset)
+        * [Prepared Statments](#dataset_prepared)
     * [Database](#database)
     * [Transactions](#transactions)
 * [Logging](#logging)
@@ -83,15 +84,19 @@ db := goqu.New("postgres", pgDb)
 Now that you have your goqu.Database you can build your SQL and it will be formatted appropriately for the provided dialect.
 
 ```go
-//without place holders
+//interpolated sql
 sql, _ := db.From("user").Where(goqu.Ex{
     "id": 10,
-}).Sql()
+}).ToSql()
 fmt.Println(sql)
 
-sql, args, _ := db.From("user").Where(goqu.Ex{
-    "id": 10,
-}).ToSql(true)
+//prepared sql
+sql, args, _ := db.From("user").
+    Prepared(true).
+    Where(goqu.Ex{
+        "id": 10,
+    }).
+    ToSql()
 fmt.Println(sql)
 ```
 Output
@@ -109,14 +114,14 @@ The entry points for expressions are:
 
 * [`Ex{}`](https://godoc.org/github.com/doug-martin/goqu#Ex) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `Ex` will use the equality operator except in cases where the equality operator will not work, see the example below.
 ```go
-sql, _ := db.From("items").Where(goqu.Ex{
+sql, _, _ := db.From("items").Where(goqu.Ex{
 	"col1": "a",
 	"col2": 1,
 	"col3": true,
 	"col4": false,
 	"col5": nil,
 	"col6": []string{"a", "b", "c"},
-}).Sql()
+}).ToSql()
 fmt.Println(sql)
 ```
 Output:
@@ -125,11 +130,11 @@ SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE
 ```
 You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
 ```go
-sql, _ := db.From("items").Where(goqu.Ex{
+sql, _, _ := db.From("items").Where(goqu.Ex{
     "col1": goqu.Op{"neq": "a"},
     "col3": goqu.Op{"isNot": true},
     "col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
-}).Sql()
+}).ToSql()
 fmt.Println(sql)
 ```
 Output:
@@ -140,14 +145,14 @@ For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-ma
 
 * [`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu#ExOr) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `ExOr` will use the equality operator except in cases where the equality operator will not work, see the example below.
 ```go
-sql, _ := db.From("items").Where(goqu.ExOr{
+sql, _, _ := db.From("items").Where(goqu.ExOr{
 	"col1": "a",
 	"col2": 1,
 	"col3": true,
 	"col4": false,
 	"col5": nil,
 	"col6": []string{"a", "b", "c"},
-}).Sql()
+}).ToSql()
 fmt.Println(sql)
 ```
 Output:
@@ -156,11 +161,11 @@ SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) 
 ```
 You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
 ```go
-sql, _ := db.From("items").Where(goqu.ExOr{
+sql, _, _ := db.From("items").Where(goqu.ExOr{
     "col1": goqu.Op{"neq": "a"},
     "col3": goqu.Op{"isNot": true},
     "col6": goqu.Op{"notIn": []string{"a", "b", "c"}},
-}).Sql()
+}).ToSql()
 fmt.Println(sql)
 ```
 Output:
@@ -194,10 +199,10 @@ goqu.L("col IN (?, ?, ?)", "a", "b", "c")
 ```
 Putting it together
 ```go
-sql, _ := db.From("test").Where(
+sql, _, _ := db.From("test").Where(
    goqu.I("col").Eq(10),
    goqu.L(`"json"::TEXT = "other_json"::TEXT`),
-).Sql()
+).ToSql()
 fmt.Println(sql)
 ```
 ```sql
@@ -206,12 +211,12 @@ SELECT * FROM "test" WHERE (("col" = 10) AND "json"::TEXT = "other_json"::TEXT)
 Both the Identifier and Literal expressions will be ANDed together by default.
 You may however want to have your expressions ORed together you can use the [`Or()`](https://godoc.org/github.com/doug-martin/goqu#example-Or) function to create an ExpressionList
 ```go
-gql, _ := db.From("test").Where(
+sql, _, _ := db.From("test").Where(
    goqu.Or(
       goqu.I("col").Eq(10),
       goqu.L(`"col"::TEXT = "other_col"::TEXT`),
    ),
-).Sql()
+).ToSql()
 fmt.Println(sql)
 ```  
 ```sql
@@ -219,12 +224,12 @@ SELECT * FROM "test" WHERE (("col" = 10) OR "col"::TEXT = "other_col"::TEXT)
 ```
 
 ```go
-sql, _ := db.From("test").Where(
+sql, _, _ := db.From("test").Where(
    Or(
       goqu.I("col").Eq(10),
       goqu.L(`"col"::TEXT = "other_col"::TEXT`),
    ),
-).Sql()
+).ToSql()
 fmt.Println(sql)
 ```
 ```sql
@@ -233,7 +238,7 @@ SELECT * FROM "test" WHERE (("col" = 10) OR "col"::TEXT = "other_col"::TEXT)
 
 You can also use Or and the And function in tandem which will give you control not only over how the Expressions are joined together, but also how they are grouped
 ```go
-sql, _ := db.From("test").Where(
+sql, _, _ := db.From("test").Where(
    goqu.Or(
       goqu.I("a").Gt(10),
       goqu.And(
@@ -241,7 +246,7 @@ sql, _ := db.From("test").Where(
          goqu.I("c").Neq("test"),
       ),
    ),
-).Sql()
+).ToSql()
 fmt.Println(sql)
 ```
 Output:
@@ -251,7 +256,7 @@ SELECT * FROM "test" WHERE (("a" > 10) OR (("b" = 100) AND ("c" != 'test')))
 
 You can also use Or with the map syntax
 ```go
-sql, _ := db.From("test").Where(
+sql, _, _ := db.From("test").Where(
 	goqu.Or(
         //Ex will be anded together
 		goqu.Ex{
@@ -264,7 +269,7 @@ sql, _ := db.From("test").Where(
 		},
 		goqu.L(`"col"::TEXT = "other_col"::TEXT`),
 	),
-).Sql()
+).ToSql()
 fmt.Println(sql)
 ```
 Output:
@@ -276,7 +281,7 @@ SELECT * FROM "test" WHERE ((("col1" IS NULL) AND ("col2" IS TRUE)) OR (("col3" 
 
 Using the Ex map syntax
 ```go
-sql, _ = db.From("test").
+sql, _, _ := db.From("test").
 	Select(goqu.COUNT("*")).
 	InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
 	LeftJoin(goqu.I("test3"), goqu.On(goqu.I("test2.fkey").Eq(goqu.I("test3.id")))).
@@ -292,28 +297,28 @@ sql, _ = db.From("test").
 	Order(goqu.I("test.created").Desc().NullsLast()).
 	GroupBy(goqu.I("test.user_id")).
 	Having(goqu.AVG("test3.age").Gt(10)).
-	Sql()
+	ToSql()
 fmt.Println(sql)
 ```
 
 Using the Expression syntax
 ```go
-sql, _ = db.From("test").
-		Select(goqu.COUNT("*")).
-		InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
-		LeftJoin(goqu.I("test3"), goqu.On(goqu.I("test2.fkey").Eq(goqu.I("test3.id")))).
-		Where(
-		    goqu.I("test.name").Like(regexp.MustCompile("^(a|b)")),
-		    goqu.I("test2.amount").IsNotNull(),
-		    goqu.Or(
-			    goqu.I("test3.id").IsNull(),
-			    goqu.I("test3.status").In("passed", "active", "registered"),
-		)).
-		Order(goqu.I("test.created").Desc().NullsLast()).
-		GroupBy(goqu.I("test.user_id")).
-		Having(goqu.AVG("test3.age").Gt(10)).
-		Sql()
-	fmt.Println(sql)
+sql, _, _ := db.From("test").
+    Select(goqu.COUNT("*")).
+	InnerJoin(goqu.I("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
+	LeftJoin(goqu.I("test3"), goqu.On(goqu.I("test2.fkey").Eq(goqu.I("test3.id")))).
+	Where(
+	    goqu.I("test.name").Like(regexp.MustCompile("^(a|b)")),
+	    goqu.I("test2.amount").IsNotNull(),
+	    goqu.Or(
+		    goqu.I("test3.id").IsNull(),
+		    goqu.I("test3.status").In("passed", "active", "registered"),
+	)).
+	Order(goqu.I("test.created").Desc().NullsLast()).
+	GroupBy(goqu.I("test.user_id")).
+	Having(goqu.AVG("test3.age").Gt(10)).
+	ToSql()
+fmt.Println(sql)
 ```
 
 Both examples generate the following SQL
@@ -493,6 +498,63 @@ if err := delete.ScanVals(&ids); err != nil{
 }
 ```
 
+<a name="dataset_prepared"></a>
+#### Prepared Statements
+
+By default the `Dataset` will interpolate all parameters, if you do not want to have values interolated you can use the [`Prepared`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Prepared) method to prevent this.
+
+**Note** For the examples all placeholders are `?` this will be adapter specific when using other examples (e.g. Postgres `$1, $2...`)
+
+```go
+
+preparedDs := db.From("items").Prepared(true)
+
+sql, args, _ := preparedDs.Where(goqu.Ex{
+	"col1": "a",
+	"col2": 1,
+	"col3": true,
+	"col4": false,
+	"col5": []string{"a", "b", "c"},
+}).ToSql()
+fmt.Println(sql, args)
+
+sql, args, _ = preparedDs.ToInsertSql(
+	goqu.Record{"name": "Test1", "address": "111 Test Addr"},
+	goqu.Record{"name": "Test2", "address": "112 Test Addr"},
+)
+fmt.Println(sql, args)
+
+sql, args, _ = preparedDs.ToUpdateSql(
+	goqu.Record{"name": "Test", "address": "111 Test Addr"},
+)
+fmt.Println(sql, args)
+
+sql, args, _ = preparedDs.
+	Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
+	ToDeleteSql()
+fmt.Println(sql, args)
+
+// Output:
+// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
+// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
+// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
+// DELETE FROM "items" WHERE ("id" > ?) [10]
+```
+
+When setting prepared to true executing the SQL using the different querying methods will also use the non-interpolated SQL also.
+
+```go
+var items []Item
+sql, args, _ := db.From("items").Prepared(true).Where(goqu.Ex{
+	"col1": "a",
+	"col2": 1,
+}).ScanStructs(&items)
+
+//Is the same as
+db.ScanStructs(&items, `SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?))`,  "a", 1)
+```
+
+
 <a name="database"></a>
 ### Database
 
@@ -582,6 +644,25 @@ Adapters in goqu are the foundation of building the correct SQL for each DB dial
 Between most dialects there is a large portion of shared syntax, for this reason we have a [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter) that can be used as a base for any new Dialect specific adapter.
 In fact for most use cases you will not have to override any methods but instead just override the default values as documented for [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter).
 
+### Literal
+
+The [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter) has a [`Literal`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter.Literal) function which should be used to serialize all sub expressions or values. This method prevents you from having to re-implement each adapter method while having your adapter methods called correctly.
+
+**How does it work?**
+
+The Literal method delegates back to the [`Dataset.Literal`](http://godoc.org/github.com/doug-martin/goqu/#Dataset.Literal) method which then calls the appropriate method on the adapter acting as a trampoline, between the DefaultAdapter and your Adapter.
+
+For example if your adapter overrode the [`DefaultAdapter.QuoteIdentifier`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter.QuoteIdentifier), method which is used by most methods in the [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter), we need to ensure that your Adapters QuoteIdentifier method is called instead of the default implementation.
+
+Because the Dataset has a pointer to your Adapter it will call the correct method, so instead of calling `DefaultAdapter.QuoteIdentifier` internally we delegate back to the Dataset by calling the [`Dataset.Literal`](http://godoc.org/github.com/doug-martin/goqu/#Dataset.Literal) which will the call your Adapters method.
+
+```
+Dataset.Literal -> Adapter.ExpressionListSql -> Adapter.Literal -> Dataset.Literal -> YourAdapter.QuoteIdentifier
+```
+
+It is important to maintain this pattern when writing your own Adapter.
+
+### Registering
 
 When creating your adapters you must register your adapter with [`RegisterAdapter`](http://godoc.org/github.com/doug-martin/goqu/#RegisterAdapter). This method requires 2 arguments.
 

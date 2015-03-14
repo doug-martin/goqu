@@ -5,34 +5,12 @@ import (
 	"sort"
 )
 
-//Generates the default INSERT statement. This calls ToInsertSql with isPrepared set to false.
+//Generates the default INSERT statement. If Prepared has been called with true then the statement will not be interpolated. See examples.
 //When using structs you may specify a column to be skipped in the insert, (e.g. id) by specifying a goqu tag with `skipinsert`
 //    type Item struct{
 //       Id   uint32 `db:"id" goqu:"skipinsert"`
 //       Name string `db:"name"`
 //    }
-//
-//rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
-//
-//Errors:
-//  * There is no FROM clause
-//  * Different row types passed in, all rows must be of the same type
-//  * Maps with different keys pairs (e.g. (Record{"name": "a"}, Record{"age": 10})
-//  * Rows of different lengths, (e.g. (Record{"name": "a"}, Record{"name": "a", "age": 10})
-//  * Error generating SQL
-func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
-	sql, _, err := me.ToInsertSql(false, rows...)
-	return sql, err
-}
-
-//Generates the default INSERT statement. This calls ToInsertSql with isPrepared set to false.
-//When using structs you may specify a column to be skipped in the insert, (e.g. id) by specifying a goqu tag with `skipinsert`
-//    type Item struct{
-//       Id   uint32 `db:"id" goqu:"skipinsert"`
-//       Name string `db:"name"`
-//    }
-//
-//isPrepared: Set to true to true to ensure values are NOT interpolated
 //
 //rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
 //
@@ -42,13 +20,13 @@ func (me *Dataset) InsertSql(rows ...interface{}) (string, error) {
 //  * Maps with different numbers of K/V pairs
 //  * Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
 //  * Error generating SQL
-func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []interface{}, error) {
+func (me *Dataset) ToInsertSql(rows ...interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, NewGoquError("No source found when generating insert sql")
 	}
 	switch len(rows) {
 	case 0:
-		return me.insertSql(nil, nil, isPrepared)
+		return me.insertSql(nil, nil, me.isPrepared)
 	case 1:
 		val := reflect.ValueOf(rows[0])
 		if val.Kind() == reflect.Slice {
@@ -56,11 +34,11 @@ func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []
 			for i := 0; i < val.Len(); i++ {
 				vals[i] = val.Index(i).Interface()
 			}
-			return me.ToInsertSql(isPrepared, vals...)
+			return me.ToInsertSql(vals...)
 		}
 		switch rows[0].(type) {
 		case *Dataset:
-			return me.insertFromSql(*rows[0].(*Dataset), isPrepared)
+			return me.insertFromSql(*rows[0].(*Dataset), me.isPrepared)
 		}
 
 	}
@@ -68,7 +46,7 @@ func (me *Dataset) ToInsertSql(isPrepared bool, rows ...interface{}) (string, []
 	if err != nil {
 		return "", nil, err
 	}
-	return me.insertSql(columns, vals, isPrepared)
+	return me.insertSql(columns, vals, me.isPrepared)
 }
 
 func (me *Dataset) canInsertField(field reflect.StructField) bool {
@@ -131,7 +109,7 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 			}
 			vals[i] = rowVals
 		default:
-			return nil, nil, NewGoquError("Unsupported insert must be map, goqu.Record, or struct type %+v", row)
+			return nil, nil, NewGoquError("Unsupported insert must be map, goqu.Record, or struct type got: %T", row)
 		}
 	}
 	return columns, vals, nil

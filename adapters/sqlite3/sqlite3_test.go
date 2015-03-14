@@ -3,12 +3,13 @@ package sqlite3
 import (
 	"database/sql"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/doug-martin/goqu"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"time"
 )
 
 const (
@@ -83,15 +84,15 @@ func (me *sqlite3Test) SetupTest() {
 func (me *sqlite3Test) TestSelectSql() {
 	t := me.T()
 	ds := me.db.From("entry")
-	sql, err := ds.Select("id", "float", "string", "time", "bool").Sql()
+	sql, _, err := ds.Select("id", "float", "string", "time", "bool").ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`")
 
-	sql, err = ds.Where(goqu.I("int").Eq(10)).Sql()
+	sql, _, err = ds.Where(goqu.I("int").Eq(10)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE (`int` = 10)")
 
-	sql, args, err := ds.Where(goqu.L("? = ?", goqu.I("int"), 10)).ToSql(true)
+	sql, args, err := ds.Prepared(true).Where(goqu.L("? = ?", goqu.I("int"), 10)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{10})
 	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE `int` = ?")

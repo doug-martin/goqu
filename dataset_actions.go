@@ -4,32 +4,32 @@ package goqu
 //
 //i: A pointer to a slice of structs
 func (me *Dataset) ScanStructs(i interface{}) error {
-	sql, err := me.Sql()
-	return newCrudExec(me.database, err, sql).ScanStructs(i)
+	sql, args, err := me.ToSql()
+	return newCrudExec(me.database, err, sql, args...).ScanStructs(i)
 }
 
 //Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a slice of structs
 //
 //i: A pointer to a structs
 func (me *Dataset) ScanStruct(i interface{}) (bool, error) {
-	sql, err := me.Limit(1).Sql()
-	return newCrudExec(me.database, err, sql).ScanStruct(i)
+	sql, args, err := me.Limit(1).ToSql()
+	return newCrudExec(me.database, err, sql, args...).ScanStruct(i)
 }
 
 //Generates the SELECT sql for this dataset and uses Exec#ScanVals to scan the results into a slice of primitive values
 //
 //i: A pointer to a slice of primitive values
 func (me *Dataset) ScanVals(i interface{}) error {
-	sql, err := me.Sql()
-	return newCrudExec(me.database, err, sql).ScanVals(i)
+	sql, args, err := me.ToSql()
+	return newCrudExec(me.database, err, sql, args...).ScanVals(i)
 }
 
 //Generates the SELECT sql for this dataset and uses Exec#ScanVal to scan the result into a primitive value
 //
 //i: A pointer to a primitive value
 func (me *Dataset) ScanVal(i interface{}) (bool, error) {
-	sql, err := me.Limit(1).Sql()
-	return newCrudExec(me.database, err, sql).ScanVal(i)
+	sql, args, err := me.Limit(1).ToSql()
+	return newCrudExec(me.database, err, sql, args...).ScanVal(i)
 }
 
 //Generates the SELECT COUNT(*) sql for this dataset and uses Exec#ScanVal to scan the result into an int64.
@@ -53,8 +53,8 @@ func (me *Dataset) Pluck(i interface{}, col string) error {
 //
 //See Dataset#UpdateSql for arguments
 func (me *Dataset) Update(i interface{}) *CrudExec {
-	sql, err := me.UpdateSql(i)
-	return newCrudExec(me.database, err, sql)
+	sql, args, err := me.ToUpdateSql(i)
+	return newCrudExec(me.database, err, sql, args...)
 }
 
 //Generates the UPDATE sql, and returns an Exec struct with the sql set to the INSERT statement
@@ -62,13 +62,13 @@ func (me *Dataset) Update(i interface{}) *CrudExec {
 //
 //See Dataset#InsertSql for arguments
 func (me *Dataset) Insert(i ...interface{}) *CrudExec {
-	sql, err := me.InsertSql(i...)
-	return newCrudExec(me.database, err, sql)
+	sql, args, err := me.ToInsertSql(i...)
+	return newCrudExec(me.database, err, sql, args...)
 }
 
 //Generates the DELETE sql, and returns an Exec struct with the sql set to the DELETE statement
 //    db.From("test").Where(I("id").Gt(10)).Exec()
 func (me *Dataset) Delete() *CrudExec {
-	sql, err := me.DeleteSql()
-	return newCrudExec(me.database, err, sql)
+	sql, args, err := me.ToDeleteSql()
+	return newCrudExec(me.database, err, sql, args...)
 }

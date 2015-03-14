@@ -1,11 +1,12 @@
 package mysql
 
 import (
+	"regexp"
+	"testing"
+
 	"github.com/doug-martin/goqu"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"regexp"
-	"testing"
 )
 
 type datasetAdapterTest struct {
@@ -65,7 +66,7 @@ func (me *datasetAdapterTest) TestSupportsOrderByOnUpdate() {
 func (me *datasetAdapterTest) TestIdentifiers() {
 	t := me.T()
 	ds := me.GetDs("test")
-	sql, err := ds.Select("a", goqu.I("a.b.c"), goqu.I("c.d"), goqu.I("test").As("test")).Sql()
+	sql, _, err := ds.Select("a", goqu.I("a.b.c"), goqu.I("c.d"), goqu.I("test").As("test")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT `a`, `a`.`b`.`c`, `c`.`d`, `test` AS `test` FROM `test`")
 }
@@ -73,35 +74,35 @@ func (me *datasetAdapterTest) TestIdentifiers() {
 func (me *datasetAdapterTest) TestLiteralString() {
 	t := me.T()
 	ds := me.GetDs("test")
-	sql, err := ds.Where(goqu.I("a").Eq("test")).Sql()
+	sql, _, err := ds.Where(goqu.I("a").Eq("test")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test')")
 
-	sql, err = ds.Where(goqu.I("a").Eq("test'test")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq("test'test")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\'test')")
 
-	sql, err = ds.Where(goqu.I("a").Eq(`test"test`)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq(`test"test`)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\\"test')")
 
-	sql, err = ds.Where(goqu.I("a").Eq(`test\test`)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq(`test\test`)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\\\test')")
 
-	sql, err = ds.Where(goqu.I("a").Eq("test\ntest")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq("test\ntest")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\ntest')")
 
-	sql, err = ds.Where(goqu.I("a").Eq("test\rtest")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq("test\rtest")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\rtest')")
 
-	sql, err = ds.Where(goqu.I("a").Eq("test\x00test")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq("test\x00test")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\x00test')")
 
-	sql, err = ds.Where(goqu.I("a").Eq("test\x1atest")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq("test\x1atest")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')")
 }
@@ -109,69 +110,69 @@ func (me *datasetAdapterTest) TestLiteralString() {
 func (me *datasetAdapterTest) TestBooleanOperations() {
 	t := me.T()
 	ds := me.GetDs("test")
-	sql, err := ds.Where(goqu.I("a").Eq(true)).Sql()
+	sql, _, err := ds.Where(goqu.I("a").Eq(true)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS TRUE)")
-	sql, err = ds.Where(goqu.I("a").Eq(false)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Eq(false)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS FALSE)")
-	sql, err = ds.Where(goqu.I("a").Is(true)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Is(true)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS TRUE)")
-	sql, err = ds.Where(goqu.I("a").Is(false)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Is(false)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS FALSE)")
-	sql, err = ds.Where(goqu.I("a").IsTrue()).Sql()
+	sql, _, err = ds.Where(goqu.I("a").IsTrue()).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS TRUE)")
-	sql, err = ds.Where(goqu.I("a").IsFalse()).Sql()
+	sql, _, err = ds.Where(goqu.I("a").IsFalse()).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS FALSE)")
 
-	sql, err = ds.Where(goqu.I("a").Neq(true)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Neq(true)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS NOT TRUE)")
-	sql, err = ds.Where(goqu.I("a").Neq(false)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Neq(false)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS NOT FALSE)")
-	sql, err = ds.Where(goqu.I("a").IsNot(true)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").IsNot(true)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS NOT TRUE)")
-	sql, err = ds.Where(goqu.I("a").IsNot(false)).Sql()
+	sql, _, err = ds.Where(goqu.I("a").IsNot(false)).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS NOT FALSE)")
-	sql, err = ds.Where(goqu.I("a").IsNotTrue()).Sql()
+	sql, _, err = ds.Where(goqu.I("a").IsNotTrue()).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS NOT TRUE)")
-	sql, err = ds.Where(goqu.I("a").IsNotFalse()).Sql()
+	sql, _, err = ds.Where(goqu.I("a").IsNotFalse()).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` IS NOT FALSE)")
 
-	sql, err = ds.Where(goqu.I("a").Like("a%")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Like("a%")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` LIKE BINARY 'a%')")
 
-	sql, err = ds.Where(goqu.I("a").NotLike("a%")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").NotLike("a%")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` NOT LIKE BINARY 'a%')")
 
-	sql, err = ds.Where(goqu.I("a").ILike("a%")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").ILike("a%")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` LIKE 'a%')")
-	sql, err = ds.Where(goqu.I("a").NotILike("a%")).Sql()
+	sql, _, err = ds.Where(goqu.I("a").NotILike("a%")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` NOT LIKE 'a%')")
 
-	sql, err = ds.Where(goqu.I("a").Like(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, err = ds.Where(goqu.I("a").Like(regexp.MustCompile("(a|b)"))).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` REGEXP BINARY '(a|b)')")
-	sql, err = ds.Where(goqu.I("a").NotLike(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, err = ds.Where(goqu.I("a").NotLike(regexp.MustCompile("(a|b)"))).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` NOT REGEXP BINARY '(a|b)')")
-	sql, err = ds.Where(goqu.I("a").ILike(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, err = ds.Where(goqu.I("a").ILike(regexp.MustCompile("(a|b)"))).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` REGEXP '(a|b)')")
-	sql, err = ds.Where(goqu.I("a").NotILike(regexp.MustCompile("(a|b)"))).Sql()
+	sql, _, err = ds.Where(goqu.I("a").NotILike(regexp.MustCompile("(a|b)"))).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` NOT REGEXP '(a|b)')")
 

@@ -71,9 +71,10 @@ type (
 	//    UPDATE "items" SET updated = NOW RETURNING "items".*
 	//Could be executed with ScanStructs.
 	Dataset struct {
-		adapter  Adapter
-		clauses  clauses
-		database database
+		adapter    Adapter
+		clauses    clauses
+		database   database
+		isPrepared bool
 	}
 )
 
@@ -125,6 +126,15 @@ func withDatabase(db database) *Dataset {
 func (me *Dataset) SetAdapter(adapter Adapter) *Dataset {
 	me.adapter = adapter
 	return me
+}
+
+//Set the parameter interpolation behavior. See examples
+//
+//prepared: If true the dataset WILL NOT interpolate the parameters.
+func (me *Dataset) Prepared(prepared bool) *Dataset {
+	ret := me.copy()
+	ret.isPrepared = prepared
+	return ret
 }
 
 //Returns the current adapter on the dataset

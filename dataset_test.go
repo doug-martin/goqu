@@ -47,6 +47,17 @@ func (me *datasetTest) TestSetAdapter() {
 	assert.Equal(t, ds.Adapter(), adapter)
 }
 
+func (me *datasetTest) TestPrepared() {
+	t := me.T()
+	ds := From("test")
+	preparedDs := ds.Prepared(true)
+	assert.True(t, preparedDs.isPrepared)
+	assert.False(t, ds.isPrepared)
+
+	//should apply the prepared to any datasets created from the root
+	assert.True(t, preparedDs.Where(Ex{"a": 1}).isPrepared)
+}
+
 func (me *datasetTest) TestLiteralUnsupportedType() {
 	t := me.T()
 	assert.EqualError(t, From("test").Literal(NewSqlBuilder(false), struct{}{}), "goqu: Unable to encode value {}")
