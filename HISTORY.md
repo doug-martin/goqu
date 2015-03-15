@@ -1,3 +1,7 @@
+## v0.3.1
+
+* Fixed issue setting Logger when starting a new transaction.
+
 ## v0.3.0
 
 * Changed sql generation methods to use a common naming convention. `To(Sql|Insert|Update|Delete)`

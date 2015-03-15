@@ -2,10 +2,11 @@ package goqu
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type testActionItem struct {
@@ -263,6 +264,38 @@ func (me *txDatabaseTest) TestLogger() {
 	assert.NoError(t, err)
 	logger := new(dbTestMockLogger)
 	tx.Logger(logger)
+	var items []testActionItem
+	assert.NoError(t, tx.ScanStructs(&items, `SELECT * FROM "items"`))
+	_, err = tx.Exec(`SELECT * FROM "items" WHERE "id" = ?`, 1)
+	assert.NoError(t, err)
+	tx.Commit()
+	assert.Equal(t, logger.Messages, []string{
+		"[goqu - transaction] QUERY [query:=`SELECT * FROM \"items\"`] ",
+		"[goqu - transaction] EXEC [query:=`SELECT * FROM \"items\" WHERE \"id\" = ?` args:=[1]] ",
+		"[goqu - transaction] COMMIT",
+	})
+}
+
+func (me *txDatabaseTest) TestLogger_FromDb() {
+	t := me.T()
+	mDb, err := sqlmock.New()
+	assert.NoError(t, err)
+	sqlmock.ExpectBegin()
+	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	sqlmock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
+		WithArgs(1).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	sqlmock.ExpectCommit()
+
+	db := New("db-mock", mDb)
+	logger := new(dbTestMockLogger)
+	db.Logger(logger)
+	tx, err := db.Begin()
+	assert.NoError(t, err)
+
 	var items []testActionItem
 	assert.NoError(t, tx.ScanStructs(&items, `SELECT * FROM "items"`))
 	_, err = tx.Exec(`SELECT * FROM "items" WHERE "id" = ?`, 1)

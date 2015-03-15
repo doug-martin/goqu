@@ -60,7 +60,7 @@ func (me *Database) Begin() (*TxDatabase, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &TxDatabase{Dialect: me.Dialect, Tx: tx}, nil
+	return &TxDatabase{Dialect: me.Dialect, Tx: tx, logger: me.logger}, nil
 }
 
 //used internally to create a new Adapter for a dataset
