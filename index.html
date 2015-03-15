@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Goqu by doug-martin</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Goqu</h1>
+        <h2>SQL builder and query library for golang</h2>
+        <a href="https://github.com/doug-martin/goqu" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <pre><code>  __ _  ___   __ _ _   _
+ / _` |/ _ \ / _` | | | |
+| (_| | (_) | (_| | |_| |
+ \__, |\___/ \__, |\__,_|
+ |___/          |_|
+</code></pre>
+
+<p><a href="https://github.com/doug-martin/goqu/releases"><img src="https://img.shields.io/github/tag/doug-martin/goqu.svg?style=flat" alt="GitHub tag"></a>
+<a href="https://travis-ci.org/doug-martin/goqu"><img src="https://travis-ci.org/doug-martin/goqu.svg?branch=master" alt="Build Status"></a>
+<a href="http://godoc.org/github.com/doug-martin/goqu"><img src="https://godoc.org/github.com/doug-martin/goqu?status.png" alt="GoDoc"></a>
+<a href="http://gocover.io/github.com/doug-martin/goqu"><img src="http://gocover.io/_badge/github.com/doug-martin/goqu" alt="GoCover"></a>
+<a href="https://gitter.im/doug-martin/goqu?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img src="https://badges.gitter.im/Join%20Chat.svg" alt="Join the chat at https://gitter.im/doug-martin/goqu"></a></p>
+
+<p><code>goqu</code> is an expressive SQL builder</p>
+
+<ul>
+<li><a href="#basics">Basics</a></li>
+<li>
+<a href="#expressions">Expressions</a>
+
+<ul>
+<li><a href="#complex-example">Complex Example</a></li>
+</ul>
+</li>
+<li>
+<a href="#querying">Querying</a>
+
+<ul>
+<li>
+<a href="#dataset">Dataset</a>
+
+<ul>
+<li><a href="#dataset_prepared">Prepared Statments</a></li>
+</ul>
+</li>
+<li><a href="#database">Database</a></li>
+<li><a href="#transactions">Transactions</a></li>
+</ul>
+</li>
+<li><a href="#logging">Logging</a></li>
+<li><a href="#adapters">Adapters</a></li>
+<li><a href="#contributions">Contributions</a></li>
+<li><a href="https://github.com/doug-martin/goqu/tree/master/HISTORY.md">Changelog</a></li>
+</ul>
+
+<p>This library was built with the following goals:</p>
+
+<ul>
+<li>Make the generation of SQL easy and enjoyable</li>
+<li>Provide a DSL that accounts for the common SQL expressions, NOT every nuance for each database.</li>
+<li>Allow users to use SQL when desired</li>
+<li>Provide a simple query API for scanning rows</li>
+<li>Allow the user to use the native sql.Db methods when desired</li>
+</ul>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<p><code>goqu</code> comes with many features but here are a few of the more notable ones</p>
+
+<ul>
+<li>Query Builder</li>
+<li>Parameter interpolation (e.g <code>SELECT * FROM "items" WHERE "id" = ?</code> -&gt; <code>SELECT * FROM "items" WHERE "id" = 1</code>)</li>
+<li>Built from the ground up with adapters in mind</li>
+<li>Insert, Multi Insert, Update, and Delete support</li>
+<li>Scanning of rows to struct[s] or primitive value[s]</li>
+</ul>
+
+<p>While goqu may support the scanning of rows into structs it is not intended to be used as an ORM if you are looking for common ORM features like associations,
+or hooks I would recommend looking at some of the great ORM libraries such as:</p>
+
+<ul>
+<li><a href="https://github.com/jinzhu/gorm">gorm</a></li>
+<li><a href="https://github.com/eaigner/hood">hood</a></li>
+</ul>
+
+<p><a name="basics"></a></p>
+
+<h2>
+<a id="basics" class="anchor" href="#basics" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basics</h2>
+
+<p>In order to start using goqu with your database you need to load an adapter. We have included some adapters by default.</p>
+
+<ol>
+<li>Postgres - <code>import "github.com/doug-martin/goqu/adapters/postgres"</code>
+</li>
+<li>MySQL - <code>import "github.com/doug-martin/goqu/adapters/mysql"</code>
+</li>
+<li>SQLite3 - <code>import "github.com/doug-martin/goqu/adapters/sqlite3"</code>
+</li>
+</ol>
+
+<p>Adapters in goqu work the same way as a driver with the database in that they register themselves with goqu once loaded.</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">import</span> (
+  <span class="pl-s1"><span class="pl-pds">"</span>database/sql<span class="pl-pds">"</span></span>
+  <span class="pl-s1"><span class="pl-pds">"</span>github.com/doug-martin/goqu<span class="pl-pds">"</span></span>
+  _ <span class="pl-s1"><span class="pl-pds">"</span>github.com/doug-martin/goqu/adapters/postgres<span class="pl-pds">"</span></span>
+  _ <span class="pl-s1"><span class="pl-pds">"</span>github.com/lib/pq<span class="pl-pds">"</span></span>
+)</pre></div>
+
+<p>Notice that we imported the adapter and driver for side effect only.</p>
+
+<p>Once you have your adapter and driver loaded you can create a goqu.Database instance</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">pgDb</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> sql.<span class="pl-s3">Open</span>(<span class="pl-s1"><span class="pl-pds">"</span>postgres<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>user=postgres dbname=goqupostgres sslmode=disable <span class="pl-pds">"</span></span>)
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span> {
+    <span class="pl-s3">panic</span>(err.<span class="pl-s3">Error</span>())
+}
+<span class="pl-vo">db</span> <span class="pl-k">:=</span> goqu.<span class="pl-s3">New</span>(<span class="pl-s1"><span class="pl-pds">"</span>postgres<span class="pl-pds">"</span></span>, pgDb)</pre></div>
+
+<p>Now that you have your goqu.Database you can build your SQL and it will be formatted appropriately for the provided dialect.</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-c">//interpolated sql</span>
+<span class="pl-vo">sql</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>: <span class="pl-c1">10</span>,
+}).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)
+
+<span class="pl-c">//prepared sql</span>
+<span class="pl-vo">sql</span>, <span class="pl-vo">args</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Prepared</span>(<span class="pl-c1">true</span>).
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{
+        <span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>: <span class="pl-c1">10</span>,
+    }).
+    <span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> <span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">10</span>
+<span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> <span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span> <span class="pl-k">=</span> $<span class="pl-c1">1</span></pre></div>
+
+<p><a name="expressions"></a></p>
+
+<h3>
+<a id="expressions" class="anchor" href="#expressions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Expressions</h3>
+
+<p><code>goqu</code> provides an idiomatic DSL for generating SQL however the Dataset only provides the the different clause methods (e.g. Where, From, Select), most of these clause methods accept Expressions(with a few exceptions) which are the building blocks for your SQL statement, you can think of them as fragments of SQL.</p>
+
+<p>The entry points for expressions are:</p>
+
+<ul>
+<li>
+<a href="https://godoc.org/github.com/doug-martin/goqu#Ex"><code>Ex{}</code></a> - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default <code>Ex</code> will use the equality operator except in cases where the equality operator will not work, see the example below.</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span>: <span class="pl-c1">1</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span>: <span class="pl-c1">true</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span>: <span class="pl-c1">false</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col5<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span>: []<span class="pl-st">string</span>{<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>},
+}).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output:</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">1</span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span> IS TRUE) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span> IS FALSE) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col5<span class="pl-pds">"</span></span> IS <span class="pl-k">NULL</span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span> <span class="pl-k">IN</span> (<span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>b<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>c<span class="pl-pds">'</span></span>)))</pre></div>
+
+<p>You can also use the <a href="https://godoc.org/github.com/doug-martin/goqu#Op"><code>Op</code></a> map which allows you to create more complex expressions using the map syntax. When using the <code>Op</code> map the key is the name of the comparison you want to make (e.g. <code>"neq"</code>, <code>"like"</code>, <code>"is"</code>, <code>"in"</code>), the key is case insensitive.</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>neq<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>},
+    <span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>isNot<span class="pl-pds">"</span></span>: <span class="pl-c1">true</span>},
+    <span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>notIn<span class="pl-pds">"</span></span>: []<span class="pl-st">string</span>{<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>}},
+}).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output:</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span> <span class="pl-k">!=</span> <span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span> IS NOT TRUE) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span> NOT <span class="pl-k">IN</span> (<span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>b<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>c<span class="pl-pds">'</span></span>)))</pre></div>
+
+<p>For a more complete examples see the <a href="https://godoc.org/github.com/doug-martin/goqu#Op"><code>Op</code></a> and <a href="https://godoc.org/github.com/doug-martin/goqu#Ex"><code>Ex</code></a> docs</p>
+
+<ul>
+<li>
+<a href="https://godoc.org/github.com/doug-martin/goqu#ExOr"><code>ExOr{}</code></a> - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default <code>ExOr</code> will use the equality operator except in cases where the equality operator will not work, see the example below.</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">ExOr</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span>: <span class="pl-c1">1</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span>: <span class="pl-c1">true</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span>: <span class="pl-c1">false</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col5<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span>: []<span class="pl-st">string</span>{<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>},
+}).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output:</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">1</span>) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span> IS TRUE) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span> IS FALSE) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col5<span class="pl-pds">"</span></span> IS <span class="pl-k">NULL</span>) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span> <span class="pl-k">IN</span> (<span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>b<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>c<span class="pl-pds">'</span></span>)))</pre></div>
+
+<p>You can also use the <a href="https://godoc.org/github.com/doug-martin/goqu#Op"><code>Op</code></a> map which allows you to create more complex expressions using the map syntax. When using the <code>Op</code> map the key is the name of the comparison you want to make (e.g. <code>"neq"</code>, <code>"like"</code>, <code>"is"</code>, <code>"in"</code>), the key is case insensitive.</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">ExOr</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>neq<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>},
+    <span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>isNot<span class="pl-pds">"</span></span>: <span class="pl-c1">true</span>},
+    <span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>notIn<span class="pl-pds">"</span></span>: []<span class="pl-st">string</span>{<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>}},
+}).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output:</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span> <span class="pl-k">!=</span> <span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span> IS NOT TRUE) <span class="pl-k">OR</span> (<span class="pl-s1"><span class="pl-pds">"</span>col6<span class="pl-pds">"</span></span> NOT <span class="pl-k">IN</span> (<span class="pl-s1"><span class="pl-pds">'</span>a<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>b<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>c<span class="pl-pds">'</span></span>)))</pre></div>
+
+<p>For a more complete examples see the <a href="https://godoc.org/github.com/doug-martin/goqu#Op"><code>Op</code></a> and <a href="https://godoc.org/github.com/doug-martin/goqu#Ex"><code>ExOr</code></a> docs</p>
+
+<ul>
+<li>
+<a href="https://godoc.org/github.com/doug-martin/goqu#I"><code>I()</code></a> - An Identifier represents a schema, table, or column or any combination. You can use this when your expression cannot be expressed via the <a href="https://godoc.org/github.com/doug-martin/goqu#Ex"><code>Ex</code></a> map (e.g. Cast).</li>
+</ul>
+
+<div class="highlight highlight-go"><pre>goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>my_schema.table.col<span class="pl-pds">"</span></span>)
+goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>table.col<span class="pl-pds">"</span></span>)
+goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>)</pre></div>
+
+<p>If you look at the <a href="https://godoc.org/github.com/doug-martin/goqu#IdentifierExpression"><code>IdentiferExpression</code></a> docs it implements many of your common sql operations that you would perform.</p>
+
+<div class="highlight highlight-go"><pre>goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-c1">10</span>)
+goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">In</span>([]<span class="pl-st">int64</span>{<span class="pl-c1">1</span>,<span class="pl-c1">2</span>,<span class="pl-c1">3</span>,<span class="pl-c1">4</span>})
+goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">Like</span>(regexp.<span class="pl-s3">MustCompile</span>(<span class="pl-s1"><span class="pl-pds">"</span>^(a|b)<span class="pl-pds">"</span></span>)
+goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">IsNull</span>()</pre></div>
+
+<p>Please see the exmaples for <a href="https://godoc.org/github.com/doug-martin/goqu#example-I"><code>I()</code></a> to see more in depth examples</p>
+
+<ul>
+<li>
+<a href="https://godoc.org/github.com/doug-martin/goqu#example-L"><code>L()</code></a> - An SQL literal. You may find yourself in a situation where an IdentifierExpression cannot expression an SQL fragment that your database supports. In that case you can use a LiteralExpression</li>
+</ul>
+
+<div class="highlight highlight-go"><pre>goqu.<span class="pl-s3">L</span>(<span class="pl-s1"><span class="pl-pds">`</span>"col"::TEXT = ""other_col"::text<span class="pl-pds">`</span></span>)</pre></div>
+
+<p>You can also use placeholders in your literal. When using the LiteralExpressions placeholders are normalized to the ? character and will be transformed to the correct placeholder for your adapter (e.g. <code>?</code> mysql, <code>$1</code> postgres, <code>?</code> sqlite3)</p>
+
+<div class="highlight highlight-go"><pre>goqu.<span class="pl-s3">L</span>(<span class="pl-s1"><span class="pl-pds">"</span>col IN (?, ?, ?)<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>)</pre></div>
+
+<p>Putting it together</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(
+   goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-c1">10</span>),
+   goqu.<span class="pl-s3">L</span>(<span class="pl-s1"><span class="pl-pds">`</span>"json"::TEXT = "other_json"::TEXT<span class="pl-pds">`</span></span>),
+).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">10</span>) <span class="pl-k">AND</span> <span class="pl-s1"><span class="pl-pds">"</span>json<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>other_json<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span>)</pre></div>
+
+<p>Both the Identifier and Literal expressions will be ANDed together by default.
+You may however want to have your expressions ORed together you can use the <a href="https://godoc.org/github.com/doug-martin/goqu#example-Or"><code>Or()</code></a> function to create an ExpressionList</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(
+   goqu.<span class="pl-s3">Or</span>(
+      goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-c1">10</span>),
+      goqu.<span class="pl-s3">L</span>(<span class="pl-s1"><span class="pl-pds">`</span>"col"::TEXT = "other_col"::TEXT<span class="pl-pds">`</span></span>),
+   ),
+).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">10</span>) <span class="pl-k">OR</span> <span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>other_col<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span>)</pre></div>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(
+   <span class="pl-s3">Or</span>(
+      goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-c1">10</span>),
+      goqu.<span class="pl-s3">L</span>(<span class="pl-s1"><span class="pl-pds">`</span>"col"::TEXT = "other_col"::TEXT<span class="pl-pds">`</span></span>),
+   ),
+).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">10</span>) <span class="pl-k">OR</span> <span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>other_col<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span>)</pre></div>
+
+<p>You can also use Or and the And function in tandem which will give you control not only over how the Expressions are joined together, but also how they are grouped</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(
+   goqu.<span class="pl-s3">Or</span>(
+      goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>).<span class="pl-s3">Gt</span>(<span class="pl-c1">10</span>),
+      goqu.<span class="pl-s3">And</span>(
+         goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-c1">100</span>),
+         goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>).<span class="pl-s3">Neq</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>),
+      ),
+   ),
+).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output:</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> ((<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span> <span class="pl-k">&gt;</span> <span class="pl-c1">10</span>) <span class="pl-k">OR</span> ((<span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-c1">100</span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span> <span class="pl-k">!=</span> <span class="pl-s1"><span class="pl-pds">'</span>test<span class="pl-pds">'</span></span>)))</pre></div>
+
+<p>You can also use Or with the map syntax</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).<span class="pl-s3">Where</span>(
+    goqu.<span class="pl-s3">Or</span>(
+        <span class="pl-c">//Ex will be anded together</span>
+        goqu.<span class="pl-vo">Ex</span>{
+            <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>,
+            <span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span>: <span class="pl-c1">true</span>,
+        },
+        goqu.<span class="pl-vo">Ex</span>{
+            <span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>,
+            <span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span>: <span class="pl-c1">false</span>,
+        },
+        goqu.<span class="pl-s3">L</span>(<span class="pl-s1"><span class="pl-pds">`</span>"col"::TEXT = "other_col"::TEXT<span class="pl-pds">`</span></span>),
+    ),
+).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Output:</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-k">*</span> <span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span> <span class="pl-k">WHERE</span> (((<span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span> IS <span class="pl-k">NULL</span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span> IS TRUE)) <span class="pl-k">OR</span> ((<span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span> IS <span class="pl-k">NULL</span>) <span class="pl-k">AND</span> (<span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span> IS FALSE)) <span class="pl-k">OR</span> <span class="pl-s1"><span class="pl-pds">"</span>col<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>other_col<span class="pl-pds">"</span></span>::<span class="pl-st">TEXT</span>)</pre></div>
+
+<p><a name="complex-example"></a></p>
+
+<h3>
+<a id="complex-example" class="anchor" href="#complex-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Complex Example</h3>
+
+<p>Using the Ex map syntax</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Select</span>(goqu.<span class="pl-s3">COUNT</span>(<span class="pl-s1"><span class="pl-pds">"</span>*<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">InnerJoin</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2<span class="pl-pds">"</span></span>), goqu.<span class="pl-s3">On</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.fkey<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2.id<span class="pl-pds">"</span></span>)))).
+    <span class="pl-s3">LeftJoin</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span>), goqu.<span class="pl-s3">On</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2.fkey<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3.id<span class="pl-pds">"</span></span>)))).
+    <span class="pl-s3">Where</span>(
+    goqu.<span class="pl-vo">Ex</span>{
+        <span class="pl-s1"><span class="pl-pds">"</span>test.name<span class="pl-pds">"</span></span>:    goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>like<span class="pl-pds">"</span></span>: regexp.<span class="pl-s3">MustCompile</span>(<span class="pl-s1"><span class="pl-pds">"</span>^(a|b)<span class="pl-pds">"</span></span>)},
+        <span class="pl-s1"><span class="pl-pds">"</span>test2.amount<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>isNot<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>},
+    },
+    goqu.<span class="pl-vo">ExOr</span>{
+        <span class="pl-s1"><span class="pl-pds">"</span>test3.id<span class="pl-pds">"</span></span>:     <span class="pl-c1">nil</span>,
+        <span class="pl-s1"><span class="pl-pds">"</span>test3.status<span class="pl-pds">"</span></span>: []<span class="pl-st">string</span>{<span class="pl-s1"><span class="pl-pds">"</span>passed<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>active<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>registered<span class="pl-pds">"</span></span>},
+    }).
+    <span class="pl-s3">Order</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.created<span class="pl-pds">"</span></span>).<span class="pl-s3">Desc</span>().<span class="pl-s3">NullsLast</span>()).
+    <span class="pl-s3">GroupBy</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.user_id<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">Having</span>(goqu.<span class="pl-s3">AVG</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3.age<span class="pl-pds">"</span></span>).<span class="pl-s3">Gt</span>(<span class="pl-c1">10</span>)).
+    <span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Using the Expression syntax</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">sql</span>, <span class="pl-vo">_</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Select</span>(goqu.<span class="pl-s3">COUNT</span>(<span class="pl-s1"><span class="pl-pds">"</span>*<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">InnerJoin</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2<span class="pl-pds">"</span></span>), goqu.<span class="pl-s3">On</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.fkey<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2.id<span class="pl-pds">"</span></span>)))).
+    <span class="pl-s3">LeftJoin</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span>), goqu.<span class="pl-s3">On</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2.fkey<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3.id<span class="pl-pds">"</span></span>)))).
+    <span class="pl-s3">Where</span>(
+        goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.name<span class="pl-pds">"</span></span>).<span class="pl-s3">Like</span>(regexp.<span class="pl-s3">MustCompile</span>(<span class="pl-s1"><span class="pl-pds">"</span>^(a|b)<span class="pl-pds">"</span></span>)),
+        goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test2.amount<span class="pl-pds">"</span></span>).<span class="pl-s3">IsNotNull</span>(),
+        goqu.<span class="pl-s3">Or</span>(
+            goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3.id<span class="pl-pds">"</span></span>).<span class="pl-s3">IsNull</span>(),
+            goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3.status<span class="pl-pds">"</span></span>).<span class="pl-s3">In</span>(<span class="pl-s1"><span class="pl-pds">"</span>passed<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>active<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>registered<span class="pl-pds">"</span></span>),
+    )).
+    <span class="pl-s3">Order</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.created<span class="pl-pds">"</span></span>).<span class="pl-s3">Desc</span>().<span class="pl-s3">NullsLast</span>()).
+    <span class="pl-s3">GroupBy</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>test.user_id<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">Having</span>(goqu.<span class="pl-s3">AVG</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3.age<span class="pl-pds">"</span></span>).<span class="pl-s3">Gt</span>(<span class="pl-c1">10</span>)).
+    <span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql)</pre></div>
+
+<p>Both examples generate the following SQL</p>
+
+<div class="highlight highlight-sql"><pre><span class="pl-k">SELECT</span> <span class="pl-s3">COUNT</span>(<span class="pl-k">*</span>)
+<span class="pl-k">FROM</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>
+  <span class="pl-k">INNER JOIN</span> <span class="pl-s1"><span class="pl-pds">"</span>test2<span class="pl-pds">"</span></span> <span class="pl-k">ON</span> (<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>fkey<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>test2<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>)
+  <span class="pl-k">LEFT JOIN</span> <span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span> <span class="pl-k">ON</span> (<span class="pl-s1"><span class="pl-pds">"</span>test2<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>fkey<span class="pl-pds">"</span></span> <span class="pl-k">=</span> <span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>)
+<span class="pl-k">WHERE</span> (
+  (<span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span> ~ <span class="pl-s1"><span class="pl-pds">'</span>^(a|b)<span class="pl-pds">'</span></span>) <span class="pl-k">AND</span>
+  (<span class="pl-s1"><span class="pl-pds">"</span>test2<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>amount<span class="pl-pds">"</span></span> <span class="pl-k">IS NOT NULL</span>) <span class="pl-k">AND</span>
+  (
+      (<span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span> IS <span class="pl-k">NULL</span>) <span class="pl-k">OR</span>
+      (<span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span> <span class="pl-k">IN</span> (<span class="pl-s1"><span class="pl-pds">'</span>passed<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>active<span class="pl-pds">'</span></span>, <span class="pl-s1"><span class="pl-pds">'</span>registered<span class="pl-pds">'</span></span>))
+  )
+)
+<span class="pl-k">GROUP BY</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>user_id<span class="pl-pds">"</span></span>
+<span class="pl-k">HAVING</span> (<span class="pl-s3">AVG</span>(<span class="pl-s1"><span class="pl-pds">"</span>test3<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>age<span class="pl-pds">"</span></span>) <span class="pl-k">&gt;</span> <span class="pl-c1">10</span>)
+<span class="pl-k">ORDER BY</span> <span class="pl-s1"><span class="pl-pds">"</span>test<span class="pl-pds">"</span></span>.<span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span> <span class="pl-k">DESC</span> NULLS LAST</pre></div>
+
+<p><a name="querying"></a></p>
+
+<h2>
+<a id="querying" class="anchor" href="#querying" aria-hidden="true"><span class="octicon octicon-link"></span></a>Querying</h2>
+
+<p>goqu also has basic query support through the use of either the Database or the Dataset.</p>
+
+<p><a name="dataset"></a></p>
+
+<h3>
+<a id="dataset" class="anchor" href="#dataset" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dataset</h3>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStructs"><code>ScanStructs</code></a> - scans rows into a slice of structs</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">users</span> []<span class="pl-v">User</span>
+<span class="pl-k">if</span> <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">ScanStructs</span>(&amp;users){
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}
+fmt.<span class="pl-s3">Printf</span>(<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-cce">\n</span><span class="pl-c1">%+v</span><span class="pl-pds">"</span></span>, users)</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStruct"><code>ScanStruct</code></a> - scans a row into a slice a struct, returns false if a row wasnt found</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">user</span> <span class="pl-v">User</span>
+<span class="pl-vo">found</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">ScanStruct</span>(&amp;user)
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}
+<span class="pl-k">if</span> !found{
+    fmt.<span class="pl-s3">Println</span>(<span class="pl-s1"><span class="pl-pds">"</span>No user found<span class="pl-pds">"</span></span>)
+}<span class="pl-k">else</span>{
+    fmt.<span class="pl-s3">Printf</span>(<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-cce">\n</span>Found user: <span class="pl-c1">%+v</span><span class="pl-pds">"</span></span>, user)
+}</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanVals"><code>ScanVals</code></a> - scans a rows of 1 column into a slice of primitive values</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">ids</span> []<span class="pl-st">int64</span>
+<span class="pl-k">if</span> <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Select</span>(<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>).<span class="pl-s3">ScanVals</span>(&amp;ids){
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}
+fmt.<span class="pl-s3">Printf</span>(<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-cce">\n</span><span class="pl-c1">%+v</span><span class="pl-pds">"</span></span>, ids)</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanVal"><code>ScanVal</code></a> - scans a row of 1 column into a primitive value, returns false if a row wasnt found. <strong>Note</strong> when using the dataset a <code>LIMIT</code> of 1 is automatically applied.</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">id</span> <span class="pl-st">int64</span>
+<span class="pl-vo">found</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Select</span>(<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>).<span class="pl-s3">ScanVal</span>(&amp;id)
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}
+<span class="pl-k">if</span> !found{
+    fmt.<span class="pl-s3">Println</span>(<span class="pl-s1"><span class="pl-pds">"</span>No id found<span class="pl-pds">"</span></span>)
+}<span class="pl-k">else</span>{
+    fmt.<span class="pl-s3">Printf</span>(<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-cce">\n</span>Found id: <span class="pl-c1">%d</span><span class="pl-pds">"</span></span>, id)
+}</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.Count"><code>Count</code></a> - Returns the count for the current query</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">count</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Count</span>()
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}
+fmt.<span class="pl-s3">Printf</span>(<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-cce">\n</span>Count:= <span class="pl-c1">%d</span><span class="pl-pds">"</span></span>, count)</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.Pluck"><code>Pluck</code></a> - Selects a single column and stores the results into a slice of primitive values</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">ids</span> []<span class="pl-st">int64</span>
+<span class="pl-k">if</span> <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Pluck</span>(&amp;ids, <span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}
+fmt.<span class="pl-s3">Printf</span>(<span class="pl-s1"><span class="pl-pds">"</span><span class="pl-cce">\n</span>Ids := <span class="pl-c1">%+v</span><span class="pl-pds">"</span></span>, ids)</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.Insert"><code>Insert</code></a> - Creates an <code>INSERT</code> statement and returns a <a href="http://godoc.org/github.com/doug-martin/goqu#CrudExec"><code>CrudExec</code></a> to execute the statement</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">insert</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Insert</span>(goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Bob<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()})
+<span class="pl-k">if</span> <span class="pl-vo">_</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> insert.<span class="pl-s3">Exec</span>(); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<p>Insert will also handle multi inserts if supported by the database</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">users</span> <span class="pl-k">:=</span> []goqu.<span class="pl-vo">Record</span>{
+    {<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Bob<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()},
+    {<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Sally<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()},
+    {<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Jimmy<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()},
+}
+<span class="pl-k">if</span> <span class="pl-vo">_</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Insert</span>(users).<span class="pl-s3">Exec</span>(); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<p>If your database supports the <code>RETURN</code> clause you can also use the different Scan methods to get results</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">ids</span> []<span class="pl-st">int64</span>
+<span class="pl-vo">users</span> <span class="pl-k">:=</span> []goqu.<span class="pl-vo">Record</span>{
+    {<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Bob<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()},
+    {<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Sally<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()},
+    {<span class="pl-s1"><span class="pl-pds">"</span>first_name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Jimmy<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>last_name<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>Yukon<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>created<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()},
+}
+<span class="pl-k">if</span> <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).<span class="pl-s3">Returning</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>)).<span class="pl-s3">Insert</span>(users).<span class="pl-s3">ScanVals</span>(&amp;ids); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.Update"><code>Update</code></a> - Creates an <code>UPDATE</code> statement and returns an<a href="http://godoc.org/github.com/doug-martin/goqu#CrudExec"><code>CrudExec</code></a> to execute the statement</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">update</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-s1"><span class="pl-pds">"</span>inactive<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">Update</span>(goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>password<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>, <span class="pl-s1"><span class="pl-pds">"</span>updated<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()})
+<span class="pl-k">if</span> <span class="pl-vo">_</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> update.<span class="pl-s3">Exec</span>(); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<p>If your database supports the <code>RETURN</code> clause you can also use the different Scan methods to get results</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">ids</span> []<span class="pl-st">int64</span>
+<span class="pl-vo">update</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>inactive<span class="pl-pds">"</span></span>}).
+    <span class="pl-s3">Returning</span>(<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Update</span>(goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>password<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>, <span class="pl-s1"><span class="pl-pds">"</span>updated<span class="pl-pds">"</span></span>: time.<span class="pl-s3">Now</span>()})
+<span class="pl-k">if</span> <span class="pl-vo">err</span> <span class="pl-k">:=</span> update.<span class="pl-s3">ScanVals</span>(&amp;ids); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<ul>
+<li>
+<a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.Delete"><code>Delete</code></a> - Creates an <code>DELETE</code> statement and returns a <a href="http://godoc.org/github.com/doug-martin/goqu#CrudExec"><code>CrudExec</code></a> to execute the statement</li>
+</ul>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">delete</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>invoice<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>:<span class="pl-s1"><span class="pl-pds">"</span>paid<span class="pl-pds">"</span></span>}).
+    <span class="pl-s3">Delete</span>()
+<span class="pl-k">if</span> <span class="pl-vo">_</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> delete.<span class="pl-s3">Exec</span>(); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<p>If your database supports the <code>RETURN</code> clause you can also use the different Scan methods to get results</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">ids</span> []<span class="pl-st">int64</span>
+<span class="pl-vo">delete</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>invoice<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>).<span class="pl-s3">Eq</span>(<span class="pl-s1"><span class="pl-pds">"</span>paid<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">Returning</span>(goqu.<span class="pl-s3">I</span>(<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>)).
+    <span class="pl-s3">Delete</span>()
+<span class="pl-k">if</span> <span class="pl-vo">err</span> <span class="pl-k">:=</span> delete.<span class="pl-s3">ScanVals</span>(&amp;ids); err != <span class="pl-c1">nil</span>{
+    fmt.<span class="pl-s3">Println</span>(err.<span class="pl-s3">Error</span>())
+    <span class="pl-k">return</span>
+}</pre></div>
+
+<p><a name="dataset_prepared"></a></p>
+
+<h4>
+<a id="prepared-statements" class="anchor" href="#prepared-statements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prepared Statements</h4>
+
+<p>By default the <code>Dataset</code> will interpolate all parameters, if you do not want to have values interolated you can use the <a href="http://godoc.org/github.com/doug-martin/goqu#Dataset.Prepared"><code>Prepared</code></a> method to prevent this.</p>
+
+<p><strong>Note</strong> For the examples all placeholders are <code>?</code> this will be adapter specific when using other examples (e.g. Postgres <code>$1, $2...</code>)</p>
+
+<div class="highlight highlight-go"><pre>
+<span class="pl-vo">preparedDs</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span>).<span class="pl-s3">Prepared</span>(<span class="pl-c1">true</span>)
+
+<span class="pl-vo">sql</span>, <span class="pl-vo">args</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> preparedDs.<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span>: <span class="pl-c1">1</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col3<span class="pl-pds">"</span></span>: <span class="pl-c1">true</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col4<span class="pl-pds">"</span></span>: <span class="pl-c1">false</span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col5<span class="pl-pds">"</span></span>: []<span class="pl-st">string</span>{<span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>b<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>c<span class="pl-pds">"</span></span>},
+}).<span class="pl-s3">ToSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql, args)
+
+sql, args, _ = preparedDs.<span class="pl-s3">ToInsertSql</span>(
+    goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Test1<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>address<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>111 Test Addr<span class="pl-pds">"</span></span>},
+    goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Test2<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>address<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>112 Test Addr<span class="pl-pds">"</span></span>},
+)
+fmt.<span class="pl-s3">Println</span>(sql, args)
+
+sql, args, _ = preparedDs.<span class="pl-s3">ToUpdateSql</span>(
+    goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>Test<span class="pl-pds">"</span></span>, <span class="pl-s1"><span class="pl-pds">"</span>address<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>111 Test Addr<span class="pl-pds">"</span></span>},
+)
+fmt.<span class="pl-s3">Println</span>(sql, args)
+
+sql, args, _ = preparedDs.
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{<span class="pl-s1"><span class="pl-pds">"</span>id<span class="pl-pds">"</span></span>: goqu.<span class="pl-vo">Op</span>{<span class="pl-s1"><span class="pl-pds">"</span>gt<span class="pl-pds">"</span></span>: <span class="pl-c1">10</span>}}).
+    <span class="pl-s3">ToDeleteSql</span>()
+fmt.<span class="pl-s3">Println</span>(sql, args)
+
+<span class="pl-c">// Output:</span>
+<span class="pl-c">// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]</span>
+<span class="pl-c">// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]</span>
+<span class="pl-c">// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]</span>
+<span class="pl-c">// DELETE FROM "items" WHERE ("id" &gt; ?) [10]</span></pre></div>
+
+<p>When setting prepared to true executing the SQL using the different querying methods will also use the non-interpolated SQL also.</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">var</span> <span class="pl-vo">items</span> []<span class="pl-v">Item</span>
+<span class="pl-vo">sql</span>, <span class="pl-vo">args</span>, <span class="pl-vo">_</span> <span class="pl-k">:=</span> db.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>items<span class="pl-pds">"</span></span>).<span class="pl-s3">Prepared</span>(<span class="pl-c1">true</span>).<span class="pl-s3">Where</span>(goqu.<span class="pl-vo">Ex</span>{
+    <span class="pl-s1"><span class="pl-pds">"</span>col1<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>,
+    <span class="pl-s1"><span class="pl-pds">"</span>col2<span class="pl-pds">"</span></span>: <span class="pl-c1">1</span>,
+}).<span class="pl-s3">ScanStructs</span>(&amp;items)
+
+<span class="pl-c">//Is the same as</span>
+db.<span class="pl-s3">ScanStructs</span>(&amp;items, <span class="pl-s1"><span class="pl-pds">`</span>SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?))<span class="pl-pds">`</span></span>,  <span class="pl-s1"><span class="pl-pds">"</span>a<span class="pl-pds">"</span></span>, <span class="pl-c1">1</span>)</pre></div>
+
+<p><a name="database"></a></p>
+
+<h3>
+<a id="database" class="anchor" href="#database" aria-hidden="true"><span class="octicon octicon-link"></span></a>Database</h3>
+
+<p>The Database also allows you to execute queries but expects raw SQL to execute. The supported methods are</p>
+
+<ul>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.Exec"><code>Exec</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.Prepare"><code>Prepare</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.Query"><code>Query</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.QueryRow"><code>QueryRow</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.ScanStructs"><code>ScanStructs</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.ScanStruct"><code>ScanStruct</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.ScanVals"><code>ScanVals</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.ScanVal"><code>ScanVal</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#Database.Begin"><code>Begin</code></a></li>
+</ul>
+
+<p><a name="transactions"></a></p>
+
+<h3>
+<a id="transactions" class="anchor" href="#transactions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Transactions</h3>
+
+<p><code>goqu</code> has builtin support for transactions to make the use of the Datasets and querying seamless</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">tx</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">Begin</span>()
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span>{
+   <span class="pl-k">return</span> err
+}
+<span class="pl-c">//use tx.From to get a dataset that will execute within this transaction</span>
+<span class="pl-vo">update</span> <span class="pl-k">:=</span> tx.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).
+    <span class="pl-s3">Where</span>(goqu.<span class="pl-s3">Ex</span>(<span class="pl-s1"><span class="pl-pds">"</span>password<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>}).
+    <span class="pl-s3">Update</span>(goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>inactive<span class="pl-pds">"</span></span>})
+<span class="pl-k">if</span> _, err = update.<span class="pl-s3">Exec</span>(); err != <span class="pl-c1">nil</span>{
+    <span class="pl-k">if</span> <span class="pl-vo">rErr</span> <span class="pl-k">:=</span> tx.<span class="pl-s3">Rollback</span>(); rErr != <span class="pl-c1">nil</span>{
+        <span class="pl-k">return</span> rErr
+    }
+    <span class="pl-k">return</span> err
+}
+<span class="pl-k">if</span> err = tx.<span class="pl-s3">Commit</span>(); err != <span class="pl-c1">nil</span>{
+    <span class="pl-k">return</span> err
+}
+<span class="pl-k">return</span></pre></div>
+
+<p>The <a href="http://godoc.org/github.com/doug-martin/goqu/#TxDatabase"><code>TxDatabase</code></a>  also has all methods that the <a href="http://godoc.org/github.com/doug-martin/goqu/#Database"><code>Database</code></a> has along with</p>
+
+<ul>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Commit"><code>Commit</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Rollback"><code>Rollback</code></a></li>
+<li><a href="http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Wrap"><code>Wrap</code></a></li>
+</ul>
+
+<h4>
+<a id="wrap" class="anchor" href="#wrap" aria-hidden="true"><span class="octicon octicon-link"></span></a>Wrap</h4>
+
+<p>The <a href="http://godoc.org/github.com/doug-martin/goqu/#TxDatabase.Wrap"><code>TxDatabase.Wrap</code></a> is a convience method for automatically handling <code>COMMIT</code> and <code>ROLLBACK</code></p>
+
+<div class="highlight highlight-go"><pre><span class="pl-vo">tx</span>, <span class="pl-vo">err</span> <span class="pl-k">:=</span> db.<span class="pl-s3">Begin</span>()
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span>{
+   <span class="pl-k">return</span> err
+}
+err = tx.<span class="pl-s3">Wrap</span>(<span class="pl-k">func</span>() <span class="pl-st">error</span>{
+  <span class="pl-vo">update</span> <span class="pl-k">:=</span> tx.<span class="pl-s3">From</span>(<span class="pl-s1"><span class="pl-pds">"</span>user<span class="pl-pds">"</span></span>).
+      <span class="pl-s3">Where</span>(goqu.<span class="pl-s3">Ex</span>(<span class="pl-s1"><span class="pl-pds">"</span>password<span class="pl-pds">"</span></span>: <span class="pl-c1">nil</span>}).
+      <span class="pl-s3">Update</span>(goqu.<span class="pl-vo">Record</span>{<span class="pl-s1"><span class="pl-pds">"</span>status<span class="pl-pds">"</span></span>: <span class="pl-s1"><span class="pl-pds">"</span>inactive<span class="pl-pds">"</span></span>})
+  <span class="pl-k">if</span> _, err = update.<span class="pl-s3">Exec</span>(); err != <span class="pl-c1">nil</span>{
+      <span class="pl-k">return</span> err
+  }
+  <span class="pl-k">return</span> <span class="pl-c1">nil</span>
+})
+<span class="pl-c">//err will be the original error from the update statement, unless there was an error executing ROLLBACK</span>
+<span class="pl-k">if</span> err != <span class="pl-c1">nil</span>{
+    <span class="pl-k">return</span> err
+}</pre></div>
+
+<p><a name="logging"></a></p>
+
+<h2>
+<a id="logging" class="anchor" href="#logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Logging</h2>
+
+<p>To enable trace logging of SQL statments use the <a href="http://godoc.org/github.com/doug-martin/goqu/#Database.Logger"><code>Database.Logger</code></a> method to set your logger.</p>
+
+<p><strong>NOTE</strong> The logger must implement the <a href="http://godoc.org/github.com/doug-martin/goqu/#Logger"><code>Logger</code></a> interface</p>
+
+<p><strong>NOTE</strong> If you start a transaction using a database your set a logger on the transaction will inherit that logger automatically</p>
+
+<p><a name="adapters"></a></p>
+
+<h2>
+<a id="adapters" class="anchor" href="#adapters" aria-hidden="true"><span class="octicon octicon-link"></span></a>Adapters</h2>
+
+<p>Adapters in goqu are the foundation of building the correct SQL for each DB dialect.</p>
+
+<p>Between most dialects there is a large portion of shared syntax, for this reason we have a <a href="http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter"><code>DefaultAdapter</code></a> that can be used as a base for any new Dialect specific adapter.
+In fact for most use cases you will not have to override any methods but instead just override the default values as documented for <a href="http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter"><code>DefaultAdapter</code></a>.</p>
+
+<h3>
+<a id="literal" class="anchor" href="#literal" aria-hidden="true"><span class="octicon octicon-link"></span></a>Literal</h3>
+
+<p>The <a href="http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter"><code>DefaultAdapter</code></a> has a <a href="http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter.Literal"><code>Literal</code></a> function which should be used to serialize all sub expressions or values. This method prevents you from having to re-implement each adapter method while having your adapter methods called correctly.</p>
+
+<p><strong>How does it work?</strong></p>
+
+<p>The Literal method delegates back to the <a href="http://godoc.org/github.com/doug-martin/goqu/#Dataset.Literal"><code>Dataset.Literal</code></a> method which then calls the appropriate method on the adapter acting as a trampoline, between the DefaultAdapter and your Adapter.</p>
+
+<p>For example if your adapter overrode the <a href="http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter.QuoteIdentifier"><code>DefaultAdapter.QuoteIdentifier</code></a>, method which is used by most methods in the <a href="http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter"><code>DefaultAdapter</code></a>, we need to ensure that your Adapters QuoteIdentifier method is called instead of the default implementation.</p>
+
+<p>Because the Dataset has a pointer to your Adapter it will call the correct method, so instead of calling <code>DefaultAdapter.QuoteIdentifier</code> internally we delegate back to the Dataset by calling the <a href="http://godoc.org/github.com/doug-martin/goqu/#Dataset.Literal"><code>Dataset.Literal</code></a> which will the call your Adapters method.</p>
+
+<pre><code>Dataset.Literal -&gt; Adapter.ExpressionListSql -&gt; Adapter.Literal -&gt; Dataset.Literal -&gt; YourAdapter.QuoteIdentifier
+</code></pre>
+
+<p>It is important to maintain this pattern when writing your own Adapter.</p>
+
+<h3>
+<a id="registering" class="anchor" href="#registering" aria-hidden="true"><span class="octicon octicon-link"></span></a>Registering</h3>
+
+<p>When creating your adapters you must register your adapter with <a href="http://godoc.org/github.com/doug-martin/goqu/#RegisterAdapter"><code>RegisterAdapter</code></a>. This method requires 2 arguments.</p>
+
+<ol>
+<li>dialect - The dialect for your adapter.</li>
+<li>datasetAdapterFactory - This is a factory function that will return a new goqu.Adapter  used to create the the dialect specific SQL.</li>
+</ol>
+
+<p>For example the code for the postgres adapter is fairly short.</p>
+
+<div class="highlight highlight-go"><pre><span class="pl-k">package</span> postgres
+
+<span class="pl-k">import</span> (
+    <span class="pl-s1"><span class="pl-pds">"</span>github.com/doug-martin/goqu<span class="pl-pds">"</span></span>
+)
+
+<span class="pl-c">//postgres requires a $ placeholder for prepared statements</span>
+<span class="pl-s">const</span> placeholder_rune = <span class="pl-s1"><span class="pl-pds">'</span>$<span class="pl-pds">'</span></span>
+
+<span class="pl-k">func</span> <span class="pl-en">newDatasetAdapter</span>(<span class="pl-v">ds</span> *<span class="pl-v">goqu</span>.<span class="pl-v">Dataset</span>) <span class="pl-v">goqu</span>.<span class="pl-v">Adapter</span> {
+    <span class="pl-vo">ret</span> <span class="pl-k">:=</span> goqu.<span class="pl-s3">NewDefaultAdapter</span>(ds).(*goqu.<span class="pl-vo">DefaultAdapter</span>)
+
+    <span class="pl-c">//override the settings required</span>
+    ret.<span class="pl-vo">PlaceHolderRune</span> = placeholder_rune
+    <span class="pl-c">//postgres requires a paceholder number (e.g. $1)</span>
+    ret.<span class="pl-vo">IncludePlaceholderNum</span> = <span class="pl-c1">true</span>
+    <span class="pl-k">return</span> ret
+}
+
+<span class="pl-k">func</span> <span class="pl-en">init</span>() {
+    <span class="pl-c">//register our adapter with goqu</span>
+    goqu.<span class="pl-s3">RegisterAdapter</span>(<span class="pl-s1"><span class="pl-pds">"</span>postgres<span class="pl-pds">"</span></span>, newDatasetAdapter)
+}</pre></div>
+
+<p>If you are looking to write your own adapter take a look at the postgresm, mysql or sqlite3 adapter located at <a href="https://github.com/doug-martin/goqu/tree/master/adapters">https://github.com/doug-martin/goqu/tree/master/adapters</a>.</p>
+
+<p><a name="contributions"></a></p>
+
+<h2>
+<a id="contributions" class="anchor" href="#contributions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributions</h2>
+
+<p>I am always welcoming contributions of any type. Please open an issue or create a PR if you find an issue with any of the following.</p>
+
+<ul>
+<li>An issue with Documentation</li>
+<li>You found the documentation lacking in some way</li>
+</ul>
+
+<p>If you have an issue with the package please include the following</p>
+
+<ul>
+<li>The dialect you are using</li>
+<li>A description of the problem</li>
+<li>A short example of how to reproduce (if applicable)</li>
+</ul>
+
+<p>Without those basics it can be difficult to reproduce your issue locally. You may be asked for more information but that is a good starting point.</p>
+
+<h3>
+<a id="new-features" class="anchor" href="#new-features" aria-hidden="true"><span class="octicon octicon-link"></span></a>New Features</h3>
+
+<p>New features and/or enhancements are great and I encourage you to either submit a PR or create an issue. In both cases include the following as the need/requirement may not be readily apparent.</p>
+
+<ol>
+<li>The use case</li>
+<li>A short example</li>
+</ol>
+
+<p>If you are issuing a PR also also include the following</p>
+
+<ol>
+<li>Tests - otherwise the PR will not be merged</li>
+<li>Documentation - otherwise the PR will not be merged</li>
+<li>Examples - [If applicable] see example_test.go for examples</li>
+</ol>
+
+<p>If you find an issue you want to work on please comment on it letting other people know you are looking at it and I will assign the issue to you.</p>
+
+<p>If want to work on an issue but dont know where to start just leave a comment and I'll be more than happy to point you in the right direction.</p>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span class="octicon octicon-link"></span></a>License</h2>
+
+<p><code>goqu</code> is released under the <a href="http://www.opensource.org/licenses/MIT">MIT License</a>.</p>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/doug-martin/goqu/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/doug-martin/goqu/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/doug-martin/goqu"></a> is maintained by <a href="https://github.com/doug-martin">doug-martin</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
