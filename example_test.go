@@ -136,13 +136,13 @@ func ExampleAliasMethods() {
 	sql, _, _ = db.From("test").Select(goqu.L("sum(amount)").As("total_amount")).ToSql()
 	fmt.Println(sql)
 
-	sql, _, _ = db.From("test").Select(goqu.I("test.a").As(goqu.I("test.b"))).ToSql()
+	sql, _, _ = db.From("test").Select(goqu.I("a").As(goqu.I("as_a"))).ToSql()
 	fmt.Println(sql)
 	// Output:
 	// SELECT "a" AS "as_a" FROM "test"
 	// SELECT COUNT(*) AS "count" FROM "test"
 	// SELECT sum(amount) AS "total_amount" FROM "test"
-	// SELECT "test"."a" AS "test"."b" FROM "test"
+	// SELECT "a" AS "as_a" FROM "test"
 
 }
 

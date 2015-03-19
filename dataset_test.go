@@ -369,6 +369,10 @@ func (me *datasetTest) TestLiteralAliasedExpression() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal("count(*)").As("count")))
 	assert.Equal(t, buf.args, []interface{}{})
 	assert.Equal(t, buf.String(), `count(*) AS "count"`)
+
+	buf = NewSqlBuilder(false)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").As(I("b"))))
+	assert.Equal(t, buf.String(), `"a" AS "b"`)
 }
 
 func (me *datasetTest) TestBooleanExpression() {
