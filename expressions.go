@@ -399,7 +399,8 @@ type (
 	AliasMethods interface {
 		//Returns an AliasedExpression
 		//    I("col").As("other_col") //"col" AS "other_col"
-		As(string) AliasedExpression
+		//    I("col").As(I("other_col")) //"col" AS "other_col"
+		As(interface{}) AliasedExpression
 	}
 	//Interface that an expression should implement if it can be compared with other values.
 	ComparisonMethods interface {
@@ -621,7 +622,7 @@ func (me identifier) GetCol() interface{} { return me.col }
 func (me identifier) Set(val interface{}) UpdateExpression { return set(me, val) }
 
 //Alias an identifer (e.g "my_col" AS "other_col")
-func (me identifier) As(as string) AliasedExpression { return aliased(me, as) }
+func (me identifier) As(val interface{}) AliasedExpression { return aliased(me, val) }
 
 //Returns a BooleanExpression for equality (e.g "my_col" = 1)
 func (me identifier) Eq(val interface{}) BooleanExpression { return eq(me, val) }
@@ -720,7 +721,7 @@ func (me literal) Args() []interface{} {
 }
 
 func (me literal) Expression() Expression                { return me }
-func (me literal) As(as string) AliasedExpression        { return aliased(me, as) }
+func (me literal) As(val interface{}) AliasedExpression  { return aliased(me, val) }
 func (me literal) Eq(val interface{}) BooleanExpression  { return eq(me, val) }
 func (me literal) Neq(val interface{}) BooleanExpression { return neq(me, val) }
 func (me literal) Gt(val interface{}) BooleanExpression  { return gt(me, val) }
@@ -982,7 +983,7 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 type (
 	//Expression for Aliased expressions
 	//   I("a").As("b") -> "a" AS "b"
-	//   SUM("a").As("a_sum") -> SUM("a") AS "a_sum"
+	//   SUM("a").As(I("a_sum")) -> SUM("a") AS "a_sum"
 	AliasedExpression interface {
 		Expression
 		//Returns the Epxression being aliased
@@ -997,8 +998,15 @@ type (
 )
 
 //used internally by other expressions to create a new aliased expression
-func aliased(exp Expression, alias string) AliasedExpression {
-	return aliasExpression{aliased: exp, alias: I(alias)}
+func aliased(exp Expression, alias interface{}) AliasedExpression {
+	switch v := alias.(type) {
+	case string:
+		return aliasExpression{aliased: exp, alias: I(v)}
+	case IdentifierExpression:
+		return aliasExpression{aliased: exp, alias: v}
+	default:
+		panic(fmt.Sprintf("Cannot create alias from %+v", v))
+	}
 }
 
 func (me aliasExpression) Clone() Expression {
@@ -1178,7 +1186,7 @@ func (me sqlFunctionExpression) Clone() Expression {
 func (me sqlFunctionExpression) Expression() Expression                { return me }
 func (me sqlFunctionExpression) Args() []interface{}                   { return me.args }
 func (me sqlFunctionExpression) Name() string                          { return me.name }
-func (me sqlFunctionExpression) As(as string) AliasedExpression        { return aliased(me, as) }
+func (me sqlFunctionExpression) As(val interface{}) AliasedExpression  { return aliased(me, val) }
 func (me sqlFunctionExpression) Eq(val interface{}) BooleanExpression  { return eq(me, val) }
 func (me sqlFunctionExpression) Neq(val interface{}) BooleanExpression { return neq(me, val) }
 func (me sqlFunctionExpression) Gt(val interface{}) BooleanExpression  { return gt(me, val) }
@@ -1227,7 +1235,7 @@ func (me cast) Clone() Expression {
 }
 
 func (me cast) Expression() Expression                   { return me }
-func (me cast) As(as string) AliasedExpression           { return aliased(me, as) }
+func (me cast) As(val interface{}) AliasedExpression     { return aliased(me, val) }
 func (me cast) Eq(val interface{}) BooleanExpression     { return eq(me, val) }
 func (me cast) Neq(val interface{}) BooleanExpression    { return neq(me, val) }
 func (me cast) Gt(val interface{}) BooleanExpression     { return gt(me, val) }
