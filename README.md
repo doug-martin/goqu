@@ -26,7 +26,6 @@
 * [Contributions](#contributions)
 * [Changelog](https://github.com/doug-martin/goqu/tree/master/HISTORY.md)
 
-
 This library was built with the following goals:
 
 * Make the generation of SQL easy and enjoyable
@@ -50,6 +49,15 @@ or hooks I would recommend looking at some of the great ORM libraries such as:
 
 * [gorm](https://github.com/jinzhu/gorm)
 * [hood](https://github.com/eaigner/hood)
+
+
+
+##Installation
+
+```sh
+go get -u gopkg.in/doug-martin/goqu.v1
+```
+
 
 <a name="basics"></a>
 ## Basics

@@ -1,3 +1,8 @@
+## v1.0.0
+
+* You can now passed an IdentiferExpression to `As` [#8](https://github.com/doug-martin/goqu/pull/8) - [@croachrose](https://github.com/croachrose)
+* Added info about installation through [gopkg.in](http://labix.org/gopkg.in)
+
 ## v0.3.1
 
 * Fixed issue setting Logger when starting a new transaction.
