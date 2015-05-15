@@ -22,6 +22,7 @@ var (
 //   Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the column name.
 //   LiteralExpression: (See Literal) Will use the literal SQL
 //   SqlFunction: (See Func, MIN, MAX, COUNT....)
+//   Struct: If passing in an instance of a struct, we will parse the struct for the column names to select. See examples
 func (me *Dataset) Select(selects ...interface{}) *Dataset {
 	ret := me.copy()
 	ret.clauses.SelectDistinct = nil
@@ -35,6 +36,7 @@ func (me *Dataset) Select(selects ...interface{}) *Dataset {
 //   Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the column name.
 //   LiteralExpression: (See Literal) Will use the literal SQL
 //   SqlFunction: (See Func, MIN, MAX, COUNT....)
+//   Struct: If passing in an instance of a struct, we will parse the struct for the column names to select. See examples
 func (me *Dataset) SelectDistinct(selects ...interface{}) *Dataset {
 	ret := me.copy()
 	ret.clauses.Select = nil
@@ -47,6 +49,18 @@ func (me *Dataset) ClearSelect() *Dataset {
 	ret := me.copy()
 	ret.clauses.Select = cols(Literal("*"))
 	ret.clauses.SelectDistinct = nil
+	return ret
+}
+
+//Returns true if using default SELECT *
+func (me *Dataset) isDefaultSelect() bool {
+	ret := false
+	selects := me.clauses.Select.Columns()
+	if len(selects) == 1 {
+		if l, ok := selects[0].(LiteralExpression); ok && l.Literal() == "*" {
+			ret = true
+		}
+	}
 	return ret
 }
 

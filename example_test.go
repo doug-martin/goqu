@@ -1095,6 +1095,51 @@ func ExampleDataset_Select_withSqlFunctionExpression() {
 	// SELECT COUNT(*) AS "age_count", MAX("age") AS "max_age", AVG("age") AS "avg_age" FROM "test"
 }
 
+func ExampleDataset_Select_withStruct() {
+	db := goqu.New("default", driver)
+	ds := db.From("test")
+
+	type myStruct struct {
+		Name         string
+		Address      string `db:"address"`
+		EmailAddress string `db:"email_address"`
+	}
+
+	// Pass with pointer
+	sql, _, _ := ds.Select(&myStruct{}).ToSql()
+	fmt.Println(sql)
+
+	// Pass instance of
+	sql, _, _ = ds.Select(myStruct{}).ToSql()
+	fmt.Println(sql)
+
+	type myStruct2 struct {
+		myStruct
+		Zipcode string `db:"zipcode"`
+	}
+
+	// Pass pointer to struct with embedded struct
+	sql, _, _ = ds.Select(&myStruct2{}).ToSql()
+	fmt.Println(sql)
+
+	// Pass instance of struct with embedded struct
+	sql, _, _ = ds.Select(myStruct2{}).ToSql()
+	fmt.Println(sql)
+
+	var myStructs []myStruct
+
+	// Pass slice of structs, will only select columns from underlying type
+	sql, _, _ = ds.Select(myStructs).ToSql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT "address", "email_address", "name" FROM "test"
+	// SELECT "address", "email_address", "name" FROM "test"
+	// SELECT "address", "email_address", "name", "zipcode" FROM "test"
+	// SELECT "address", "email_address", "name", "zipcode" FROM "test"
+	// SELECT "address", "email_address", "name" FROM "test"
+}
+
 func ExampleDataset_SelectDistinct() {
 	db := goqu.New("default", driver)
 	sql, _, _ := db.From("test").SelectDistinct("a", "b").ToSql()

@@ -1,10 +1,16 @@
 package goqu
 
-//Generates the SELECT sql for this dataset and uses Exec#ScanStructs to scan the results into a slice of structs
+//Generates the SELECT sql for this dataset and uses Exec#ScanStructs to scan the results into a slice of structs.
+// When using this method, ScanStructs will only select the columns that can be scanned in to the struct unless you
+// have explicitly selected certain columns. See examples.
 //
 //i: A pointer to a slice of structs
 func (me *Dataset) ScanStructs(i interface{}) error {
-	sql, args, err := me.ToSql()
+	ds := me
+	if me.isDefaultSelect() {
+		ds = ds.Select(i)
+	}
+	sql, args, err := ds.ToSql()
 	return newCrudExec(me.database, err, sql, args...).ScanStructs(i)
 }
 
@@ -12,7 +18,11 @@ func (me *Dataset) ScanStructs(i interface{}) error {
 //
 //i: A pointer to a structs
 func (me *Dataset) ScanStruct(i interface{}) (bool, error) {
-	sql, args, err := me.Limit(1).ToSql()
+	ds := me.Limit(1)
+	if me.isDefaultSelect() {
+		ds = ds.Select(i)
+	}
+	sql, args, err := ds.ToSql()
 	return newCrudExec(me.database, err, sql, args...).ScanStruct(i)
 }
 
