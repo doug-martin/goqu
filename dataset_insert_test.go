@@ -2,7 +2,7 @@ package goqu
 
 import (
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
+	"github.com/technotronicoz/testify/assert"
 )
 
 func (me *datasetTest) TestInsertSqlNoReturning() {

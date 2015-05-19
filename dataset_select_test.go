@@ -1,7 +1,7 @@
 package goqu
 
 import (
-	"github.com/stretchr/testify/assert"
+	"github.com/technotronicoz/testify/assert"
 )
 
 func (me *datasetTest) TestSelect() {

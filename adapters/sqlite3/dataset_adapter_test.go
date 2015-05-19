@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/doug-martin/goqu"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/technotronicoz/testify/assert"
 )
 
 type datasetAdapterTest struct {

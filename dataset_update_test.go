@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
+	"github.com/technotronicoz/testify/assert"
 )
 
 func (me *datasetTest) TestUpdateSqlWithNoSources() {
