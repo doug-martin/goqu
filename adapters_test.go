@@ -1,9 +1,10 @@
 package goqu
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
 	"testing"
+
+	"github.com/stretchr/testify/suite"
+	"github.com/technotronicoz/testify/assert"
 )
 
 type adapterTest struct {

@@ -1,3 +1,4 @@
+// +build sqlite3
 package sqlite3
 
 import (
@@ -8,8 +9,8 @@ import (
 
 	"github.com/doug-martin/goqu"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/technotronicoz/testify/assert"
 )
 
 const (

@@ -306,7 +306,11 @@ func getTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind, 
 	isSliceOfPointers := false
 	valKind := val.Kind()
 	if valKind == reflect.Slice {
-		t = reflect.TypeOf(i).Elem().Elem()
+		if reflect.ValueOf(i).Kind() == reflect.Ptr {
+			t = reflect.TypeOf(i).Elem().Elem()
+		} else {
+			t = reflect.TypeOf(i).Elem()
+		}
 		if t.Kind() == reflect.Ptr {
 			isSliceOfPointers = true
 			t = t.Elem()

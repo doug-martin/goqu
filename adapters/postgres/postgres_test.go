@@ -1,3 +1,4 @@
+// +build postgres
 package postgres
 
 import (
@@ -9,8 +10,8 @@ import (
 
 	"github.com/doug-martin/goqu"
 	"github.com/lib/pq"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/technotronicoz/testify/assert"
 )
 
 const schema = `

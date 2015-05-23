@@ -2,7 +2,7 @@ package goqu
 
 import (
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
+	"github.com/technotronicoz/testify/assert"
 )
 
 type dsTestActionItem struct {
@@ -14,7 +14,7 @@ func (me *datasetTest) TestScanStructs() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
@@ -42,7 +42,7 @@ func (me *datasetTest) TestScanStructs_WithPreparedStatements() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
@@ -74,7 +74,7 @@ func (me *datasetTest) TestScanStruct() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
+	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
@@ -102,7 +102,7 @@ func (me *datasetTest) TestScanStruct_WithPreparedStatements() {
 	t := me.T()
 	mDb, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`).
+	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 

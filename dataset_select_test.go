@@ -1,7 +1,7 @@
 package goqu
 
 import (
-	"github.com/stretchr/testify/assert"
+	"github.com/technotronicoz/testify/assert"
 )
 
 func (me *datasetTest) TestSelect() {
@@ -55,6 +55,41 @@ func (me *datasetTest) TestSelect() {
 	).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT("a") AS "distinct", COUNT("a") AS "count", CASE WHEN (MIN("a") = 10) THEN TRUE ELSE FALSE END, CASE WHEN (AVG("a") != 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") > 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") >= 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") < 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") <= 10) THEN TRUE ELSE FALSE END, SUM("a") AS "sum", COALESCE("a", 'a') AS "colaseced"`)
+
+	type myStruct struct {
+		Name         string
+		Address      string `db:"address"`
+		EmailAddress string `db:"email_address"`
+	}
+	sql, _, err = ds1.Select(&myStruct{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
+
+	sql, _, err = ds1.Select(myStruct{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
+
+	type myStruct2 struct {
+		myStruct
+		Zipcode string `db:"zipcode"`
+	}
+
+	sql, _, err = ds1.Select(&myStruct2{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT "address", "email_address", "name", "zipcode" FROM "test"`)
+
+	sql, _, err = ds1.Select(myStruct2{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT "address", "email_address", "name", "zipcode" FROM "test"`)
+
+	var myStructs []myStruct
+	sql, _, err = ds1.Select(&myStructs).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
+
+	sql, _, err = ds1.Select(myStructs).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
 
 	//should not change original
 	sql, _, err = ds1.ToSql()

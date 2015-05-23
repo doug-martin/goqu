@@ -228,7 +228,25 @@ func cols(vals ...interface{}) ColumnList {
 		case Expression:
 			cols = append(cols, val.(Expression))
 		default:
-			panic(fmt.Sprintf("Cannot created expression from  %+v", val))
+			_, valKind, _ := getTypeInfo(val, reflect.Indirect(reflect.ValueOf(val)))
+
+			if valKind == reflect.Struct {
+				cm, err := getColumnMap(val)
+				if err != nil {
+					panic(err.Error())
+				}
+				var structCols []string
+				for key, _ := range cm {
+					structCols = append(structCols, key)
+				}
+				sort.Strings(structCols)
+				for _, col := range structCols {
+					cols = append(cols, I(col))
+				}
+			} else {
+				panic(fmt.Sprintf("Cannot created expression from  %+v", val))
+			}
+
 		}
 	}
 	return columnList{columns: cols}
