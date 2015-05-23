@@ -358,9 +358,26 @@ goqu also has basic query support through the use of either the Database or the 
 ### Dataset
 
 * [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStructs) - scans rows into a slice of structs
+
+**NOTE** [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStructs) will only select the columns that can be scanned in to the structs unless you have explicitly selected certain columns.
+
 ```go
+type User struct{
+    FirstName string `db:"first_name"`
+    LastName  string `db:"last_name"`
+}
+
 var users []User
-if err := db.From("user").ScanStructs(&users){
+//SELECT "first_name", "last_name" FROM "user";
+if err := db.From("user").ScanStructs(&users); err != nil{
+    fmt.Println(err.Error())
+    return
+}
+fmt.Printf("\n%+v", users)
+
+var users []User
+//SELECT "first_name" FROM "user";
+if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
     fmt.Println(err.Error())
     return
 }
@@ -368,16 +385,26 @@ fmt.Printf("\n%+v", users)
 ```
 
 * [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStruct) - scans a row into a slice a struct, returns false if a row wasnt found
+
+**NOTE** [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStruct) will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns.
+
 ```go
+
+type User struct{
+    FirstName string `db:"first_name"`
+    LastName  string `db:"last_name"`
+}
+
 var user User
+//SELECT "first_name", "last_name" FROM "user" LIMIT 1;
 found, err := db.From("user").ScanStruct(&user)
 if err != nil{
     fmt.Println(err.Error())
     return
 }
-if !found{
+if !found {
     fmt.Println("No user found")
-}else{
+} else {
     fmt.Printf("\nFound user: %+v", user)
 }
 ```
@@ -385,7 +412,7 @@ if !found{
 * [`ScanVals`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanVals) - scans a rows of 1 column into a slice of primitive values
 ```go
 var ids []int64
-if err := db.From("user").Select("id").ScanVals(&ids){
+if err := db.From("user").Select("id").ScanVals(&ids); err != nil{
     fmt.Println(err.Error())
     return
 }

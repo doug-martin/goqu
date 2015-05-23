@@ -1,4 +1,4 @@
-## v1.0.1
+## v2.0.0
 
 * When scanning a struct or slice of structs, the struct(s) will be parsed for the column names to select. [#9](https://github.com/doug-martin/goqu/pull/9) - [@technotronicoz](https://github.com/TechnotronicOz)
 

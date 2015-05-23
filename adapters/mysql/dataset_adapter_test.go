@@ -1,4 +1,3 @@
-// +build mysql
 package mysql
 
 import (
@@ -6,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/doug-martin/goqu"
-	"github.com/technotronicoz/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/technotronicoz/testify/assert"
 )
 
 type datasetAdapterTest struct {

@@ -1,4 +1,3 @@
-// +build sqlite3
 package sqlite3
 
 import (
@@ -67,7 +66,6 @@ func (me *sqlite3Test) SetupSuite() {
 		panic(err.Error())
 	}
 	me.db = goqu.New("sqlite3", db)
-	//		me.db.Logger(logger{})
 }
 
 func (me *sqlite3Test) SetupTest() {

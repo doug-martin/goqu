@@ -1,4 +1,3 @@
-// +build postgres
 package postgres
 
 import (
@@ -72,7 +71,6 @@ func (me *postgresTest) SetupSuite() {
 		panic(err)
 	}
 	me.db = goqu.New("postgres", db)
-	//	me.db.Logger(logger{})
 }
 
 func (me *postgresTest) SetupTest() {

@@ -1,8 +1,8 @@
 package goqu
 
 //Generates the SELECT sql for this dataset and uses Exec#ScanStructs to scan the results into a slice of structs.
-// When using this method, ScanStructs will only select the columns that can be scanned in to the struct unless you
-// have explicitly selected certain columns. See examples.
+//
+//ScanStructs will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns. See examples.
 //
 //i: A pointer to a slice of structs
 func (me *Dataset) ScanStructs(i interface{}) error {
@@ -15,6 +15,8 @@ func (me *Dataset) ScanStructs(i interface{}) error {
 }
 
 //Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a slice of structs
+//
+//ScanStruct will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns. See examples.
 //
 //i: A pointer to a structs
 func (me *Dataset) ScanStruct(i interface{}) (bool, error) {

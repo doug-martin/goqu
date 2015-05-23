@@ -1,4 +1,3 @@
-// +build mysql
 package mysql
 
 import (
@@ -73,13 +72,11 @@ func (me logger) Printf(sql string, args ...interface{}) {
 }
 
 func (me *mysqlTest) SetupSuite() {
-	fmt.Println(db_uri)
 	db, err := sql.Open("mysql", db_uri)
 	if err != nil {
 		panic(err.Error())
 	}
 	me.db = goqu.New("mysql", db)
-	//	me.db.Logger(logger{})
 }
 
 func (me *mysqlTest) SetupTest() {
