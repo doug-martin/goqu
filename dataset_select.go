@@ -55,10 +55,12 @@ func (me *Dataset) ClearSelect() *Dataset {
 //Returns true if using default SELECT *
 func (me *Dataset) isDefaultSelect() bool {
 	ret := false
-	selects := me.clauses.Select.Columns()
-	if len(selects) == 1 {
-		if l, ok := selects[0].(LiteralExpression); ok && l.Literal() == "*" {
-			ret = true
+	if me.clauses.Select != nil {
+		selects := me.clauses.Select.Columns()
+		if len(selects) == 1 {
+			if l, ok := selects[0].(LiteralExpression); ok && l.Literal() == "*" {
+				ret = true
+			}
 		}
 	}
 	return ret

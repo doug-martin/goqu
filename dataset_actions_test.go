@@ -18,6 +18,10 @@ func (me *datasetTest) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
+	sqlmock.ExpectQuery(`SELECT DISTINCT "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
 	sqlmock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
@@ -25,6 +29,15 @@ func (me *datasetTest) TestScanStructs() {
 	db := New("mock", mDb)
 	var items []dsTestActionItem
 	assert.NoError(t, db.From("items").ScanStructs(&items))
+	assert.Len(t, items, 2)
+	assert.Equal(t, items[0].Address, "111 Test Addr")
+	assert.Equal(t, items[0].Name, "Test1")
+
+	assert.Equal(t, items[1].Address, "211 Test Addr")
+	assert.Equal(t, items[1].Name, "Test2")
+
+	items = items[0:0]
+	assert.NoError(t, db.From("items").SelectDistinct("name").ScanStructs(&items))
 	assert.Len(t, items, 2)
 	assert.Equal(t, items[0].Address, "111 Test Addr")
 	assert.Equal(t, items[0].Name, "Test1")
@@ -78,6 +91,10 @@ func (me *datasetTest) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
+	sqlmock.ExpectQuery(`SELECT DISTINCT "name" FROM "items" LIMIT 1`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
+
 	sqlmock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
@@ -85,6 +102,13 @@ func (me *datasetTest) TestScanStruct() {
 	db := New("mock", mDb)
 	var item dsTestActionItem
 	found, err := db.From("items").ScanStruct(&item)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, item.Address, "111 Test Addr")
+	assert.Equal(t, item.Name, "Test1")
+
+	item = dsTestActionItem{}
+	found, err = db.From("items").SelectDistinct("name").ScanStruct(&item)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, item.Address, "111 Test Addr")

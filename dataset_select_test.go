@@ -97,7 +97,7 @@ func (me *datasetTest) TestSelect() {
 	assert.Equal(t, sql, `SELECT * FROM "test"`)
 }
 
-func (me *datasetTest) TestDistinctSelect() {
+func (me *datasetTest) TestSelectDistinct() {
 	t := me.T()
 	ds1 := From("test")
 
@@ -120,6 +120,46 @@ func (me *datasetTest) TestDistinctSelect() {
 	sql, _, err = ds1.SelectDistinct(I("id").As("other_id"), Literal("COUNT(*)").As("count")).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT "id" AS "other_id", COUNT(*) AS "count" FROM "test"`)
+
+	type myStruct struct {
+		Name         string
+		Address      string `db:"address"`
+		EmailAddress string `db:"email_address"`
+	}
+	sql, _, err = ds1.SelectDistinct(&myStruct{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
+
+	sql, _, err = ds1.SelectDistinct(myStruct{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
+
+	type myStruct2 struct {
+		myStruct
+		Zipcode string `db:"zipcode"`
+	}
+
+	sql, _, err = ds1.SelectDistinct(&myStruct2{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name", "zipcode" FROM "test"`)
+
+	sql, _, err = ds1.SelectDistinct(myStruct2{}).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name", "zipcode" FROM "test"`)
+
+	var myStructs []myStruct
+	sql, _, err = ds1.SelectDistinct(&myStructs).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
+
+	sql, _, err = ds1.SelectDistinct(myStructs).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
+
+	//should not change original
+	sql, _, err = ds1.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test"`)
 
 	//should not change original
 	sql, _, err = ds1.ToSql()

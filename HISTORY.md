@@ -1,3 +1,7 @@
+## v2.0.1
+
+* Fixed issue when `ScanStruct(s)` was used with `SelectDistinct` and caused a panic.
+
 ## v2.0.0
 
 * When scanning a struct or slice of structs, the struct(s) will be parsed for the column names to select. [#9](https://github.com/doug-martin/goqu/pull/9) - [@technotronicoz](https://github.com/TechnotronicOz)
