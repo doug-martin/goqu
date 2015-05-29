@@ -1,7 +1,7 @@
 package sqlite3
 
 import (
-	"github.com/doug-martin/goqu"
+	"gopkg.in/doug-martin/goqu.v2"
 )
 
 var (

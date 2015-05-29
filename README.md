@@ -64,17 +64,17 @@ go get -u gopkg.in/doug-martin/goqu.v2
 
 In order to start using goqu with your database you need to load an adapter. We have included some adapters by default.
 
-1. Postgres - `import "github.com/doug-martin/goqu/adapters/postgres"`
-2. MySQL - `import "github.com/doug-martin/goqu/adapters/mysql"`
-3. SQLite3 - `import "github.com/doug-martin/goqu/adapters/sqlite3"`
+1. Postgres - `import "gopkg.in/doug-martin/goqu.v2/adapters/postgres"`
+2. MySQL - `import "gopkg.in/doug-martin/goqu.v2/adapters/mysql"`
+3. SQLite3 - `import "gopkg.in/doug-martin/goqu.v2/adapters/sqlite3"`
 
 Adapters in goqu work the same way as a driver with the database in that they register themselves with goqu once loaded.
 
 ```go
 import (
   "database/sql"
-  "github.com/doug-martin/goqu"
-  _ "github.com/doug-martin/goqu/adapters/postgres"
+  "gopkg.in/doug-martin/goqu.v2"
+  _ "gopkg.in/doug-martin/goqu.v2/postgres"
   _ "github.com/lib/pq"
 )
 ```
@@ -710,7 +710,7 @@ For example the code for the postgres adapter is fairly short.
 package postgres
 
 import (
-    "github.com/doug-martin/goqu"
+    "gopkg.in/doug-martin/goqu.v2"
 )
 
 //postgres requires a $ placeholder for prepared statements

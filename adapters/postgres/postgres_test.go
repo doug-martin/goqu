@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu"
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
 	"github.com/technotronicoz/testify/assert"
+	"gopkg.in/doug-martin/goqu.v2"
 )
 
 const schema = `

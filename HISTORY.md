@@ -1,3 +1,7 @@
+## v2.0.2
+
+* Changed references to "github.com/doug-martin/goqu" to "gopkg.in/doug-martin/goqu.v2"
+
 ## v2.0.1
 
 * Fixed issue when `ScanStruct(s)` was used with `SelectDistinct` and caused a panic.

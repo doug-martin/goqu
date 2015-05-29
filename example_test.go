@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu"
+	"gopkg.in/doug-martin/goqu.v2"
 )
 
 var driver *sql.DB
