@@ -60,6 +60,7 @@ func (me *datasetTest) TestSelect() {
 		Name         string
 		Address      string `db:"address"`
 		EmailAddress string `db:"email_address"`
+		FakeCol      string `db:"-"`
 	}
 	sql, _, err = ds1.Select(&myStruct{}).ToSql()
 	assert.NoError(t, err)
@@ -125,6 +126,7 @@ func (me *datasetTest) TestSelectDistinct() {
 		Name         string
 		Address      string `db:"address"`
 		EmailAddress string `db:"email_address"`
+		FakeCol      string `db:"-"`
 	}
 	sql, _, err = ds1.SelectDistinct(&myStruct{}).ToSql()
 	assert.NoError(t, err)

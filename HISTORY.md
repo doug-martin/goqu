@@ -1,3 +1,7 @@
+## v2.0.3
+
+* Fixed issue with transient columns and the auto select of columns.
+
 ## v2.0.2
 
 * Changed references to "github.com/doug-martin/goqu" to "gopkg.in/doug-martin/goqu.v2"
