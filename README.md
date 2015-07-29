@@ -74,7 +74,7 @@ Adapters in goqu work the same way as a driver with the database in that they re
 import (
   "database/sql"
   "gopkg.in/doug-martin/goqu.v2"
-  _ "gopkg.in/doug-martin/goqu.v2/postgres"
+  _ "gopkg.in/doug-martin/goqu.v2/adapters/postgres"
   _ "github.com/lib/pq"
 )
 ```
