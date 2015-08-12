@@ -3,6 +3,7 @@ package goqu
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/technotronicoz/testify/assert"
@@ -219,6 +220,58 @@ func (me *datasetTest) TestPreparedUpdateSqlWithSkipupdateTag() {
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"Test"})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
+	t := me.T()
+	ds1 := From("items")
+	type phone struct {
+		Primary string    `db:"primary_phone"`
+		Home    string    `db:"home_phone"`
+		Created time.Time `db:"phone_created"`
+	}
+	type item struct {
+		phone
+		Address string    `db:"address" goqu:"skipupdate"`
+		Name    string    `db:"name"`
+		Created time.Time `db:"created"`
+	}
+	created, _ := time.Parse("2006-01-02", "2015-01-01")
+
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: phone{
+		Home:    "123123",
+		Primary: "456456",
+		Created: created,
+	}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created})
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStructPtr() {
+	t := me.T()
+	ds1 := From("items")
+	type phone struct {
+		Primary string    `db:"primary_phone"`
+		Home    string    `db:"home_phone"`
+		Created time.Time `db:"phone_created"`
+	}
+	type item struct {
+		*phone
+		Address string    `db:"address" goqu:"skipupdate"`
+		Name    string    `db:"name"`
+		Created time.Time `db:"created"`
+	}
+	created, _ := time.Parse("2006-01-02", "2015-01-01")
+
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: &phone{
+		Home:    "123123",
+		Primary: "456456",
+		Created: created,
+	}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created})
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?`)
 }
 
 func (me *datasetTest) TestPreparedUpdateSqlWithWhere() {

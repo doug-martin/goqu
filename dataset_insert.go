@@ -3,6 +3,7 @@ package goqu
 import (
 	"reflect"
 	"sort"
+	"time"
 )
 
 //Generates the default INSERT statement. If Prepared has been called with true then the statement will not be interpolated. See examples.
@@ -94,16 +95,7 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 				rowCols []interface{}
 				rowVals []interface{}
 			)
-			for j := 0; j < newRowValue.NumField(); j++ {
-				f := newRowValue.Field(j)
-				t := newRowValue.Type().Field(j)
-				if me.canInsertField(t) {
-					if columns == nil {
-						rowCols = append(rowCols, t.Tag.Get("db"))
-					}
-					rowVals = append(rowVals, f.Interface())
-				}
-			}
+			rowCols, rowVals = me.getFieldsValues(newRowValue)
 			if columns == nil {
 				columns = cols(rowCols...)
 			}
@@ -113,6 +105,29 @@ func (me *Dataset) getInsertColsAndVals(rows ...interface{}) (columns ColumnList
 		}
 	}
 	return columns, vals, nil
+}
+
+func (me *Dataset) getFieldsValues(value reflect.Value) (rowCols []interface{}, rowVals []interface{}) {
+	if value.IsValid() {
+		for i := 0; i < value.NumField(); i++ {
+			v := value.Field(i)
+
+			kind := v.Kind()
+			if (reflect.TypeOf(v.Interface()).Name() == reflect.TypeOf((*time.Time)(nil)).Elem().Name()) || ((kind != reflect.Struct) && (kind != reflect.Ptr)) {
+				t := value.Type().Field(i)
+				if me.canInsertField(t) {
+					rowCols = append(rowCols, t.Tag.Get("db"))
+					rowVals = append(rowVals, v.Interface())
+				}
+			} else {
+				cols, vals := me.getFieldsValues(reflect.Indirect(reflect.ValueOf(v.Interface())))
+				rowCols = append(rowCols, cols...)
+				rowVals = append(rowVals, vals...)
+			}
+		}
+	}
+
+	return rowCols, rowVals
 }
 
 //Creates an INSERT statement with the columns and values passed in

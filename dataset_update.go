@@ -3,6 +3,7 @@ package goqu
 import (
 	"reflect"
 	"sort"
+	"time"
 )
 
 func (me *Dataset) canUpdateField(field reflect.StructField) bool {
@@ -38,13 +39,7 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 			updates = append(updates, I(key.String()).Set(updateValue.MapIndex(key).Interface()))
 		}
 	case reflect.Struct:
-		for j := 0; j < updateValue.NumField(); j++ {
-			f := updateValue.Field(j)
-			t := updateValue.Type().Field(j)
-			if me.canUpdateField(t) {
-				updates = append(updates, I(t.Tag.Get("db")).Set(f.Interface()))
-			}
-		}
+		updates = me.getUpdateExpression(updateValue)
 	default:
 		return "", nil, NewGoquError("Unsupported update interface type %+v", updateValue.Type())
 	}
@@ -80,4 +75,21 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 	}
 	sql, args := buf.ToSql()
 	return sql, args, nil
+}
+
+func (me *Dataset) getUpdateExpression(value reflect.Value) (updates []UpdateExpression) {
+	for i := 0; i < value.NumField(); i++ {
+		v := value.Field(i)
+		kind := v.Kind()
+		if reflect.TypeOf(v.Interface()).Name() == reflect.TypeOf((*time.Time)(nil)).Elem().Name() || (kind != reflect.Struct && kind != reflect.Ptr) {
+			t := value.Type().Field(i)
+			if me.canUpdateField(t) {
+				updates = append(updates, I(t.Tag.Get("db")).Set(v.Interface()))
+			}
+		} else {
+			updates = append(updates, me.getUpdateExpression(reflect.Indirect(reflect.ValueOf(v.Interface())))...)
+		}
+	}
+
+	return updates
 }
