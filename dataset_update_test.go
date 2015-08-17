@@ -109,6 +109,58 @@ func (me *datasetTest) TestUpdateSqlWithValuer() {
 	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test',"data"='Hello World' RETURNING "items".*`)
 }
 
+func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
+	t := me.T()
+	ds1 := From("items")
+	type phone struct {
+		Primary string    `db:"primary_phone"`
+		Home    string    `db:"home_phone"`
+		Created time.Time `db:"phone_created"`
+	}
+	type item struct {
+		phone
+		Address string    `db:"address" goqu:"skipupdate"`
+		Name    string    `db:"name"`
+		Created time.Time `db:"created"`
+	}
+	created, _ := time.Parse("2006-01-02", "2015-01-01")
+
+	sql, args, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: phone{
+		Home:    "123123",
+		Primary: "456456",
+		Created: created,
+	}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{})
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"='456456',"home_phone"='123123',"phone_created"='2015-01-01T00:00:00Z',"name"='Test',"created"='2015-01-01T00:00:00Z'`)
+}
+
+func (me *datasetTest) TestUpdateSqlWithEmbeddedStructPtr() {
+	t := me.T()
+	ds1 := From("items")
+	type phone struct {
+		Primary string    `db:"primary_phone"`
+		Home    string    `db:"home_phone"`
+		Created time.Time `db:"phone_created"`
+	}
+	type item struct {
+		*phone
+		Address string    `db:"address" goqu:"skipupdate"`
+		Name    string    `db:"name"`
+		Created time.Time `db:"created"`
+	}
+	created, _ := time.Parse("2006-01-02", "2015-01-01")
+
+	sql, args, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: &phone{
+		Home:    "123123",
+		Primary: "456456",
+		Created: created,
+	}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{})
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"='456456',"home_phone"='123123',"phone_created"='2015-01-01T00:00:00Z',"name"='Test',"created"='2015-01-01T00:00:00Z'`)
+}
+
 func (me *datasetTest) TestUpdateSqlWithUnsupportedType() {
 	t := me.T()
 	ds1 := From("items")

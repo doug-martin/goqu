@@ -1,3 +1,7 @@
+## v3.0.0
+
+* Added support for embedded structs when inserting or updating. [#13](https://github.com/doug-martin/goqu/pull/13) - [@andymoon](https://github.com/andymoon)
+
 ## v2.0.3
 
 * Fixed issue with transient columns and the auto select of columns.

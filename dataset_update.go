@@ -39,7 +39,7 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 			updates = append(updates, I(key.String()).Set(updateValue.MapIndex(key).Interface()))
 		}
 	case reflect.Struct:
-		updates = me.getUpdateExpression(updateValue)
+		updates = me.getUpdateExpressions(updateValue)
 	default:
 		return "", nil, NewGoquError("Unsupported update interface type %+v", updateValue.Type())
 	}
@@ -77,7 +77,7 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 	return sql, args, nil
 }
 
-func (me *Dataset) getUpdateExpression(value reflect.Value) (updates []UpdateExpression) {
+func (me *Dataset) getUpdateExpressions(value reflect.Value) (updates []UpdateExpression) {
 	for i := 0; i < value.NumField(); i++ {
 		v := value.Field(i)
 		kind := v.Kind()
@@ -87,7 +87,7 @@ func (me *Dataset) getUpdateExpression(value reflect.Value) (updates []UpdateExp
 				updates = append(updates, I(t.Tag.Get("db")).Set(v.Interface()))
 			}
 		} else {
-			updates = append(updates, me.getUpdateExpression(reflect.Indirect(reflect.ValueOf(v.Interface())))...)
+			updates = append(updates, me.getUpdateExpressions(reflect.Indirect(reflect.ValueOf(v.Interface())))...)
 		}
 	}
 

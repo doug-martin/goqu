@@ -9,7 +9,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/suite"
 	"github.com/technotronicoz/testify/assert"
-	"gopkg.in/doug-martin/goqu.v2"
+	"gopkg.in/doug-martin/goqu.v3"
 )
 
 const (

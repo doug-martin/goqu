@@ -32,8 +32,8 @@ type (
 //      import (
 //          "database/sql"
 //          "fmt"
-//          "gopkg.in/doug-martin/goqu.v2"
-//          _ "gopkg.in/doug-martin/goqu.v2/adapters/postgres"
+//          "gopkg.in/doug-martin/goqu.v3"
+//          _ "gopkg.in/doug-martin/goqu.v3/adapters/postgres"
 //          _ "github.com/lib/pq"
 //      )
 //

@@ -1,7 +1,9 @@
+sudo: false
 language: go
 
 go:
   - 1.3
+  - 1.4
   - tip
 
 
@@ -9,5 +11,9 @@ addons:
   postgresql: "9.3"
 
 before_script:
+  - export DEFAULT_TRAVIS_BUILD_DIR=$TRAVIS_BUILD_DIR
+  - export TRAVIS_BUILD_DIR=$HOME/gopath/src/gopkg.in/doug-martin/goqu.v3
+  - mkdir -p $TRAVIS_BUILD_DIR
+  - mv -vfT $DEFAULT_TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR
   - psql -c 'create database goqupostgres;' -U postgres
   - mysql -e 'create database goqumysql;'

@@ -100,10 +100,10 @@ func (me *datasetTest) TestInsertSqlWithEmbeddedStructPtr() {
 	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES ('456456', '123123', '111 Test Addr', 'Test')`)
 
 	sql, _, err = ds1.ToInsertSql(
-	item{Address: "111 Test Addr", Name: "Test1", phone: &phone{Home: "123123", Primary: "456456"}},
-	item{Address: "211 Test Addr", Name: "Test2", phone: &phone{Home: "123123", Primary: "456456"}},
-	item{Address: "311 Test Addr", Name: "Test3", phone: &phone{Home: "123123", Primary: "456456"}},
-	item{Address: "411 Test Addr", Name: "Test4", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "111 Test Addr", Name: "Test1", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "211 Test Addr", Name: "Test2", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "311 Test Addr", Name: "Test3", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "411 Test Addr", Name: "Test4", phone: &phone{Home: "123123", Primary: "456456"}},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES ('456456', '123123', '111 Test Addr', 'Test1'), ('456456', '123123', '211 Test Addr', 'Test2'), ('456456', '123123', '311 Test Addr', 'Test3'), ('456456', '123123', '411 Test Addr', 'Test4')`)
@@ -428,4 +428,70 @@ func (me *datasetTest) TestPreparedInsertDefaultValues() {
 	assert.Equal(t, args, []interface{}{})
 	assert.Equal(t, sql, `INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`)
 
+}
+
+func (me *datasetTest) TestPreparedInsertSqlWithEmbeddedStruct() {
+	t := me.T()
+	ds1 := From("items")
+	type phone struct {
+		Primary string `db:"primary_phone"`
+		Home    string `db:"home_phone"`
+	}
+	type item struct {
+		phone
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, err := ds1.Prepared(true).ToInsertSql(item{Name: "Test", Address: "111 Test Addr", phone: phone{Home: "123123", Primary: "456456"}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"456456", "123123", "111 Test Addr", "Test"})
+	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?)`)
+
+	sql, args, err = ds1.Prepared(true).ToInsertSql(
+		item{Address: "111 Test Addr", Name: "Test1", phone: phone{Home: "123123", Primary: "456456"}},
+		item{Address: "211 Test Addr", Name: "Test2", phone: phone{Home: "123123", Primary: "456456"}},
+		item{Address: "311 Test Addr", Name: "Test3", phone: phone{Home: "123123", Primary: "456456"}},
+		item{Address: "411 Test Addr", Name: "Test4", phone: phone{Home: "123123", Primary: "456456"}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{
+		"456456", "123123", "111 Test Addr", "Test1",
+		"456456", "123123", "211 Test Addr", "Test2",
+		"456456", "123123", "311 Test Addr", "Test3",
+		"456456", "123123", "411 Test Addr", "Test4",
+	})
+	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)`)
+}
+
+func (me *datasetTest) TestPreparedInsertSqlWithEmbeddedStructPtr() {
+	t := me.T()
+	ds1 := From("items")
+	type phone struct {
+		Primary string `db:"primary_phone"`
+		Home    string `db:"home_phone"`
+	}
+	type item struct {
+		*phone
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, err := ds1.Prepared(true).ToInsertSql(item{Name: "Test", Address: "111 Test Addr", phone: &phone{Home: "123123", Primary: "456456"}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"456456", "123123", "111 Test Addr", "Test"})
+	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?)`)
+
+	sql, args, err = ds1.Prepared(true).ToInsertSql(
+		item{Address: "111 Test Addr", Name: "Test1", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "211 Test Addr", Name: "Test2", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "311 Test Addr", Name: "Test3", phone: &phone{Home: "123123", Primary: "456456"}},
+		item{Address: "411 Test Addr", Name: "Test4", phone: &phone{Home: "123123", Primary: "456456"}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{
+		"456456", "123123", "111 Test Addr", "Test1",
+		"456456", "123123", "211 Test Addr", "Test2",
+		"456456", "123123", "311 Test Addr", "Test3",
+		"456456", "123123", "411 Test Addr", "Test4",
+	})
+	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)`)
 }
