@@ -4,6 +4,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/c2fo/testify/assert"
 
+	"database/sql"
 	"time"
 )
 
@@ -92,12 +93,13 @@ func (me *datasetTest) TestInsertSqlWithEmbeddedStructPtr() {
 	}
 	type item struct {
 		*phone
-		Address string `db:"address"`
-		Name    string `db:"name"`
+		Address string        `db:"address"`
+		Name    string        `db:"name"`
+		Valuer  sql.NullInt64 `db:"valuer"`
 	}
-	sql, _, err := ds1.ToInsertSql(item{Name: "Test", Address: "111 Test Addr", phone: &phone{Home: "123123", Primary: "456456"}})
+	sql, _, err := ds1.ToInsertSql(item{Name: "Test", Address: "111 Test Addr", Valuer: sql.NullInt64{Int64: 10, Valid: true}, phone: &phone{Home: "123123", Primary: "456456"}})
 	assert.NoError(t, err)
-	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES ('456456', '123123', '111 Test Addr', 'Test')`)
+	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name", "valuer") VALUES ('456456', '123123', '111 Test Addr', 'Test', 10)`)
 
 	sql, _, err = ds1.ToInsertSql(
 		item{Address: "111 Test Addr", Name: "Test1", phone: &phone{Home: "123123", Primary: "456456"}},
@@ -106,7 +108,30 @@ func (me *datasetTest) TestInsertSqlWithEmbeddedStructPtr() {
 		item{Address: "411 Test Addr", Name: "Test4", phone: &phone{Home: "123123", Primary: "456456"}},
 	)
 	assert.NoError(t, err)
-	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES ('456456', '123123', '111 Test Addr', 'Test1'), ('456456', '123123', '211 Test Addr', 'Test2'), ('456456', '123123', '311 Test Addr', 'Test3'), ('456456', '123123', '411 Test Addr', 'Test4')`)
+	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name", "valuer") VALUES ('456456', '123123', '111 Test Addr', 'Test1', NULL), ('456456', '123123', '211 Test Addr', 'Test2', NULL), ('456456', '123123', '311 Test Addr', 'Test3', NULL), ('456456', '123123', '411 Test Addr', 'Test4', NULL)`)
+}
+
+func (me *datasetTest) TestInsertSqlWithValuer() {
+	t := me.T()
+	ds1 := From("items")
+
+	type item struct {
+		Address string        `db:"address"`
+		Name    string        `db:"name"`
+		Valuer  sql.NullInt64 `db:"valuer"`
+	}
+	sqlString, _, err := ds1.ToInsertSql(item{Name: "Test", Address: "111 Test Addr", Valuer: sql.NullInt64{Int64: 10, Valid: true}})
+	assert.NoError(t, err)
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test', 10)`)
+
+	sqlString, _, err = ds1.ToInsertSql(
+		item{Address: "111 Test Addr", Name: "Test1", Valuer: sql.NullInt64{Int64: 10, Valid: true}},
+		item{Address: "211 Test Addr", Name: "Test2", Valuer: sql.NullInt64{Int64: 10, Valid: true}},
+		item{Address: "311 Test Addr", Name: "Test3", Valuer: sql.NullInt64{Int64: 10, Valid: true}},
+		item{Address: "411 Test Addr", Name: "Test4", Valuer: sql.NullInt64{Int64: 10, Valid: true}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test1', 10), ('211 Test Addr', 'Test2', 10), ('311 Test Addr', 'Test3', 10), ('411 Test Addr', 'Test4', 10)`)
 }
 
 func (me *datasetTest) TestInsertSqlWithMaps() {

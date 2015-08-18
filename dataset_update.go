@@ -3,7 +3,6 @@ package goqu
 import (
 	"reflect"
 	"sort"
-	"time"
 )
 
 func (me *Dataset) canUpdateField(field reflect.StructField) bool {
@@ -81,7 +80,7 @@ func (me *Dataset) getUpdateExpressions(value reflect.Value) (updates []UpdateEx
 	for i := 0; i < value.NumField(); i++ {
 		v := value.Field(i)
 		kind := v.Kind()
-		if reflect.TypeOf(v.Interface()).Name() == reflect.TypeOf((*time.Time)(nil)).Elem().Name() || (kind != reflect.Struct && kind != reflect.Ptr) {
+		if me.isSpecialType(v) || ((kind != reflect.Struct) && (kind != reflect.Ptr)) {
 			t := value.Type().Field(i)
 			if me.canUpdateField(t) {
 				updates = append(updates, I(t.Tag.Get("db")).Set(v.Interface()))

@@ -287,6 +287,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 		Address string    `db:"address" goqu:"skipupdate"`
 		Name    string    `db:"name"`
 		Created time.Time `db:"created"`
+		NilPointer interface{} `db:"nil_pointer"`
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
 
@@ -296,8 +297,8 @@ func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 		Created: created,
 	}})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created})
-	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?`)
+	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created, interface{}(nil)})
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?,"nil_pointer"=?`)
 }
 
 func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStructPtr() {
