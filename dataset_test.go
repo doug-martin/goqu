@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
-	"github.com/technotronicoz/testify/assert"
+	"github.com/c2fo/testify/assert"
+	"github.com/c2fo/testify/suite"
 )
 
 type datasetTest struct {
@@ -190,6 +190,30 @@ func (me *datasetTest) TestLiteralStringTypes() {
 	assert.Equal(t, buf.String(), "?")
 }
 
+func (me *datasetTest) TestLiteralBytesTypes() {
+	t := me.T()
+	ds := From("test")
+	var b string
+	buf := NewSqlBuilder(false)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("Hello")))
+	assert.Equal(t, buf.Bytes(), []byte("'Hello'"))
+	//should escape single quotes
+	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("hello'")))
+	assert.Equal(t, buf.Bytes(), []byte("'hello'''"))
+	assert.NoError(t, ds.Literal(me.Truncate(buf), (&b)))
+	assert.Equal(t, buf.Bytes(), []byte("''"))
+	buf = NewSqlBuilder(true)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("Hello")))
+	assert.Equal(t, buf.args, []interface{}{[]byte("Hello")})
+	assert.Equal(t, buf.Bytes(), []byte("?"))
+	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("hello'")))
+	assert.Equal(t, buf.args, []interface{}{[]byte("hello'")})
+	assert.Equal(t, buf.Bytes(), []byte("?"))
+	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte(*(&b))))
+	assert.Equal(t, buf.args, []interface{}{[]byte(b)})
+	assert.Equal(t, buf.Bytes(), []byte("?"))
+}
+
 func (me *datasetTest) TestLiteralBoolTypes() {
 	t := me.T()
 	var b bool
@@ -262,7 +286,7 @@ func (me *datasetTest) TestLiteralValuer() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), datasetValuerType(10)))
-	assert.Equal(t, buf.args, []interface{}{"Hello World 10"})
+	assert.Equal(t, buf.args, []interface{}{[]byte("Hello World 10")})
 	assert.Equal(t, buf.String(), "?")
 
 }

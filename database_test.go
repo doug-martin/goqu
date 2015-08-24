@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/suite"
-	"github.com/technotronicoz/testify/assert"
+	"github.com/c2fo/testify/assert"
+	"github.com/c2fo/testify/suite"
 )
 
 type testActionItem struct {

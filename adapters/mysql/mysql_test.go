@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/c2fo/testify/assert"
+	"github.com/c2fo/testify/suite"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/suite"
-	"github.com/technotronicoz/testify/assert"
 	"gopkg.in/doug-martin/goqu.v3"
 )
 

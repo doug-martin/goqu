@@ -194,10 +194,10 @@ func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
 		return me.adapter.LiteralFloat(buf, v)
 	} else if v, ok := val.(string); ok {
 		return me.adapter.LiteralString(buf, v)
+	} else if v, ok := val.([]byte); ok {
+		return me.adapter.LiteralBytes(buf, v)
 	} else if v, ok := val.(bool); ok {
 		return me.adapter.LiteralBool(buf, v)
-	} else if v, ok := val.([]byte); ok {
-		return me.adapter.LiteralString(buf, string(v))
 	} else if v, ok := val.(time.Time); ok {
 		return me.adapter.LiteralTime(buf, v)
 	} else if v, ok := val.(*time.Time); ok {
