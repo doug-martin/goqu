@@ -984,7 +984,10 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 		case reflect.Bool:
 			op = IS_OP
 		case reflect.Slice:
-			op = IN_OP
+			//if its a slice of bytes dont treat as an IN
+			if _, ok := rhs.([]byte); !ok {
+				op = IN_OP
+			}
 		case reflect.Struct:
 			switch rhs.(type) {
 			case SqlExpression:

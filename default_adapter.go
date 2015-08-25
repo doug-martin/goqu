@@ -90,6 +90,9 @@ var (
 		NATURAL_FULL_JOIN:  []byte(" NATURAL FULL JOIN "),
 		CROSS_JOIN:         []byte(" CROSS JOIN "),
 	}
+	default_escape_runes = map[rune][]byte{
+		'\'': []byte("''"),
+	}
 )
 
 type (
@@ -129,7 +132,7 @@ type (
 		WhereFragment []byte
 		//The SQL GROUP BY clause fragment(DEFAULT=[]byte(" GROUP BY "))
 		GroupByFragment []byte
-		//The SQL HAVING clause fragment(DEFAULT=[]byte(" HAVING "))
+		//The SQL HAVING clause fragment(DELiFAULT=[]byte(" HAVING "))
 		HavingFragment []byte
 		//The SQL ORDER BY clause fragment(DEFAULT=[]byte(" ORDER BY "))
 		OrderByFragment []byte
@@ -183,6 +186,8 @@ type (
 		JoinTypeLookup map[JoinType][]byte
 		//Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
 		UseLiteralIsBools bool
+		//EscapedRunes is a map of a rune and the corresponding escape sequence in bytes. Used when escaping text types.
+		EscapedRunes map[rune][]byte
 	}
 )
 
@@ -231,6 +236,7 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		JoinTypeLookup:        default_join_lookup,
 		TimeFormat:            time.RFC3339Nano,
 		UseLiteralIsBools:     true,
+		EscapedRunes:          default_escape_runes,
 	}
 }
 
@@ -626,9 +632,8 @@ func (me *DefaultAdapter) LiteralString(buf *SqlBuilder, s string) error {
 	}
 	buf.WriteRune(me.StringQuote)
 	for _, char := range s {
-		if char == me.StringQuote { // single quote: ' -> \'
-			buf.WriteRune(me.StringQuote)
-			buf.WriteRune(me.StringQuote)
+		if e, ok := me.EscapedRunes[char]; ok {
+			buf.Write(e)
 		} else {
 			buf.WriteRune(char)
 		}
@@ -647,9 +652,8 @@ func (me *DefaultAdapter) LiteralBytes(buf *SqlBuilder, bs []byte) error {
 	i := 0
 	for len(bs) > 0 {
 		char, l := utf8.DecodeRune(bs)
-		if char == me.StringQuote { // single quote: ' -> \'
-			buf.WriteRune(me.StringQuote)
-			buf.WriteRune(me.StringQuote)
+		if e, ok := me.EscapedRunes[char]; ok {
+			buf.Write(e)
 		} else {
 			buf.WriteRune(char)
 		}

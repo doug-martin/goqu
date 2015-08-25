@@ -1,8 +1,6 @@
 package sqlite3
 
-import (
-	"gopkg.in/doug-martin/goqu.v3"
-)
+import "gopkg.in/doug-martin/goqu.v3"
 
 var (
 	placeholder_rune    = '?'
@@ -32,6 +30,15 @@ var (
 		goqu.REGEXP_I_LIKE_OP:     []byte("REGEXP"),
 		goqu.REGEXP_NOT_I_LIKE_OP: []byte("NOT REGEXP"),
 	}
+	escape_runes = map[rune][]byte{
+		'\'': []byte("\\'"),
+		'"':  []byte("\\\""),
+		'\\': []byte("\\\\"),
+		'\n': []byte("\\n"),
+		'\r': []byte("\\r"),
+		0:    []byte("\\x00"),
+		0x1a: []byte("\\x1a"),
+	}
 )
 
 type DatasetAdapter struct {
@@ -58,34 +65,6 @@ func (me *DatasetAdapter) SupportsOrderByOnUpdate() bool {
 	return true
 }
 
-func (me *DatasetAdapter) LiteralString(buf *goqu.SqlBuilder, s string) error {
-	if buf.IsPrepared {
-		return me.PlaceHolderSql(buf, s)
-	}
-	buf.WriteRune(singlq_quote)
-	for _, char := range s {
-		if char == '\'' { // single quote: ' -> \'
-			buf.WriteString("\\'")
-		} else if char == '"' { // double quote: " -> \"
-			buf.WriteString("\\\"")
-		} else if char == '\\' { // slash: \ -> "\\"
-			buf.WriteString("\\\\")
-		} else if char == '\n' { // control: newline: \n -> "\n"
-			buf.WriteString("\\n")
-		} else if char == '\r' { // control: return: \r -> "\r"
-			buf.WriteString("\\r")
-		} else if char == 0 { // control: NUL: 0 -> "\x00"
-			buf.WriteString("\\x00")
-		} else if char == 0x1a { // control: \x1a -> "\x1a"
-			buf.WriteString("\\x1a")
-		} else {
-			buf.WriteRune(char)
-		}
-	}
-	buf.WriteRune(singlq_quote)
-	return nil
-}
-
 func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
 	def := goqu.NewDefaultAdapter(ds).(*goqu.DefaultAdapter)
 	def.PlaceHolderRune = placeholder_rune
@@ -97,6 +76,7 @@ func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
 	def.TimeFormat = time_format
 	def.BooleanOperatorLookup = operator_lookup
 	def.UseLiteralIsBools = false
+	def.EscapedRunes = escape_runes
 	return &DatasetAdapter{def}
 }
 

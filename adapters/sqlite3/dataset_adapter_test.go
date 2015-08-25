@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/c2fo/testify/suite"
 	"github.com/c2fo/testify/assert"
+	"github.com/c2fo/testify/suite"
 	"gopkg.in/doug-martin/goqu.v3"
 )
 
@@ -103,6 +103,42 @@ func (me *datasetAdapterTest) TestLiteralString() {
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\x00test')")
 
 	sql, _, err = ds.Where(goqu.I("a").Eq("test\x1atest")).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')")
+}
+
+func (me *datasetAdapterTest) TestLiteralBytes() {
+	t := me.T()
+	ds := me.GetDs("test")
+	sql, _, err := ds.Where(goqu.I("a").Eq([]byte("test"))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte("test'test"))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\'test')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte(`test"test`))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\\"test')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte(`test\test`))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\\\test')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte("test\ntest"))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\ntest')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte("test\rtest"))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\rtest')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte("test\x00test"))).ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\x00test')")
+
+	sql, _, err = ds.Where(goqu.I("a").Eq([]byte("test\x1atest"))).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')")
 }
