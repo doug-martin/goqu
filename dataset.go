@@ -290,15 +290,6 @@ func (me *Dataset) expressionSql(buf *SqlBuilder, expression Expression) error {
 	return NewGoquError("Unsupported expression type %T", expression)
 }
 
-func (me *Dataset) isValueNil(value reflect.Value, kind reflect.Kind) bool {
-	switch kind {
-	case reflect.Ptr, reflect.Interface:
-		return value.IsNil()
-	default:
-		return false
-	}
-}
-
 func (me *Dataset) isSpecialType(value reflect.Value) bool {
 	i := value.Interface()
 	if _, ok := i.(time.Time); ok {
