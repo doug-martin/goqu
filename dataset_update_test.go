@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/technotronicoz/testify/assert"
+	"github.com/c2fo/testify/assert"
 )
 
 func (me *datasetTest) TestUpdateSqlWithNoSources() {
@@ -244,7 +244,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithByteSlice() {
 	}
 	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"Test", `{"someJson":"data"}`})
+	assert.Equal(t, args, []interface{}{"Test", []byte(`{"someJson":"data"}`)})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
 }
 
@@ -257,7 +257,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithValuer() {
 	}
 	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"Test", "Hello World"})
+	assert.Equal(t, args, []interface{}{"Test", []byte("Hello World")})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
 }
 

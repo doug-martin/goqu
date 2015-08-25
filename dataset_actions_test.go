@@ -2,7 +2,7 @@ package goqu
 
 import (
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/technotronicoz/testify/assert"
+	"github.com/c2fo/testify/assert"
 )
 
 type dsTestActionItem struct {

@@ -3,8 +3,8 @@ package postgres
 import (
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-	"github.com/technotronicoz/testify/assert"
+	"github.com/c2fo/testify/suite"
+	"github.com/c2fo/testify/assert"
 	"gopkg.in/doug-martin/goqu.v3"
 )
 

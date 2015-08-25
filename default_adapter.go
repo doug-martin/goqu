@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var (
@@ -633,6 +634,28 @@ func (me *DefaultAdapter) LiteralString(buf *SqlBuilder, s string) error {
 		}
 	}
 
+	buf.WriteRune(me.StringQuote)
+	return nil
+}
+
+// Generates SQL for a slice of bytes
+func (me *DefaultAdapter) LiteralBytes(buf *SqlBuilder, bs []byte) error {
+	if buf.IsPrepared {
+		return me.PlaceHolderSql(buf, bs)
+	}
+	buf.WriteRune(me.StringQuote)
+	i := 0
+	for len(bs) > 0 {
+		char, l := utf8.DecodeRune(bs)
+		if char == me.StringQuote { // single quote: ' -> \'
+			buf.WriteRune(me.StringQuote)
+			buf.WriteRune(me.StringQuote)
+		} else {
+			buf.WriteRune(char)
+		}
+		i++
+		bs = bs[l:]
+	}
 	buf.WriteRune(me.StringQuote)
 	return nil
 }

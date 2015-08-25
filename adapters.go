@@ -133,6 +133,10 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		LiteralString(buf *SqlBuilder, s string) error
+		//Generates SQL value for a Slice of Bytes
+		//
+		//buf: The current SqlBuilder to write the sql to
+		LiteralBytes(buf *SqlBuilder, bs []byte) error
 		//Generates SQL value for a Slice
 		//
 		//buf: The current SqlBuilder to write the sql to
