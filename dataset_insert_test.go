@@ -1,7 +1,7 @@
 package goqu
 
 import (
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 
 	"database/sql"
@@ -10,7 +10,7 @@ import (
 
 func (me *datasetTest) TestInsertSqlNoReturning() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("no-return", mDb).From("items")
 	type item struct {
 		Address string `db:"address"`
@@ -25,7 +25,7 @@ func (me *datasetTest) TestInsertSqlNoReturning() {
 
 func (me *datasetTest) TestInsert_InvalidValue() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("no-return", mDb).From("items")
 	type item struct {
 		Address string `db:"address"`
@@ -148,10 +148,10 @@ func (me *datasetTest) TestInsertSqlWithValuerNull() {
 	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test', NULL)`)
 
 	sqlString, _, err = ds1.ToInsertSql(
-	item{Address: "111 Test Addr", Name: "Test1"},
-	item{Address: "211 Test Addr", Name: "Test2"},
-	item{Address: "311 Test Addr", Name: "Test3"},
-	item{Address: "411 Test Addr", Name: "Test4"},
+		item{Address: "111 Test Addr", Name: "Test1"},
+		item{Address: "211 Test Addr", Name: "Test2"},
+		item{Address: "311 Test Addr", Name: "Test3"},
+		item{Address: "411 Test Addr", Name: "Test4"},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test1', NULL), ('211 Test Addr', 'Test2', NULL), ('311 Test Addr', 'Test3', NULL), ('411 Test Addr', 'Test4', NULL)`)

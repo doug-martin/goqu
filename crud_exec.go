@@ -220,7 +220,7 @@ func assignVals(i interface{}, results []Record, cm columnMap) error {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
 	switch val.Kind() {
-		case reflect.Struct:
+	case reflect.Struct:
 		result := results[0]
 		for name, data := range cm {
 			src, ok := result[name]
@@ -234,7 +234,7 @@ func assignVals(i interface{}, results []Record, cm columnMap) error {
 				}
 			}
 		}
-		case reflect.Slice:
+	case reflect.Slice:
 		for _, result := range results {
 			row := reflect.Indirect(reflect.New(t))
 			initEmbeddedPtr(row)

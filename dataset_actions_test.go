@@ -1,7 +1,7 @@
 package goqu
 
 import (
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 )
 
@@ -12,17 +12,17 @@ type dsTestActionItem struct {
 
 func (me *datasetTest) TestScanStructs() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+	mock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT DISTINCT "name" FROM "items"`).
+	mock.ExpectQuery(`SELECT DISTINCT "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items"`).
+	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
@@ -53,13 +53,13 @@ func (me *datasetTest) TestScanStructs() {
 
 func (me *datasetTest) TestScanStructs_WithPreparedStatements() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	mock.ExpectQuery(`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	mock.ExpectQuery(`SELECT "test" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
@@ -85,17 +85,17 @@ func (me *datasetTest) TestScanStructs_WithPreparedStatements() {
 
 func (me *datasetTest) TestScanStruct() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT "address", "name" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	sqlmock.ExpectQuery(`SELECT DISTINCT "name" FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT DISTINCT "name" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
@@ -124,13 +124,13 @@ func (me *datasetTest) TestScanStruct() {
 
 func (me *datasetTest) TestScanStruct_WithPreparedStatements() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`).
+	mock.ExpectQuery(`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`).
+	mock.ExpectQuery(`SELECT "test" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
@@ -156,9 +156,9 @@ func (me *datasetTest) TestScanStruct_WithPreparedStatements() {
 
 func (me *datasetTest) TestScanVals() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
@@ -173,9 +173,9 @@ func (me *datasetTest) TestScanVals() {
 
 func (me *datasetTest) TestScanVals_WithPreparedStatment() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	mock.ExpectQuery(`SELECT "id" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
@@ -194,9 +194,9 @@ func (me *datasetTest) TestScanVals_WithPreparedStatment() {
 
 func (me *datasetTest) TestScanVal() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT "id" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
@@ -215,9 +215,9 @@ func (me *datasetTest) TestScanVal() {
 
 func (me *datasetTest) TestScanVal_WithPreparedStatement() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT ?`).
+	mock.ExpectQuery(`SELECT "id" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT ?`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
@@ -240,9 +240,9 @@ func (me *datasetTest) TestScanVal_WithPreparedStatement() {
 
 func (me *datasetTest) TestCount() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT COUNT\(\*\) AS "count" FROM "items"`).
+	mock.ExpectQuery(`SELECT COUNT\(\*\) AS "count" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).FromCSVString("10"))
 
@@ -254,9 +254,9 @@ func (me *datasetTest) TestCount() {
 
 func (me *datasetTest) TestCount_WithPreparedStatement() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT COUNT\(\*\) AS "count" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	mock.ExpectQuery(`SELECT COUNT\(\*\) AS "count" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).FromCSVString("10"))
 
@@ -271,9 +271,9 @@ func (me *datasetTest) TestCount_WithPreparedStatement() {
 
 func (me *datasetTest) TestPluck() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "name" FROM "items"`).
+	mock.ExpectQuery(`SELECT "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("test1\ntest2\ntest3\ntest4\ntest5"))
 
@@ -285,9 +285,9 @@ func (me *datasetTest) TestPluck() {
 
 func (me *datasetTest) TestPluck_WithPreparedStatement() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	mock.ExpectQuery(`SELECT "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("Bob\nSally\nBilly"))
 
@@ -302,9 +302,9 @@ func (me *datasetTest) TestPluck_WithPreparedStatement() {
 
 func (me *datasetTest) TestUpdate() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -315,9 +315,9 @@ func (me *datasetTest) TestUpdate() {
 
 func (me *datasetTest) TestUpdate_WithPreparedStatement() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`UPDATE "items" SET "address"=\?,"name"=\? WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"=\?,"name"=\? WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`).
 		WithArgs("112 Test Addr", "Test1", "111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -332,9 +332,9 @@ func (me *datasetTest) TestUpdate_WithPreparedStatement() {
 
 func (me *datasetTest) TestInsert() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`INSERT INTO "items" \("address", "name"\) VALUES \('111 Test Addr', 'Test1'\)`).
+	mock.ExpectExec(`INSERT INTO "items" \("address", "name"\) VALUES \('111 Test Addr', 'Test1'\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -345,9 +345,9 @@ func (me *datasetTest) TestInsert() {
 
 func (me *datasetTest) TestInsert_WithPreparedStatment() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`INSERT INTO "items" \("address", "name"\) VALUES \(\?, \?\), \(\?, \?\)`).
+	mock.ExpectExec(`INSERT INTO "items" \("address", "name"\) VALUES \(\?, \?\), \(\?, \?\)`).
 		WithArgs("111 Test Addr", "Test1", "112 Test Addr", "Test2").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -364,9 +364,9 @@ func (me *datasetTest) TestInsert_WithPreparedStatment() {
 
 func (me *datasetTest) TestDelete() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`DELETE FROM "items" WHERE \("id" > 10\)`).
+	mock.ExpectExec(`DELETE FROM "items" WHERE \("id" > 10\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -377,9 +377,9 @@ func (me *datasetTest) TestDelete() {
 
 func (me *datasetTest) TestDelete_WithPreparedStatment() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`DELETE FROM "items" WHERE \("id" > \?\)`).
+	mock.ExpectExec(`DELETE FROM "items" WHERE \("id" > \?\)`).
 		WithArgs(10).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 

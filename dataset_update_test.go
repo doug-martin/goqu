@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func (me *datasetTest) TestUpdateSqlWithNoSources() {
 
 func (me *datasetTest) TestUpdateSqlNoReturning() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("no-return", mDb).From("items")
 	type item struct {
 		Address string `db:"address"`
@@ -35,7 +35,7 @@ func (me *datasetTest) TestUpdateSqlNoReturning() {
 
 func (me *datasetTest) TestUpdateSqlWithLimit() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("limit", mDb).From("items")
 	type item struct {
 		Address string `db:"address"`
@@ -48,7 +48,7 @@ func (me *datasetTest) TestUpdateSqlWithLimit() {
 
 func (me *datasetTest) TestUpdateSqlWithOrder() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("order", mDb).From("items")
 	type item struct {
 		Address string `db:"address"`
