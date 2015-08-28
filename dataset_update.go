@@ -79,9 +79,8 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 func (me *Dataset) getUpdateExpressions(value reflect.Value) (updates []UpdateExpression) {
 	for i := 0; i < value.NumField(); i++ {
 		v := value.Field(i)
-		kind := v.Kind()
-		if me.isSpecialType(v) || ((kind != reflect.Struct) && (kind != reflect.Ptr)) {
-			t := value.Type().Field(i)
+		t := value.Type().Field(i)
+		if !t.Anonymous {
 			if me.canUpdateField(t) {
 				updates = append(updates, I(t.Tag.Get("db")).Set(v.Interface()))
 			}

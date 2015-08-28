@@ -134,6 +134,29 @@ func (me *datasetTest) TestInsertSqlWithValuer() {
 	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test1', 10), ('211 Test Addr', 'Test2', 10), ('311 Test Addr', 'Test3', 10), ('411 Test Addr', 'Test4', 10)`)
 }
 
+func (me *datasetTest) TestInsertSqlWithValuerNull() {
+	t := me.T()
+	ds1 := From("items")
+
+	type item struct {
+		Address string        `db:"address"`
+		Name    string        `db:"name"`
+		Valuer  sql.NullInt64 `db:"valuer"`
+	}
+	sqlString, _, err := ds1.ToInsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test', NULL)`)
+
+	sqlString, _, err = ds1.ToInsertSql(
+	item{Address: "111 Test Addr", Name: "Test1"},
+	item{Address: "211 Test Addr", Name: "Test2"},
+	item{Address: "311 Test Addr", Name: "Test3"},
+	item{Address: "411 Test Addr", Name: "Test4"},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test1', NULL), ('211 Test Addr', 'Test2', NULL), ('311 Test Addr', 'Test3', NULL), ('411 Test Addr', 'Test4', NULL)`)
+}
+
 func (me *datasetTest) TestInsertSqlWithMaps() {
 	t := me.T()
 	ds1 := From("items")

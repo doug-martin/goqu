@@ -110,10 +110,8 @@ func (me *Dataset) getFieldsValues(value reflect.Value) (rowCols []interface{}, 
 	if value.IsValid() {
 		for i := 0; i < value.NumField(); i++ {
 			v := value.Field(i)
-
-			kind := v.Kind()
-			if me.isSpecialType(v) || ((kind != reflect.Struct) && (kind != reflect.Ptr)) {
-				t := value.Type().Field(i)
+			t := value.Type().Field(i)
+			if !t.Anonymous {
 				if me.canInsertField(t) {
 					rowCols = append(rowCols, t.Tag.Get("db"))
 					rowVals = append(rowVals, v.Interface())

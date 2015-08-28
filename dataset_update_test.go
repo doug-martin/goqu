@@ -1,6 +1,7 @@
 package goqu
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"time"
@@ -97,7 +98,7 @@ func (j valuerType) Value() (driver.Value, error) {
 	return []byte(fmt.Sprintf("%s World", string(j))), nil
 }
 
-func (me *datasetTest) TestUpdateSqlWithValuer() {
+func (me *datasetTest) TestUpdateSqlWithCustomValuer() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
@@ -107,6 +108,31 @@ func (me *datasetTest) TestUpdateSqlWithValuer() {
 	sql, _, err := ds1.Returning(I("items").All()).ToUpdateSql(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test',"data"='Hello World' RETURNING "items".*`)
+}
+
+func (me *datasetTest) TestUpdateSqlWithValuer() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Name string         `db:"name"`
+		Data sql.NullString `db:"data"`
+	}
+
+	sql, _, err := ds1.Returning(I("items").All()).ToUpdateSql(item{Name: "Test", Data: sql.NullString{String: "Hello World", Valid: true}})
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test',"data"='Hello World' RETURNING "items".*`)
+}
+
+func (me *datasetTest) TestUpdateSqlWithValuerNull() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Name string         `db:"name"`
+		Data sql.NullString `db:"data"`
+	}
+	sql, _, err := ds1.Returning(I("items").All()).ToUpdateSql(item{Name: "Test"})
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `UPDATE "items" SET "name"='Test',"data"=NULL RETURNING "items".*`)
 }
 
 func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
@@ -248,7 +274,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithByteSlice() {
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
 }
 
-func (me *datasetTest) TestPreparedUpdateSqlWithValuer() {
+func (me *datasetTest) TestPreparedUpdateSqlWithCustomValuer() {
 	t := me.T()
 	ds1 := From("items")
 	type item struct {
@@ -258,6 +284,19 @@ func (me *datasetTest) TestPreparedUpdateSqlWithValuer() {
 	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"Test", []byte("Hello World")})
+	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
+}
+
+func (me *datasetTest) TestPreparedUpdateSqlWithValuer() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Name string         `db:"name"`
+		Data sql.NullString `db:"data"`
+	}
+	sql, args, err := ds1.Returning(I("items").All()).Prepared(true).ToUpdateSql(item{Name: "Test", Data: sql.NullString{String: "Hello World", Valid: true}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{"Test", "Hello World"})
 	assert.Equal(t, sql, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`)
 }
 
@@ -284,9 +323,9 @@ func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 	}
 	type item struct {
 		phone
-		Address string    `db:"address" goqu:"skipupdate"`
-		Name    string    `db:"name"`
-		Created time.Time `db:"created"`
+		Address    string      `db:"address" goqu:"skipupdate"`
+		Name       string      `db:"name"`
+		Created    time.Time   `db:"created"`
 		NilPointer interface{} `db:"nil_pointer"`
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
