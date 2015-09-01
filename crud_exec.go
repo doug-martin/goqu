@@ -237,6 +237,7 @@ func assignVals(i interface{}, results []Record, cm columnMap) error {
 	case reflect.Slice:
 		for _, result := range results {
 			row := reflect.Indirect(reflect.New(t))
+			initEmbeddedPtr(row)
 			for name, data := range cm {
 				src, ok := result[name]
 				if ok {
@@ -259,6 +260,18 @@ func assignVals(i interface{}, results []Record, cm columnMap) error {
 	return nil
 }
 
+func initEmbeddedPtr(value reflect.Value) {
+	for i := 0; i < value.NumField(); i++ {
+		v := value.Field(i)
+		kind := v.Kind()
+		t := value.Type().Field(i)
+		if t.Anonymous && kind == reflect.Ptr {
+			z := reflect.New(t.Type.Elem())
+			v.Set(z)
+		}
+	}
+}
+
 func getColumnMap(i interface{}) (columnMap, error) {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, valKind, _ := getTypeInfo(i, val)
@@ -276,8 +289,12 @@ func createColumnMap(t reflect.Type) columnMap {
 	var subColMaps []columnMap
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
-		if f.Anonymous && f.Type.Kind() == reflect.Struct {
-			subColMaps = append(subColMaps, createColumnMap(f.Type))
+		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
+			if f.Type.Kind() == reflect.Ptr {
+				subColMaps = append(subColMaps, createColumnMap(f.Type.Elem()))
+			} else {
+				subColMaps = append(subColMaps, createColumnMap(f.Type))
+			}
 		} else {
 			columnName := f.Tag.Get("db")
 			if columnName == "" {

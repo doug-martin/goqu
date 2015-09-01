@@ -1,3 +1,11 @@
+## v3.1.0
+
+* Version 3.1 [#14](https://github.com/doug-martin/goqu/pull/14) - [@andymoon](https://github.com/andymoon)
+    * Fix an issue with a nil pointer access on the inserts and updates.
+    * Allowing ScanStructs to take a struct with an embedded pointer to a struct.
+    * Change to check if struct is Anonymous when recursing through an embedded struct.
+    * Updated to use the lastest version of github.com/DATA-DOG/go-sqlmock.
+
 ## v3.0.1
 
 * Add literal bytes and update to c2fo testify [#15](https://github.com/doug-martin/goqu/pull/15) - [@TechnotronicOz](https://github.com/TechnotronicOz)

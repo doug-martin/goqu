@@ -3,7 +3,6 @@ package goqu
 import (
 	"reflect"
 	"sort"
-	"time"
 )
 
 //Generates the default INSERT statement. If Prepared has been called with true then the statement will not be interpolated. See examples.
@@ -111,10 +110,8 @@ func (me *Dataset) getFieldsValues(value reflect.Value) (rowCols []interface{}, 
 	if value.IsValid() {
 		for i := 0; i < value.NumField(); i++ {
 			v := value.Field(i)
-
-			kind := v.Kind()
-			if (reflect.TypeOf(v.Interface()).Name() == reflect.TypeOf((*time.Time)(nil)).Elem().Name()) || ((kind != reflect.Struct) && (kind != reflect.Ptr)) {
-				t := value.Type().Field(i)
+			t := value.Type().Field(i)
+			if !t.Anonymous {
 				if me.canInsertField(t) {
 					rowCols = append(rowCols, t.Tag.Get("db"))
 					rowVals = append(rowVals, v.Interface())

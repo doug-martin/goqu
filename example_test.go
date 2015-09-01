@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"gopkg.in/doug-martin/goqu.v3"
 )
 
 var driver *sql.DB
 
 func init() {
-	db, _ := sqlmock.New()
+	db, _, _ := sqlmock.New()
 	driver = db
 }
 

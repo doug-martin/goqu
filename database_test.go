@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
 )
@@ -32,13 +32,13 @@ type databaseTest struct {
 
 func (me *databaseTest) TestLogger() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
+	mock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
@@ -59,13 +59,13 @@ func (me *databaseTest) TestLogger() {
 
 func (me *databaseTest) TestScanStructs() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items"`).
+	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
@@ -87,13 +87,13 @@ func (me *databaseTest) TestScanStructs() {
 
 func (me *databaseTest) TestScanStruct() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
@@ -115,9 +115,9 @@ func (me *databaseTest) TestScanStruct() {
 
 func (me *databaseTest) TestScanVals() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
@@ -132,9 +132,9 @@ func (me *databaseTest) TestScanVals() {
 
 func (me *databaseTest) TestScanVal() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
@@ -153,13 +153,13 @@ func (me *databaseTest) TestScanVal() {
 
 func (me *databaseTest) TestExec() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	sqlmock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
 		WillReturnError(NewGoquError("mock error"))
 
@@ -172,13 +172,13 @@ func (me *databaseTest) TestExec() {
 
 func (me *databaseTest) TestQuery() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnError(NewGoquError("mock error"))
 
@@ -192,13 +192,13 @@ func (me *databaseTest) TestQuery() {
 
 func (me *databaseTest) TestQueryRow() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnError(NewGoquError("mock error"))
 
@@ -214,9 +214,9 @@ func (me *databaseTest) TestQueryRow() {
 
 func (me *databaseTest) TestPrepare() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectPrepare()
+	mock.ExpectPrepare("SELECT * FROM test WHERE id = ?")
 	db := New("mock", mDb)
 	stmt, err := db.Prepare("SELECT * FROM test WHERE id = ?")
 	assert.NoError(t, err)
@@ -225,10 +225,10 @@ func (me *databaseTest) TestPrepare() {
 
 func (me *databaseTest) TestBegin() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectBegin().WillReturnError(NewGoquError("transaction error"))
+	mock.ExpectBegin()
+	mock.ExpectBegin().WillReturnError(NewGoquError("transaction error"))
 	db := New("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
@@ -248,17 +248,17 @@ type txDatabaseTest struct {
 
 func (me *txDatabaseTest) TestLogger() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
+	mock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 
 	tx, err := New("db-mock", mDb).Begin()
 	assert.NoError(t, err)
@@ -278,17 +278,17 @@ func (me *txDatabaseTest) TestLogger() {
 
 func (me *txDatabaseTest) TestLogger_FromDb() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
+	mock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 0))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 
 	db := New("db-mock", mDb)
 	logger := new(dbTestMockLogger)
@@ -310,10 +310,10 @@ func (me *txDatabaseTest) TestLogger_FromDb() {
 
 func (me *txDatabaseTest) TestCommit() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectCommit()
+	mock.ExpectBegin()
+	mock.ExpectCommit()
 	db := New("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
@@ -322,10 +322,10 @@ func (me *txDatabaseTest) TestCommit() {
 
 func (me *txDatabaseTest) TestRollback() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectRollback()
+	mock.ExpectBegin()
+	mock.ExpectRollback()
 	db := New("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
@@ -334,10 +334,10 @@ func (me *txDatabaseTest) TestRollback() {
 
 func (me *txDatabaseTest) TestFrom() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectCommit()
+	mock.ExpectBegin()
+	mock.ExpectCommit()
 	db := New("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
@@ -347,17 +347,17 @@ func (me *txDatabaseTest) TestFrom() {
 
 func (me *txDatabaseTest) TestScanStructs() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items"`).
+	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("db-mock", mDb).Begin()
 	assert.NoError(t, err)
 	var items []testActionItem
@@ -378,17 +378,17 @@ func (me *txDatabaseTest) TestScanStructs() {
 
 func (me *txDatabaseTest) TestScanStruct() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	sqlmock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
+	mock.ExpectQuery(`SELECT "test" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	var item testActionItem
@@ -409,13 +409,13 @@ func (me *txDatabaseTest) TestScanStruct() {
 
 func (me *txDatabaseTest) TestScanVals() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	var ids []uint32
@@ -429,13 +429,13 @@ func (me *txDatabaseTest) TestScanVals() {
 
 func (me *txDatabaseTest) TestScanVal() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	var id int64
@@ -453,17 +453,17 @@ func (me *txDatabaseTest) TestScanVal() {
 
 func (me *txDatabaseTest) TestExec() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectBegin()
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	sqlmock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
 		WillReturnError(NewGoquError("mock error"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
@@ -475,17 +475,17 @@ func (me *txDatabaseTest) TestExec() {
 
 func (me *txDatabaseTest) TestQuery() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnError(NewGoquError("mock error"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	_, err = tx.Query(`SELECT * FROM "items"`)
@@ -498,17 +498,17 @@ func (me *txDatabaseTest) TestQuery() {
 
 func (me *txDatabaseTest) TestQueryRow() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnError(NewGoquError("mock error"))
-	sqlmock.ExpectCommit()
+	mock.ExpectCommit()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	rows := tx.QueryRow(`SELECT * FROM "items"`)
@@ -523,12 +523,12 @@ func (me *txDatabaseTest) TestQueryRow() {
 
 func (me *txDatabaseTest) TestWrap() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectCommit()
-	sqlmock.ExpectBegin()
-	sqlmock.ExpectRollback()
+	mock.ExpectBegin()
+	mock.ExpectCommit()
+	mock.ExpectBegin()
+	mock.ExpectRollback()
 	tx, err := New("mock", mDb).Begin()
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Wrap(func() error {

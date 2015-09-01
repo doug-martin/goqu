@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
 )
@@ -31,7 +31,7 @@ type crudExecTest struct {
 
 func (me *crudExecTest) TestWithError() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, _, err := sqlmock.New()
 	assert.NoError(t, err)
 	db := New("db-mock", mDb)
 	expectedErr := fmt.Errorf("crud exec error")
@@ -51,29 +51,29 @@ func (me *crudExecTest) TestWithError() {
 
 func (me *crudExecTest) TestScanStructs() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("query error"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
@@ -141,21 +141,21 @@ func (me *crudExecTest) TestScanStructs() {
 
 func (me *crudExecTest) TestScanStruct() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("query error"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20"))
 
-	sqlmock.ExpectQuery(`SELECT \* FROM "items"`).
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
@@ -199,17 +199,17 @@ func (me *crudExecTest) TestScanStruct() {
 
 func (me *crudExecTest) TestScanVals() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WillReturnError(fmt.Errorf("query error"))
 
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2"))
 
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2"))
 
@@ -234,13 +234,13 @@ func (me *crudExecTest) TestScanVals() {
 
 func (me *crudExecTest) TestScanVal() {
 	t := me.T()
-	mDb, err := sqlmock.New()
+	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WillReturnError(fmt.Errorf("query error"))
 
-	sqlmock.ExpectQuery(`SELECT "id" FROM "items"`).
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1"))
 

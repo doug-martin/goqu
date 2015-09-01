@@ -1,13 +1,13 @@
 package goqu
 
 import (
-	"github.com/DATA-DOG/go-sqlmock"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 )
 
 func (me *datasetTest) TestDeleteSqlNoReturning() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("no-return", mDb).From("items")
 	type item struct {
 		Address string `db:"address"`
@@ -19,7 +19,7 @@ func (me *datasetTest) TestDeleteSqlNoReturning() {
 
 func (me *datasetTest) TestDeleteSqlWithLimit() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("limit", mDb).From("items")
 	sql, _, err := ds1.Limit(10).ToDeleteSql()
 	assert.Nil(t, err)
@@ -28,7 +28,7 @@ func (me *datasetTest) TestDeleteSqlWithLimit() {
 
 func (me *datasetTest) TestDeleteSqlWithOrder() {
 	t := me.T()
-	mDb, _ := sqlmock.New()
+	mDb, _, _ := sqlmock.New()
 	ds1 := New("order", mDb).From("items")
 	sql, _, err := ds1.Order(I("name").Desc()).ToDeleteSql()
 	assert.Nil(t, err)
