@@ -1,8 +1,8 @@
 package goqu
 
 import (
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 
 	"database/sql"
 	"time"
@@ -542,4 +542,68 @@ func (me *datasetTest) TestPreparedInsertSqlWithEmbeddedStructPtr() {
 		"456456", "123123", "411 Test Addr", "Test4",
 	})
 	assert.Equal(t, sql, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?), (?, ?, ?, ?)`)
+}
+
+func (me *datasetTest) TestPreparedInsertSqlWithValuer() {
+	t := me.T()
+	ds1 := From("items")
+
+	type item struct {
+		Address string        `db:"address"`
+		Name    string        `db:"name"`
+		Valuer  sql.NullInt64 `db:"valuer"`
+	}
+	sqlString, args, err := ds1.Prepared(true).ToInsertSql(item{Name: "Test", Address: "111 Test Addr", Valuer: sql.NullInt64{Int64: 10, Valid: true}})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{
+		"111 Test Addr", "Test", 10,
+	})
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?)`)
+
+	sqlString, args, err = ds1.Prepared(true).ToInsertSql(
+		item{Address: "111 Test Addr", Name: "Test1", Valuer: sql.NullInt64{Int64: 10, Valid: true}},
+		item{Address: "211 Test Addr", Name: "Test2", Valuer: sql.NullInt64{Int64: 20, Valid: true}},
+		item{Address: "311 Test Addr", Name: "Test3", Valuer: sql.NullInt64{Int64: 30, Valid: true}},
+		item{Address: "411 Test Addr", Name: "Test4", Valuer: sql.NullInt64{Int64: 40, Valid: true}},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{
+		"111 Test Addr", "Test1", 10,
+		"211 Test Addr", "Test2", 20,
+		"311 Test Addr", "Test3", 30,
+		"411 Test Addr", "Test4", 40,
+	})
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`)
+}
+
+func (me *datasetTest) TestPreparedInsertSqlWithValuerNull() {
+	t := me.T()
+	ds1 := From("items")
+
+	type item struct {
+		Address string        `db:"address"`
+		Name    string        `db:"name"`
+		Valuer  sql.NullInt64 `db:"valuer"`
+	}
+	sqlString, args, err := ds1.Prepared(true).ToInsertSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{
+		"111 Test Addr", "Test", nil,
+	})
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?)`)
+
+	sqlString, args, err = ds1.Prepared(true).ToInsertSql(
+		item{Address: "111 Test Addr", Name: "Test1"},
+		item{Address: "211 Test Addr", Name: "Test2"},
+		item{Address: "311 Test Addr", Name: "Test3"},
+		item{Address: "411 Test Addr", Name: "Test4"},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, args, []interface{}{
+		"111 Test Addr", "Test1", nil,
+		"211 Test Addr", "Test2", nil,
+		"311 Test Addr", "Test3", nil,
+		"411 Test Addr", "Test4", nil,
+	})
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`)
 }

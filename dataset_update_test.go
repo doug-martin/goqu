@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 func (me *datasetTest) TestUpdateSqlWithNoSources() {
@@ -145,9 +145,10 @@ func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
 	}
 	type item struct {
 		phone
-		Address string    `db:"address" goqu:"skipupdate"`
-		Name    string    `db:"name"`
-		Created time.Time `db:"created"`
+		Address    string      `db:"address" goqu:"skipupdate"`
+		Name       string      `db:"name"`
+		Created    time.Time   `db:"created"`
+		NilPointer interface{} `db:"nil_pointer"`
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
 
@@ -158,7 +159,7 @@ func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
 	}})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
-	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"='456456',"home_phone"='123123',"phone_created"='2015-01-01T00:00:00Z',"name"='Test',"created"='2015-01-01T00:00:00Z'`)
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"='456456',"home_phone"='123123',"phone_created"='2015-01-01T00:00:00Z',"name"='Test',"created"='2015-01-01T00:00:00Z',"nil_pointer"=NULL`)
 }
 
 func (me *datasetTest) TestUpdateSqlWithEmbeddedStructPtr() {
