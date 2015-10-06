@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 type (
@@ -25,6 +26,7 @@ type (
 )
 
 var struct_map_cache = make(map[interface{}]columnMap)
+var struct_map_cache_lock = sync.Mutex{}
 
 func newCrudExec(database database, err error, sql string, args ...interface{}) *CrudExec {
 	return &CrudExec{database: database, err: err, Sql: sql, Args: args}
@@ -278,6 +280,9 @@ func getColumnMap(i interface{}) (columnMap, error) {
 	if valKind != reflect.Struct {
 		return nil, NewGoquError(fmt.Sprintf("Cannot SELECT into this type: %v", t))
 	}
+
+	struct_map_cache_lock.Lock()
+	defer struct_map_cache_lock.Unlock()
 	if _, ok := struct_map_cache[t]; !ok {
 		struct_map_cache[t] = createColumnMap(t)
 	}
