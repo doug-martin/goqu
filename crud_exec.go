@@ -24,8 +24,6 @@ type (
 	selectResults []Record
 )
 
-var struct_map_cache = make(map[interface{}]columnMap)
-
 func newCrudExec(database database, err error, sql string, args ...interface{}) *CrudExec {
 	return &CrudExec{database: database, err: err, Sql: sql, Args: args}
 }
@@ -278,10 +276,7 @@ func getColumnMap(i interface{}) (columnMap, error) {
 	if valKind != reflect.Struct {
 		return nil, NewGoquError(fmt.Sprintf("Cannot SELECT into this type: %v", t))
 	}
-	if _, ok := struct_map_cache[t]; !ok {
-		struct_map_cache[t] = createColumnMap(t)
-	}
-	return struct_map_cache[t], nil
+	return createColumnMap(t), nil
 }
 
 func createColumnMap(t reflect.Type) columnMap {
