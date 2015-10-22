@@ -2,11 +2,12 @@ package goqu
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 type testCrudActionItem struct {
@@ -263,6 +264,37 @@ func (me *crudExecTest) TestScanVal() {
 	found, err = exec.ScanVal(&ptrId)
 	assert.NoError(t, err)
 	assert.Equal(t, ptrId, 1)
+}
+
+func (me *crudExecTest) TestParallelGetColumnMap() {
+	t := me.T()
+
+	type item struct {
+		id   uint
+		name string
+	}
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		i := item{}
+		m, err := getColumnMap(i)
+		assert.NoError(t, err)
+		assert.NotNil(t, m)
+		wg.Done()
+	}()
+
+	wg.Add(1)
+	go func() {
+		i := item{}
+		m, err := getColumnMap(i)
+		assert.NoError(t, err)
+		assert.NotNil(t, m)
+		wg.Done()
+	}()
+
+	wg.Wait()
 }
 
 func TestCrudExecSuite(t *testing.T) {

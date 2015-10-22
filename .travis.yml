@@ -18,3 +18,5 @@ before_script:
   - mv -vfT $DEFAULT_TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR
   - psql -c 'create database goqupostgres;' -U postgres
   - mysql -e 'create database goqumysql;'
+
+script: go test -v -race ./...
