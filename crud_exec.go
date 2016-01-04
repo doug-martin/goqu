@@ -224,6 +224,7 @@ func assignVals(i interface{}, results []Record, cm columnMap) error {
 	switch val.Kind() {
 	case reflect.Struct:
 		result := results[0]
+		initEmbeddedPtr(val)
 		for name, data := range cm {
 			src, ok := result[name]
 			if ok {
