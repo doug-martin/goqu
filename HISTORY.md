@@ -1,3 +1,7 @@
+## v3.1.2
+
+* Fixing ScanStruct issue with embedded pointers in crud_exec [#20](https://github.com/doug-martin/goqu/pull/20) - [@ruzz311](https://github.com/ruzz311)
+
 ## v3.1.1
 
 * Fixing race condition with struct_map_cache in crud_exec [#18](https://github.com/doug-martin/goqu/pull/18) - [@andymoon](https://github.com/andymoon), [@aheuermann](https://github.com/aheuermann)
@@ -8,7 +12,7 @@
     * Fix an issue with a nil pointer access on the inserts and updates.
     * Allowing ScanStructs to take a struct with an embedded pointer to a struct.
     * Change to check if struct is Anonymous when recursing through an embedded struct.
-    * Updated to use the lastest version of github.com/DATA-DOG/go-sqlmock.
+    * Updated to use the latest version of github.com/DATA-DOG/go-sqlmock.
 
 ## v3.0.1
 

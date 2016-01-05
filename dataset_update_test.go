@@ -138,13 +138,13 @@ func (me *datasetTest) TestUpdateSqlWithValuerNull() {
 func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
 	t := me.T()
 	ds1 := From("items")
-	type phone struct {
+	type Phone struct {
 		Primary string    `db:"primary_phone"`
 		Home    string    `db:"home_phone"`
 		Created time.Time `db:"phone_created"`
 	}
 	type item struct {
-		phone
+		Phone
 		Address    string      `db:"address" goqu:"skipupdate"`
 		Name       string      `db:"name"`
 		Created    time.Time   `db:"created"`
@@ -152,7 +152,7 @@ func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
 
-	sql, args, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: phone{
+	sql, args, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, Phone: Phone{
 		Home:    "123123",
 		Primary: "456456",
 		Created: created,
@@ -165,20 +165,20 @@ func (me *datasetTest) TestUpdateSqlWithEmbeddedStruct() {
 func (me *datasetTest) TestUpdateSqlWithEmbeddedStructPtr() {
 	t := me.T()
 	ds1 := From("items")
-	type phone struct {
+	type Phone struct {
 		Primary string    `db:"primary_phone"`
 		Home    string    `db:"home_phone"`
 		Created time.Time `db:"phone_created"`
 	}
 	type item struct {
-		*phone
+		*Phone
 		Address string    `db:"address" goqu:"skipupdate"`
 		Name    string    `db:"name"`
 		Created time.Time `db:"created"`
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
 
-	sql, args, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: &phone{
+	sql, args, err := ds1.ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, Phone: &Phone{
 		Home:    "123123",
 		Primary: "456456",
 		Created: created,
@@ -317,13 +317,13 @@ func (me *datasetTest) TestPreparedUpdateSqlWithSkipupdateTag() {
 func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 	t := me.T()
 	ds1 := From("items")
-	type phone struct {
+	type Phone struct {
 		Primary string    `db:"primary_phone"`
 		Home    string    `db:"home_phone"`
 		Created time.Time `db:"phone_created"`
 	}
 	type item struct {
-		phone
+		Phone
 		Address    string      `db:"address" goqu:"skipupdate"`
 		Name       string      `db:"name"`
 		Created    time.Time   `db:"created"`
@@ -331,7 +331,7 @@ func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
 
-	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: phone{
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, Phone: Phone{
 		Home:    "123123",
 		Primary: "456456",
 		Created: created,
@@ -344,20 +344,20 @@ func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStructPtr() {
 	t := me.T()
 	ds1 := From("items")
-	type phone struct {
+	type Phone struct {
 		Primary string    `db:"primary_phone"`
 		Home    string    `db:"home_phone"`
 		Created time.Time `db:"phone_created"`
 	}
 	type item struct {
-		*phone
+		*Phone
 		Address string    `db:"address" goqu:"skipupdate"`
 		Name    string    `db:"name"`
 		Created time.Time `db:"created"`
 	}
 	created, _ := time.Parse("2006-01-02", "2015-01-01")
 
-	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, phone: &phone{
+	sql, args, err := ds1.Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr", Created: created, Phone: &Phone{
 		Home:    "123123",
 		Primary: "456456",
 		Created: created,

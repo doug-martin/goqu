@@ -56,22 +56,22 @@ func (me *datasetTest) TestSelect() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT("a") AS "distinct", COUNT("a") AS "count", CASE WHEN (MIN("a") = 10) THEN TRUE ELSE FALSE END, CASE WHEN (AVG("a") != 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") > 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") >= 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") < 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") <= 10) THEN TRUE ELSE FALSE END, SUM("a") AS "sum", COALESCE("a", 'a') AS "colaseced"`)
 
-	type myStruct struct {
+	type MyStruct struct {
 		Name         string
 		Address      string `db:"address"`
 		EmailAddress string `db:"email_address"`
 		FakeCol      string `db:"-"`
 	}
-	sql, _, err = ds1.Select(&myStruct{}).ToSql()
+	sql, _, err = ds1.Select(&MyStruct{}).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
 
-	sql, _, err = ds1.Select(myStruct{}).ToSql()
+	sql, _, err = ds1.Select(MyStruct{}).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
 
 	type myStruct2 struct {
-		myStruct
+		MyStruct
 		Zipcode string `db:"zipcode"`
 	}
 
@@ -83,7 +83,7 @@ func (me *datasetTest) TestSelect() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT "address", "email_address", "name", "zipcode" FROM "test"`)
 
-	var myStructs []myStruct
+	var myStructs []MyStruct
 	sql, _, err = ds1.Select(&myStructs).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT "address", "email_address", "name" FROM "test"`)
@@ -122,22 +122,22 @@ func (me *datasetTest) TestSelectDistinct() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT "id" AS "other_id", COUNT(*) AS "count" FROM "test"`)
 
-	type myStruct struct {
+	type MyStruct struct {
 		Name         string
 		Address      string `db:"address"`
 		EmailAddress string `db:"email_address"`
 		FakeCol      string `db:"-"`
 	}
-	sql, _, err = ds1.SelectDistinct(&myStruct{}).ToSql()
+	sql, _, err = ds1.SelectDistinct(&MyStruct{}).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
 
-	sql, _, err = ds1.SelectDistinct(myStruct{}).ToSql()
+	sql, _, err = ds1.SelectDistinct(MyStruct{}).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
 
 	type myStruct2 struct {
-		myStruct
+		MyStruct
 		Zipcode string `db:"zipcode"`
 	}
 
@@ -149,7 +149,7 @@ func (me *datasetTest) TestSelectDistinct() {
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name", "zipcode" FROM "test"`)
 
-	var myStructs []myStruct
+	var myStructs []MyStruct
 	sql, _, err = ds1.SelectDistinct(&myStructs).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)

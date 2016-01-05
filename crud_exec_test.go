@@ -26,6 +26,12 @@ type testComposedCrudActionItem struct {
 	Age         int64  `db:"age"`
 }
 
+type testEmbeddedPtrCrudActionItem struct {
+	*testCrudActionItem
+	PhoneNumber string `db:"phone_number"`
+	Age         int64  `db:"age"`
+}
+
 type crudExecTest struct {
 	suite.Suite
 }
@@ -69,6 +75,10 @@ func (me *crudExecTest) TestScanStructs() {
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -129,6 +139,19 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
 	assert.Equal(t, composedPointers[1].Age, 30)
 
+	var embeddedPtrs []*testEmbeddedPtrCrudActionItem
+	assert.NoError(t, exec.ScanStructs(&embeddedPtrs))
+	assert.Len(t, embeddedPtrs, 2)
+	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
+	assert.Equal(t, embeddedPtrs[0].Name, "Test1")
+	assert.Equal(t, embeddedPtrs[0].PhoneNumber, "111-111-1111")
+	assert.Equal(t, embeddedPtrs[0].Age, 20)
+
+	assert.Equal(t, embeddedPtrs[1].Address, "211 Test Addr")
+	assert.Equal(t, embeddedPtrs[1].Name, "Test2")
+	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
+	assert.Equal(t, embeddedPtrs[1].Age, 30)
+
 	var noTags []testCrudActionNoTagsItem
 	assert.NoError(t, exec.ScanStructs(&noTags))
 	assert.Len(t, noTags, 2)
@@ -151,6 +174,10 @@ func (me *crudExecTest) TestScanStruct() {
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -189,6 +216,15 @@ func (me *crudExecTest) TestScanStruct() {
 	assert.Equal(t, composed.Name, "Test1")
 	assert.Equal(t, composed.PhoneNumber, "111-111-1111")
 	assert.Equal(t, composed.Age, 20)
+
+	var embeddedPtr testEmbeddedPtrCrudActionItem
+	found, err = exec.ScanStruct(&embeddedPtr)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, embeddedPtr.Address, "111 Test Addr")
+	assert.Equal(t, embeddedPtr.Name, "Test1")
+	assert.Equal(t, embeddedPtr.PhoneNumber, "111-111-1111")
+	assert.Equal(t, embeddedPtr.Age, 20)
 
 	var noTag testCrudActionNoTagsItem
 	found, err = exec.ScanStruct(&noTag)
