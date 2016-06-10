@@ -299,6 +299,31 @@ func (me *datasetTest) TestWhere() {
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" IN (SELECT "id" FROM "test2"))`)
 }
 
+func (me *datasetTest) TestWhereChain() {
+	t := me.T()
+	ds1 := From("test").Where(
+		I("x").Eq(0),
+		I("y").Eq(1),
+	)
+
+	ds2 := ds1.Where(
+		I("z").Eq(2),
+	)
+
+	a := ds2.Where(
+		I("a").Eq("A"),
+	)
+	b := ds2.Where(
+		I("b").Eq("B"),
+	)
+	sql, _, err := a.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("x" = 0) AND ("y" = 1) AND ("z" = 2) AND ("a" = 'A'))`)
+	sql, _, err = b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("x" = 0) AND ("y" = 1) AND ("z" = 2) AND ("b" = 'B'))`)
+}
+
 func (me *datasetTest) TestClearWhere() {
 	t := me.T()
 	ds1 := From("test")
