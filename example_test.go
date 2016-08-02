@@ -185,6 +185,12 @@ func ExampleComparisonMethods() {
 	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Lte(10)).ToSql()
 	fmt.Println(sql)
 
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Between(10,100)).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").NotBetween(10,100)).ToSql()
+	fmt.Println(sql)
+
 	//used with Ex expression map
 	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": 10,
@@ -208,6 +214,8 @@ func ExampleComparisonMethods() {
 	// SELECT * FROM "test" WHERE ((a + b) >= 10)
 	// SELECT * FROM "test" WHERE ((a + b) < 10)
 	// SELECT * FROM "test" WHERE ((a + b) <= 10)
+	// SELECT * FROM "test" WHERE ((a + b) BETWEEN 10 AND 100)
+	// SELECT * FROM "test" WHERE ((a + b) NOT BETWEEN 10 AND 100)
 	// SELECT * FROM "test" WHERE (("a" = 10) AND ("b" != 10) AND ("c" >= 10) AND ("d" < 10) AND ("e" <= 10))
 }
 

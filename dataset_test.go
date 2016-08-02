@@ -559,7 +559,29 @@ func (me *datasetTest) TestBooleanExpression() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotILike(regexp.MustCompile("(a|b)"))))
 	assert.Equal(t, buf.args, []interface{}{"(a|b)"})
 	assert.Equal(t, buf.String(), `("a" !~* ?)`)
+}
 
+func (me *datasetTest) TestRangeExpression() {
+	t := me.T()
+	buf := NewSqlBuilder(false)
+	ds := From("test")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(1,2)))
+	assert.Equal(t, buf.String(), `("a" BETWEEN 1 AND 2)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotBetween(1,2)))
+	assert.Equal(t, buf.String(), `("a" NOT BETWEEN 1 AND 2)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between("aaa","zzz")))
+	assert.Equal(t, buf.String(), `("a" BETWEEN 'aaa' AND 'zzz')`)
+
+	buf = NewSqlBuilder(true)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(1,2)))
+	assert.Equal(t, buf.args, []interface{}{1, 2})
+	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotBetween(1,2)))
+	assert.Equal(t, buf.args, []interface{}{1, 2})
+	assert.Equal(t, buf.String(), `("a" NOT BETWEEN ? AND ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between("aaa","zzz")))
+	assert.Equal(t, buf.args, []interface{}{"aaa", "zzz"})
+	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
 }
 
 func (me *datasetTest) TestLiteralOrderedExpression() {

@@ -270,6 +270,8 @@ func (me *Dataset) expressionSql(buf *SqlBuilder, expression Expression) error {
 		return me.adapter.AliasedExpressionSql(buf, e)
 	} else if e, ok := expression.(BooleanExpression); ok {
 		return me.adapter.BooleanExpressionSql(buf, e)
+	} else if e, ok := expression.(RangeExpression); ok {
+		return me.adapter.RangeExpressionSql(buf, e)
 	} else if e, ok := expression.(OrderedExpression); ok {
 		return me.adapter.OrderedExpressionSql(buf, e)
 	} else if e, ok := expression.(UpdateExpression); ok {

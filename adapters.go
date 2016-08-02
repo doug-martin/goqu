@@ -149,6 +149,10 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		BooleanExpressionSql(buf *SqlBuilder, operator BooleanExpression) error
+		//Generates SQL value for a RangeExpression
+		//
+		//buf: The current SqlBuilder to write the sql to
+		RangeExpressionSql(buf *SqlBuilder, operator RangeExpression) error
 		//Generates SQL value for an OrderedExpression
 		//
 		//buf: The current SqlBuilder to write the sql to

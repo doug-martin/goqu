@@ -169,6 +169,15 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
+	assert.NoError(t, ds.Where(goqu.I("int").Between(3,6)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
+	assert.Len(t, entries, 4)
+	assert.NoError(t, err)
+	for _, entry := range entries {
+		assert.True(t, entry.Int >= 3)
+		assert.True(t, entry.Int <= 6)
+	}
+
+	entries = entries[0:0]
 	assert.NoError(t, ds.Where(goqu.I("string").Eq("0.100000")).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 1)
 	assert.NoError(t, err)
