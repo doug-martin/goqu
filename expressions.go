@@ -695,10 +695,10 @@ func (me identifier) Desc() OrderedExpression                     { return desc(
 func (me identifier) Distinct() SqlFunctionExpression             { return DISTINCT(me) }
 func (me identifier) Cast(t string) CastExpression                { return Cast(me, t) }
 
-//Returns a BooleanExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
+//Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
 func (me identifier) Between(val1 interface{}, val2 interface{}) RangeExpression { return between(me, val1, val2) }
 
-//Returns a BooleanExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
+//Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
 func (me identifier) NotBetween(val1 interface{}, val2 interface{}) RangeExpression { return notBetween(me, val1, val2) }
 
 type (
