@@ -752,7 +752,7 @@ func (me *DefaultAdapter) RangeExpressionSql(buf *SqlBuilder, operator RangeExpr
 	if err := me.Literal(buf, rhs1); err != nil {
 		return err
 	}
-	buf.WriteString(" AND ")
+	buf.Write(default_and_fragment)
 	if err := me.Literal(buf, rhs2); err != nil {
 		return err
 	}
