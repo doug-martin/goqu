@@ -709,6 +709,7 @@ type (
 		Expression
 		AliasMethods
 		ComparisonMethods
+		RangeMethods
 		OrderedMethods
 		//Returns the literal sql
 		Literal() string
