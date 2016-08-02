@@ -770,6 +770,10 @@ func (me *datasetTest) TestLiteralExpressionMap() {
 	assert.Equal(t, buf.String(), `("a" NOT IN ('a', 'b', 'c'))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
 	assert.Equal(t, buf.String(), `(("a" = 10) OR ("a" IS NULL))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"between": RangeVal{1,10}}}))
+	assert.Equal(t, buf.String(), `("a" BETWEEN 1 AND 10)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notbetween": RangeVal{1,10}}}))
+	assert.Equal(t, buf.String(), `("a" NOT BETWEEN 1 AND 10)`)
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": 1}))
@@ -818,6 +822,12 @@ func (me *datasetTest) TestLiteralExpressionMap() {
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
 	assert.Equal(t, buf.args, []interface{}{10, nil})
 	assert.Equal(t, buf.String(), `(("a" = ?) OR ("a" IS ?))`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"between": RangeVal{1,10}}}))
+	assert.Equal(t, buf.args, []interface{}{1, 10})
+	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notbetween": RangeVal{1,10}}}))
+	assert.Equal(t, buf.args, []interface{}{1, 10})
+	assert.Equal(t, buf.String(), `("a" NOT BETWEEN ? AND ?)`)
 }
 
 func (me *datasetTest) TestLiteralExpressionOrMap() {

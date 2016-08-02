@@ -1519,12 +1519,18 @@ func ExampleEx_withOpPrepared() {
 	}).ToSql()
 	fmt.Println(sql, args)
 
+	sql, args, _ = db.From("items").Prepared(true).Where(goqu.Ex{
+		"col1": goqu.Op{"between": goqu.RangeVal{Start:1,End:10}},
+		"col2": goqu.Op{"notbetween": goqu.RangeVal{Start:1,End:10}},
+	}).ToSql()
+	fmt.Println(sql, args)
+
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" != ?) AND ("col3" IS NOT TRUE) AND ("col6" NOT IN (?, ?, ?))) [a a b c]
 	// SELECT * FROM "items" WHERE (("col1" > ?) AND ("col2" >= ?) AND ("col3" < ?) AND ("col4" <= ?)) [1 1 1 1]
 	// SELECT * FROM "items" WHERE (("col1" LIKE ?) AND ("col2" NOT LIKE ?) AND ("col3" ILIKE ?) AND ("col4" NOT ILIKE ?)) [a% a% a% a%]
 	// SELECT * FROM "items" WHERE (("col1" ~ ?) AND ("col2" !~ ?) AND ("col3" ~* ?) AND ("col4" !~* ?)) [^(a|b) ^(a|b) ^(a|b) ^(a|b)]
-
+	// SELECT * FROM "items" WHERE (("col1" BETWEEN ? AND ?) AND ("col2" NOT BETWEEN ? AND ?)) [1 10 1 10]
 }
 
 func ExampleOp() {
@@ -1560,11 +1566,18 @@ func ExampleOp() {
 	}).ToSql()
 	fmt.Println(sql)
 
+	sql, _, _ = db.From("items").Where(goqu.Ex{
+		"col1": goqu.Op{"between": goqu.RangeVal{Start:1,End:10}},
+		"col2": goqu.Op{"notbetween": goqu.RangeVal{Start:1,End:10}},
+	}).ToSql()
+	fmt.Println(sql)
+
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
 	// SELECT * FROM "items" WHERE (("col1" > 1) AND ("col2" >= 1) AND ("col3" < 1) AND ("col4" <= 1))
 	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') AND ("col2" NOT LIKE 'a%') AND ("col3" ILIKE 'a%') AND ("col4" NOT ILIKE 'a%'))
 	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') AND ("col2" !~ '^(a|b)') AND ("col3" ~* '^(a|b)') AND ("col4" !~* '^(a|b)'))
+	// SELECT * FROM "items" WHERE (("col1" BETWEEN 1 AND 10) AND ("col2" NOT BETWEEN 1 AND 10))
 }
 
 func ExampleOp_withMultipleKeys() {

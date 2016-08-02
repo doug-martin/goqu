@@ -86,10 +86,6 @@ func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (E
 					ored = lhs.Lt(op[opKey])
 				case "lte":
 					ored = lhs.Lte(op[opKey])
-				// case "between":
-				// 	ored = lhs.Between(op[opKey])
-				// case "notbetween":
-				// 	ored = lhs.NotBetween(op[opKey])
 				case "in":
 					ored = lhs.In(op[opKey])
 				case "notin":
@@ -102,6 +98,16 @@ func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (E
 					ored = lhs.ILike(op[opKey])
 				case "notilike":
 					ored = lhs.NotILike(op[opKey])
+				case "between":
+					rangeVal, ok := op[opKey].(RangeVal)
+					if ok {
+						ored = lhs.Between(rangeVal.Start, rangeVal.End)
+					}
+				case "notbetween":
+					rangeVal, ok := op[opKey].(RangeVal)
+					if ok {
+						ored = lhs.NotBetween(rangeVal.Start, rangeVal.End)
+					}
 				default:
 					return nil, NewGoquError("Unsupported expression type %s", op)
 				}
@@ -1043,6 +1049,10 @@ type (
 		rhs1 interface{}
 		rhs2 interface{}
 		op  RangeOperation
+	}
+	RangeVal struct {
+		Start interface{}
+		End   interface{}
 	}
 )
 
