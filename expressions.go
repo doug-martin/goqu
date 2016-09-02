@@ -150,7 +150,8 @@ func (me expressionList) Expressions() []Expression {
 func (me expressionList) Append(expressions ...Expression) ExpressionList {
 	ret := new(expressionList)
 	ret.operator = me.operator
-	exps := me.expressions
+	exps := make([]Expression, len(me.expressions))
+	copy(exps, me.expressions)
 	for _, exp := range expressions {
 		exps = append(exps, exp)
 	}
