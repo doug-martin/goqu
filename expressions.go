@@ -767,17 +767,17 @@ func (me literal) Args() []interface{} {
 	return me.args
 }
 
-func (me literal) Expression() Expression                { return me }
-func (me literal) As(val interface{}) AliasedExpression  { return aliased(me, val) }
-func (me literal) Eq(val interface{}) BooleanExpression  { return eq(me, val) }
-func (me literal) Neq(val interface{}) BooleanExpression { return neq(me, val) }
-func (me literal) Gt(val interface{}) BooleanExpression  { return gt(me, val) }
-func (me literal) Gte(val interface{}) BooleanExpression { return gte(me, val) }
-func (me literal) Lt(val interface{}) BooleanExpression  { return lt(me, val) }
-func (me literal) Lte(val interface{}) BooleanExpression { return lte(me, val) }
-func (me literal) Asc() OrderedExpression                { return asc(me) }
-func (me literal) Desc() OrderedExpression               { return desc(me) }
-func (me literal) Between(val RangeVal) RangeExpression { return between(me, val) }
+func (me literal) Expression() Expression                  { return me }
+func (me literal) As(val interface{}) AliasedExpression    { return aliased(me, val) }
+func (me literal) Eq(val interface{}) BooleanExpression    { return eq(me, val) }
+func (me literal) Neq(val interface{}) BooleanExpression   { return neq(me, val) }
+func (me literal) Gt(val interface{}) BooleanExpression    { return gt(me, val) }
+func (me literal) Gte(val interface{}) BooleanExpression   { return gte(me, val) }
+func (me literal) Lt(val interface{}) BooleanExpression    { return lt(me, val) }
+func (me literal) Lte(val interface{}) BooleanExpression   { return lte(me, val) }
+func (me literal) Asc() OrderedExpression                  { return asc(me) }
+func (me literal) Desc() OrderedExpression                 { return desc(me) }
+func (me literal) Between(val RangeVal) RangeExpression    { return between(me, val) }
 func (me literal) NotBetween(val RangeVal) RangeExpression { return notBetween(me, val) }
 
 type (
@@ -1032,7 +1032,6 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 	return boolean{op: op, lhs: lhs, rhs: rhs}
 }
 
-
 type (
 	RangeOperation  int
 	RangeExpression interface {
@@ -1218,6 +1217,7 @@ type (
 	SqlFunctionExpression interface {
 		Expression
 		AliasMethods
+		RangeMethods
 		ComparisonMethods
 		//The function name
 		Name() string
@@ -1295,17 +1295,17 @@ func (me sqlFunctionExpression) Clone() Expression {
 	return sqlFunctionExpression{name: me.name, args: me.args}
 }
 
-func (me sqlFunctionExpression) Expression() Expression                { return me }
-func (me sqlFunctionExpression) Args() []interface{}                   { return me.args }
-func (me sqlFunctionExpression) Name() string                          { return me.name }
-func (me sqlFunctionExpression) As(val interface{}) AliasedExpression  { return aliased(me, val) }
-func (me sqlFunctionExpression) Eq(val interface{}) BooleanExpression  { return eq(me, val) }
-func (me sqlFunctionExpression) Neq(val interface{}) BooleanExpression { return neq(me, val) }
-func (me sqlFunctionExpression) Gt(val interface{}) BooleanExpression  { return gt(me, val) }
-func (me sqlFunctionExpression) Gte(val interface{}) BooleanExpression { return gte(me, val) }
-func (me sqlFunctionExpression) Lt(val interface{}) BooleanExpression  { return lt(me, val) }
-func (me sqlFunctionExpression) Lte(val interface{}) BooleanExpression { return lte(me, val) }
-func (me sqlFunctionExpression) Between(val RangeVal) RangeExpression { return between(me, val) }
+func (me sqlFunctionExpression) Expression() Expression                  { return me }
+func (me sqlFunctionExpression) Args() []interface{}                     { return me.args }
+func (me sqlFunctionExpression) Name() string                            { return me.name }
+func (me sqlFunctionExpression) As(val interface{}) AliasedExpression    { return aliased(me, val) }
+func (me sqlFunctionExpression) Eq(val interface{}) BooleanExpression    { return eq(me, val) }
+func (me sqlFunctionExpression) Neq(val interface{}) BooleanExpression   { return neq(me, val) }
+func (me sqlFunctionExpression) Gt(val interface{}) BooleanExpression    { return gt(me, val) }
+func (me sqlFunctionExpression) Gte(val interface{}) BooleanExpression   { return gte(me, val) }
+func (me sqlFunctionExpression) Lt(val interface{}) BooleanExpression    { return lt(me, val) }
+func (me sqlFunctionExpression) Lte(val interface{}) BooleanExpression   { return lte(me, val) }
+func (me sqlFunctionExpression) Between(val RangeVal) RangeExpression    { return between(me, val) }
 func (me sqlFunctionExpression) NotBetween(val RangeVal) RangeExpression { return notBetween(me, val) }
 
 type (
@@ -1319,6 +1319,7 @@ type (
 		BooleanMethods
 		OrderedMethods
 		DistinctMethods
+		RangeMethods
 		//The exression being casted
 		Casted() Expression
 		//The the SQL type to cast the expression to
@@ -1373,8 +1374,8 @@ func (me cast) IsNotTrue() BooleanExpression             { return isNot(me, true
 func (me cast) IsFalse() BooleanExpression               { return is(me, false) }
 func (me cast) IsNotFalse() BooleanExpression            { return isNot(me, nil) }
 func (me cast) Distinct() SqlFunctionExpression          { return DISTINCT(me) }
-func (me cast) Between(val RangeVal) RangeExpression   { return between(me, val) }
-func (me cast) NotBetween(val RangeVal) RangeExpression{ return notBetween(me, val) }
+func (me cast) Between(val RangeVal) RangeExpression     { return between(me, val) }
+func (me cast) NotBetween(val RangeVal) RangeExpression  { return notBetween(me, val) }
 
 type (
 	compoundType       int

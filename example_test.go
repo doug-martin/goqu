@@ -185,12 +185,6 @@ func ExampleComparisonMethods() {
 	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Lte(10)).ToSql()
 	fmt.Println(sql)
 
-	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Between(goqu.RangeVal{Start:10,End:100})).ToSql()
-	fmt.Println(sql)
-
-	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").NotBetween(goqu.RangeVal{Start:10,End:100})).ToSql()
-	fmt.Println(sql)
-
 	//used with Ex expression map
 	sql, _, _ = db.From("test").Where(goqu.Ex{
 		"a": 10,
@@ -214,8 +208,6 @@ func ExampleComparisonMethods() {
 	// SELECT * FROM "test" WHERE ((a + b) >= 10)
 	// SELECT * FROM "test" WHERE ((a + b) < 10)
 	// SELECT * FROM "test" WHERE ((a + b) <= 10)
-	// SELECT * FROM "test" WHERE ((a + b) BETWEEN 10 AND 100)
-	// SELECT * FROM "test" WHERE ((a + b) NOT BETWEEN 10 AND 100)
 	// SELECT * FROM "test" WHERE (("a" = 10) AND ("b" != 10) AND ("c" >= 10) AND ("d" < 10) AND ("e" <= 10))
 }
 
@@ -273,6 +265,55 @@ func ExampleOrderedMethods() {
 	// SELECT * FROM "test" ORDER BY "a" DESC
 	// SELECT * FROM "test" ORDER BY "a" DESC NULLS FIRST
 	// SELECT * FROM "test" ORDER BY "a" DESC NULLS LAST
+}
+
+func ExampleRangeMethods() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("test").Where(goqu.I("name").Between(goqu.RangeVal{Start: "a", End: "b"})).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.I("name").NotBetween(goqu.RangeVal{Start: "a", End: "b"})).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.I("x").Between(goqu.RangeVal{Start: goqu.I("y"), End: goqu.I("z")})).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.I("x").NotBetween(goqu.RangeVal{Start: goqu.I("y"), End: goqu.I("z")})).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").Between(goqu.RangeVal{Start: 10, End: 100})).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.L("(a + b)").NotBetween(goqu.RangeVal{Start: 10, End: 100})).ToSql()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM "test" WHERE ("name" BETWEEN 'a' AND 'b')
+	// SELECT * FROM "test" WHERE ("name" NOT BETWEEN 'a' AND 'b')
+	// SELECT * FROM "test" WHERE ("x" BETWEEN "y" AND "z")
+	// SELECT * FROM "test" WHERE ("x" NOT BETWEEN "y" AND "z")
+	// SELECT * FROM "test" WHERE ((a + b) BETWEEN 10 AND 100)
+	// SELECT * FROM "test" WHERE ((a + b) NOT BETWEEN 10 AND 100)
+}
+
+func ExampleRangeMethods_Ex() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("test").Where(goqu.Ex{"name": goqu.Op{"between": goqu.RangeVal{Start: "a", End: "b"}}}).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.Ex{"name": goqu.Op{"notBetween": goqu.RangeVal{Start: "a", End: "b"}}}).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.Ex{"x": goqu.Op{"between": goqu.RangeVal{Start: goqu.I("y"), End: goqu.I("z")}}}).ToSql()
+	fmt.Println(sql)
+
+	sql, _, _ = db.From("test").Where(goqu.Ex{"x": goqu.Op{"notBetween": goqu.RangeVal{Start: goqu.I("y"), End: goqu.I("z")}}}).ToSql()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "test" WHERE ("name" BETWEEN 'a' AND 'b')
+	// SELECT * FROM "test" WHERE ("name" NOT BETWEEN 'a' AND 'b')
+	// SELECT * FROM "test" WHERE ("x" BETWEEN "y" AND "z")
+	// SELECT * FROM "test" WHERE ("x" NOT BETWEEN "y" AND "z")
 }
 
 func ExampleStringMethods() {
@@ -1520,8 +1561,8 @@ func ExampleEx_withOpPrepared() {
 	fmt.Println(sql, args)
 
 	sql, args, _ = db.From("items").Prepared(true).Where(goqu.Ex{
-		"col1": goqu.Op{"between": goqu.RangeVal{Start:1,End:10}},
-		"col2": goqu.Op{"notbetween": goqu.RangeVal{Start:1,End:10}},
+		"col1": goqu.Op{"between": goqu.RangeVal{Start: 1, End: 10}},
+		"col2": goqu.Op{"notbetween": goqu.RangeVal{Start: 1, End: 10}},
 	}).ToSql()
 	fmt.Println(sql, args)
 
@@ -1567,8 +1608,8 @@ func ExampleOp() {
 	fmt.Println(sql)
 
 	sql, _, _ = db.From("items").Where(goqu.Ex{
-		"col1": goqu.Op{"between": goqu.RangeVal{Start:1,End:10}},
-		"col2": goqu.Op{"notbetween": goqu.RangeVal{Start:1,End:10}},
+		"col1": goqu.Op{"between": goqu.RangeVal{Start: 1, End: 10}},
+		"col2": goqu.Op{"notbetween": goqu.RangeVal{Start: 1, End: 10}},
 	}).ToSql()
 	fmt.Println(sql)
 
