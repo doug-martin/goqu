@@ -76,6 +76,10 @@ var (
 		REGEXP_I_LIKE_OP:     []byte("~*"),
 		REGEXP_NOT_I_LIKE_OP: []byte("!~*"),
 	}
+	default_rangeop_lookup          = map[RangeOperation][]byte{
+		BETWEEN_OP:           []byte("BETWEEN"),
+		NBETWEEN_OP:          []byte("NOT BETWEEN"),
+	}
 	default_join_lookup = map[JoinType][]byte{
 		INNER_JOIN:         []byte(" INNER JOIN "),
 		FULL_OUTER_JOIN:    []byte(" FULL OUTER JOIN "),
@@ -182,6 +186,8 @@ type (
 		TimeFormat string
 		//A map used to look up BooleanOperations and their SQL equivalents
 		BooleanOperatorLookup map[BooleanOperation][]byte
+		//A map used to look up RangeOperations and their SQL equivalents
+		RangeOperatorLookup map[RangeOperation][]byte
 		//A map used to look up JoinTypes and their SQL equivalents
 		JoinTypeLookup map[JoinType][]byte
 		//Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
@@ -233,6 +239,7 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		IntersectAllFragment:  default_intersect_all_fragment,
 		PlaceHolderRune:       default_place_holder_rune,
 		BooleanOperatorLookup: default_operator_lookup,
+		RangeOperatorLookup:   default_rangeop_lookup,
 		JoinTypeLookup:        default_join_lookup,
 		TimeFormat:            time.RFC3339Nano,
 		UseLiteralIsBools:     true,
@@ -720,6 +727,32 @@ func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator Boolean
 	}
 	buf.WriteRune(space_rune)
 	if err := me.Literal(buf, rhs); err != nil {
+		return err
+	}
+	buf.WriteRune(right_paren_rune)
+	return nil
+}
+
+//Generates SQL for a RangeExpresion (e.g. I("a").Between(RangeVal{Start:2,End:5}) -> "a" BETWEEN 2 AND 5)
+func (me *DefaultAdapter) RangeExpressionSql(buf *SqlBuilder, operator RangeExpression) error {
+	buf.WriteRune(left_paren_rune)
+	if err := me.Literal(buf, operator.Lhs()); err != nil {
+		return err
+	}
+	buf.WriteRune(space_rune)
+	operatorOp := operator.Op()
+	if val, ok := me.RangeOperatorLookup[operatorOp]; ok {
+		buf.Write(val)
+	} else {
+		return NewGoquError("Range operator %+v not supported", operatorOp)
+	}
+	rhs := operator.Rhs()
+	buf.WriteRune(space_rune)
+	if err := me.Literal(buf, rhs.Start); err != nil {
+		return err
+	}
+	buf.Write(default_and_fragment)
+	if err := me.Literal(buf, rhs.End); err != nil {
 		return err
 	}
 	buf.WriteRune(right_paren_rune)

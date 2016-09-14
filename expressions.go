@@ -98,6 +98,16 @@ func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (E
 					ored = lhs.ILike(op[opKey])
 				case "notilike":
 					ored = lhs.NotILike(op[opKey])
+				case "between":
+					rangeVal, ok := op[opKey].(RangeVal)
+					if ok {
+						ored = lhs.Between(rangeVal)
+					}
+				case "notbetween":
+					rangeVal, ok := op[opKey].(RangeVal)
+					if ok {
+						ored = lhs.NotBetween(rangeVal)
+					}
 				default:
 					return nil, NewGoquError("Unsupported expression type %s", op)
 				}
@@ -444,6 +454,14 @@ type (
 		//    I("col").Lte(1) //("col" <= 1)
 		Lte(interface{}) BooleanExpression
 	}
+	RangeMethods interface {
+		//Creates a Range expression for between comparisons
+		//    I("col").Between(RangeVal{Start:1, End:10}) //("col" BETWEEN 1 AND 10)
+		Between(RangeVal) RangeExpression
+		//Creates a Range expression for between comparisons
+		//    I("col").NotBetween(RangeVal{Start:1, End:10}) //("col" NOT BETWEEN 1 AND 10)
+		NotBetween(RangeVal) RangeExpression
+	}
 	//Interface that an expression should implement if it can be used in an IN expression
 	InMethods interface {
 		//Creates a Boolean expression for IN clauses
@@ -526,6 +544,7 @@ type (
 		Expression
 		AliasMethods
 		ComparisonMethods
+		RangeMethods
 		InMethods
 		StringMethods
 		BooleanMethods
@@ -683,6 +702,12 @@ func (me identifier) Desc() OrderedExpression                     { return desc(
 func (me identifier) Distinct() SqlFunctionExpression             { return DISTINCT(me) }
 func (me identifier) Cast(t string) CastExpression                { return Cast(me, t) }
 
+//Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
+func (me identifier) Between(val RangeVal) RangeExpression { return between(me, val) }
+
+//Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
+func (me identifier) NotBetween(val RangeVal) RangeExpression { return notBetween(me, val) }
+
 type (
 	//Expression for representing "literal" sql.
 	//  L("col = 1") -> col = 1)
@@ -691,6 +716,7 @@ type (
 		Expression
 		AliasMethods
 		ComparisonMethods
+		RangeMethods
 		OrderedMethods
 		//Returns the literal sql
 		Literal() string
@@ -751,6 +777,8 @@ func (me literal) Lt(val interface{}) BooleanExpression  { return lt(me, val) }
 func (me literal) Lte(val interface{}) BooleanExpression { return lte(me, val) }
 func (me literal) Asc() OrderedExpression                { return asc(me) }
 func (me literal) Desc() OrderedExpression               { return desc(me) }
+func (me literal) Between(val RangeVal) RangeExpression { return between(me, val) }
+func (me literal) NotBetween(val RangeVal) RangeExpression { return notBetween(me, val) }
 
 type (
 	UpdateExpression interface {
@@ -1004,6 +1032,66 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 	return boolean{op: op, lhs: lhs, rhs: rhs}
 }
 
+
+type (
+	RangeOperation  int
+	RangeExpression interface {
+		Expression
+		//Returns the operator for the expression
+		Op() RangeOperation
+		//The left hand side of the expression (e.g. I("a")
+		Lhs() Expression
+		//The right hand side of the expression could be a primitive value, dataset, or expression
+		Rhs() RangeVal
+	}
+	ranged struct {
+		lhs Expression
+		rhs RangeVal
+		op  RangeOperation
+	}
+	RangeVal struct {
+		Start interface{}
+		End   interface{}
+	}
+)
+
+const (
+	//BETWEEN
+	BETWEEN_OP RangeOperation = iota
+	//NOT BETWEEN
+	NBETWEEN_OP
+)
+
+func (me ranged) Clone() Expression {
+	return ranged{op: me.op, lhs: me.lhs.Clone(), rhs: me.rhs}
+}
+
+func (me ranged) Expression() Expression {
+	return me
+}
+
+func (me ranged) Rhs() RangeVal {
+	return me.rhs
+}
+
+func (me ranged) Lhs() Expression {
+	return me.lhs
+}
+
+func (me ranged) Op() RangeOperation {
+	return me.op
+}
+
+//used internally to create an BETWEEN comparison RangeExpression
+func between(lhs Expression, rhs RangeVal) RangeExpression {
+	return ranged{op: BETWEEN_OP, lhs: lhs, rhs: rhs}
+}
+
+//used internally to create an NOT BETWEEN comparison RangeExpression
+func notBetween(lhs Expression, rhs RangeVal) RangeExpression {
+	return ranged{op: NBETWEEN_OP, lhs: lhs, rhs: rhs}
+}
+
 type (
 	//Expression for Aliased expressions
 	//   I("a").As("b") -> "a" AS "b"
@@ -1217,6 +1305,8 @@ func (me sqlFunctionExpression) Gt(val interface{}) BooleanExpression  { return 
 func (me sqlFunctionExpression) Gte(val interface{}) BooleanExpression { return gte(me, val) }
 func (me sqlFunctionExpression) Lt(val interface{}) BooleanExpression  { return lt(me, val) }
 func (me sqlFunctionExpression) Lte(val interface{}) BooleanExpression { return lte(me, val) }
+func (me sqlFunctionExpression) Between(val RangeVal) RangeExpression { return between(me, val) }
+func (me sqlFunctionExpression) NotBetween(val RangeVal) RangeExpression { return notBetween(me, val) }
 
 type (
 	//An Expression that represents another Expression casted to a SQL type
@@ -1283,6 +1373,8 @@ func (me cast) IsNotTrue() BooleanExpression             { return isNot(me, true
 func (me cast) IsFalse() BooleanExpression               { return is(me, false) }
 func (me cast) IsNotFalse() BooleanExpression            { return isNot(me, nil) }
 func (me cast) Distinct() SqlFunctionExpression          { return DISTINCT(me) }
+func (me cast) Between(val RangeVal) RangeExpression   { return between(me, val) }
+func (me cast) NotBetween(val RangeVal) RangeExpression{ return notBetween(me, val) }
 
 type (
 	compoundType       int
