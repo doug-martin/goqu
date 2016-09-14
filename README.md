@@ -116,7 +116,7 @@ SELECT * FROM "user" WHERE "id" = $1
 <a name="expressions"></a>
 ### Expressions
 
-`goqu` provides an idiomatic DSL for generating SQL however the Dataset only provides the the different clause methods (e.g. Where, From, Select), most of these clause methods accept Expressions(with a few exceptions) which are the building blocks for your SQL statement, you can think of them as fragments of SQL.
+`goqu` provides an idiomatic DSL for generating SQL however the Dataset only provides the different clause methods (e.g. Where, From, Select), most of these clause methods accept Expressions(with a few exceptions) which are the building blocks for your SQL statement, you can think of them as fragments of SQL.
 
 The entry points for expressions are:
 
