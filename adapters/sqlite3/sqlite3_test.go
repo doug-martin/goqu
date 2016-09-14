@@ -158,7 +158,7 @@ func (me *sqlite3Test) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.I("int").Between(3,6)).Order(goqu.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Between(goqu.RangeVal{Start:3,End:6})).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 4)
 	assert.NoError(t, err)
 	for _, entry := range entries {

@@ -733,7 +733,7 @@ func (me *DefaultAdapter) BooleanExpressionSql(buf *SqlBuilder, operator Boolean
 	return nil
 }
 
-//Generates SQL for a RangeExpresion (e.g. I("a").Between(2,5) -> "a" BETWEEN 2 AND 5)
+//Generates SQL for a RangeExpresion (e.g. I("a").Between(RangeVal{Start:2,End:5}) -> "a" BETWEEN 2 AND 5)
 func (me *DefaultAdapter) RangeExpressionSql(buf *SqlBuilder, operator RangeExpression) error {
 	buf.WriteRune(left_paren_rune)
 	if err := me.Literal(buf, operator.Lhs()); err != nil {
@@ -746,14 +746,13 @@ func (me *DefaultAdapter) RangeExpressionSql(buf *SqlBuilder, operator RangeExpr
 	} else {
 		return NewGoquError("Range operator %+v not supported", operatorOp)
 	}
-	rhs1 := operator.Rhs1()
-	rhs2 := operator.Rhs2()
+	rhs := operator.Rhs()
 	buf.WriteRune(space_rune)
-	if err := me.Literal(buf, rhs1); err != nil {
+	if err := me.Literal(buf, rhs.Start); err != nil {
 		return err
 	}
 	buf.Write(default_and_fragment)
-	if err := me.Literal(buf, rhs2); err != nil {
+	if err := me.Literal(buf, rhs.End); err != nil {
 		return err
 	}
 	buf.WriteRune(right_paren_rune)
