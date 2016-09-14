@@ -702,7 +702,7 @@ It is important to maintain this pattern when writing your own Adapter.
 When creating your adapters you must register your adapter with [`RegisterAdapter`](http://godoc.org/github.com/doug-martin/goqu/#RegisterAdapter). This method requires 2 arguments.
 
 1. dialect - The dialect for your adapter.
-2. datasetAdapterFactory - This is a factory function that will return a new goqu.Adapter  used to create the the dialect specific SQL.
+2. datasetAdapterFactory - This is a factory function that will return a new goqu.Adapter  used to create the dialect specific SQL.
 
 
 For example the code for the postgres adapter is fairly short.
