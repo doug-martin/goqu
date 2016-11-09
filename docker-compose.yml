@@ -1,0 +1,18 @@
+version: "2"
+
+services:
+  postgres:
+    image: postgres:9.6
+    environment:
+      - "POSTGRES_USER=postgres"
+      - "POSTGRES_DB=goqupostgres"
+    ports:
+      - "5432:5432"
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      - "MYSQL_DATABASE=goqumysql"
+      - "MYSQL_ALLOW_EMPTY_PASSWORD=yes"
+    ports:
+      - "3306:3306"
