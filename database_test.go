@@ -216,7 +216,7 @@ func (me *databaseTest) TestPrepare() {
 	t := me.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	mock.ExpectPrepare("SELECT * FROM test WHERE id = ?")
+	mock.ExpectPrepare("SELECT \\* FROM test WHERE id = \\?")
 	db := New("mock", mDb)
 	stmt, err := db.Prepare("SELECT * FROM test WHERE id = ?")
 	assert.NoError(t, err)
