@@ -5,7 +5,6 @@ import "gopkg.in/doug-martin/goqu.v3"
 var (
 	placeholder_rune    = '?'
 	quote_rune          = '`'
-	singlq_quote        = '\''
 	default_values_frag = []byte("")
 	mysql_true          = []byte("1")
 	mysql_false         = []byte("0")
@@ -39,6 +38,10 @@ var (
 		0:    []byte("\\x00"),
 		0x1a: []byte("\\x1a"),
 	}
+	insert_ignore_clause      = []byte("INSERT IGNORE INTO")
+	conflict_fragment         = []byte("")
+	conflict_update_fragment  = []byte(" ON DUPLICATE KEY UPDATE ")
+	conflict_nothing_fragment = []byte("")
 )
 
 type DatasetAdapter struct {
@@ -76,6 +79,13 @@ func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
 	def.TimeFormat = time_format
 	def.BooleanOperatorLookup = operator_lookup
 	def.EscapedRunes = escape_runes
+	def.InsertIgnoreClause = insert_ignore_clause
+	def.ConflictFragment = conflict_fragment
+	def.ConflictDoUpdateFragment = conflict_update_fragment
+	def.ConflictDoNothingFragment = conflict_nothing_fragment
+	def.ConflictUpdateWhereSupported = false
+	def.InsertIgnoreSyntaxSupported = true
+	def.ConflictTargetSupported = false
 	return &DatasetAdapter{def}
 }
 

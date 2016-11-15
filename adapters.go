@@ -32,7 +32,7 @@ type (
 		//Generates the correct beginning sql for an INSERT statement
 		//
 		//buf: The current SqlBuilder to write the sql to
-		InsertBeginSql(buf *SqlBuilder) error
+		InsertBeginSql(buf *SqlBuilder, o ConflictExpression) error
 		//Generates the correct beginning sql for a DELETE statement
 		//
 		//buf: The current SqlBuilder to write the sql to
@@ -198,10 +198,20 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		InsertColumnsSql(buf *SqlBuilder, cols ColumnList) error
-		//Generates SQL value for the values in an INSERT STATEMENT
+		//Generates SQL value for the values in an INSERT statement
 		//
 		//buf: The current SqlBuilder to write the sql to
 		InsertValuesSql(buf *SqlBuilder, values [][]interface{}) error
+		//Returns true if the dialect supports INSERT IGNORE INTO syntax
+		SupportsInsertIgnoreSyntax() bool
+		//Returns true if the dialect supports ON CONFLICT (key) expressions
+		SupportsConflictTarget() bool
+		//Generates SQL value for the ON CONFLICT clause of an INSERT statement
+		//
+		//buf: The current SqlBuilder to write the sql to
+		OnConflictSql(buf *SqlBuilder, o ConflictExpression) error
+		//Returns true if the dialect supports a WHERE clause on upsert
+		SupportConflictUpdateWhere() bool
 	}
 )
 

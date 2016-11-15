@@ -1425,3 +1425,51 @@ func (me compound) Clone() Expression {
 
 func (me compound) Type() compoundType { return me.t }
 func (me compound) Rhs() SqlExpression { return me.rhs }
+
+
+type ConflictExpression interface {
+	Updates() *ConflictUpdate
+}
+
+//ConflictDoNothing is the struct that represents a ON CONFLICT DO NOTHING fragment of an INSERT statement
+type (
+	Conflict struct {}
+	ConflictUpdate struct {
+		Target      string
+		Update      interface{}
+		WhereClause ExpressionList
+	}
+)
+
+func (c Conflict) Updates() *ConflictUpdate {
+	return nil
+}
+
+func (c ConflictUpdate) TargetColumn() string {
+	return c.Target
+}
+
+func (c ConflictUpdate) Updates() *ConflictUpdate {
+	return &c
+}
+
+func (c *ConflictUpdate) Where(expressions ...Expression) *ConflictUpdate {
+	if c.WhereClause == nil {
+		c.WhereClause = And(expressions...)
+	} else {
+		c.WhereClause = c.WhereClause.Append(expressions...)
+	}
+	return c
+}
+
+func DoNothing() *Conflict {
+	return &Conflict{}
+}
+
+func DoUpdate(target string, update interface{}) *ConflictUpdate {
+	return &ConflictUpdate{Target: target, Update: update}
+}
+
+func DoUpdateWhere(target string, update interface{}, where ...Expression) *ConflictUpdate {
+	return &ConflictUpdate{Target: target, Update: update, WhereClause: And(where...)}
+}

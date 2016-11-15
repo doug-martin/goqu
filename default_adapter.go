@@ -76,9 +76,9 @@ var (
 		REGEXP_I_LIKE_OP:     []byte("~*"),
 		REGEXP_NOT_I_LIKE_OP: []byte("!~*"),
 	}
-	default_rangeop_lookup          = map[RangeOperation][]byte{
-		BETWEEN_OP:           []byte("BETWEEN"),
-		NBETWEEN_OP:          []byte("NOT BETWEEN"),
+	default_rangeop_lookup = map[RangeOperation][]byte{
+		BETWEEN_OP:  []byte("BETWEEN"),
+		NBETWEEN_OP: []byte("NOT BETWEEN"),
 	}
 	default_join_lookup = map[JoinType][]byte{
 		INNER_JOIN:         []byte(" INNER JOIN "),
@@ -97,6 +97,9 @@ var (
 	default_escape_runes = map[rune][]byte{
 		'\'': []byte("''"),
 	}
+	default_conflict_fragment         = []byte(" ON CONFLICT")
+	default_conflict_nothing_fragment = []byte(" DO NOTHING")
+	default_conflict_update_fragment  = []byte(" DO UPDATE SET ")
 )
 
 type (
@@ -106,8 +109,10 @@ type (
 		dataset *Dataset
 		//The UPDATE fragment to use when generating sql. (DEFAULT=[]byte("UPDATE"))
 		UpdateClause []byte
-		//The INSERT fragment to use when generating sql. (DEFAULT=[]byte("INSERT"))
+		//The INSERT fragment to use when generating sql. (DEFAULT=[]byte("INSERT INTO"))
 		InsertClause []byte
+		//The INSERT IGNORE INTO fragment to use when generating sql. (DEFAULT=[]byte("INSERT INTO"))
+		InsertIgnoreClause []byte
 		//The SELECT fragment to use when generating sql. (DEFAULT=[]byte("SELECT"))
 		SelectClause []byte
 		//The DELETE fragment to use when generating sql. (DEFAULT=[]byte("DELETE"))
@@ -194,56 +199,69 @@ type (
 		UseLiteralIsBools bool
 		//EscapedRunes is a map of a rune and the corresponding escape sequence in bytes. Used when escaping text types.
 		EscapedRunes map[rune][]byte
+
+		ConflictFragment               []byte
+		ConflictDoNothingFragment      []byte
+		ConflictDoUpdateFragment       []byte
+		ConflictTargetSupported        bool
+		ConflictUpdateWhereSupported   bool
+		InsertIgnoreSyntaxSupported    bool
 	}
 )
 
 func NewDefaultAdapter(ds *Dataset) Adapter {
 	return &DefaultAdapter{
-		dataset:               ds,
-		UpdateClause:          default_update_clause,
-		InsertClause:          default_insert_clause,
-		SelectClause:          default_select_clause,
-		DeleteClause:          default_delete_clause,
-		TruncateClause:        default_truncate_clause,
-		CascadeFragment:       default_cascade_fragment,
-		RestrictFragment:      default_retrict_fragment,
-		DefaultValuesFragment: default_default_values_fragment,
-		ValuesFragment:        default_values_fragment,
-		IdentityFragment:      default_identity_fragment,
-		SetFragment:           default_set_fragment,
-		DistinctFragment:      default_distinct_fragment,
-		ReturningFragment:     default_returning_fragment,
-		FromFragment:          default_from_fragment,
-		WhereFragment:         default_where_fragment,
-		GroupByFragment:       default_group_by_fragment,
-		HavingFragment:        default_having_fragment,
-		OrderByFragment:       default_order_by_fragment,
-		LimitFragment:         default_limit_fragment,
-		OffsetFragment:        default_offset_fragment,
-		AsFragment:            default_as_fragment,
-		QuoteRune:             default_quote,
-		Null:                  default_null,
-		True:                  default_true,
-		False:                 default_false,
-		StringQuote:           default_string_quote_rune,
-		AscFragment:           default_asc_fragment,
-		DescFragment:          default_desc_fragment,
-		NullsFirstFragment:    default_nulls_first_fragment,
-		NullsLastFragment:     default_nulls_last_fragment,
-		AndFragment:           default_and_fragment,
-		OrFragment:            default_or_fragment,
-		SetOperatorRune:       default_set_operator_rune,
-		UnionFragment:         default_union_fragment,
-		UnionAllFragment:      default_union_all_fragment,
-		IntersectFragment:     default_intersect_fragment,
-		IntersectAllFragment:  default_intersect_all_fragment,
-		PlaceHolderRune:       default_place_holder_rune,
-		BooleanOperatorLookup: default_operator_lookup,
-		RangeOperatorLookup:   default_rangeop_lookup,
-		JoinTypeLookup:        default_join_lookup,
-		TimeFormat:            time.RFC3339Nano,
-		UseLiteralIsBools:     true,
-		EscapedRunes:          default_escape_runes,
+		dataset:                        ds,
+		UpdateClause:                   default_update_clause,
+		InsertClause:                   default_insert_clause,
+		SelectClause:                   default_select_clause,
+		DeleteClause:                   default_delete_clause,
+		TruncateClause:                 default_truncate_clause,
+		CascadeFragment:                default_cascade_fragment,
+		RestrictFragment:               default_retrict_fragment,
+		DefaultValuesFragment:          default_default_values_fragment,
+		ValuesFragment:                 default_values_fragment,
+		IdentityFragment:               default_identity_fragment,
+		SetFragment:                    default_set_fragment,
+		DistinctFragment:               default_distinct_fragment,
+		ReturningFragment:              default_returning_fragment,
+		FromFragment:                   default_from_fragment,
+		WhereFragment:                  default_where_fragment,
+		GroupByFragment:                default_group_by_fragment,
+		HavingFragment:                 default_having_fragment,
+		OrderByFragment:                default_order_by_fragment,
+		LimitFragment:                  default_limit_fragment,
+		OffsetFragment:                 default_offset_fragment,
+		AsFragment:                     default_as_fragment,
+		QuoteRune:                      default_quote,
+		Null:                           default_null,
+		True:                           default_true,
+		False:                          default_false,
+		StringQuote:                    default_string_quote_rune,
+		AscFragment:                    default_asc_fragment,
+		DescFragment:                   default_desc_fragment,
+		NullsFirstFragment:             default_nulls_first_fragment,
+		NullsLastFragment:              default_nulls_last_fragment,
+		AndFragment:                    default_and_fragment,
+		OrFragment:                     default_or_fragment,
+		SetOperatorRune:                default_set_operator_rune,
+		UnionFragment:                  default_union_fragment,
+		UnionAllFragment:               default_union_all_fragment,
+		IntersectFragment:              default_intersect_fragment,
+		IntersectAllFragment:           default_intersect_all_fragment,
+		PlaceHolderRune:                default_place_holder_rune,
+		BooleanOperatorLookup:          default_operator_lookup,
+		RangeOperatorLookup:            default_rangeop_lookup,
+		JoinTypeLookup:                 default_join_lookup,
+		TimeFormat:                     time.RFC3339Nano,
+		UseLiteralIsBools:              true,
+		EscapedRunes:                   default_escape_runes,
+		ConflictFragment:               default_conflict_fragment,
+		ConflictDoUpdateFragment:       default_conflict_update_fragment,
+		ConflictDoNothingFragment:      default_conflict_nothing_fragment,
+		ConflictUpdateWhereSupported:   true,
+		InsertIgnoreSyntaxSupported:    false,
+		ConflictTargetSupported:        true,
 	}
 }
 
@@ -268,9 +286,28 @@ func (me *DefaultAdapter) SupportsOrderByOnDelete() bool {
 }
 
 //Override to allow ORDER BY on UPDATE statements
+func (me *DefaultAdapter) SupportsConflictUpdateWhere() bool {
+	return me.ConflictUpdateWhereSupported
+}
+
+//Override to allow ORDER BY on UPDATE statements
+func (me *DefaultAdapter) SupportsConflictTarget() bool {
+	return me.ConflictTargetSupported
+}
+
+//Override to allow ORDER BY on UPDATE statements
 func (me *DefaultAdapter) SupportsOrderByOnUpdate() bool {
 	return false
 }
+
+func (me *DefaultAdapter) SupportsInsertIgnoreSyntax() bool {
+	return me.InsertIgnoreSyntaxSupported
+}
+
+func (me *DefaultAdapter) SupportConflictUpdateWhere() bool {
+	return me.ConflictUpdateWhereSupported
+}
+
 
 //This is a proxy to Dataset.Literal. Used internally to ensure the correct method is called on any subclasses and to prevent duplication of code
 func (me *DefaultAdapter) Literal(buf *SqlBuilder, val interface{}) error {
@@ -294,8 +331,12 @@ func (me *DefaultAdapter) UpdateBeginSql(buf *SqlBuilder) error {
 }
 
 //Adds the correct fragment to being an INSERT statement
-func (me *DefaultAdapter) InsertBeginSql(buf *SqlBuilder) error {
-	buf.Write(me.InsertClause)
+func (me *DefaultAdapter) InsertBeginSql(buf *SqlBuilder, o ConflictExpression) error {
+	if me.SupportsInsertIgnoreSyntax() && o != nil {
+		buf.Write(me.InsertIgnoreClause)
+	} else {
+		buf.Write(me.InsertClause)
+	}
 	return nil
 }
 
@@ -361,13 +402,66 @@ func (me *DefaultAdapter) InsertValuesSql(buf *SqlBuilder, values [][]interface{
 	return nil
 }
 
+//Adds the DefaultValuesFragment to an SQL statement
+func (me *DefaultAdapter) OnConflictSql(buf *SqlBuilder, o ConflictExpression) error {
+	if o == nil {
+		return nil
+	}
+	buf.Write(me.ConflictFragment)
+	if u := o.Updates(); u != nil {
+		target := u.Target
+		if me.SupportsConflictTarget() && target != "" {
+			buf.Write([]byte(" ("))
+			buf.Write([]byte(target))
+			buf.Write([]byte(")"))
+		}
+		if err := me.onConflictDoUpdateSql(buf, *u); err != nil {
+			return err
+		}
+	} else {
+		buf.Write(me.ConflictDoNothingFragment)
+	}
+	return nil
+}
+
+func (me *DefaultAdapter) onConflictDoUpdateSql(buf *SqlBuilder, o ConflictUpdate) error {
+	buf.Write(me.ConflictDoUpdateFragment)
+	update := o.Update
+	if update == nil {
+		return NewGoquError("Values are required")
+	}
+	exp, err := me.dataset.getUpdateExpressions(update)
+	if err != nil {
+		return err
+	}
+	if err := me.updateValuesSql(buf, exp...); err != nil {
+		return err
+	}
+	if o.WhereClause != nil {
+		if !me.SupportsConflictUpdateWhere() {
+			return NewGoquError("Adapter does not support upsert with where clause")
+		}
+
+		if err := me.WhereSql(buf, o.WhereClause); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 //Adds column setters in an update SET clause
 func (me *DefaultAdapter) UpdateExpressionsSql(buf *SqlBuilder, updates ...UpdateExpression) error {
+	buf.Write(me.SetFragment)
+	return me.updateValuesSql(buf, updates...)
+
+}
+
+//Adds column setters in an update SET clause
+func (me *DefaultAdapter) updateValuesSql(buf *SqlBuilder, updates ...UpdateExpression) error {
 	if len(updates) == 0 {
 		return NewGoquError("No update values provided")
 	}
 	updateLen := len(updates)
-	buf.Write(me.SetFragment)
 	for i, update := range updates {
 		if err := me.Literal(buf, update); err != nil {
 			return err
@@ -909,6 +1003,7 @@ func (me *DefaultAdapter) ExpressionOrMapSql(buf *SqlBuilder, ex ExOr) error {
 	}
 	return me.Literal(buf, expressionList)
 }
+
 
 func init() {
 	RegisterAdapter("default", NewDefaultAdapter)
