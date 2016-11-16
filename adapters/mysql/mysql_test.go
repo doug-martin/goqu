@@ -347,25 +347,25 @@ func (me *mysqlTest) TestInsertIgnore() {
 	assert.Equal(t, count, 11)
 }
 
-func (me *mysqlTest) TestUpsert() {
+func (me *mysqlTest) TestInsertConflict() {
 	t := me.T()
 	ds := me.db.From("entry")
 	now := time.Now()
 
 	//insert
 	e := entry{Int: 10, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
-	_, err := ds.Upsert(goqu.DoNothing(), e).Exec()
+	_, err := ds.InsertConflict(goqu.DoNothing(), e).Exec()
 	assert.NoError(t, err)
 
 	//duplicate
 	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
-	_, err = ds.Upsert(goqu.DoNothing(), e).Exec()
+	_, err = ds.InsertConflict(goqu.DoNothing(), e).Exec()
 	assert.NoError(t, err)
 
 	//update
 	var entryActual entry
 	e2 := entry{Int: 10, String: "2.000000"}
-	_, err = ds.Upsert(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
+	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
 	assert.NoError(t, err)
 	_, err = ds.Where(goqu.I("int").Eq(10)).ScanStruct(&entryActual)
 	assert.NoError(t, err)
@@ -377,7 +377,7 @@ func (me *mysqlTest) TestUpsert() {
 		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
 		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
-	_, err = ds.Upsert(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("int").Eq(9)), entries).Exec()
+	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("int").Eq(9)), entries).Exec()
 	assert.Equal(t, err.Error(), "goqu: Adapter does not support upsert with where clause")
 }
 

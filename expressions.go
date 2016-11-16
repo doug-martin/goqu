@@ -1427,32 +1427,39 @@ func (me compound) Type() compoundType { return me.t }
 func (me compound) Rhs() SqlExpression { return me.rhs }
 
 
-type ConflictExpression interface {
-	Updates() *ConflictUpdate
-}
-
-//ConflictDoNothing is the struct that represents a ON CONFLICT DO NOTHING fragment of an INSERT statement
 type (
+	//An Expression that the ON CONFLICT/ON DUPLICATE KEY portion of an INSERT statement
+	ConflictExpression interface {
+		Updates() *ConflictUpdate
+	}
 	Conflict struct {}
+	//ConflictUpdate is the struct that represents the UPDATE fragment of an INSERT ... ON CONFLICT/ON DUPLICATE KEY DO UPDATE statement
 	ConflictUpdate struct {
 		Target      string
 		Update      interface{}
 		WhereClause ExpressionList
 	}
 )
-
+//Updates returns the struct that represents the UPDATE fragment of an INSERT ... ON CONFLICT/ON DUPLICATE KEY DO UPDATE statement
+//If nil, no update is preformed.
 func (c Conflict) Updates() *ConflictUpdate {
 	return nil
 }
 
+//Returns the target conflict column. Only necessary for Postgres.
+//Will return an error for mysql/sqlite. Will also return an error if missing from a postgres ConflictUpdate.
 func (c ConflictUpdate) TargetColumn() string {
 	return c.Target
 }
 
+//Returns the Updates which represent the ON CONFLICT DO UPDATE portion of an insert statement. If nil, there are no updates.
 func (c ConflictUpdate) Updates() *ConflictUpdate {
 	return &c
 }
 
+
+//Append to the existing Where clause for an ON CONFLICT DO UPDATE ... WHERE ...
+//  InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
 func (c *ConflictUpdate) Where(expressions ...Expression) *ConflictUpdate {
 	if c.WhereClause == nil {
 		c.WhereClause = And(expressions...)
@@ -1462,14 +1469,16 @@ func (c *ConflictUpdate) Where(expressions ...Expression) *ConflictUpdate {
 	return c
 }
 
+//Creates a Conflict struct to be passed to InsertConflict to ignore constraint errors
+//  InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
 func DoNothing() *Conflict {
 	return &Conflict{}
 }
 
+//Creates a ConflictUpdate struct to be passed to InsertConflict
+//Represents a ON CONFLICT DO UPDATE portion of an INSERT statement (ON DUPLICATE KEY UPDATE for mysql)
+//  InsertConflict(DoUpdate("target_column", update),...) -> INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
+//  InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) -> INSERT INTO ... ON CONFLICT DO UPDATE SET a=b WHERE a=1
 func DoUpdate(target string, update interface{}) *ConflictUpdate {
 	return &ConflictUpdate{Target: target, Update: update}
-}
-
-func DoUpdateWhere(target string, update interface{}, where ...Expression) *ConflictUpdate {
-	return &ConflictUpdate{Target: target, Update: update, WhereClause: And(where...)}
 }

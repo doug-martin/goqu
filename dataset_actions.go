@@ -83,16 +83,16 @@ func (me *Dataset) Insert(i ...interface{}) *CrudExec {
 //
 //See Dataset#InsertIgnore for arguments
 func (me *Dataset) InsertIgnore(i ...interface{}) *CrudExec {
-	sql, args, err := me.ToUpsertSql(DoNothing(), i...)
+	sql, args, err := me.ToInsertConflictSql(DoNothing(), i...)
 	return newCrudExec(me.database, err, sql, args...)
 }
 
 //Generates the INSERT sql with (ON CONFLICT/ON DUPLICATE KEY) clause, and returns an Exec struct with the sql set to the INSERT statement
-//    db.From("test").Upsert(DoNothing(), Record{"name":"Bob").Exec()
+//    db.From("test").InsertConflict(DoNothing(), Record{"name":"Bob").Exec()
 //
 //See Dataset#Upsert for arguments
-func (me *Dataset) Upsert(c ConflictExpression, i ...interface{}) *CrudExec {
-	sql, args, err := me.ToUpsertSql(c, i...)
+func (me *Dataset) InsertConflict(c ConflictExpression, i ...interface{}) *CrudExec {
+	sql, args, err := me.ToInsertConflictSql(c, i...)
 	return newCrudExec(me.database, err, sql, args...)
 }
 

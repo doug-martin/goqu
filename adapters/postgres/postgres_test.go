@@ -362,25 +362,25 @@ func (me *postgresTest) TestInsertIgnore() {
 }
 
 
-func (me *postgresTest) TestUpsert() {
+func (me *postgresTest) TestInsertConflict() {
 	t := me.T()
 	ds := me.db.From("entry")
 	now := time.Now()
 
 	//DO NOTHING insert
 	e := entry{Int: 10, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
-	_, err := ds.Upsert(goqu.DoNothing(), e).Exec()
+	_, err := ds.InsertConflict(goqu.DoNothing(), e).Exec()
 	assert.NoError(t, err)
 
 	//DO NOTHING duplicate
 	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
-	_, err = ds.Upsert(goqu.DoNothing(), e).Exec()
+	_, err = ds.InsertConflict(goqu.DoNothing(), e).Exec()
 	assert.NoError(t, err)
 
 	//DO NOTHING update
 	var entryActual entry
 	e2 := entry{Int: 0, String: "2.000000"}
-	_, err = ds.Upsert(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
+	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
 	assert.NoError(t, err)
 	_, err = ds.Where(goqu.I("int").Eq(0)).ScanStruct(&entryActual)
 	assert.NoError(t, err)
@@ -391,7 +391,7 @@ func (me *postgresTest) TestUpsert() {
 		{Int: 1, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
 		{Int: 2, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
-	_, err = ds.Upsert(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("excluded.int").Eq(2)), entries).Exec()
+	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("excluded.int").Eq(2)), entries).Exec()
 	assert.NoError(t, err)
 
 	var entry8, entry9 entry
