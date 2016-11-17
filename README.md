@@ -767,6 +767,19 @@ If you find an issue you want to work on please comment on it letting other peop
 
 If want to work on an issue but dont know where to start just leave a comment and I'll be more than happy to point you in the right direction.
 
+### Running tests
+The test suite requires a postgres and mysql database. You can override the mysql/postgres connection strings with the [`MYSQL_URI` and `PG_URI` environment variables](https://github.com/doug-martin/goqu/blob/2fe3349/docker-compose.yml#L26)*
+
+```sh
+go test -v -race ./...
+```
+
+You can also run the tests in a container using [docker-compose](https://docs.docker.com/compose/).
+
+```sh
+GO_VERSION=latest docker-compose run goqu
+```
+
 ## License
 
 `goqu` is released under the [MIT License](http://www.opensource.org/licenses/MIT).
