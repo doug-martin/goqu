@@ -607,3 +607,62 @@ func (me *datasetTest) TestPreparedInsertSqlWithValuerNull() {
 	})
 	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`)
 }
+
+func (me *datasetTest) TestInsertConflictSql__OnConflictIsNil() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, _, err := ds1.ToInsertConflictSql(nil, item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test')`, sql)
+}
+
+func (me *datasetTest) TestInsertConflictSql__OnConflictDoUpdate() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	i := item{Name: "Test", Address: "111 Test Addr"}
+	sql, _, err := ds1.ToInsertConflictSql(DoUpdate("name", Record{"address": L("excluded.address")}), i)
+	assert.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') ON CONFLICT (name) DO UPDATE SET "address"=excluded.address`, sql)
+}
+
+func (me *datasetTest) TestInsertConflictSql__OnConflictDoUpdateWhere() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	i := item{Name: "Test", Address: "111 Test Addr"}
+
+	sql, _, err := ds1.ToInsertConflictSql(DoUpdate("name", Record{"address": L("excluded.address")}).Where(I("name").Eq("Test")), i)
+	assert.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') ON CONFLICT (name) DO UPDATE SET "address"=excluded.address WHERE ("name" = 'Test')`, sql)
+}
+
+
+func (me *datasetTest) TestInsertIgnoreSql() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, _, err := ds1.ToInsertIgnoreSql(item{Name: "Test", Address: "111 Test Addr"})
+	assert.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') ON CONFLICT DO NOTHING`, sql)
+}
+
+
+func (me *datasetTest) TestInsertConflict__ImplementsConflictExpressionInterface() {
+	t := me.T()
+	assert.Implements(t, (*ConflictExpression)(nil), DoNothing())
+	assert.Implements(t, (*ConflictExpression)(nil), DoUpdate("", nil))
+}

@@ -28,19 +28,9 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 	if !me.hasSources() {
 		return "", nil, NewGoquError("No source found when generating update sql")
 	}
-	updateValue := reflect.Indirect(reflect.ValueOf(update))
-	var updates []UpdateExpression
-	switch updateValue.Kind() {
-	case reflect.Map:
-		keys := valueSlice(updateValue.MapKeys())
-		sort.Sort(keys)
-		for _, key := range keys {
-			updates = append(updates, I(key.String()).Set(updateValue.MapIndex(key).Interface()))
-		}
-	case reflect.Struct:
-		updates = me.getUpdateExpressions(updateValue)
-	default:
-		return "", nil, NewGoquError("Unsupported update interface type %+v", updateValue.Type())
+	updates, err := me.getUpdateExpressions(update)
+	if err != nil {
+		return "", nil, err
 	}
 	buf := NewSqlBuilder(me.isPrepared)
 	if err := me.adapter.UpdateBeginSql(buf); err != nil {
@@ -76,7 +66,25 @@ func (me *Dataset) ToUpdateSql(update interface{}) (string, []interface{}, error
 	return sql, args, nil
 }
 
-func (me *Dataset) getUpdateExpressions(value reflect.Value) (updates []UpdateExpression) {
+func (me *Dataset) getUpdateExpressions(update interface{}) ([]UpdateExpression, error) {
+	updateValue := reflect.Indirect(reflect.ValueOf(update))
+	var updates []UpdateExpression
+	switch updateValue.Kind() {
+	case reflect.Map:
+		keys := valueSlice(updateValue.MapKeys())
+		sort.Sort(keys)
+		for _, key := range keys {
+			updates = append(updates, I(key.String()).Set(updateValue.MapIndex(key).Interface()))
+		}
+	case reflect.Struct:
+		updates = me.getUpdateExpressionsStruct(updateValue)
+	default:
+		return nil, NewGoquError("Unsupported update interface type %+v", updateValue.Type())
+	}
+	return updates, nil
+}
+
+func (me *Dataset) getUpdateExpressionsStruct(value reflect.Value) (updates []UpdateExpression) {
 	for i := 0; i < value.NumField(); i++ {
 		v := value.Field(i)
 		t := value.Type().Field(i)
@@ -85,7 +93,7 @@ func (me *Dataset) getUpdateExpressions(value reflect.Value) (updates []UpdateEx
 				updates = append(updates, I(t.Tag.Get("db")).Set(v.Interface()))
 			}
 		} else {
-			updates = append(updates, me.getUpdateExpressions(reflect.Indirect(reflect.ValueOf(v.Interface())))...)
+			updates = append(updates, me.getUpdateExpressionsStruct(reflect.Indirect(reflect.ValueOf(v.Interface())))...)
 		}
 	}
 

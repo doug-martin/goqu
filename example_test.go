@@ -1372,6 +1372,79 @@ func ExampleDataset_ToInsertSql_prepared() {
 	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
 }
 
+func ExampleDataset_ToInsertIgnore() {
+	db := goqu.New("mysql", driver)
+	type item struct {
+		Id      uint32 `db:"id" goqu:"skipinsert"`
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, _ := db.From("items").ToInsertIgnoreSql(
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToInsertIgnoreSql(
+		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
+		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToInsertIgnoreSql(
+		[]item{
+			{Name: "Test1", Address: "111 Test Addr"},
+			{Name: "Test2", Address: "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToInsertIgnoreSql(
+		[]goqu.Record{
+			{"name": "Test1", "address": "111 Test Addr"},
+			{"name": "Test2", "address": "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+}
+
+func ExampleDataset_ToInsertConflictSql() {
+	db := goqu.New("mysql", driver)
+	type item struct {
+		Id      uint32 `db:"id" goqu:"skipinsert"`
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+	sql, args, _ := db.From("items").ToInsertConflictSql(
+		goqu.DoNothing(),
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToInsertConflictSql(
+		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}),
+		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
+		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = db.From("items").ToInsertConflictSql(
+		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}).Where(goqu.I("allow_update").IsTrue()),
+		[]item{
+			{Name: "Test1", Address: "111 Test Addr"},
+			{Name: "Test2", Address: "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
+}
+
 func ExampleDataset_ToDeleteSql() {
 	db := goqu.New("default", driver)
 	sql, args, _ := db.From("items").ToDeleteSql()

@@ -17,7 +17,7 @@ const (
 	drop_table   = "DROP TABLE IF EXISTS `entry`;"
 	create_table = "CREATE  TABLE `entry` (" +
 		"`id` INT NOT NULL AUTO_INCREMENT ," +
-		"`int` INT NOT NULL ," +
+		"`int` INT NOT NULL UNIQUE," +
 		"`float` FLOAT NOT NULL ," +
 		"`string` VARCHAR(255) NOT NULL ," +
 		"`time` DATETIME NOT NULL ," +
@@ -326,6 +326,59 @@ func (me *mysqlTest) TestDelete() {
 	id = 0
 	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)
 	assert.Equal(t, err.Error(), "goqu: Adapter does not support RETURNING clause")
+}
+
+func (me *mysqlTest) TestInsertIgnore() {
+	t := me.T()
+	ds := me.db.From("entry")
+	now := time.Now()
+
+	//insert one
+	entries := []entry{
+		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
+		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
+		{Int: 10, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
+	}
+	_, err := ds.InsertIgnore(entries).Exec()
+	assert.NoError(t, err)
+
+	count, err := ds.Count()
+	assert.NoError(t, err)
+	assert.Equal(t, count, 11)
+}
+
+func (me *mysqlTest) TestInsertConflict() {
+	t := me.T()
+	ds := me.db.From("entry")
+	now := time.Now()
+
+	//insert
+	e := entry{Int: 10, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
+	_, err := ds.InsertConflict(goqu.DoNothing(), e).Exec()
+	assert.NoError(t, err)
+
+	//duplicate
+	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
+	_, err = ds.InsertConflict(goqu.DoNothing(), e).Exec()
+	assert.NoError(t, err)
+
+	//update
+	var entryActual entry
+	e2 := entry{Int: 10, String: "2.000000"}
+	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
+	assert.NoError(t, err)
+	_, err = ds.Where(goqu.I("int").Eq(10)).ScanStruct(&entryActual)
+	assert.NoError(t, err)
+	assert.Equal(t, "upsert", entryActual.String)
+
+
+	//update where should error
+	entries := []entry{
+		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
+		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
+	}
+	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("int").Eq(9)), entries).Exec()
+	assert.Equal(t, err.Error(), "goqu: Adapter does not support upsert with where clause")
 }
 
 func TestMysqlSuite(t *testing.T) {

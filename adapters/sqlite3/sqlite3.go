@@ -39,6 +39,7 @@ var (
 		0:    []byte("\\x00"),
 		0x1a: []byte("\\x1a"),
 	}
+	insert_ignore_clause = []byte("INSERT OR IGNORE")
 )
 
 type DatasetAdapter struct {
@@ -77,6 +78,13 @@ func newDatasetAdapter(ds *goqu.Dataset) goqu.Adapter {
 	def.BooleanOperatorLookup = operator_lookup
 	def.UseLiteralIsBools = false
 	def.EscapedRunes = escape_runes
+	def.InsertIgnoreClause = insert_ignore_clause
+	def.ConflictFragment = []byte("")
+	def.ConflictDoUpdateFragment = []byte("")
+	def.ConflictDoNothingFragment = []byte("")
+	def.ConflictUpdateWhereSupported = false
+	def.InsertIgnoreSyntaxSupported = true
+	def.ConflictTargetSupported = false
 	return &DatasetAdapter{def}
 }
 

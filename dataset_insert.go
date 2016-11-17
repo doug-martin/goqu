@@ -21,12 +21,46 @@ import (
 //  * Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
 //  * Error generating SQL
 func (me *Dataset) ToInsertSql(rows ...interface{}) (string, []interface{}, error) {
+	return me.toInsertSql(nil, rows)
+}
+
+//Generates the default INSERT IGNORE/ INSERT ... ON CONFLICT DO NOTHING statement. If Prepared has been called with true then the statement will not be interpolated. See examples.
+//
+//c: ConflictExpression action. Can be DoNothing/Ignore or DoUpdate/DoUpdateWhere.
+//rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
+//
+//Errors:
+//  * There is no FROM clause
+//  * Different row types passed in, all rows must be of the same type
+//  * Maps with different numbers of K/V pairs
+//  * Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
+//  * Error generating SQL
+func (me *Dataset) ToInsertIgnoreSql(rows ...interface{}) (string, []interface{}, error) {
+	return me.toInsertSql(DoNothing(), rows)
+}
+
+// Generates the INSERT [IGNORE] ... ON CONFLICT/DUPLICATE KEY. If Prepared has been called with true then the statement will
+// not be interpolated. See examples.
+//
+//rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the accepted types.
+//
+//Errors:
+//  * There is no FROM clause
+//  * Different row types passed in, all rows must be of the same type
+//  * Maps with different numbers of K/V pairs
+//  * Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
+//  * Error generating SQL
+func (me *Dataset) ToInsertConflictSql(o ConflictExpression, rows ...interface{}) (string, []interface{}, error) {
+	return me.toInsertSql(o, rows)
+}
+
+func (me *Dataset) toInsertSql(o ConflictExpression, rows ...interface{}) (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, NewGoquError("No source found when generating insert sql")
 	}
 	switch len(rows) {
 	case 0:
-		return me.insertSql(nil, nil, me.isPrepared)
+		return me.insertSql(nil, nil, me.isPrepared, o)
 	case 1:
 		val := reflect.ValueOf(rows[0])
 		if val.Kind() == reflect.Slice {
@@ -34,7 +68,7 @@ func (me *Dataset) ToInsertSql(rows ...interface{}) (string, []interface{}, erro
 			for i := 0; i < val.Len(); i++ {
 				vals[i] = val.Index(i).Interface()
 			}
-			return me.ToInsertSql(vals...)
+			return me.toInsertSql(o, vals...)
 		}
 		switch rows[0].(type) {
 		case *Dataset:
@@ -46,7 +80,7 @@ func (me *Dataset) ToInsertSql(rows ...interface{}) (string, []interface{}, erro
 	if err != nil {
 		return "", nil, err
 	}
-	return me.insertSql(columns, vals, me.isPrepared)
+	return me.insertSql(columns, vals, me.isPrepared, o)
 }
 
 func (me *Dataset) canInsertField(field reflect.StructField) bool {
@@ -127,10 +161,11 @@ func (me *Dataset) getFieldsValues(value reflect.Value) (rowCols []interface{}, 
 	return rowCols, rowVals
 }
 
+
 //Creates an INSERT statement with the columns and values passed in
-func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared bool) (string, []interface{}, error) {
+func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared bool, c ConflictExpression) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
-	if err := me.adapter.InsertBeginSql(buf); err != nil {
+	if err := me.adapter.InsertBeginSql(buf, c); err != nil {
 		return "", nil, err
 	}
 	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
@@ -148,6 +183,9 @@ func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared b
 			return "", nil, NewGoquError(err.Error())
 		}
 	}
+	if err := me.adapter.OnConflictSql(buf, c); err != nil {
+		return "", nil, err
+	}
 	if me.adapter.SupportsReturn() {
 		if err := me.adapter.ReturningSql(buf, me.clauses.Returning); err != nil {
 			return "", nil, err
@@ -163,7 +201,7 @@ func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared b
 //Creates an insert statement with values coming from another dataset
 func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
-	if err := me.adapter.InsertBeginSql(buf); err != nil {
+	if err := me.adapter.InsertBeginSql(buf, nil); err != nil {
 		return "", nil, err
 	}
 	if err := me.adapter.SourcesSql(buf, me.clauses.From); err != nil {
