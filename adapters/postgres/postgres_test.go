@@ -36,12 +36,13 @@ const schema = `
             (9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-00:00', FALSE, '0.900000');
     `
 
-var db_uri = "postgres://postgres:@/goqupostgres?sslmode=disable"
+const default_db_uri ="postgres://postgres:@/goqupostgres?sslmode=disable"
+var db_uri string
 
 func init() {
-	uri := os.Getenv("WERCKER_POSTGRESQL_URL")
-	if uri != "" {
-		db_uri = uri
+	db_uri = os.Getenv("PG_URI")
+	if db_uri == "" {
+		db_uri = default_db_uri
 	}
 }
 

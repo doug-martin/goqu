@@ -6,13 +6,25 @@ services:
     environment:
       - "POSTGRES_USER=postgres"
       - "POSTGRES_DB=goqupostgres"
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
 
   mysql:
-    image: mysql:8.0
+    image: mysql:5
     environment:
       - "MYSQL_DATABASE=goqumysql"
       - "MYSQL_ALLOW_EMPTY_PASSWORD=yes"
-    ports:
-      - "3306:3306"
+    expose:
+      - "3306"
+
+  goqu:
+    image: "golang:${GO_VERSION}"
+    command: bash -c "sleep 30 && go test -v -race ./..."
+    volumes:
+      - "./:/go/src/gopkg.in/doug-martin/goqu.v3"
+    environment:
+      MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
+      PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
+    depends_on:
+      - postgres
+      - mysql

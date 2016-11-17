@@ -37,16 +37,13 @@ const (
 		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', FALSE, '0.900000');"
 )
 
-var db_uri = "root@/goqumysql?parseTime=true"
+const default_db_uri = "root@/goqumysql?parseTime=true"
+var db_uri string
 
 func init() {
-	uri := os.Getenv("WERCKER_MYSQL_URL")
-	if uri != "" {
-		user := os.Getenv("WERCKER_MYSQL_USERNAME")
-		pass := os.Getenv("WERCKER_MYSQL_PASSWORD")
-		addr := os.Getenv("WERCKER_MYSQL_HOST") + ":" + os.Getenv("WERCKER_MYSQL_PORT")
-		dbname := os.Getenv("WERCKER_MYSQL_DATABASE")
-		db_uri = fmt.Sprintf("%s:%s@tcp(%s)/%s?timeout=30s&parseTime=true", user, pass, addr, dbname)
+	db_uri = os.Getenv("MYSQL_URI")
+	if db_uri == "" {
+		db_uri = default_db_uri
 	}
 }
 
