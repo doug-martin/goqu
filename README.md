@@ -18,7 +18,7 @@
     * [Complex Example](#complex-example)
 * [Querying](#querying)
     * [Dataset](#dataset)
-        * [Prepared Statments](#dataset_prepared)
+        * [Prepared Statements](#dataset_prepared)
     * [Database](#database)
     * [Transactions](#transactions)
 * [Logging](#logging)
@@ -664,7 +664,7 @@ if err != nil{
 <a name="logging"></a>
 ## Logging
 
-To enable trace logging of SQL statments use the [`Database.Logger`](http://godoc.org/github.com/doug-martin/goqu/#Database.Logger) method to set your logger.
+To enable trace logging of SQL statements use the [`Database.Logger`](http://godoc.org/github.com/doug-martin/goqu/#Database.Logger) method to set your logger.
 
 **NOTE** The logger must implement the [`Logger`](http://godoc.org/github.com/doug-martin/goqu/#Logger) interface
 
