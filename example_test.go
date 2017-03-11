@@ -531,7 +531,7 @@ func ExampleDataset_Union() {
 	sql, _, _ = db.From("test").
 		Limit(1).
 		Union(db.From("test2").
-		Order(goqu.I("id").Desc())).
+			Order(goqu.I("id").Desc())).
 		ToSql()
 	fmt.Println(sql)
 	// Output:
@@ -554,7 +554,7 @@ func ExampleDataset_UnionAll() {
 	sql, _, _ = db.From("test").
 		Limit(1).
 		UnionAll(db.From("test2").
-		Order(goqu.I("id").Desc())).
+			Order(goqu.I("id").Desc())).
 		ToSql()
 	fmt.Println(sql)
 	// Output:
@@ -577,7 +577,7 @@ func ExampleDataset_Intersect() {
 	sql, _, _ = db.From("test").
 		Limit(1).
 		Intersect(db.From("test2").
-		Order(goqu.I("id").Desc())).
+			Order(goqu.I("id").Desc())).
 		ToSql()
 	fmt.Println(sql)
 	// Output:
@@ -601,7 +601,7 @@ func ExampleDataset_IntersectAll() {
 		From("test").
 		Limit(1).
 		IntersectAll(db.From("test2").
-		Order(goqu.I("id").Desc())).
+			Order(goqu.I("id").Desc())).
 		ToSql()
 	fmt.Println(sql)
 	// Output:
@@ -819,11 +819,11 @@ func ExampleDataset_Where_prepared() {
 	).ToSql()
 	fmt.Println(sql, args)
 	// Output:
-	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS ?) OR ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
-	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS ?) AND ("d" IN (?, ?, ?)))) [10 10 <nil> a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS ?))) [10 10 <nil>]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS NULL) OR ("d" IN (?, ?, ?))) [10 10 a b c]
+	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS NULL) AND ("d" IN (?, ?, ?)))) [10 10 a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [10 10]
 }
 
 func ExampleDataset_ClearWhere() {

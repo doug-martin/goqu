@@ -42,17 +42,17 @@ func (me *datasetTest) TestSelect() {
 
 	sql, _, err = ds1.From().
 		Select(
-		DISTINCT("a").As("distinct"),
-		COUNT("a").As("count"),
-		L("CASE WHEN ? THEN ? ELSE ? END", MIN("a").Eq(10), true, false),
-		L("CASE WHEN ? THEN ? ELSE ? END", AVG("a").Neq(10), true, false),
-		L("CASE WHEN ? THEN ? ELSE ? END", FIRST("a").Gt(10), true, false),
-		L("CASE WHEN ? THEN ? ELSE ? END", FIRST("a").Gte(10), true, false),
-		L("CASE WHEN ? THEN ? ELSE ? END", LAST("a").Lt(10), true, false),
-		L("CASE WHEN ? THEN ? ELSE ? END", LAST("a").Lte(10), true, false),
-		SUM("a").As("sum"),
-		COALESCE(I("a"), "a").As("colaseced"),
-	).ToSql()
+			DISTINCT("a").As("distinct"),
+			COUNT("a").As("count"),
+			L("CASE WHEN ? THEN ? ELSE ? END", MIN("a").Eq(10), true, false),
+			L("CASE WHEN ? THEN ? ELSE ? END", AVG("a").Neq(10), true, false),
+			L("CASE WHEN ? THEN ? ELSE ? END", FIRST("a").Gt(10), true, false),
+			L("CASE WHEN ? THEN ? ELSE ? END", FIRST("a").Gte(10), true, false),
+			L("CASE WHEN ? THEN ? ELSE ? END", LAST("a").Lt(10), true, false),
+			L("CASE WHEN ? THEN ? ELSE ? END", LAST("a").Lte(10), true, false),
+			SUM("a").As("sum"),
+			COALESCE(I("a"), "a").As("colaseced"),
+		).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, `SELECT DISTINCT("a") AS "distinct", COUNT("a") AS "count", CASE WHEN (MIN("a") = 10) THEN TRUE ELSE FALSE END, CASE WHEN (AVG("a") != 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") > 10) THEN TRUE ELSE FALSE END, CASE WHEN (FIRST("a") >= 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") < 10) THEN TRUE ELSE FALSE END, CASE WHEN (LAST("a") <= 10) THEN TRUE ELSE FALSE END, SUM("a") AS "sum", COALESCE("a", 'a') AS "colaseced"`)
 
@@ -807,11 +807,12 @@ func (me *datasetTest) TestPreparedWhere() {
 		"b": Op{"neq": true},
 		"c": false,
 		"d": Op{"neq": false},
+		"e": nil,
 	})
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
-	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("b" IS NOT TRUE) AND ("c" IS FALSE) AND ("d" IS NOT FALSE))`)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" IS TRUE) AND ("b" IS NOT TRUE) AND ("c" IS FALSE) AND ("d" IS NOT FALSE) AND ("e" IS NULL))`)
 
 	b = ds1.Where(Ex{
 		"a": "a",
@@ -820,11 +821,13 @@ func (me *datasetTest) TestPreparedWhere() {
 		"d": Op{"gte": "d"},
 		"e": Op{"lt": "e"},
 		"f": Op{"lte": "f"},
+		"g": Op{"is": nil},
+		"h": Op{"isnot": nil},
 	})
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{"a", "b", "c", "d", "e", "f"})
-	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" = ?) AND ("b" != ?) AND ("c" > ?) AND ("d" >= ?) AND ("e" < ?) AND ("f" <= ?))`)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE (("a" = ?) AND ("b" != ?) AND ("c" > ?) AND ("d" >= ?) AND ("e" < ?) AND ("f" <= ?) AND ("g" IS NULL) AND ("h" IS NOT NULL))`)
 }
 
 func (me *datasetTest) TestPreparedLimit() {

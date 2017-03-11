@@ -588,9 +588,9 @@ func (me *datasetTest) TestPreparedInsertSqlWithValuerNull() {
 	sqlString, args, err := ds1.Prepared(true).ToInsertSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{
-		"111 Test Addr", "Test", nil,
+		"111 Test Addr", "Test",
 	})
-	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?)`)
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, NULL)`)
 
 	sqlString, args, err = ds1.Prepared(true).ToInsertSql(
 		item{Address: "111 Test Addr", Name: "Test1"},
@@ -600,12 +600,12 @@ func (me *datasetTest) TestPreparedInsertSqlWithValuerNull() {
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{
-		"111 Test Addr", "Test1", nil,
-		"211 Test Addr", "Test2", nil,
-		"311 Test Addr", "Test3", nil,
-		"411 Test Addr", "Test4", nil,
+		"111 Test Addr", "Test1",
+		"211 Test Addr", "Test2",
+		"311 Test Addr", "Test3",
+		"411 Test Addr", "Test4",
 	})
-	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`)
+	assert.Equal(t, sqlString, `INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, NULL), (?, ?, NULL), (?, ?, NULL), (?, ?, NULL)`)
 }
 
 func (me *datasetTest) TestInsertConflictSql__OnConflictIsNil() {
@@ -647,7 +647,6 @@ func (me *datasetTest) TestInsertConflictSql__OnConflictDoUpdateWhere() {
 	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') ON CONFLICT (name) DO UPDATE SET "address"=excluded.address WHERE ("name" = 'Test')`, sql)
 }
 
-
 func (me *datasetTest) TestInsertIgnoreSql() {
 	t := me.T()
 	ds1 := From("items")
@@ -659,7 +658,6 @@ func (me *datasetTest) TestInsertIgnoreSql() {
 	assert.NoError(t, err)
 	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') ON CONFLICT DO NOTHING`, sql)
 }
-
 
 func (me *datasetTest) TestInsertConflict__ImplementsConflictExpressionInterface() {
 	t := me.T()
