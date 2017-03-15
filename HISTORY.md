@@ -1,3 +1,7 @@
+## v4.0 
+
+* Prepared(true) issues when using IS NULL comparisson operation #33 - [@danielfbm](https://github.com/danielfbm)
+
 ## v3.3
 
 * Add `upsert` support via `InsertIgnore` and `InsertConflict` methods - [#25](https://github.com/doug-martin/goqu/pull/28) - [@aheuermann](https://github.com/aheuermann)
