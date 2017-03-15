@@ -1426,13 +1426,12 @@ func (me compound) Clone() Expression {
 func (me compound) Type() compoundType { return me.t }
 func (me compound) Rhs() SqlExpression { return me.rhs }
 
-
 type (
 	//An Expression that the ON CONFLICT/ON DUPLICATE KEY portion of an INSERT statement
 	ConflictExpression interface {
 		Updates() *ConflictUpdate
 	}
-	Conflict struct {}
+	Conflict struct{}
 	//ConflictUpdate is the struct that represents the UPDATE fragment of an INSERT ... ON CONFLICT/ON DUPLICATE KEY DO UPDATE statement
 	ConflictUpdate struct {
 		Target      string
@@ -1440,6 +1439,7 @@ type (
 		WhereClause ExpressionList
 	}
 )
+
 //Updates returns the struct that represents the UPDATE fragment of an INSERT ... ON CONFLICT/ON DUPLICATE KEY DO UPDATE statement
 //If nil, no update is preformed.
 func (c Conflict) Updates() *ConflictUpdate {
@@ -1456,7 +1456,6 @@ func (c ConflictUpdate) TargetColumn() string {
 func (c ConflictUpdate) Updates() *ConflictUpdate {
 	return &c
 }
-
 
 //Append to the existing Where clause for an ON CONFLICT DO UPDATE ... WHERE ...
 //  InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING

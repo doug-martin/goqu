@@ -337,8 +337,8 @@ func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStruct() {
 		Created: created,
 	}})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created, interface{}(nil)})
-	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?,"nil_pointer"=?`)
+	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created})
+	assert.Equal(t, sql, `UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?,"nil_pointer"=NULL`)
 }
 
 func (me *datasetTest) TestPreparedUpdateSqlWithEmbeddedStructPtr() {
@@ -376,13 +376,13 @@ func (me *datasetTest) TestPreparedUpdateSqlWithWhere() {
 	}
 	sql, args, err := ds1.Where(I("name").IsNull()).Prepared(true).ToUpdateSql(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
-	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`)
 
 	sql, args, err = ds1.Where(I("name").IsNull()).Prepared(true).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
-	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`)
 }
 
 func (me *datasetTest) TestPreparedUpdateSqlWithReturning() {
@@ -399,6 +399,6 @@ func (me *datasetTest) TestPreparedUpdateSqlWithReturning() {
 
 	sql, args, err = ds1.Where(I("name").IsNull()).Returning(Literal(`"items".*`)).Prepared(true).ToUpdateSql(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test", nil})
-	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?) RETURNING "items".*`)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
+	assert.Equal(t, sql, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL) RETURNING "items".*`)
 }

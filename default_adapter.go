@@ -200,68 +200,68 @@ type (
 		//EscapedRunes is a map of a rune and the corresponding escape sequence in bytes. Used when escaping text types.
 		EscapedRunes map[rune][]byte
 
-		ConflictFragment               []byte
-		ConflictDoNothingFragment      []byte
-		ConflictDoUpdateFragment       []byte
-		ConflictTargetSupported        bool
-		ConflictUpdateWhereSupported   bool
-		InsertIgnoreSyntaxSupported    bool
+		ConflictFragment             []byte
+		ConflictDoNothingFragment    []byte
+		ConflictDoUpdateFragment     []byte
+		ConflictTargetSupported      bool
+		ConflictUpdateWhereSupported bool
+		InsertIgnoreSyntaxSupported  bool
 	}
 )
 
 func NewDefaultAdapter(ds *Dataset) Adapter {
 	return &DefaultAdapter{
-		dataset:                        ds,
-		UpdateClause:                   default_update_clause,
-		InsertClause:                   default_insert_clause,
-		SelectClause:                   default_select_clause,
-		DeleteClause:                   default_delete_clause,
-		TruncateClause:                 default_truncate_clause,
-		CascadeFragment:                default_cascade_fragment,
-		RestrictFragment:               default_retrict_fragment,
-		DefaultValuesFragment:          default_default_values_fragment,
-		ValuesFragment:                 default_values_fragment,
-		IdentityFragment:               default_identity_fragment,
-		SetFragment:                    default_set_fragment,
-		DistinctFragment:               default_distinct_fragment,
-		ReturningFragment:              default_returning_fragment,
-		FromFragment:                   default_from_fragment,
-		WhereFragment:                  default_where_fragment,
-		GroupByFragment:                default_group_by_fragment,
-		HavingFragment:                 default_having_fragment,
-		OrderByFragment:                default_order_by_fragment,
-		LimitFragment:                  default_limit_fragment,
-		OffsetFragment:                 default_offset_fragment,
-		AsFragment:                     default_as_fragment,
-		QuoteRune:                      default_quote,
-		Null:                           default_null,
-		True:                           default_true,
-		False:                          default_false,
-		StringQuote:                    default_string_quote_rune,
-		AscFragment:                    default_asc_fragment,
-		DescFragment:                   default_desc_fragment,
-		NullsFirstFragment:             default_nulls_first_fragment,
-		NullsLastFragment:              default_nulls_last_fragment,
-		AndFragment:                    default_and_fragment,
-		OrFragment:                     default_or_fragment,
-		SetOperatorRune:                default_set_operator_rune,
-		UnionFragment:                  default_union_fragment,
-		UnionAllFragment:               default_union_all_fragment,
-		IntersectFragment:              default_intersect_fragment,
-		IntersectAllFragment:           default_intersect_all_fragment,
-		PlaceHolderRune:                default_place_holder_rune,
-		BooleanOperatorLookup:          default_operator_lookup,
-		RangeOperatorLookup:            default_rangeop_lookup,
-		JoinTypeLookup:                 default_join_lookup,
-		TimeFormat:                     time.RFC3339Nano,
-		UseLiteralIsBools:              true,
-		EscapedRunes:                   default_escape_runes,
-		ConflictFragment:               default_conflict_fragment,
-		ConflictDoUpdateFragment:       default_conflict_update_fragment,
-		ConflictDoNothingFragment:      default_conflict_nothing_fragment,
-		ConflictUpdateWhereSupported:   true,
-		InsertIgnoreSyntaxSupported:    false,
-		ConflictTargetSupported:        true,
+		dataset:                      ds,
+		UpdateClause:                 default_update_clause,
+		InsertClause:                 default_insert_clause,
+		SelectClause:                 default_select_clause,
+		DeleteClause:                 default_delete_clause,
+		TruncateClause:               default_truncate_clause,
+		CascadeFragment:              default_cascade_fragment,
+		RestrictFragment:             default_retrict_fragment,
+		DefaultValuesFragment:        default_default_values_fragment,
+		ValuesFragment:               default_values_fragment,
+		IdentityFragment:             default_identity_fragment,
+		SetFragment:                  default_set_fragment,
+		DistinctFragment:             default_distinct_fragment,
+		ReturningFragment:            default_returning_fragment,
+		FromFragment:                 default_from_fragment,
+		WhereFragment:                default_where_fragment,
+		GroupByFragment:              default_group_by_fragment,
+		HavingFragment:               default_having_fragment,
+		OrderByFragment:              default_order_by_fragment,
+		LimitFragment:                default_limit_fragment,
+		OffsetFragment:               default_offset_fragment,
+		AsFragment:                   default_as_fragment,
+		QuoteRune:                    default_quote,
+		Null:                         default_null,
+		True:                         default_true,
+		False:                        default_false,
+		StringQuote:                  default_string_quote_rune,
+		AscFragment:                  default_asc_fragment,
+		DescFragment:                 default_desc_fragment,
+		NullsFirstFragment:           default_nulls_first_fragment,
+		NullsLastFragment:            default_nulls_last_fragment,
+		AndFragment:                  default_and_fragment,
+		OrFragment:                   default_or_fragment,
+		SetOperatorRune:              default_set_operator_rune,
+		UnionFragment:                default_union_fragment,
+		UnionAllFragment:             default_union_all_fragment,
+		IntersectFragment:            default_intersect_fragment,
+		IntersectAllFragment:         default_intersect_all_fragment,
+		PlaceHolderRune:              default_place_holder_rune,
+		BooleanOperatorLookup:        default_operator_lookup,
+		RangeOperatorLookup:          default_rangeop_lookup,
+		JoinTypeLookup:               default_join_lookup,
+		TimeFormat:                   time.RFC3339Nano,
+		UseLiteralIsBools:            true,
+		EscapedRunes:                 default_escape_runes,
+		ConflictFragment:             default_conflict_fragment,
+		ConflictDoUpdateFragment:     default_conflict_update_fragment,
+		ConflictDoNothingFragment:    default_conflict_nothing_fragment,
+		ConflictUpdateWhereSupported: true,
+		InsertIgnoreSyntaxSupported:  false,
+		ConflictTargetSupported:      true,
 	}
 }
 
@@ -307,7 +307,6 @@ func (me *DefaultAdapter) SupportsInsertIgnoreSyntax() bool {
 func (me *DefaultAdapter) SupportConflictUpdateWhere() bool {
 	return me.ConflictUpdateWhereSupported
 }
-
 
 //This is a proxy to Dataset.Literal. Used internally to ensure the correct method is called on any subclasses and to prevent duplication of code
 func (me *DefaultAdapter) Literal(buf *SqlBuilder, val interface{}) error {
@@ -679,11 +678,7 @@ func (me *DefaultAdapter) QuoteIdentifier(buf *SqlBuilder, ident IdentifierExpre
 
 //Generates SQL NULL value
 func (me *DefaultAdapter) LiteralNil(buf *SqlBuilder) error {
-	if buf.IsPrepared {
-		return me.PlaceHolderSql(buf, nil)
-	} else {
-		buf.Write(me.Null)
-	}
+	buf.Write(me.Null)
 	return nil
 }
 
@@ -1003,7 +998,6 @@ func (me *DefaultAdapter) ExpressionOrMapSql(buf *SqlBuilder, ex ExOr) error {
 	}
 	return me.Literal(buf, expressionList)
 }
-
 
 func init() {
 	RegisterAdapter("default", NewDefaultAdapter)
