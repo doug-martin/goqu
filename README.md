@@ -51,8 +51,7 @@ or hooks I would recommend looking at some of the great ORM libraries such as:
 * [hood](https://github.com/eaigner/hood)
 
 
-
-##Installation
+## Installation
 
 ```sh
 go get -u gopkg.in/doug-martin/goqu.v4
