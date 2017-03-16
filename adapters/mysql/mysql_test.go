@@ -10,7 +10,7 @@ import (
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
 	_ "github.com/go-sql-driver/mysql"
-	"gopkg.in/doug-martin/goqu.v3"
+	"gopkg.in/doug-martin/goqu.v4"
 )
 
 const (

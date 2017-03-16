@@ -10,7 +10,7 @@ import (
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
 	"github.com/lib/pq"
-	"gopkg.in/doug-martin/goqu.v3"
+	"gopkg.in/doug-martin/goqu.v4"
 )
 
 const schema = `
@@ -36,7 +36,8 @@ const schema = `
             (9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-00:00', FALSE, '0.900000');
     `
 
-const default_db_uri ="postgres://postgres:@/goqupostgres?sslmode=disable"
+const default_db_uri = "postgres://postgres:@/goqupostgres?sslmode=disable"
+
 var db_uri string
 
 func init() {
@@ -360,7 +361,6 @@ func (me *postgresTest) TestInsertIgnore() {
 	assert.NoError(t, err)
 	assert.Equal(t, count, 11)
 }
-
 
 func (me *postgresTest) TestInsertConflict() {
 	t := me.T()
