@@ -1,4 +1,5 @@
 sudo: true
+language: go
 services:
   - docker
 
@@ -12,4 +13,7 @@ before_install:
  - chmod +x docker-compose
  - sudo mv docker-compose /usr/local/bin
 
-script: docker-compose run goqu
+script: docker-compose run goqu-coverage
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
