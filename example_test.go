@@ -587,7 +587,27 @@ func ExampleDataset_WithCTE() {
 	// WITH multi(x,y) AS (SELECT 1, 2) SELECT "x", "y" FROM "multi"
 }
 
-// TODO: func ExampleDataset_WithCTEInsert/Update/Delete
+func ExampleDataset_ModifyWithCTE() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("test").
+		With("moved_rows", db.From("other").Where(goqu.I("date").Lt(123))).
+		ToInsertSql(db.From("moved_rows"))
+	fmt.Println(sql)
+	sql, _, _ = db.From("test").
+		With("check_vals(val)", db.From().Select(goqu.L("123"))).
+		Where(goqu.I("val").Eq(db.From("check_vals").Select("val"))).
+		ToDeleteSql()
+	fmt.Println(sql)
+	sql, _, _ = db.From("test").
+		With("some_vals(val)", db.From().Select(goqu.L("123"))).
+		Where(goqu.I("val").Eq(db.From("some_vals").Select("val"))).
+		ToUpdateSql(goqu.Record{"name": "Test"})
+	fmt.Println(sql)
+	// Output:
+	// WITH moved_rows AS (SELECT * FROM "other" WHERE ("date" < 123)) INSERT INTO "test" SELECT * FROM "moved_rows"
+	// WITH check_vals(val) AS (SELECT 123) DELETE FROM "test" WHERE ("val" IN (SELECT "val" FROM "check_vals"))
+	// WITH some_vals(val) AS (SELECT 123) UPDATE "test" SET "name"='Test' WHERE ("val" IN (SELECT "val" FROM "some_vals"))
+}
 
 func ExampleDataset_WithCTERecursive() {
 	db := goqu.New("default", driver)

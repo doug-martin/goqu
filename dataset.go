@@ -112,7 +112,12 @@ func From(table ...interface{}) *Dataset {
 	return ret.From(table...)
 }
 
-//Creates a WITH clause for a common table expression (CTE)
+//Creates a WITH clause for a common table expression (CTE).
+//
+//The name will be available to SELECT from in the associated query; and can optionally
+//contain a list of column names "name(col1, col2, col3)".
+//
+//The name will refer to the results of the specified subquery.
 func (me *Dataset) With(name string, subquery *Dataset) *Dataset {
 	ret := me.copy()
 	ret.clauses.CommonTables = append(ret.clauses.CommonTables, With(false, name, subquery))
@@ -120,6 +125,13 @@ func (me *Dataset) With(name string, subquery *Dataset) *Dataset {
 }
 
 //Creates a WITH RECURSIVE clause for a common table expression (CTE)
+//
+//The name will be available to SELECT from in the associated query; and must
+//contain a list of column names "name(col1, col2, col3)" for a recursive clause.
+//
+//The name will refer to the results of the specified subquery. The subquery for
+//a recursive query will always end with a UNION or UNION ALL with a clause that
+//refers to the CTE by name.
 func (me *Dataset) WithRecursive(name string, subquery *Dataset) *Dataset {
 	ret := me.copy()
 	ret.clauses.CommonTables = append(ret.clauses.CommonTables, With(true, name, subquery))

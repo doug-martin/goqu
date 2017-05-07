@@ -24,6 +24,9 @@ func (me *Dataset) ToDeleteSql() (string, []interface{}, error) {
 	if !me.hasSources() {
 		return "", nil, NewGoquError("No source found when generating delete sql")
 	}
+	if err := me.adapter.CommonTablesSql(buf, me.clauses.CommonTables); err != nil {
+		return "", nil, err
+	}
 	if err := me.adapter.DeleteBeginSql(buf); err != nil {
 		return "", nil, err
 	}
