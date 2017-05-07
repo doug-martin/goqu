@@ -63,6 +63,13 @@ func (me *datasetAdapterTest) TestSupportsOrderByOnUpdate() {
 	assert.True(t, dsAdapter.SupportsLimitOnDelete())
 }
 
+func (me *datasetAdapterTest) TestSupportsWithCTE() {
+	t := me.T()
+	dsAdapter := me.GetDs("test").Adapter()
+	assert.False(t, dsAdapter.SupportsWithCTE())
+	assert.False(t, dsAdapter.SupportsWithRecursiveCTE())
+}
+
 func (me *datasetAdapterTest) TestIdentifiers() {
 	t := me.T()
 	ds := me.GetDs("test")
