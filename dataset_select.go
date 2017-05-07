@@ -364,6 +364,9 @@ func (me *Dataset) ToSql() (string, []interface{}, error) {
 
 //Does actual sql generation of sql, accepts an sql builder so other methods can call when creating subselects and needing prepared sql.
 func (me *Dataset) selectSqlWriteTo(buf *SqlBuilder) error {
+	if err := me.adapter.CommonTablesSql(buf, me.clauses.CommonTables); err != nil {
+		return err
+	}
 	if me.clauses.SelectDistinct != nil {
 		if err := me.adapter.SelectDistinctSql(buf, me.clauses.SelectDistinct); err != nil {
 			return err

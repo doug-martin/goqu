@@ -18,6 +18,7 @@ type (
 		Printf(format string, v ...interface{})
 	}
 	clauses struct {
+		CommonTables   []CommonTableExpression
 		Select         ColumnList
 		SelectDistinct ColumnList
 		From           ColumnList
@@ -111,7 +112,21 @@ func From(table ...interface{}) *Dataset {
 	return ret.From(table...)
 }
 
-//used internally by database to create a database with a specific adatper
+//Creates a WITH clause for a common table expression (CTE)
+func (me *Dataset) With(name string, subquery *Dataset) *Dataset {
+	ret := me.copy()
+	ret.clauses.CommonTables = append(ret.clauses.CommonTables, With(false, name, subquery))
+	return ret
+}
+
+//Creates a WITH RECURSIVE clause for a common table expression (CTE)
+func (me *Dataset) WithRecursive(name string, subquery *Dataset) *Dataset {
+	ret := me.copy()
+	ret.clauses.CommonTables = append(ret.clauses.CommonTables, With(true, name, subquery))
+	return ret
+}
+
+//used internally by database to create a database with a specific adapter
 func withDatabase(db database) *Dataset {
 	ret := new(Dataset)
 	ret.database = db
@@ -282,6 +297,8 @@ func (me *Dataset) expressionSql(buf *SqlBuilder, expression Expression) error {
 		return me.adapter.CastExpressionSql(buf, e)
 	} else if e, ok := expression.(*Dataset); ok {
 		return me.adapter.DatasetSql(buf, *e)
+	} else if e, ok := expression.(CommonTableExpression); ok {
+		return me.adapter.CommonTableExpressionSql(buf, e)
 	} else if e, ok := expression.(CompoundExpression); ok {
 		return me.adapter.CompoundExpressionSql(buf, e)
 	} else if e, ok := expression.(Ex); ok {

@@ -27,6 +27,8 @@ var (
 	default_select_clause           = []byte("SELECT")
 	default_delete_clause           = []byte("DELETE")
 	default_truncate_clause         = []byte("TRUNCATE")
+	default_with_fragment           = []byte("WITH ")
+	default_recursive_fragment      = []byte("RECURSIVE ")
 	default_cascade_fragment        = []byte(" CASCADE")
 	default_retrict_fragment        = []byte(" RESTRICT")
 	default_default_values_fragment = []byte(" DEFAULT VALUES")
@@ -119,6 +121,10 @@ type (
 		DeleteClause []byte
 		//The TRUNCATE fragment to use when generating sql. (DEFAULT=[]byte("TRUNCATE"))
 		TruncateClause []byte
+		//The WITH fragment to use when generating sql. (DEFAULT=[]byte("WITH "))
+		WithFragment []byte
+		//The RECURSIVE fragment to use when generating sql (after WITH). (DEFAULT=[]byte("RECURSIVE "))
+		RecursiveFragment []byte
 		//The CASCADE fragment to use when generating sql. (DEFAULT=[]byte(" CASCADE"))
 		CascadeFragment []byte
 		//The RESTRICT fragment to use when generating sql. (DEFAULT=[]byte(" RESTRICT"))
@@ -206,6 +212,8 @@ type (
 		ConflictTargetSupported      bool
 		ConflictUpdateWhereSupported bool
 		InsertIgnoreSyntaxSupported  bool
+		WithCTESupported             bool
+		WithCTERecursiveSupported    bool
 	}
 )
 
@@ -217,6 +225,8 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		SelectClause:                 default_select_clause,
 		DeleteClause:                 default_delete_clause,
 		TruncateClause:               default_truncate_clause,
+		WithFragment:                 default_with_fragment,
+		RecursiveFragment:	      default_recursive_fragment,
 		CascadeFragment:              default_cascade_fragment,
 		RestrictFragment:             default_retrict_fragment,
 		DefaultValuesFragment:        default_default_values_fragment,
@@ -262,6 +272,8 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		ConflictUpdateWhereSupported: true,
 		InsertIgnoreSyntaxSupported:  false,
 		ConflictTargetSupported:      true,
+		WithCTESupported:             true,
+		WithCTERecursiveSupported:    true,
 	}
 }
 
@@ -306,6 +318,14 @@ func (me *DefaultAdapter) SupportsInsertIgnoreSyntax() bool {
 
 func (me *DefaultAdapter) SupportConflictUpdateWhere() bool {
 	return me.ConflictUpdateWhereSupported
+}
+
+func (me *DefaultAdapter) SupportsWithCTE() bool {
+	return me.WithCTESupported
+}
+
+func (me *DefaultAdapter) SupportsWithRecursiveCTE() bool {
+	return me.WithCTERecursiveSupported
 }
 
 //This is a proxy to Dataset.Literal. Used internally to ensure the correct method is called on any subclasses and to prevent duplication of code
@@ -576,6 +596,37 @@ func (me *DefaultAdapter) HavingSql(buf *SqlBuilder, having ExpressionList) erro
 	if having != nil && len(having.Expressions()) > 0 {
 		buf.Write(me.HavingFragment)
 		return me.Literal(buf, having)
+	}
+	return nil
+}
+
+//Generates the sql for the WITH clauses for common table expressions (CTE)
+func (me *DefaultAdapter) CommonTablesSql(buf *SqlBuilder, ctes []CommonTableExpression) error {
+	if l := len(ctes); l > 0 {
+		if !me.SupportsWithCTE() {
+			return NewGoquError("Adapter does not support CTE with clause")
+		}
+		buf.Write(me.WithFragment)
+		anyRecursive := false
+		for _, cte := range ctes {
+			anyRecursive = anyRecursive || cte.IsRecursive()
+		}
+		if anyRecursive {
+			if !me.SupportsWithRecursiveCTE() {
+				return NewGoquError("Adapter does not support CTE with recursive clause")
+			}
+			buf.Write(me.RecursiveFragment)
+		}
+		for i, cte := range ctes {
+			if err := me.Literal(buf, cte); err != nil {
+				return err
+			}
+			if i < l-1 {
+				buf.WriteRune(comma_rune)
+				buf.WriteRune(space_rune)
+			}
+		}
+		buf.WriteRune(space_rune)
 	}
 	return nil
 }
@@ -965,6 +1016,18 @@ func (me *DefaultAdapter) CastExpressionSql(buf *SqlBuilder, cast CastExpression
 		return err
 	}
 	buf.WriteRune(right_paren_rune)
+	return nil
+}
+
+//Generates SQL for a CommonTableExpression
+func (me *DefaultAdapter) CommonTableExpressionSql(buf *SqlBuilder, cte CommonTableExpression) error {
+	if err := me.Literal(buf, cte.Name()); err != nil {
+		return err
+	}
+	buf.Write(me.AsFragment)
+	if err := me.Literal(buf, cte.SubQuery()); err != nil {
+		return err
+	}
 	return nil
 }
 
