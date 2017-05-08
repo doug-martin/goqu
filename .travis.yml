@@ -3,6 +3,8 @@ language: go
 services:
   - docker
 
+go_import_path: gopkg.in/doug-martin/goqu.v4
+
 env:
   - GO_VERSION="1.6"
   - GO_VERSION="1.7"
