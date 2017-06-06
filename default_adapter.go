@@ -226,7 +226,7 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		DeleteClause:                 default_delete_clause,
 		TruncateClause:               default_truncate_clause,
 		WithFragment:                 default_with_fragment,
-		RecursiveFragment:	      default_recursive_fragment,
+		RecursiveFragment:            default_recursive_fragment,
 		CascadeFragment:              default_cascade_fragment,
 		RestrictFragment:             default_retrict_fragment,
 		DefaultValuesFragment:        default_default_values_fragment,
