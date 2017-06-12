@@ -1,6 +1,10 @@
-## v4.0 
+## v4.1.0
 
-* Prepared(true) issues when using IS NULL comparisson operation #33 - [@danielfbm](https://github.com/danielfbm)
+* Support for defining WITH clauses for Common Table Expressions (CTE) [#39](https://github.com/doug-martin/goqu/pull/39) - [@Oscil8](https://github.com/Oscil8)
+
+## v4.0
+
+* Prepared(true) issues when using IS NULL comparisson operation [#33](https://github.com/doug-martin/goqu/pull/33) - [@danielfbm](https://github.com/danielfbm)
 
 ## v3.3
 
