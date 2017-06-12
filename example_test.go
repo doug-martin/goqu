@@ -563,6 +563,65 @@ func ExampleDataset_UnionAll() {
 	// SELECT * FROM (SELECT * FROM "test" LIMIT 1) AS "t1" UNION ALL (SELECT * FROM (SELECT * FROM "test2" ORDER BY "id" DESC) AS "t1")
 }
 
+func ExampleDataset_WithCTE() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("one").
+		With("one", db.From().Select(goqu.L("1"))).
+		Select(goqu.Star()).
+		ToSql()
+	fmt.Println(sql)
+	sql, _, _ = db.From("derived").
+		With("intermed", db.From("test").Select(goqu.Star()).Where(goqu.I("x").Gte(5))).
+		With("derived", db.From("intermed").Select(goqu.Star()).Where(goqu.I("x").Lt(10))).
+		Select(goqu.Star()).
+		ToSql()
+	fmt.Println(sql)
+	sql, _, _ = db.From("multi").
+		With("multi(x,y)", db.From().Select(goqu.L("1"), goqu.L("2"))).
+		Select(goqu.I("x"), goqu.I("y")).
+		ToSql()
+	fmt.Println(sql)
+	// Output:
+	// WITH one AS (SELECT 1) SELECT * FROM "one"
+	// WITH intermed AS (SELECT * FROM "test" WHERE ("x" >= 5)), derived AS (SELECT * FROM "intermed" WHERE ("x" < 10)) SELECT * FROM "derived"
+	// WITH multi(x,y) AS (SELECT 1, 2) SELECT "x", "y" FROM "multi"
+}
+
+func ExampleDataset_ModifyWithCTE() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("test").
+		With("moved_rows", db.From("other").Where(goqu.I("date").Lt(123))).
+		ToInsertSql(db.From("moved_rows"))
+	fmt.Println(sql)
+	sql, _, _ = db.From("test").
+		With("check_vals(val)", db.From().Select(goqu.L("123"))).
+		Where(goqu.I("val").Eq(db.From("check_vals").Select("val"))).
+		ToDeleteSql()
+	fmt.Println(sql)
+	sql, _, _ = db.From("test").
+		With("some_vals(val)", db.From().Select(goqu.L("123"))).
+		Where(goqu.I("val").Eq(db.From("some_vals").Select("val"))).
+		ToUpdateSql(goqu.Record{"name": "Test"})
+	fmt.Println(sql)
+	// Output:
+	// WITH moved_rows AS (SELECT * FROM "other" WHERE ("date" < 123)) INSERT INTO "test" SELECT * FROM "moved_rows"
+	// WITH check_vals(val) AS (SELECT 123) DELETE FROM "test" WHERE ("val" IN (SELECT "val" FROM "check_vals"))
+	// WITH some_vals(val) AS (SELECT 123) UPDATE "test" SET "name"='Test' WHERE ("val" IN (SELECT "val" FROM "some_vals"))
+}
+
+func ExampleDataset_WithCTERecursive() {
+	db := goqu.New("default", driver)
+	sql, _, _ := db.From("nums").
+		WithRecursive("nums(x)",
+			db.From().Select(goqu.L("1")).
+			UnionAll(db.From("nums").
+				Select(goqu.L("x+1")).Where(goqu.I("x").Lt(5)))).
+		ToSql()
+	fmt.Println(sql)
+	// Output:
+	// WITH RECURSIVE nums(x) AS (SELECT 1 UNION ALL (SELECT x+1 FROM "nums" WHERE ("x" < 5))) SELECT * FROM "nums"
+}
+
 func ExampleDataset_Intersect() {
 	db := goqu.New("default", driver)
 	sql, _, _ := db.From("test").

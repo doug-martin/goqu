@@ -671,6 +671,34 @@ func (me *datasetTest) TestLiteralCastExpression() {
 	assert.Equal(t, buf.String(), `CAST("a" AS DATE)`)
 }
 
+func (me *datasetTest) TestCommonTableExpression() {
+	t := me.T()
+	buf := NewSqlBuilder(false)
+	ds := From("test")
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a", From("b"))))
+	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a(x,y)", From("b"))))
+	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a", From("b"))))
+	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a(x,y)", From("b"))))
+	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
+
+	buf = NewSqlBuilder(true)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a", From("b"))))
+	assert.Equal(t, buf.args, []interface{}{})
+	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a(x,y)", From("b"))))
+	assert.Equal(t, buf.args, []interface{}{})
+	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a", From("b"))))
+	assert.Equal(t, buf.args, []interface{}{})
+	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
+	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a(x,y)", From("b"))))
+	assert.Equal(t, buf.args, []interface{}{})
+	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
+}
+
 func (me *datasetTest) TestCompoundExpression() {
 	t := me.T()
 	buf := NewSqlBuilder(false)

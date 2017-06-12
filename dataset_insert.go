@@ -165,6 +165,9 @@ func (me *Dataset) getFieldsValues(value reflect.Value) (rowCols []interface{}, 
 //Creates an INSERT statement with the columns and values passed in
 func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared bool, c ConflictExpression) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
+	if err := me.adapter.CommonTablesSql(buf, me.clauses.CommonTables); err != nil {
+		return "", nil, err
+	}
 	if err := me.adapter.InsertBeginSql(buf, c); err != nil {
 		return "", nil, err
 	}
@@ -201,6 +204,9 @@ func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared b
 //Creates an insert statement with values coming from another dataset
 func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
+	if err := me.adapter.CommonTablesSql(buf, me.clauses.CommonTables); err != nil {
+		return "", nil, err
+	}
 	if err := me.adapter.InsertBeginSql(buf, nil); err != nil {
 		return "", nil, err
 	}

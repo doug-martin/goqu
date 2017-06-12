@@ -1427,6 +1427,37 @@ func (me compound) Type() compoundType { return me.t }
 func (me compound) Rhs() SqlExpression { return me.rhs }
 
 type (
+	CommonTableExpression interface {
+		Expression
+		IsRecursive() bool
+		//Returns the alias name for the extracted expression
+		Name() LiteralExpression
+		//Returns the Expression being extracted
+		SubQuery() SqlExpression
+	}
+	commonExpr struct {
+		recursive bool
+		name      LiteralExpression
+		subQuery  SqlExpression
+	}
+)
+
+//Creates a new WITH common table expression for a SqlExpression, typically Datasets'. This function is used internally by Dataset when a CTE is added to another Dataset
+func With(recursive bool, name string, subQuery SqlExpression) CommonTableExpression {
+	return commonExpr{recursive: recursive, name: Literal(name), subQuery: subQuery}
+}
+
+func (me commonExpr) Expression() Expression { return me }
+
+func (me commonExpr) Clone() Expression {
+	return commonExpr{recursive: me.recursive, name: me.name, subQuery:me.subQuery.Clone().(SqlExpression)}
+}
+
+func (me commonExpr) IsRecursive() bool { return me.recursive }
+func (me commonExpr) Name() LiteralExpression { return me.name }
+func (me commonExpr) SubQuery() SqlExpression { return me.subQuery }
+
+type (
 	//An Expression that the ON CONFLICT/ON DUPLICATE KEY portion of an INSERT statement
 	ConflictExpression interface {
 		Updates() *ConflictUpdate

@@ -85,10 +85,14 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		HavingSql(buf *SqlBuilder, having ExpressionList) error
-		//Generates the sql for COMPOUND expressions, sunch as UNION, and INTERSECT
+		//Generates the sql for COMPOUND expressions, such as UNION, and INTERSECT
 		//
 		//buf: The current SqlBuilder to write the sql to
 		CompoundsSql(buf *SqlBuilder, compounds []CompoundExpression) error
+		//Generates the sql for the WITH clauses for common table expressions (CTE)
+		//
+		//buf: The current SqlBuilder to write the sql to
+		CommonTablesSql(buf *SqlBuilder, ctes []CommonTableExpression) error
 		//Generates the sql for ORDER BY clause
 		//
 		//buf: The current SqlBuilder to write the sql to
@@ -161,18 +165,22 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		ExpressionListSql(buf *SqlBuilder, expressionList ExpressionList) error
-		//Generates SQL value for an SqlFunction
+		//Generates SQL value for a SqlFunction
 		//
 		//buf: The current SqlBuilder to write the sql to
 		SqlFunctionExpressionSql(buf *SqlBuilder, sqlFunc SqlFunctionExpression) error
-		//Generates SQL value for an CastExpression
+		//Generates SQL value for a CastExpression
 		//
 		//buf: The current SqlBuilder to write the sql to
 		CastExpressionSql(buf *SqlBuilder, casted CastExpression) error
-		//Generates SQL value for an CompoundExpression
+		//Generates SQL value for a CompoundExpression
 		//
 		//buf: The current SqlBuilder to write the sql to
 		CompoundExpressionSql(buf *SqlBuilder, compound CompoundExpression) error
+		//Generates SQL value for a CommonTableExpression
+		//
+		//buf: The current SqlBuilder to write the sql to
+		CommonTableExpressionSql(buf *SqlBuilder, commonTable CommonTableExpression) error
 		//Generates SQL value for a ColumnList
 		//
 		//buf: The current SqlBuilder to write the sql to
@@ -212,6 +220,10 @@ type (
 		OnConflictSql(buf *SqlBuilder, o ConflictExpression) error
 		//Returns true if the dialect supports a WHERE clause on upsert
 		SupportConflictUpdateWhere() bool
+		//Returns true if the dialect supports WITH common table expressions
+		SupportsWithCTE() bool
+		//Returns true if the dialect supports WITH RECURSIVE common table expressions
+		SupportsWithRecursiveCTE() bool
 	}
 )
 
