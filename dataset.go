@@ -204,7 +204,7 @@ func (me *Dataset) hasSources() bool {
 //Errors:
 //   * If there is an error generating the SQL
 func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
-	if val == nil {
+	if val == nil || reflect.ValueOf(val).IsNil() {
 		return me.adapter.LiteralNil(buf)
 	}
 	if v, ok := val.(Expression); ok {
