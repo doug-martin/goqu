@@ -204,7 +204,7 @@ func (me *Dataset) hasSources() bool {
 //Errors:
 //   * If there is an error generating the SQL
 func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
-	if val == nil || reflect.ValueOf(val).IsNil() {
+	if val == nil {
 		return me.adapter.LiteralNil(buf)
 	}
 	if v, ok := val.(Expression); ok {
@@ -228,6 +228,9 @@ func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
 	} else if v, ok := val.(time.Time); ok {
 		return me.adapter.LiteralTime(buf, v)
 	} else if v, ok := val.(*time.Time); ok {
+		if v == nil {
+			return me.adapter.LiteralNil(buf)
+		}
 		return me.adapter.LiteralTime(buf, *v)
 	} else if v, ok := val.(driver.Valuer); ok {
 		dVal, err := v.Value()
