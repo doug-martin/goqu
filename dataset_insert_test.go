@@ -647,6 +647,21 @@ func (me *datasetTest) TestInsertConflictSql__OnConflictDoUpdateWhere() {
 	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') ON CONFLICT (name) DO UPDATE SET "address"=excluded.address WHERE ("name" = 'Test')`, sql)
 }
 
+func (me *datasetTest) TestInsertConflictSqlWithDataset__OnConflictDoUpdateWhere() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+
+	ds2 := From("ds2")
+
+	sql, _, err := ds1.ToInsertConflictSql(DoUpdate("name", Record{"address": L("excluded.address")}).Where(I("name").Eq("Test")), ds2)
+	assert.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "items" SELECT * FROM "ds2" ON CONFLICT (name) DO UPDATE SET "address"=excluded.address WHERE ("name" = 'Test')`, sql)
+}
+
 func (me *datasetTest) TestInsertIgnoreSql() {
 	t := me.T()
 	ds1 := From("items")
