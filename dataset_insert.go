@@ -72,7 +72,7 @@ func (me *Dataset) toInsertSql(o ConflictExpression, rows ...interface{}) (strin
 		}
 		switch rows[0].(type) {
 		case *Dataset:
-			return me.insertFromSql(*rows[0].(*Dataset), me.isPrepared)
+			return me.insertFromSql(*rows[0].(*Dataset), me.isPrepared, o)
 		}
 
 	}
@@ -202,7 +202,7 @@ func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared b
 }
 
 //Creates an insert statement with values coming from another dataset
-func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interface{}, error) {
+func (me *Dataset) insertFromSql(other Dataset, prepared bool, c ConflictExpression) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)
 	if err := me.adapter.CommonTablesSql(buf, me.clauses.CommonTables); err != nil {
 		return "", nil, err
@@ -215,6 +215,9 @@ func (me *Dataset) insertFromSql(other Dataset, prepared bool) (string, []interf
 	}
 	buf.WriteString(" ")
 	if err := other.selectSqlWriteTo(buf); err != nil {
+		return "", nil, err
+	}
+	if err := me.adapter.OnConflictSql(buf, c); err != nil {
 		return "", nil, err
 	}
 	if me.adapter.SupportsReturn() {
