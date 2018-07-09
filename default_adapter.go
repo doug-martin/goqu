@@ -48,8 +48,8 @@ var (
 	default_for_no_key_update_fragment = []byte(" FOR NO KEY UPDATE ")
 	default_for_share_fragment         = []byte(" FOR SHARE ")
 	default_for_key_share_fragment     = []byte(" FOR KEY SHARE ")
-	default_nowait_fragment            = []byte("NOWAIT ")
-	default_skip_locked_fragment       = []byte("SKIP LOCKED ")
+	default_nowait_fragment            = []byte("NOWAIT")
+	default_skip_locked_fragment       = []byte("SKIP LOCKED")
 	default_as_fragment                = []byte(" AS ")
 	default_asc_fragment               = []byte(" ASC")
 	default_desc_fragment              = []byte(" DESC")
@@ -169,9 +169,9 @@ type (
 		ForShareFragment []byte
 		// The SQL FOR KEY SHARE fragment(DEFAULT=[]byte(" FOR KEY SHARE "))
 		ForKeyShareFragment []byte
-		// The SQL NOWAIT fragment(DEFAULT=[]byte("NOWAIT "))
+		// The SQL NOWAIT fragment(DEFAULT=[]byte("NOWAIT"))
 		NowaitFragment []byte
-		// The SQL SKIP LOCKED fragment(DEFAULT=[]byte("SKIP LOCKED "))
+		// The SQL SKIP LOCKED fragment(DEFAULT=[]byte("SKIP LOCKED"))
 		SkipLockedFragment []byte
 		//The SQL AS fragment when aliasing an Expression(DEFAULT=[]byte(" AS "))
 		AsFragment []byte
