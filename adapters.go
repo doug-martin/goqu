@@ -105,6 +105,10 @@ type (
 		//
 		//buf: The current SqlBuilder to write the sql to
 		OffsetSql(buf *SqlBuilder, offset uint) error
+		//Generates the sql for FOR clause
+		//
+		//buf: The current SqlBuilder to write the sql to
+		ForSql(buf *SqlBuilder, lockingClause Lock) error
 		//Generates the sql for another Dataset being used as a sub select.
 		//
 		//buf: The current SqlBuilder to write the sql to
