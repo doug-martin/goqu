@@ -11,6 +11,7 @@ type (
 		From(cols ...interface{}) *Dataset
 		Logger(logger Logger)
 		Exec(query string, args ...interface{}) (sql.Result, error)
+		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 		Prepare(query string) (*sql.Stmt, error)
 		PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 		Query(query string, args ...interface{}) (*sql.Rows, error)

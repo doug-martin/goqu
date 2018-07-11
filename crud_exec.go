@@ -34,10 +34,14 @@ func newCrudExec(database database, err error, sql string, args ...interface{}) 
 }
 
 func (me CrudExec) Exec() (sql.Result, error) {
+	return me.ExecContext(context.Background())
+}
+
+func (me CrudExec) ExecContext(ctx context.Context) (sql.Result, error) {
 	if me.err != nil {
 		return nil, me.err
 	}
-	return me.database.Exec(me.Sql, me.Args...)
+	return me.database.ExecContext(ctx, me.Sql, me.Args...)
 }
 
 //This will execute the SQL and append results to the slice
