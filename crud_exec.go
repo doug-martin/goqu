@@ -25,6 +25,11 @@ type (
 	selectResults []Record
 )
 
+var column_rename_function = strings.ToLower
+func SetColumnRenameFunction(new_function func(string) string) {
+	column_rename_function = new_function
+}
+
 var struct_map_cache = make(map[interface{}]columnMap)
 var struct_map_cache_lock = sync.Mutex{}
 
@@ -304,7 +309,7 @@ func createColumnMap(t reflect.Type) columnMap {
 		} else {
 			columnName := f.Tag.Get("db")
 			if columnName == "" {
-				columnName = strings.ToLower(f.Name)
+				columnName = column_rename_function(f.Name)
 			}
 			cm[columnName] = columnData{
 				ColumnName: columnName,

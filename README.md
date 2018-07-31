@@ -408,6 +408,27 @@ if !found {
 }
 ```
 
+
+**NOTE** Using the `goqu.SetColumnRenameFunction` function, you can change the function that's used to rename struct fields when struct tags aren't defined
+
+```go
+import "strings"
+
+goqu.SetColumnRenameFunction(strings.ToUpper)
+
+type User struct{
+  FirstName string
+  LastName string
+}
+
+var user User
+//SELECT "FIRSTNAME", "LASTNAME" FROM "user" LIMIT 1;
+found, err := db.From("user").ScanStruct(&user)
+// ...
+```
+
+
+
 * [`ScanVals`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanVals) - scans a rows of 1 column into a slice of primitive values
 ```go
 var ids []int64

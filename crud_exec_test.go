@@ -3,6 +3,7 @@ package goqu
 import (
 	"fmt"
 	"sync"
+	"strings"
 	"testing"
 
 	"github.com/c2fo/testify/assert"
@@ -160,7 +161,44 @@ func (me *crudExecTest) TestScanStructs() {
 
 	assert.Equal(t, noTags[1].Address, "211 Test Addr")
 	assert.Equal(t, noTags[1].Name, "Test2")
+}
 
+func (me *crudExecTest) TestColumnRename() {
+	t := me.T()
+	// different key names are used each time to circumvent the caching that happens
+	// it seems like a solid assumption that when people use this feature,
+	// they would simply set a renaming function once at startup,
+	// and not change between requests like this
+	lowerAnon := struct {
+		FirstLower string
+		LastLower string
+	}{}
+	lowerColumnMap, lowerErr := getColumnMap(&lowerAnon)
+	assert.NoError(t, lowerErr)
+
+	var lowerKeys []string
+	for key, _ := range lowerColumnMap {
+		lowerKeys = append(lowerKeys, key)
+	}
+	assert.Contains(t, lowerKeys, "firstlower")
+	assert.Contains(t, lowerKeys, "lastlower")
+
+	// changing rename function
+	SetColumnRenameFunction(strings.ToUpper)
+
+	upperAnon := struct {
+		FirstUpper string
+		LastUpper string
+	}{}
+	upperColumnMap, upperErr := getColumnMap(&upperAnon)
+	assert.NoError(t, upperErr)
+
+	var upperKeys []string
+	for key, _ := range upperColumnMap {
+		upperKeys = append(upperKeys, key)
+	}
+	assert.Contains(t, upperKeys, "FIRSTUPPER")
+	assert.Contains(t, upperKeys, "LASTUPPER")
 }
 
 func (me *crudExecTest) TestScanStruct() {
