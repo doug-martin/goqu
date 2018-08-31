@@ -79,7 +79,7 @@ func (me *Dataset) Insert(i ...interface{}) *CrudExec {
 }
 
 //Generates the INSERT IGNORE (mysql) or INSERT ... ON CONFLICT DO NOTHING (postgres) and returns an Exec struct.
-//    db.From("test").InsertIgnore(DoNothing(), Record{"name":"Bob").Exec()
+//    db.From("test").InsertIgnore(DoNothing(), Record{"name":"Bob"}).Exec()
 //
 //See Dataset#InsertIgnore for arguments
 func (me *Dataset) InsertIgnore(i ...interface{}) *CrudExec {
@@ -88,7 +88,7 @@ func (me *Dataset) InsertIgnore(i ...interface{}) *CrudExec {
 }
 
 //Generates the INSERT sql with (ON CONFLICT/ON DUPLICATE KEY) clause, and returns an Exec struct with the sql set to the INSERT statement
-//    db.From("test").InsertConflict(DoNothing(), Record{"name":"Bob").Exec()
+//    db.From("test").InsertConflict(DoNothing(), Record{"name":"Bob"}).Exec()
 //
 //See Dataset#Upsert for arguments
 func (me *Dataset) InsertConflict(c ConflictExpression, i ...interface{}) *CrudExec {
