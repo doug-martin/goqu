@@ -20,9 +20,9 @@ services:
   goqu:
     image: "golang:${GO_VERSION}"
     command: bash -c "sleep 30 && go test -v -race ./..."
-    working_dir: /go/src/gopkg.in/doug-martin/goqu.v4
+    working_dir: /go/src/gopkg.in/doug-martin/goqu.v5
     volumes:
-      - "./:/go/src/gopkg.in/doug-martin/goqu.v4"
+      - "./:/go/src/gopkg.in/doug-martin/goqu.v5"
     environment:
       MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
       PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
@@ -32,9 +32,9 @@ services:
   goqu-coverage:
     image: "golang:${GO_VERSION}"
     command: bash -c "sleep 30 && ./go.test.sh"
-    working_dir: /go/src/gopkg.in/doug-martin/goqu.v4
+    working_dir: /go/src/gopkg.in/doug-martin/goqu.v5
     volumes:
-      - "./:/go/src/gopkg.in/doug-martin/goqu.v4"
+      - "./:/go/src/gopkg.in/doug-martin/goqu.v5"
     environment:
       MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
       PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
