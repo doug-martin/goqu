@@ -1,6 +1,9 @@
 package goqu
 
-import "database/sql"
+import (
+	"context"
+	"database/sql"
+)
 
 type (
 	database interface {
@@ -8,13 +11,21 @@ type (
 		From(cols ...interface{}) *Dataset
 		Logger(logger Logger)
 		Exec(query string, args ...interface{}) (sql.Result, error)
+		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 		Prepare(query string) (*sql.Stmt, error)
+		PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 		Query(query string, args ...interface{}) (*sql.Rows, error)
+		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 		QueryRow(query string, args ...interface{}) *sql.Row
+		QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 		ScanStructs(i interface{}, query string, args ...interface{}) error
+		ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error
 		ScanStruct(i interface{}, query string, args ...interface{}) (bool, error)
+		ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error)
 		ScanVals(i interface{}, query string, args ...interface{}) error
+		ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error
 		ScanVal(i interface{}, query string, args ...interface{}) (bool, error)
+		ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error)
 	}
 	//This struct is the wrapper for a Db. The struct delegates most calls to either an Exec instance or to the Db passed into the constructor.
 	Database struct {
@@ -110,6 +121,16 @@ func (me *Database) Exec(query string, args ...interface{}) (sql.Result, error) 
 	return me.Db.Exec(query, args...)
 }
 
+//Uses the db to Execute the query with arguments and return the sql.Result
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	me.Trace("EXEC", query, args...)
+	return me.Db.ExecContext(ctx, query, args...)
+}
+
 //Can be used to prepare a query.
 //
 //You can use this in tandem with a dataset by doing the following.
@@ -140,6 +161,36 @@ func (me *Database) Prepare(query string) (*sql.Stmt, error) {
 	return me.Db.Prepare(query)
 }
 
+//Can be used to prepare a query.
+//
+//You can use this in tandem with a dataset by doing the following.
+//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSql(true)
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    stmt, err := db.Prepare(sql)
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    defer stmt.Close()
+//    rows, err := stmt.QueryContext(ctx, args)
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    defer rows.Close()
+//    for rows.Next(){
+//              //scan your rows
+//    }
+//    if rows.Err() != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//
+//query: The SQL statement to prepare.
+func (me *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	me.Trace("PREPARE", query)
+	return me.Db.PrepareContext(ctx, query)
+}
+
 //Used to query for multiple rows.
 //
 //You can use this in tandem with a dataset by doing the following.
@@ -167,6 +218,33 @@ func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) 
 	return me.Db.Query(query, args...)
 }
 
+//Used to query for multiple rows.
+//
+//You can use this in tandem with a dataset by doing the following.
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Sql()
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    rows, err := stmt.QueryContext(ctx, args)
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    defer rows.Close()
+//    for rows.Next(){
+//              //scan your rows
+//    }
+//    if rows.Err() != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	me.Trace("QUERY", query, args...)
+	return me.Db.QueryContext(ctx, query, args...)
+}
+
 //Used to query for a single row.
 //
 //You can use this in tandem with a dataset by doing the following.
@@ -188,6 +266,27 @@ func (me *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 	return me.Db.QueryRow(query, args...)
 }
 
+//Used to query for a single row.
+//
+//You can use this in tandem with a dataset by doing the following.
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).Sql()
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    rows, err := stmt.QueryRowContext(ctx, args)
+//    if err != nil{
+//        panic(err.Error()) //you could gracefully handle the error also
+//    }
+//    //scan your row
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	me.Trace("QUERY ROW", query, args...)
+	return me.Db.QueryRowContext(ctx, query, args...)
+}
+
 //Queries the database using the supplied query, and args and uses CrudExec.ScanStructs to scan the results into a slice of structs
 //
 //i: A pointer to a slice of structs
@@ -198,6 +297,18 @@ func (me *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 func (me *Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
 	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanStructs(i)
+}
+
+//Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructsContext to scan the results into a slice of structs
+//
+//i: A pointer to a slice of structs
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanStructsContext(ctx, i)
 }
 
 //Queries the database using the supplied query, and args and uses CrudExec.ScanStruct to scan the results into a struct
@@ -212,6 +323,18 @@ func (me *Database) ScanStruct(i interface{}, query string, args ...interface{})
 	return exec.ScanStruct(i)
 }
 
+//Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructContext to scan the results into a struct
+//
+//i: A pointer to a struct
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanStructContext(ctx, i)
+}
+
 //Queries the database using the supplied query, and args and uses CrudExec.ScanVals to scan the results into a slice of primitive values
 //
 //i: A pointer to a slice of primitive values
@@ -224,6 +347,18 @@ func (me *Database) ScanVals(i interface{}, query string, args ...interface{}) e
 	return exec.ScanVals(i)
 }
 
+//Queries the database using the supplied context, query, and args and uses CrudExec.ScanValsContext to scan the results into a slice of primitive values
+//
+//i: A pointer to a slice of primitive values
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanValsContext(ctx, i)
+}
+
 //Queries the database using the supplied query, and args and uses CrudExec.ScanVal to scan the results into a primitive value
 //
 //i: A pointer to a primitive value
@@ -234,6 +369,18 @@ func (me *Database) ScanVals(i interface{}, query string, args ...interface{}) e
 func (me *Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanVal(i)
+}
+
+//Queries the database using the supplied context, query, and args and uses CrudExec.ScanValContext to scan the results into a primitive value
+//
+//i: A pointer to a primitive value
+//
+//query: The SQL to execute
+//
+//args...: for any placeholder parameters in the query
+func (me *Database) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanValContext(ctx, i)
 }
 
 //A wrapper around a sql.Tx and works the same way as Database
@@ -279,10 +426,22 @@ func (me *TxDatabase) Exec(query string, args ...interface{}) (sql.Result, error
 	return me.Tx.Exec(query, args...)
 }
 
+//See Database#ExecContext
+func (me *TxDatabase) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	me.Trace("EXEC", query, args...)
+	return me.Tx.ExecContext(ctx, query, args...)
+}
+
 //See Database#Prepare
 func (me *TxDatabase) Prepare(query string) (*sql.Stmt, error) {
 	me.Trace("PREPARE", query)
 	return me.Tx.Prepare(query)
+}
+
+//See Database#PrepareContext
+func (me *TxDatabase) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	me.Trace("PREPARE", query)
+	return me.Tx.PrepareContext(ctx, query)
 }
 
 //See Database#Query
@@ -291,10 +450,22 @@ func (me *TxDatabase) Query(query string, args ...interface{}) (*sql.Rows, error
 	return me.Tx.Query(query, args...)
 }
 
+//See Database#QueryContext
+func (me *TxDatabase) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	me.Trace("QUERY", query, args...)
+	return me.Tx.QueryContext(ctx, query, args...)
+}
+
 //See Database#QueryRow
 func (me *TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
 	me.Trace("QUERY ROW", query, args...)
 	return me.Tx.QueryRow(query, args...)
+}
+
+//See Database#QueryRowContext
+func (me *TxDatabase) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	me.Trace("QUERY ROW", query, args...)
+	return me.Tx.QueryRowContext(ctx, query, args...)
 }
 
 //See Database#ScanStructs
@@ -303,10 +474,22 @@ func (me *TxDatabase) ScanStructs(i interface{}, query string, args ...interface
 	return exec.ScanStructs(i)
 }
 
+//See Database#ScanStructsContext
+func (me *TxDatabase) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanStructsContext(ctx, i)
+}
+
 //See Database#ScanStruct
 func (me *TxDatabase) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanStruct(i)
+}
+
+//See Database#ScanStructContext
+func (me *TxDatabase) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanStructContext(ctx, i)
 }
 
 //See Database#ScanVals
@@ -315,10 +498,22 @@ func (me *TxDatabase) ScanVals(i interface{}, query string, args ...interface{})
 	return exec.ScanVals(i)
 }
 
+//See Database#ScanValsContext
+func (me *TxDatabase) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanValsContext(ctx, i)
+}
+
 //See Database#ScanVal
 func (me *TxDatabase) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
 	exec := newCrudExec(me, nil, query, args...)
 	return exec.ScanVal(i)
+}
+
+//See Database#ScanValContext
+func (me *TxDatabase) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	exec := newCrudExec(me, nil, query, args...)
+	return exec.ScanValContext(ctx, i)
 }
 
 //COMMIT the transaction
