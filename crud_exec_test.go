@@ -1,6 +1,7 @@
 package goqu
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"strings"
@@ -11,24 +12,24 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
-type testCrudActionItem struct {
+type TestCrudActionItem struct {
 	Address string `db:"address"`
 	Name    string `db:"name"`
 }
 
-type testCrudActionNoTagsItem struct {
+type TestCrudActionNoTagsItem struct {
 	Address string
 	Name    string
 }
 
-type testComposedCrudActionItem struct {
-	testCrudActionItem
+type TestComposedCrudActionItem struct {
+	TestCrudActionItem
 	PhoneNumber string `db:"phone_number"`
 	Age         int64  `db:"age"`
 }
 
-type testEmbeddedPtrCrudActionItem struct {
-	*testCrudActionItem
+type TestEmbeddedPtrCrudActionItem struct {
+	*TestCrudActionItem
 	PhoneNumber string `db:"phone_number"`
 	Age         int64  `db:"age"`
 }
@@ -39,40 +40,47 @@ type crudExecTest struct {
 
 func (me *crudExecTest) TestWithError() {
 	t := me.T()
+	ctx := context.Background()
 	mDb, _, err := sqlmock.New()
 	assert.NoError(t, err)
 	db := New("db-mock", mDb)
 	expectedErr := fmt.Errorf("crud exec error")
 	exec := newCrudExec(db, expectedErr, `SELECT * FROM "items"`)
-	var items []testCrudActionItem
+	var items []TestCrudActionItem
 	assert.EqualError(t, exec.ScanStructs(&items), expectedErr.Error())
-	found, err := exec.ScanStruct(&testCrudActionItem{})
+	assert.EqualError(t, exec.ScanStructsContext(ctx, &items), expectedErr.Error())
+	found, err := exec.ScanStruct(&TestCrudActionItem{})
+	assert.EqualError(t, err, expectedErr.Error())
+	assert.False(t, found)
+	found, err = exec.ScanStructContext(ctx, &TestCrudActionItem{})
 	assert.EqualError(t, err, expectedErr.Error())
 	assert.False(t, found)
 	var vals []string
 	assert.EqualError(t, exec.ScanVals(&vals), expectedErr.Error())
+	assert.EqualError(t, exec.ScanValsContext(ctx, &vals), expectedErr.Error())
 	var val string
 	found, err = exec.ScanVal(&val)
+	assert.EqualError(t, err, expectedErr.Error())
+	assert.False(t, found)
+	found, err = exec.ScanValContext(ctx, &val)
 	assert.EqualError(t, err, expectedErr.Error())
 	assert.False(t, found)
 }
 
 func (me *crudExecTest) TestScanStructs() {
 	t := me.T()
+	ctx := context.Background()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnError(fmt.Errorf("query error"))
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("query error"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
@@ -80,11 +88,34 @@ func (me *crudExecTest) TestScanStructs() {
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
@@ -92,10 +123,13 @@ func (me *crudExecTest) TestScanStructs() {
 	db := New("db-mock", mDb)
 	exec := newCrudExec(db, nil, `SELECT * FROM "items"`)
 
-	var items []testCrudActionItem
+	var items []TestCrudActionItem
 	assert.EqualError(t, exec.ScanStructs(items), "goqu: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, exec.ScanStructs(&testCrudActionItem{}), "goqu: Type must be a pointer to a slice when calling ScanStructs")
+	assert.EqualError(t, exec.ScanStructsContext(ctx, items), "goqu: Type must be a pointer to a slice when calling ScanStructs")
+	assert.EqualError(t, exec.ScanStructs(&TestCrudActionItem{}), "goqu: Type must be a pointer to a slice when calling ScanStructs")
+	assert.EqualError(t, exec.ScanStructsContext(ctx, &TestCrudActionItem{}), "goqu: Type must be a pointer to a slice when calling ScanStructs")
 	assert.EqualError(t, exec.ScanStructs(&items), "query error")
+	assert.EqualError(t, exec.ScanStructsContext(ctx, &items), "query error")
 
 	assert.NoError(t, exec.ScanStructs(&items))
 	assert.Len(t, items, 2)
@@ -105,7 +139,16 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, items[1].Address, "211 Test Addr")
 	assert.Equal(t, items[1].Name, "Test2")
 
-	var composed []testComposedCrudActionItem
+	items = nil
+	assert.NoError(t, exec.ScanStructsContext(ctx, &items))
+	assert.Len(t, items, 2)
+	assert.Equal(t, items[0].Address, "111 Test Addr")
+	assert.Equal(t, items[0].Name, "Test1")
+
+	assert.Equal(t, items[1].Address, "211 Test Addr")
+	assert.Equal(t, items[1].Name, "Test2")
+
+	var composed []TestComposedCrudActionItem
 	assert.NoError(t, exec.ScanStructs(&composed))
 	assert.Len(t, composed, 2)
 	assert.Equal(t, composed[0].Address, "111 Test Addr")
@@ -118,7 +161,20 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composed[1].PhoneNumber, "222-222-2222")
 	assert.Equal(t, composed[1].Age, 30)
 
-	var pointers []*testCrudActionItem
+	composed = nil
+	assert.NoError(t, exec.ScanStructsContext(ctx, &composed))
+	assert.Len(t, composed, 2)
+	assert.Equal(t, composed[0].Address, "111 Test Addr")
+	assert.Equal(t, composed[0].Name, "Test1")
+	assert.Equal(t, composed[0].PhoneNumber, "111-111-1111")
+	assert.Equal(t, composed[0].Age, 20)
+
+	assert.Equal(t, composed[1].Address, "211 Test Addr")
+	assert.Equal(t, composed[1].Name, "Test2")
+	assert.Equal(t, composed[1].PhoneNumber, "222-222-2222")
+	assert.Equal(t, composed[1].Age, 30)
+
+	var pointers []*TestCrudActionItem
 	assert.NoError(t, exec.ScanStructs(&pointers))
 	assert.Len(t, pointers, 2)
 	assert.Equal(t, pointers[0].Address, "111 Test Addr")
@@ -127,7 +183,16 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, pointers[1].Address, "211 Test Addr")
 	assert.Equal(t, pointers[1].Name, "Test2")
 
-	var composedPointers []*testComposedCrudActionItem
+	pointers = nil
+	assert.NoError(t, exec.ScanStructsContext(ctx, &pointers))
+	assert.Len(t, pointers, 2)
+	assert.Equal(t, pointers[0].Address, "111 Test Addr")
+	assert.Equal(t, pointers[0].Name, "Test1")
+
+	assert.Equal(t, pointers[1].Address, "211 Test Addr")
+	assert.Equal(t, pointers[1].Name, "Test2")
+
+	var composedPointers []*TestComposedCrudActionItem
 	assert.NoError(t, exec.ScanStructs(&composedPointers))
 	assert.Len(t, composedPointers, 2)
 	assert.Equal(t, composedPointers[0].Address, "111 Test Addr")
@@ -140,7 +205,20 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
 	assert.Equal(t, composedPointers[1].Age, 30)
 
-	var embeddedPtrs []*testEmbeddedPtrCrudActionItem
+	composedPointers = nil
+	assert.NoError(t, exec.ScanStructsContext(ctx, &composedPointers))
+	assert.Len(t, composedPointers, 2)
+	assert.Equal(t, composedPointers[0].Address, "111 Test Addr")
+	assert.Equal(t, composedPointers[0].Name, "Test1")
+	assert.Equal(t, composedPointers[0].PhoneNumber, "111-111-1111")
+	assert.Equal(t, composedPointers[0].Age, 20)
+
+	assert.Equal(t, composedPointers[1].Address, "211 Test Addr")
+	assert.Equal(t, composedPointers[1].Name, "Test2")
+	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
+	assert.Equal(t, composedPointers[1].Age, 30)
+
+	var embeddedPtrs []*TestEmbeddedPtrCrudActionItem
 	assert.NoError(t, exec.ScanStructs(&embeddedPtrs))
 	assert.Len(t, embeddedPtrs, 2)
 	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
@@ -153,7 +231,20 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
 	assert.Equal(t, embeddedPtrs[1].Age, 30)
 
-	var noTags []testCrudActionNoTagsItem
+	embeddedPtrs = nil
+	assert.NoError(t, exec.ScanStructsContext(ctx, &embeddedPtrs))
+	assert.Len(t, embeddedPtrs, 2)
+	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
+	assert.Equal(t, embeddedPtrs[0].Name, "Test1")
+	assert.Equal(t, embeddedPtrs[0].PhoneNumber, "111-111-1111")
+	assert.Equal(t, embeddedPtrs[0].Age, 20)
+
+	assert.Equal(t, embeddedPtrs[1].Address, "211 Test Addr")
+	assert.Equal(t, embeddedPtrs[1].Name, "Test2")
+	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
+	assert.Equal(t, embeddedPtrs[1].Age, 30)
+
+	var noTags []TestCrudActionNoTagsItem
 	assert.NoError(t, exec.ScanStructs(&noTags))
 	assert.Len(t, noTags, 2)
 	assert.Equal(t, noTags[0].Address, "111 Test Addr")
@@ -161,7 +252,18 @@ func (me *crudExecTest) TestScanStructs() {
 
 	assert.Equal(t, noTags[1].Address, "211 Test Addr")
 	assert.Equal(t, noTags[1].Name, "Test2")
+  
+  
+	noTags = nil
+	assert.NoError(t, exec.ScanStructsContext(ctx, &noTags))
+	assert.Len(t, noTags, 2)
+	assert.Equal(t, noTags[0].Address, "111 Test Addr")
+	assert.Equal(t, noTags[0].Name, "Test1")
+
+	assert.Equal(t, noTags[1].Address, "211 Test Addr")
+	assert.Equal(t, noTags[1].Name, "Test2")
 }
+
 
 func (me *crudExecTest) TestColumnRename() {
 	t := me.T()
@@ -228,8 +330,8 @@ func (me *crudExecTest) TestScanStruct() {
 	db := New("db-mock", mDb)
 	exec := newCrudExec(db, nil, `SELECT * FROM "items"`)
 
-	var slicePtr []testCrudActionItem
-	var item testCrudActionItem
+	var slicePtr []TestCrudActionItem
+	var item TestCrudActionItem
 	found, err := exec.ScanStruct(item)
 	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
 	assert.False(t, found)
@@ -246,7 +348,7 @@ func (me *crudExecTest) TestScanStruct() {
 	assert.Equal(t, item.Address, "111 Test Addr")
 	assert.Equal(t, item.Name, "Test1")
 
-	var composed testComposedCrudActionItem
+	var composed TestComposedCrudActionItem
 	found, err = exec.ScanStruct(&composed)
 	assert.NoError(t, err)
 	assert.True(t, found)
@@ -255,7 +357,7 @@ func (me *crudExecTest) TestScanStruct() {
 	assert.Equal(t, composed.PhoneNumber, "111-111-1111")
 	assert.Equal(t, composed.Age, 20)
 
-	var embeddedPtr testEmbeddedPtrCrudActionItem
+	var embeddedPtr TestEmbeddedPtrCrudActionItem
 	found, err = exec.ScanStruct(&embeddedPtr)
 	assert.NoError(t, err)
 	assert.True(t, found)
@@ -264,7 +366,7 @@ func (me *crudExecTest) TestScanStruct() {
 	assert.Equal(t, embeddedPtr.PhoneNumber, "111-111-1111")
 	assert.Equal(t, embeddedPtr.Age, 20)
 
-	var noTag testCrudActionNoTagsItem
+	var noTag TestCrudActionNoTagsItem
 	found, err = exec.ScanStruct(&noTag)
 	assert.NoError(t, err)
 	assert.True(t, found)

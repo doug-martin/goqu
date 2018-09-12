@@ -1,6 +1,7 @@
 package goqu
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"reflect"
@@ -38,10 +39,14 @@ func newCrudExec(database database, err error, sql string, args ...interface{}) 
 }
 
 func (me CrudExec) Exec() (sql.Result, error) {
+	return me.ExecContext(context.Background())
+}
+
+func (me CrudExec) ExecContext(ctx context.Context) (sql.Result, error) {
 	if me.err != nil {
 		return nil, me.err
 	}
-	return me.database.Exec(me.Sql, me.Args...)
+	return me.database.ExecContext(ctx, me.Sql, me.Args...)
 }
 
 //This will execute the SQL and append results to the slice
@@ -54,6 +59,19 @@ func (me CrudExec) Exec() (sql.Result, error) {
 //
 //i: A pointer to a slice of structs.
 func (me CrudExec) ScanStructs(i interface{}) error {
+	return me.ScanStructsContext(context.Background(), i)
+}
+
+//This will execute the SQL and append results to the slice
+//    var myStructs []MyStruct
+//    if err := From("test").ScanStructsContext(ctx, &myStructs); err != nil{
+//        panic(err.Error()
+//    }
+//    //use your structs
+//
+//
+//i: A pointer to a slice of structs.
+func (me CrudExec) ScanStructsContext(ctx context.Context, i interface{}) error {
 	if me.err != nil {
 		return me.err
 	}
@@ -64,7 +82,7 @@ func (me CrudExec) ScanStructs(i interface{}) error {
 	if reflect.Indirect(val).Kind() != reflect.Slice {
 		return NewGoquError("Type must be a pointer to a slice when calling ScanStructs")
 	}
-	_, err := me.scan(i, me.Sql, me.Args...)
+	_, err := me.scanContext(ctx, i, me.Sql, me.Args...)
 	return err
 }
 
@@ -80,6 +98,21 @@ func (me CrudExec) ScanStructs(i interface{}) error {
 //
 //i: A pointer to a struct
 func (me CrudExec) ScanStruct(i interface{}) (bool, error) {
+	return me.ScanStructContext(context.Background(), i)
+}
+
+//This will execute the SQL and fill out the struct with the fields returned. This method returns a boolean value that is false if no record was found
+//    var myStruct MyStruct
+//    found, err := From("test").Limit(1).ScanStructContext(ctx, &myStruct)
+//    if err != nil{
+//        panic(err.Error()
+//    }
+//    if !found{
+//          fmt.Println("NOT FOUND")
+//    }
+//
+//i: A pointer to a struct
+func (me CrudExec) ScanStructContext(ctx context.Context, i interface{}) (bool, error) {
 	if me.err != nil {
 		return false, me.err
 	}
@@ -90,7 +123,7 @@ func (me CrudExec) ScanStruct(i interface{}) (bool, error) {
 	if reflect.Indirect(val).Kind() != reflect.Struct {
 		return false, NewGoquError("Type must be a pointer to a struct when calling ScanStruct")
 	}
-	return me.scan(i, me.Sql, me.Args...)
+	return me.scanContext(ctx, i, me.Sql, me.Args...)
 }
 
 //This will execute the SQL and append results to the slice.
@@ -101,6 +134,17 @@ func (me CrudExec) ScanStruct(i interface{}) (bool, error) {
 //
 //i: Takes a pointer to a slice of primitive values.
 func (me CrudExec) ScanVals(i interface{}) error {
+	return me.ScanValsContext(context.Background(), i)
+}
+
+//This will execute the SQL and append results to the slice.
+//    var ids []uint32
+//    if err := From("test").Select("id").ScanValsContext(ctx, &ids); err != nil{
+//        panic(err.Error()
+//    }
+//
+//i: Takes a pointer to a slice of primitive values.
+func (me CrudExec) ScanValsContext(ctx context.Context, i interface{}) error {
 	if me.err != nil {
 		return me.err
 	}
@@ -113,7 +157,7 @@ func (me CrudExec) ScanVals(i interface{}) error {
 		return NewGoquError("Type must be a pointer to a slice when calling ScanVals")
 	}
 	t, _, isSliceOfPointers := getTypeInfo(i, val)
-	rows, err := me.database.Query(me.Sql, me.Args...)
+	rows, err := me.database.QueryContext(ctx, me.Sql, me.Args...)
 	if err != nil {
 		return err
 	}
@@ -133,7 +177,6 @@ func (me CrudExec) ScanVals(i interface{}) error {
 		return err
 	}
 	return nil
-
 }
 
 //This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
@@ -148,6 +191,21 @@ func (me CrudExec) ScanVals(i interface{}) error {
 //
 //   i: Takes a pointer to a primitive value.
 func (me CrudExec) ScanVal(i interface{}) (bool, error) {
+	return me.ScanValContext(context.Background(), i)
+}
+
+//This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
+//    var id uint32
+//    found, err := From("test").Select("id").Limit(1).ScanValContext(ctx, &id)
+//    if err != nil{
+//        panic(err.Error()
+//    }
+//    if !found{
+//        fmt.Println("NOT FOUND")
+//    }
+//
+//   i: Takes a pointer to a primitive value.
+func (me CrudExec) ScanValContext(ctx context.Context, i interface{}) (bool, error) {
 	if me.err != nil {
 		return false, me.err
 	}
@@ -159,7 +217,7 @@ func (me CrudExec) ScanVal(i interface{}) (bool, error) {
 	if val.Kind() == reflect.Slice {
 		return false, NewGoquError("Cannot scan into a slice when calling ScanVal")
 	}
-	rows, err := me.database.Query(me.Sql, me.Args...)
+	rows, err := me.database.QueryContext(ctx, me.Sql, me.Args...)
 	if err != nil {
 		return false, err
 	}
@@ -177,7 +235,7 @@ func (me CrudExec) ScanVal(i interface{}) (bool, error) {
 	return count != 0, nil
 }
 
-func (me CrudExec) scan(i interface{}, query string, args ...interface{}) (bool, error) {
+func (me CrudExec) scanContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
 	var (
 		found   bool
 		results []Record
@@ -186,7 +244,7 @@ func (me CrudExec) scan(i interface{}, query string, args ...interface{}) (bool,
 	if err != nil {
 		return found, err
 	}
-	rows, err := me.database.Query(query, args...)
+	rows, err := me.database.QueryContext(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}

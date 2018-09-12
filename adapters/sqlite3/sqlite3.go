@@ -1,6 +1,6 @@
 package sqlite3
 
-import "gopkg.in/doug-martin/goqu.v4"
+import "gopkg.in/doug-martin/goqu.v5"
 
 var (
 	placeholder_rune    = '?'

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"gopkg.in/doug-martin/goqu.v4"
+	"gopkg.in/doug-martin/goqu.v5"
 )
 
 var driver *sql.DB

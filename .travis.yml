@@ -3,11 +3,11 @@ language: go
 services:
   - docker
 
-go_import_path: gopkg.in/doug-martin/goqu.v4
+go_import_path: gopkg.in/doug-martin/goqu.v5
 
 env:
-  - GO_VERSION="1.6"
-  - GO_VERSION="1.7"
+  - GO_VERSION="1.8"
+  - GO_VERSION="1.9"
   - GO_VERSION="latest"
 
 before_install:

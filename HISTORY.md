@@ -1,3 +1,8 @@
+## v5.0.0
+
+* Drop go 1.6 support, supported versions are `1.8`, `1.9` and latest
+* Add context support [#64](https://github.com/doug-martin/goqu/pull/64) - [@cmoad](https://github.com/cmoad)
+
 ## v4.2.0
 
 * Add support for ON CONFLICT when using a dataset [#55](https://github.com/doug-martin/goqu/pull/55) - [@bobrnor](https://github.com/bobrnor)
