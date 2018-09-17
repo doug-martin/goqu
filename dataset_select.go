@@ -230,11 +230,11 @@ func (me *Dataset) ForNoKeyUpdate(waitOption WaitOption) *Dataset {
 	return ret
 }
 
-//Adds a FOR Key SHARE clause. See examples.
+//Adds a FOR KEY SHARE clause. See examples.
 func (me *Dataset) ForKeyShare(waitOption WaitOption) *Dataset {
 	ret := me.copy()
 	ret.clauses.Lock = Lock{
-		Strength:   FOR_SHARE,
+		Strength:   FOR_KEY_SHARE,
 		WaitOption: waitOption,
 	}
 	return ret
