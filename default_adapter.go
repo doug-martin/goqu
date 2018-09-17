@@ -706,6 +706,8 @@ func (me *DefaultAdapter) ForSql(buf *SqlBuilder, lockingClause Lock) error {
 	case FOR_KEY_SHARE:
 		buf.Write(me.ForKeyShareFragment)
 	}
+	// the WAIT case is the default in Postgres, and is what you get if you don't specify NOWAIT or
+	// SKIP LOCKED.  There's no special syntax for it in PG, so we don't do anything for it here
 	switch lockingClause.WaitOption {
 	case NOWAIT:
 		buf.Write(me.NowaitFragment)
