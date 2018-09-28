@@ -11,7 +11,7 @@ type DatasetAdapter struct {
 }
 
 //Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)
-func (me *DatasetAdapter) SliceValueSql(buf *SqlBuilder, slice reflect.Value) error {
+func (me *DatasetAdapter) SliceValueSql(buf *goqu.SqlBuilder, slice reflect.Value) error {
 	buf.WriteString("ARRAY[")
 
 	for i, l := 0, slice.Len(); i < l; i++ {
