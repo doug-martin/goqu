@@ -410,14 +410,35 @@ func (me *DefaultAdapter) InsertValuesSql(buf *SqlBuilder, values [][]interface{
 		if len(row) != rowLen {
 			return fmt.Errorf("Rows with different value length expected %d got %d", rowLen, len(row))
 		}
-		if err := me.Literal(buf, row); err != nil {
+
+		if err := me.Record(buf, row, rowLen); err != nil {
 			return err
 		}
+
 		if i < valueLen-1 {
 			buf.WriteRune(comma_rune)
 			buf.WriteRune(space_rune)
 		}
 	}
+	return nil
+}
+
+func (me *DefaultAdapter) Record(buf *SqlBuilder, values []interface{}, valuesLen int) error {
+	buf.WriteRune(left_paren_rune)
+
+	for i, value := range values {
+		if err := me.Literal(buf, value); err != nil {
+			return err
+		}
+
+		if i < valuesLen - 1 {
+			buf.WriteRune(comma_rune)
+			buf.WriteRune(space_rune)
+		}
+	}
+
+	buf.WriteRune(right_paren_rune)
+
 	return nil
 }
 
