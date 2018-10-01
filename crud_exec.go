@@ -26,7 +26,8 @@ type (
 	selectResults []Record
 )
 
-var columnRenameFunction = strings.ToLower
+var defaultColumnRenameFunction = strings.ToLower
+var columnRenameFunction = defaultColumnRenameFunction
 func SetColumnRenameFunction(new_function func(string) string) {
 	columnRenameFunction = new_function
 }
