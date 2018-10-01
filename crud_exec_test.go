@@ -252,8 +252,8 @@ func (me *crudExecTest) TestScanStructs() {
 
 	assert.Equal(t, noTags[1].Address, "211 Test Addr")
 	assert.Equal(t, noTags[1].Name, "Test2")
-  
-  
+
+
 	noTags = nil
 	assert.NoError(t, exec.ScanStructsContext(ctx, &noTags))
 	assert.Len(t, noTags, 2)
@@ -301,6 +301,8 @@ func (me *crudExecTest) TestColumnRename() {
 	}
 	assert.Contains(t, upperKeys, "FIRSTUPPER")
 	assert.Contains(t, upperKeys, "LASTUPPER")
+
+	SetColumnRenameFunction(defaultColumnRenameFunction)
 }
 
 func (me *crudExecTest) TestScanStruct() {
