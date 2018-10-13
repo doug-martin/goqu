@@ -14,9 +14,15 @@ type DatasetAdapter struct {
 	*goqu.DefaultAdapter
 }
 
-//Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)
+//Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> ARRAY[1,2,3,4] or '{}' if empty
 func (me *DatasetAdapter) SliceValueSql(buf *goqu.SqlBuilder, slice reflect.Value) error {
-	buf.WriteString("ARRAY[")
+	sliceEmpty := slice.Len() == 0
+
+	if sliceEmpty {
+		buf.WriteString("'{")
+	} else {
+		buf.WriteString("ARRAY[")
+	}
 
 	for i, l := 0, slice.Len(); i < l; i++ {
 		if err := me.Literal(buf, slice.Index(i).Interface()); err != nil {
@@ -27,7 +33,12 @@ func (me *DatasetAdapter) SliceValueSql(buf *goqu.SqlBuilder, slice reflect.Valu
 			buf.WriteRune(space_rune)
 		}
 	}
-	buf.WriteRune(']')
+
+	if sliceEmpty {
+		buf.WriteString("}'")
+	} else {
+		buf.WriteRune(']')
+	}
 	return nil
 }
 
