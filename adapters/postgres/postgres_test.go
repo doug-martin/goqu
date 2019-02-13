@@ -10,7 +10,7 @@ import (
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
 	"github.com/lib/pq"
-	"gopkg.in/doug-martin/goqu.v5"
+	"goqu"
 )
 
 const schema = `

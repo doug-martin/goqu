@@ -10,7 +10,7 @@ import (
 	"github.com/c2fo/testify/assert"
 	"github.com/c2fo/testify/suite"
 	_ "github.com/go-sql-driver/mysql"
-	"gopkg.in/doug-martin/goqu.v5"
+	"goqu"
 )
 
 const (
@@ -38,6 +38,7 @@ const (
 )
 
 const default_db_uri = "root@/goqumysql?parseTime=true"
+
 var db_uri string
 
 func init() {
@@ -166,7 +167,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.I("int").Between(goqu.RangeVal{Start:3,End:6})).Order(goqu.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Between(goqu.RangeVal{Start: 3, End: 6})).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 4)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -370,7 +371,6 @@ func (me *mysqlTest) TestInsertConflict() {
 	_, err = ds.Where(goqu.I("int").Eq(10)).ScanStruct(&entryActual)
 	assert.NoError(t, err)
 	assert.Equal(t, "upsert", entryActual.String)
-
 
 	//update where should error
 	entries := []entry{
