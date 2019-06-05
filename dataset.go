@@ -112,6 +112,13 @@ func From(table ...interface{}) *Dataset {
 	return ret.From(table...)
 }
 
+//Returns a dataset with the DefaultAdapter. Typically you would use Database#Select.
+func Select(selects ...interface{}) *Dataset {
+	ret := new(Dataset)
+	ret.adapter = NewDefaultAdapter(ret)
+	return ret.Select(selects...)
+}
+
 //Creates a WITH clause for a common table expression (CTE).
 //
 //The name will be available to SELECT from in the associated query; and can optionally
