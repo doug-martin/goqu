@@ -92,7 +92,7 @@ Now that you have your goqu.Database you can build your SQL and it will be forma
 
 ```go
 //interpolated sql
-sql, _ := db.From("user").Where(goqu.Ex{
+sql, _, _ := db.From("user").Where(goqu.Ex{
     "id": 10,
 }).ToSql()
 fmt.Println(sql)
@@ -535,7 +535,7 @@ if err := delete.ScanVals(&ids); err != nil{
 <a name="dataset_prepared"></a>
 #### Prepared Statements
 
-By default the `Dataset` will interpolate all parameters, if you do not want to have values interolated you can use the [`Prepared`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Prepared) method to prevent this.
+By default the `Dataset` will interpolate all parameters, if you do not want to have values interpolated you can use the [`Prepared`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Prepared) method to prevent this.
 
 **Note** For the examples all placeholders are `?` this will be adapter specific when using other examples (e.g. Postgres `$1, $2...`)
 
