@@ -18,7 +18,6 @@ services:
       - "3306"
 
   goqu:
-    name: goqu
     image: "golang:${GO_VERSION}"
     command: bash -c "sleep 30 && go test -v -race ./..."
     working_dir: /go/src/github.com/doug-martin/goqu
@@ -31,7 +30,6 @@ services:
       - postgres
       - mysql
   goqu-coverage:
-    name: goqu-coverage
     image: "golang:${GO_VERSION}"
     command: bash -c "sleep 30 && ./go.test.sh"
     working_dir: /go/src/github.com/doug-martin/goqu
