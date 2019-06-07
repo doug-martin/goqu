@@ -1,8 +1,8 @@
 package goqu
 
 import (
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"github.com/c2fo/testify/assert"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
 )
 
 func (me *datasetTest) TestDeleteSqlNoReturning() {
@@ -115,12 +115,12 @@ func (me *datasetTest) TestPreparedToDeleteSql() {
 
 	sql, args, err = ds1.Where(I("id").Eq(1)).Prepared(true).ToDeleteSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `DELETE FROM "items" WHERE ("id" = ?)`)
 
 	sql, args, err = ds1.Returning("id").Where(I("id").Eq(1)).Prepared(true).ToDeleteSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `DELETE FROM "items" WHERE ("id" = ?) RETURNING "id"`)
 }
 

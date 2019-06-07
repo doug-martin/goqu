@@ -1,3 +1,10 @@
+## v6.0.0
+
+* Updated go support to `1.10`, `1.11` and `1.12`
+* Change testify dependency from c2fo/testify back to stretchr/testify.
+* Add support for "FOR UPDATE" and "SKIP LOCKED" [#62](https://github.com/doug-martin/goqu/pull/62) - [@btubbs](https://github.com/btubbs)
+* Changed to use go modules
+
 ## v5.0.0
 
 * Drop go 1.6 support, supported versions are `1.8`, `1.9` and latest

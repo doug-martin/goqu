@@ -6,9 +6,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type TestCrudActionItem struct {
@@ -153,12 +153,12 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composed[0].Address, "111 Test Addr")
 	assert.Equal(t, composed[0].Name, "Test1")
 	assert.Equal(t, composed[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composed[0].Age, 20)
+	assert.Equal(t, composed[0].Age, int64(20))
 
 	assert.Equal(t, composed[1].Address, "211 Test Addr")
 	assert.Equal(t, composed[1].Name, "Test2")
 	assert.Equal(t, composed[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composed[1].Age, 30)
+	assert.Equal(t, composed[1].Age, int64(30))
 
 	composed = nil
 	assert.NoError(t, exec.ScanStructsContext(ctx, &composed))
@@ -166,12 +166,12 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composed[0].Address, "111 Test Addr")
 	assert.Equal(t, composed[0].Name, "Test1")
 	assert.Equal(t, composed[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composed[0].Age, 20)
+	assert.Equal(t, composed[0].Age, int64(20))
 
 	assert.Equal(t, composed[1].Address, "211 Test Addr")
 	assert.Equal(t, composed[1].Name, "Test2")
 	assert.Equal(t, composed[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composed[1].Age, 30)
+	assert.Equal(t, composed[1].Age, int64(30))
 
 	var pointers []*TestCrudActionItem
 	assert.NoError(t, exec.ScanStructs(&pointers))
@@ -197,12 +197,12 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composedPointers[0].Address, "111 Test Addr")
 	assert.Equal(t, composedPointers[0].Name, "Test1")
 	assert.Equal(t, composedPointers[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composedPointers[0].Age, 20)
+	assert.Equal(t, composedPointers[0].Age, int64(20))
 
 	assert.Equal(t, composedPointers[1].Address, "211 Test Addr")
 	assert.Equal(t, composedPointers[1].Name, "Test2")
 	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composedPointers[1].Age, 30)
+	assert.Equal(t, composedPointers[1].Age, int64(30))
 
 	composedPointers = nil
 	assert.NoError(t, exec.ScanStructsContext(ctx, &composedPointers))
@@ -210,12 +210,12 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, composedPointers[0].Address, "111 Test Addr")
 	assert.Equal(t, composedPointers[0].Name, "Test1")
 	assert.Equal(t, composedPointers[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composedPointers[0].Age, 20)
+	assert.Equal(t, composedPointers[0].Age, int64(20))
 
 	assert.Equal(t, composedPointers[1].Address, "211 Test Addr")
 	assert.Equal(t, composedPointers[1].Name, "Test2")
 	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composedPointers[1].Age, 30)
+	assert.Equal(t, composedPointers[1].Age, int64(30))
 
 	var embeddedPtrs []*TestEmbeddedPtrCrudActionItem
 	assert.NoError(t, exec.ScanStructs(&embeddedPtrs))
@@ -223,12 +223,12 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
 	assert.Equal(t, embeddedPtrs[0].Name, "Test1")
 	assert.Equal(t, embeddedPtrs[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, embeddedPtrs[0].Age, 20)
+	assert.Equal(t, embeddedPtrs[0].Age, int64(20))
 
 	assert.Equal(t, embeddedPtrs[1].Address, "211 Test Addr")
 	assert.Equal(t, embeddedPtrs[1].Name, "Test2")
 	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, embeddedPtrs[1].Age, 30)
+	assert.Equal(t, embeddedPtrs[1].Age, int64(30))
 
 	embeddedPtrs = nil
 	assert.NoError(t, exec.ScanStructsContext(ctx, &embeddedPtrs))
@@ -236,12 +236,12 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
 	assert.Equal(t, embeddedPtrs[0].Name, "Test1")
 	assert.Equal(t, embeddedPtrs[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, embeddedPtrs[0].Age, 20)
+	assert.Equal(t, embeddedPtrs[0].Age, int64(20))
 
 	assert.Equal(t, embeddedPtrs[1].Address, "211 Test Addr")
 	assert.Equal(t, embeddedPtrs[1].Name, "Test2")
 	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, embeddedPtrs[1].Age, 30)
+	assert.Equal(t, embeddedPtrs[1].Age, int64(30))
 
 	var noTags []TestCrudActionNoTagsItem
 	assert.NoError(t, exec.ScanStructs(&noTags))
@@ -314,7 +314,7 @@ func (me *crudExecTest) TestScanStruct() {
 	assert.Equal(t, composed.Address, "111 Test Addr")
 	assert.Equal(t, composed.Name, "Test1")
 	assert.Equal(t, composed.PhoneNumber, "111-111-1111")
-	assert.Equal(t, composed.Age, 20)
+	assert.Equal(t, composed.Age, int64(20))
 
 	var embeddedPtr TestEmbeddedPtrCrudActionItem
 	found, err = exec.ScanStruct(&embeddedPtr)
@@ -323,7 +323,7 @@ func (me *crudExecTest) TestScanStruct() {
 	assert.Equal(t, embeddedPtr.Address, "111 Test Addr")
 	assert.Equal(t, embeddedPtr.Name, "Test1")
 	assert.Equal(t, embeddedPtr.PhoneNumber, "111-111-1111")
-	assert.Equal(t, embeddedPtr.Age, 20)
+	assert.Equal(t, embeddedPtr.Age, int64(20))
 
 	var noTag TestCrudActionNoTagsItem
 	found, err = exec.ScanStruct(&noTag)
@@ -364,8 +364,8 @@ func (me *crudExecTest) TestScanVals() {
 	var pointers []*int64
 	assert.NoError(t, exec.ScanVals(&pointers))
 	assert.Len(t, pointers, 2)
-	assert.Equal(t, *pointers[0], 1)
-	assert.Equal(t, *pointers[1], 2)
+	assert.Equal(t, *pointers[0], int64(1))
+	assert.Equal(t, *pointers[1], int64(2))
 }
 
 func (me *crudExecTest) TestScanVal() {
@@ -398,7 +398,7 @@ func (me *crudExecTest) TestScanVal() {
 	var ptrId int64
 	found, err = exec.ScanVal(&ptrId)
 	assert.NoError(t, err)
-	assert.Equal(t, ptrId, 1)
+	assert.Equal(t, ptrId, int64(1))
 }
 
 func (me *crudExecTest) TestParallelGetColumnMap() {

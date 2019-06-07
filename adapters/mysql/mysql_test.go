@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
+	"github.com/doug-martin/goqu"
+
 	_ "github.com/go-sql-driver/mysql"
-	"gopkg.in/doug-martin/goqu.v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -38,6 +39,7 @@ const (
 )
 
 const default_db_uri = "root@/goqumysql?parseTime=true"
+
 var db_uri string
 
 func init() {
@@ -101,7 +103,7 @@ func (me *mysqlTest) TestSelectSql() {
 
 	sql, args, err := ds.Prepared(true).Where(goqu.L("? = ?", goqu.I("int"), 10)).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{10})
+	assert.Equal(t, args, []interface{}{int64(10)})
 	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE `int` = ?")
 }
 
@@ -166,7 +168,7 @@ func (me *mysqlTest) TestQuery() {
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.I("int").Between(goqu.RangeVal{Start:3,End:6})).Order(goqu.I("id").Asc()).ScanStructs(&entries))
+	assert.NoError(t, ds.Where(goqu.I("int").Between(goqu.RangeVal{Start: 3, End: 6})).Order(goqu.I("id").Asc()).ScanStructs(&entries))
 	assert.Len(t, entries, 4)
 	assert.NoError(t, err)
 	for _, entry := range entries {
@@ -208,19 +210,19 @@ func (me *mysqlTest) TestCount() {
 	ds := me.db.From("entry")
 	count, err := ds.Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 10)
+	assert.Equal(t, count, int64(10))
 	count, err = ds.Where(goqu.I("int").Gt(4)).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 5)
+	assert.Equal(t, count, int64(5))
 	count, err = ds.Where(goqu.I("int").Gte(4)).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 6)
+	assert.Equal(t, count, int64(6))
 	count, err = ds.Where(goqu.I("string").Like("0.1%")).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 1)
+	assert.Equal(t, count, int64(1))
 	count, err = ds.Where(goqu.I("string").IsNull()).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 0)
+	assert.Equal(t, count, int64(0))
 }
 
 func (me *mysqlTest) TestInsert() {
@@ -286,7 +288,7 @@ func (me *mysqlTest) TestUpdate() {
 
 	count, err := ds.Where(goqu.I("int").Eq(11)).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 1)
+	assert.Equal(t, count, int64(1))
 }
 
 func (me *mysqlTest) TestUpdateReturning() {
@@ -310,7 +312,7 @@ func (me *mysqlTest) TestDelete() {
 
 	count, err := ds.Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 9)
+	assert.Equal(t, count, int64(9))
 
 	var id uint32
 	found, err = ds.Where(goqu.I("id").Eq(e.Id)).ScanVal(&id)
@@ -344,7 +346,7 @@ func (me *mysqlTest) TestInsertIgnore() {
 
 	count, err := ds.Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 11)
+	assert.Equal(t, count, int64(11))
 }
 
 func (me *mysqlTest) TestInsertConflict() {
@@ -370,7 +372,6 @@ func (me *mysqlTest) TestInsertConflict() {
 	_, err = ds.Where(goqu.I("int").Eq(10)).ScanStruct(&entryActual)
 	assert.NoError(t, err)
 	assert.Equal(t, "upsert", entryActual.String)
-
 
 	//update where should error
 	entries := []entry{

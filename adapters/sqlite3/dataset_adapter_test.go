@@ -4,9 +4,10 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
-	"gopkg.in/doug-martin/goqu.v5"
+	"github.com/doug-martin/goqu"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type datasetAdapterTest struct {

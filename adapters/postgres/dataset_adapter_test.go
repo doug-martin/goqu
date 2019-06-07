@@ -3,9 +3,10 @@ package postgres
 import (
 	"testing"
 
-	"github.com/c2fo/testify/suite"
-	"github.com/c2fo/testify/assert"
-	"gopkg.in/doug-martin/goqu.v5"
+	"github.com/doug-martin/goqu"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type datasetAdapterTest struct {

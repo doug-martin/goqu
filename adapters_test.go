@@ -3,8 +3,8 @@ package goqu
 import (
 	"testing"
 
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type adapterTest struct {

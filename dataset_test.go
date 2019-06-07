@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type datasetTest struct {
@@ -348,13 +348,13 @@ func (me *datasetTest) TestLiteralExpressionList() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), And(I("a").Eq("b"), I("c").Neq(1))))
-	assert.Equal(t, buf.args, []interface{}{"b", 1})
+	assert.Equal(t, buf.args, []interface{}{"b", int64(1)})
 	assert.Equal(t, buf.String(), `(("a" = ?) AND ("c" != ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Or(I("a").Eq("b"), I("c").Neq(1))))
-	assert.Equal(t, buf.args, []interface{}{"b", 1})
+	assert.Equal(t, buf.args, []interface{}{"b", int64(1)})
 	assert.Equal(t, buf.String(), `(("a" = ?) OR ("c" != ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Or(I("a").Eq("b"), And(I("c").Neq(1), I("d").Eq(Literal("NOW()"))))))
-	assert.Equal(t, buf.args, []interface{}{"b", 1})
+	assert.Equal(t, buf.args, []interface{}{"b", int64(1)})
 	assert.Equal(t, buf.String(), `(("a" = ?) OR (("c" != ?) AND ("d" = NOW())))`)
 }
 
@@ -373,7 +373,7 @@ func (me *datasetTest) TestLiteralLiteralExpression() {
 	assert.Equal(t, buf.args, []interface{}{})
 	assert.Equal(t, buf.String(), `"b"::DATE = '2010-09-02'`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal(`"b" = ? or "c" = ? or d IN ?`, "a", 1, []int{1, 2, 3, 4})))
-	assert.Equal(t, buf.args, []interface{}{"a", 1, 1, 2, 3, 4})
+	assert.Equal(t, buf.args, []interface{}{"a", int64(1), int64(1), int64(2), int64(3), int64(4)})
 	assert.Equal(t, buf.String(), `"b" = ? or "c" = ? or d IN (?, ?, ?, ?)`)
 }
 
@@ -470,7 +470,7 @@ func (me *datasetTest) TestBooleanExpression() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" = ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(true)))
 	assert.Equal(t, buf.args, []interface{}{})
@@ -482,10 +482,10 @@ func (me *datasetTest) TestBooleanExpression() {
 	assert.Equal(t, buf.args, []interface{}{})
 	assert.Equal(t, buf.String(), `("a" IS NULL)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq([]int64{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{1, 2, 3})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
 	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" != ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(true)))
 	assert.Equal(t, buf.args, []interface{}{})
@@ -497,7 +497,7 @@ func (me *datasetTest) TestBooleanExpression() {
 	assert.Equal(t, buf.args, []interface{}{})
 	assert.Equal(t, buf.String(), `("a" IS NOT NULL)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq([]int64{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{1, 2, 3})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
 	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(nil)))
 	assert.Equal(t, buf.args, []interface{}{})
@@ -518,22 +518,22 @@ func (me *datasetTest) TestBooleanExpression() {
 	assert.Equal(t, buf.args, []interface{}{})
 	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Gt(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" > ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Gte(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" >= ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Lt(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" < ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Lte(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" <= ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").In([]int{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{1, 2, 3})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
 	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotIn([]int{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{1, 2, 3})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
 	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Like("a%")))
 	assert.Equal(t, buf.args, []interface{}{"a%"})
@@ -574,10 +574,10 @@ func (me *datasetTest) TestRangeExpression() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(RangeVal{Start: 1, End: 2})))
-	assert.Equal(t, buf.args, []interface{}{1, 2})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2)})
 	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotBetween(RangeVal{Start: 1, End: 2})))
-	assert.Equal(t, buf.args, []interface{}{1, 2})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2)})
 	assert.Equal(t, buf.String(), `("a" NOT BETWEEN ? AND ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(RangeVal{Start: "aaa", End: "zzz"})))
 	assert.Equal(t, buf.args, []interface{}{"aaa", "zzz"})
@@ -631,7 +631,7 @@ func (me *datasetTest) TestLiteralUpdateExpression() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Set(1)))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `"a"=?`)
 }
 
@@ -805,7 +805,7 @@ func (me *datasetTest) TestLiteralExpressionMap() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": 1}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" = ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": true}))
 	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
@@ -818,22 +818,22 @@ func (me *datasetTest) TestLiteralExpressionMap() {
 	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
 	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"neq": 1}}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" != ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"isnot": true}}))
 	assert.Equal(t, buf.args, []interface{}{})
 	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gt": 1}}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" > ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gte": 1}}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" >= ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lt": 1}}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" < ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lte": 1}}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `("a" <= ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"like": "a%"}}))
 	assert.Equal(t, buf.args, []interface{}{"a%"})
@@ -848,13 +848,13 @@ func (me *datasetTest) TestLiteralExpressionMap() {
 	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
 	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
-	assert.Equal(t, buf.args, []interface{}{10})
+	assert.Equal(t, buf.args, []interface{}{int64(10)})
 	assert.Equal(t, buf.String(), `(("a" = ?) OR ("a" IS NULL))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"between": RangeVal{Start: 1, End: 10}}}))
-	assert.Equal(t, buf.args, []interface{}{1, 10})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(10)})
 	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notbetween": RangeVal{Start: 1, End: 10}}}))
-	assert.Equal(t, buf.args, []interface{}{1, 10})
+	assert.Equal(t, buf.args, []interface{}{int64(1), int64(10)})
 	assert.Equal(t, buf.String(), `("a" NOT BETWEEN ? AND ?)`)
 }
 
@@ -869,10 +869,10 @@ func (me *datasetTest) TestLiteralExpressionOrMap() {
 
 	buf = NewSqlBuilder(true)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": true}))
-	assert.Equal(t, buf.args, []interface{}{1})
+	assert.Equal(t, buf.args, []interface{}{int64(1)})
 	assert.Equal(t, buf.String(), `(("a" = ?) OR ("b" IS TRUE))`)
 	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": []string{"a", "b", "c"}}))
-	assert.Equal(t, buf.args, []interface{}{1, "a", "b", "c"})
+	assert.Equal(t, buf.args, []interface{}{int64(1), "a", "b", "c"})
 	assert.Equal(t, buf.String(), `(("a" = ?) OR ("b" IN (?, ?, ?)))`)
 
 }

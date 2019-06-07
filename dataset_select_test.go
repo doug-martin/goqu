@@ -1,7 +1,7 @@
 package goqu
 
 import (
-	"github.com/c2fo/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func (me *datasetTest) TestSelect() {
@@ -913,13 +913,13 @@ func (me *datasetTest) TestPreparedLimit() {
 	b := ds1.Where(I("a").Gt(1)).Limit(10)
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1, 10})
+	assert.Equal(t, args, []interface{}{int64(1), int64(10)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) LIMIT ?`)
 
 	b = ds1.Where(I("a").Gt(1)).Limit(0)
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?)`)
 }
 
@@ -930,13 +930,13 @@ func (me *datasetTest) TestPreparedLimitAll() {
 	b := ds1.Where(I("a").Gt(1)).LimitAll()
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) LIMIT ALL`)
 
 	b = ds1.Where(I("a").Gt(1)).Limit(0).LimitAll()
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) LIMIT ALL`)
 }
 
@@ -947,13 +947,13 @@ func (me *datasetTest) TestPreparedClearLimit() {
 	b := ds1.Where(I("a").Gt(1)).LimitAll().ClearLimit()
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?)`)
 
 	b = ds1.Where(I("a").Gt(1)).Limit(10).ClearLimit()
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?)`)
 }
 
@@ -964,13 +964,13 @@ func (me *datasetTest) TestPreparedOffset() {
 	b := ds1.Where(I("a").Gt(1)).Offset(10)
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1, 10})
+	assert.Equal(t, args, []interface{}{int64(1), int64(10)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) OFFSET ?`)
 
 	b = ds1.Where(I("a").Gt(1)).Offset(0)
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?)`)
 }
 
@@ -981,7 +981,7 @@ func (me *datasetTest) TestPreparedClearOffset() {
 	b := ds1.Where(I("a").Gt(1)).Offset(10).ClearOffset()
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?)`)
 }
 
@@ -992,19 +992,19 @@ func (me *datasetTest) TestPreparedGroupBy() {
 	b := ds1.Where(I("a").Gt(1)).GroupBy("created")
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) GROUP BY "created"`)
 
 	b = ds1.Where(I("a").Gt(1)).GroupBy(Literal("created::DATE"))
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) GROUP BY created::DATE`)
 
 	b = ds1.Where(I("a").Gt(1)).GroupBy("name", Literal("created::DATE"))
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > ?) GROUP BY "name", created::DATE`)
 }
 
@@ -1015,7 +1015,7 @@ func (me *datasetTest) TestPreparedHaving() {
 	b := ds1.Having(I("a").Gt(1)).GroupBy("created")
 	sql, args, err := b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" GROUP BY "created" HAVING ("a" > ?)`)
 
 	b = ds1.
@@ -1024,13 +1024,13 @@ func (me *datasetTest) TestPreparedHaving() {
 		GroupBy("created")
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("b" IS TRUE) GROUP BY "created" HAVING ("a" > ?)`)
 
 	b = ds1.Having(I("a").Gt(1))
 	sql, args, err = b.Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1})
+	assert.Equal(t, args, []interface{}{int64(1)})
 	assert.Equal(t, sql, `SELECT * FROM "test" HAVING ("a" > ?)`)
 }
 
@@ -1065,7 +1065,7 @@ func (me *datasetTest) TestPreparedJoin() {
 
 	sql, args, err = ds1.Join(I("categories"), On(I("categories.categoryId").Eq(I("items.id")), I("categories.categoryId").In(1, 2, 3))).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1, 2, 3})
+	assert.Equal(t, args, []interface{}{int64(1), int64(2), int64(3)})
 	assert.Equal(t, sql, `SELECT * FROM "items" INNER JOIN "categories" ON (("categories"."categoryId" = "items"."id") AND ("categories"."categoryId" IN (?, ?, ?)))`)
 
 }
@@ -1075,7 +1075,7 @@ func (me *datasetTest) TestPreparedFunctionExpressionsInHaving() {
 	ds1 := From("items")
 	sql, args, err := ds1.GroupBy("name").Having(SUM("amount").Gt(0)).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{0})
+	assert.Equal(t, args, []interface{}{int64(0)})
 	assert.Equal(t, sql, `SELECT * FROM "items" GROUP BY "name" HAVING (SUM("amount") > ?)`)
 }
 
@@ -1086,22 +1086,22 @@ func (me *datasetTest) TestPreparedUnion() {
 
 	sql, args, err := a.Union(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) UNION (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.Limit(1).Union(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 1, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(1), int64(10)})
 	assert.Equal(t, sql, `SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) LIMIT ?) AS "t1" UNION (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.Union(b.Limit(1)).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10, 1})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10), int64(1)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) UNION (SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?) LIMIT ?) AS "t1")`)
 
 	sql, args, err = a.Union(b).Union(b.Where(I("id").Lt(50))).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10, 10, 50})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10), int64(10), int64(50)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) UNION (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?)) UNION (SELECT "id", "amount" FROM "invoice" WHERE (("amount" < ?) AND ("id" < ?)))`)
 
 }
@@ -1113,22 +1113,22 @@ func (me *datasetTest) TestPreparedUnionAll() {
 
 	sql, args, err := a.UnionAll(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) UNION ALL (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.Limit(1).UnionAll(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 1, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(1), int64(10)})
 	assert.Equal(t, sql, `SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) LIMIT ?) AS "t1" UNION ALL (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.UnionAll(b.Limit(1)).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10, 1})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10), int64(1)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) UNION ALL (SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?) LIMIT ?) AS "t1")`)
 
 	sql, args, err = a.UnionAll(b).UnionAll(b.Where(I("id").Lt(50))).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10, 10, 50})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10), int64(10), int64(50)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) UNION ALL (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?)) UNION ALL (SELECT "id", "amount" FROM "invoice" WHERE (("amount" < ?) AND ("id" < ?)))`)
 }
 
@@ -1139,17 +1139,17 @@ func (me *datasetTest) TestPreparedIntersect() {
 
 	sql, args, err := a.Intersect(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) INTERSECT (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.Limit(1).Intersect(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 1, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(1), int64(10)})
 	assert.Equal(t, sql, `SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) LIMIT ?) AS "t1" INTERSECT (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.Intersect(b.Limit(1)).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10, 1})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10), int64(1)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) INTERSECT (SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?) LIMIT ?) AS "t1")`)
 
 }
@@ -1161,17 +1161,17 @@ func (me *datasetTest) TestPreparedIntersectAll() {
 
 	sql, args, err := a.IntersectAll(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) INTERSECT ALL (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.Limit(1).IntersectAll(b).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 1, 10})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(1), int64(10)})
 	assert.Equal(t, sql, `SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) LIMIT ?) AS "t1" INTERSECT ALL (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?))`)
 
 	sql, args, err = a.IntersectAll(b.Limit(1)).Prepared(true).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{1000, 10, 1})
+	assert.Equal(t, args, []interface{}{int64(1000), int64(10), int64(1)})
 	assert.Equal(t, sql, `SELECT "id", "amount" FROM "invoice" WHERE ("amount" > ?) INTERSECT ALL (SELECT * FROM (SELECT "id", "amount" FROM "invoice" WHERE ("amount" < ?) LIMIT ?) AS "t1")`)
 
 }

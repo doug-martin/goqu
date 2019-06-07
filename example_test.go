@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"gopkg.in/doug-martin/goqu.v5"
+	"github.com/doug-martin/goqu"
+
+	"github.com/DATA-DOG/go-sqlmock"
 )
 
 var driver *sql.DB
@@ -614,8 +615,8 @@ func ExampleDataset_WithCTERecursive() {
 	sql, _, _ := db.From("nums").
 		WithRecursive("nums(x)",
 			db.From().Select(goqu.L("1")).
-			UnionAll(db.From("nums").
-				Select(goqu.L("x+1")).Where(goqu.I("x").Lt(5)))).
+				UnionAll(db.From("nums").
+					Select(goqu.L("x+1")).Where(goqu.I("x").Lt(5)))).
 		ToSql()
 	fmt.Println(sql)
 	// Output:

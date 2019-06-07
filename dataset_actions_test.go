@@ -1,8 +1,8 @@
 package goqu
 
 import (
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"github.com/c2fo/testify/assert"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
 )
 
 type dsTestActionItem struct {
@@ -204,7 +204,7 @@ func (me *datasetTest) TestScanVal() {
 	var id int64
 	found, err := db.From("items").Select("id").ScanVal(&id)
 	assert.NoError(t, err)
-	assert.Equal(t, id, 10)
+	assert.Equal(t, id, int64(10))
 	assert.True(t, found)
 
 	found, err = db.From("items").ScanVal([]int64{})
@@ -229,7 +229,7 @@ func (me *datasetTest) TestScanVal_WithPreparedStatement() {
 		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		ScanVal(&id)
 	assert.NoError(t, err)
-	assert.Equal(t, id, 10)
+	assert.Equal(t, id, int64(10))
 	assert.True(t, found)
 
 	found, err = db.From("items").ScanVal([]int64{})
@@ -249,7 +249,7 @@ func (me *datasetTest) TestCount() {
 	db := New("mock", mDb)
 	count, err := db.From("items").Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 10)
+	assert.Equal(t, count, int64(10))
 }
 
 func (me *datasetTest) TestCount_WithPreparedStatement() {
@@ -266,7 +266,7 @@ func (me *datasetTest) TestCount_WithPreparedStatement() {
 		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 10)
+	assert.Equal(t, count, int64(10))
 }
 
 func (me *datasetTest) TestPluck() {
@@ -355,9 +355,9 @@ func (me *datasetTest) TestInsert_WithPreparedStatment() {
 	_, err = db.From("items").
 		Prepared(true).
 		Insert(
-		Record{"address": "111 Test Addr", "name": "Test1"},
-		Record{"address": "112 Test Addr", "name": "Test2"},
-	).
+			Record{"address": "111 Test Addr", "name": "Test1"},
+			Record{"address": "112 Test Addr", "name": "Test2"},
+		).
 		Exec()
 	assert.NoError(t, err)
 }

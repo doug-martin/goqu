@@ -8,7 +8,11 @@
 
 package mysql
 
-import "io"
+import (
+	"io"
+	"net"
+	"time"
+)
 
 const defaultBufSize = 4096
 
@@ -18,17 +22,18 @@ const defaultBufSize = 4096
 // The buffer is similar to bufio.Reader / Writer but zero-copy-ish
 // Also highly optimized for this particular use case.
 type buffer struct {
-	buf    []byte
-	rd     io.Reader
-	idx    int
-	length int
+	buf     []byte
+	nc      net.Conn
+	idx     int
+	length  int
+	timeout time.Duration
 }
 
-func newBuffer(rd io.Reader) buffer {
+func newBuffer(nc net.Conn) buffer {
 	var b [defaultBufSize]byte
 	return buffer{
 		buf: b[:],
-		rd:  rd,
+		nc:  nc,
 	}
 }
 
@@ -54,7 +59,13 @@ func (b *buffer) fill(need int) error {
 	b.idx = 0
 
 	for {
-		nn, err := b.rd.Read(b.buf[n:])
+		if b.timeout > 0 {
+			if err := b.nc.SetReadDeadline(time.Now().Add(b.timeout)); err != nil {
+				return err
+			}
+		}
+
+		nn, err := b.nc.Read(b.buf[n:])
 		n += nn
 
 		switch err {
@@ -119,18 +130,18 @@ func (b *buffer) takeBuffer(length int) []byte {
 // smaller than defaultBufSize
 // Only one buffer (total) can be used at a time.
 func (b *buffer) takeSmallBuffer(length int) []byte {
-	if b.length == 0 {
-		return b.buf[:length]
+	if b.length > 0 {
+		return nil
 	}
-	return nil
+	return b.buf[:length]
 }
 
 // takeCompleteBuffer returns the complete existing buffer.
 // This can be used if the necessary buffer size is unknown.
 // Only one buffer (total) can be used at a time.
 func (b *buffer) takeCompleteBuffer() []byte {
-	if b.length == 0 {
-		return b.buf
+	if b.length > 0 {
+		return nil
 	}
-	return nil
+	return b.buf
 }

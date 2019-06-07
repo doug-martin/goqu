@@ -9,7 +9,7 @@
 [![Build Status](https://travis-ci.org/doug-martin/goqu.svg?branch=master)](https://travis-ci.org/doug-martin/goqu)
 [![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![codecov](https://codecov.io/gh/doug-martin/goqu/branch/master/graph/badge.svg)](https://codecov.io/gh/doug-martin/goqu)
-[![Join the chat at https://gitter.im/doug-martin/goqu](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/doug-martin/goqu?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/doug-martin/goqu)](https://goreportcard.com/report/github.com/doug-martin/goqu)
 
 `goqu` is an expressive SQL builder
 
@@ -54,7 +54,7 @@ or hooks I would recommend looking at some of the great ORM libraries such as:
 ## Installation
 
 ```sh
-go get -u gopkg.in/doug-martin/goqu.v5
+go get -u github.com/doug-martin/goqu
 ```
 
 
@@ -63,17 +63,17 @@ go get -u gopkg.in/doug-martin/goqu.v5
 
 In order to start using goqu with your database you need to load an adapter. We have included some adapters by default.
 
-1. Postgres - `import "gopkg.in/doug-martin/goqu.v5/adapters/postgres"`
-2. MySQL - `import "gopkg.in/doug-martin/goqu.v5/adapters/mysql"`
-3. SQLite3 - `import "gopkg.in/doug-martin/goqu.v5/adapters/sqlite3"`
+1. Postgres - `import "github.com/doug-martin/goqu/adapters/postgres"`
+2. MySQL - `import "github.com/doug-martin/goqu/adapters/mysql"`
+3. SQLite3 - `import "github.com/doug-martin/goqu/adapters/sqlite3"`
 
 Adapters in goqu work the same way as a driver with the database in that they register themselves with goqu once loaded.
 
 ```go
 import (
   "database/sql"
-  "gopkg.in/doug-martin/goqu.v5"
-  _ "gopkg.in/doug-martin/goqu.v5/adapters/postgres"
+  "github.com/doug-martin/goqu"
+  _ "github.com/doug-martin/goqu/adapters/postgres"
   _ "github.com/lib/pq"
 )
 ```
@@ -709,7 +709,7 @@ For example the code for the postgres adapter is fairly short.
 package postgres
 
 import (
-    "gopkg.in/doug-martin/goqu.v5"
+    "github.com/doug-martin/goqu"
 )
 
 //postgres requires a $ placeholder for prepared statements
