@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/doug-martin/goqu"
+	"github.com/doug-martin/goqu/v6"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )

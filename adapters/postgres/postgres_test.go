@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu"
+	"github.com/doug-martin/goqu/v6"
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
