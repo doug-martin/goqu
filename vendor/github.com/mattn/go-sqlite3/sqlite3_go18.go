@@ -3,6 +3,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// +build cgo
 // +build go1.8
 
 package sqlite3
@@ -45,8 +46,8 @@ func (c *SQLiteConn) PrepareContext(ctx context.Context, query string) (driver.S
 	return c.prepare(ctx, query)
 }
 
-// BeginContext implement ConnBeginContext.
-func (c *SQLiteConn) BeginContext(ctx context.Context) (driver.Tx, error) {
+// BeginTx implement ConnBeginTx.
+func (c *SQLiteConn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	return c.begin(ctx)
 }
 
