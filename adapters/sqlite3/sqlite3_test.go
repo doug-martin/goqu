@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu"
+	"github.com/doug-martin/goqu/v6"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"

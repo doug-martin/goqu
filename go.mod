@@ -1,4 +1,4 @@
-module github.com/doug-martin/goqu
+module github.com/doug-martin/goqu/v6
 
 go 1.12
 

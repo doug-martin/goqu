@@ -3,7 +3,7 @@ package postgres
 import (
 	"testing"
 
-	"github.com/doug-martin/goqu"
+	"github.com/doug-martin/goqu/v6"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
