@@ -1,9 +1,10 @@
 package mysql
 
 import (
-	"github.com/doug-martin/goqu"
 	"regexp"
 	"testing"
+
+	"github.com/doug-martin/goqu"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"

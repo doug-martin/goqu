@@ -3,10 +3,11 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/goqu"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/doug-martin/goqu"
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"

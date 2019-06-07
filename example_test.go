@@ -3,8 +3,9 @@ package goqu_test
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/goqu"
 	"regexp"
+
+	"github.com/doug-martin/goqu"
 
 	"github.com/DATA-DOG/go-sqlmock"
 )

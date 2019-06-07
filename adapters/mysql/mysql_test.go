@@ -3,10 +3,11 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/goqu"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/doug-martin/goqu"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"

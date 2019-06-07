@@ -1,8 +1,9 @@
 package postgres
 
 import (
-	"github.com/doug-martin/goqu"
 	"testing"
+
+	"github.com/doug-martin/goqu"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"

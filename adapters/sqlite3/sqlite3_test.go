@@ -3,9 +3,10 @@ package sqlite3
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/goqu"
 	"testing"
 	"time"
+
+	"github.com/doug-martin/goqu"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
