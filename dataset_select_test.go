@@ -424,6 +424,82 @@ func (me *datasetTest) TestClearOffset() {
 	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1)`)
 }
 
+func (me *datasetTest) TestForUpdate() {
+	t := me.T()
+	ds1 := From("test")
+
+	b := ds1.Where(
+		I("a").Gt(1),
+	).ForUpdate(WAIT)
+	sql, _, err := b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR UPDATE `)
+
+	b = ds1.Where(
+		I("a").Gt(1),
+	).ForUpdate(SKIP_LOCKED)
+	sql, _, err = b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR UPDATE SKIP LOCKED`)
+}
+
+func (me *datasetTest) TestForNoKeyUpdate() {
+	t := me.T()
+	ds1 := From("test")
+
+	b := ds1.Where(
+		I("a").Gt(1),
+	).ForNoKeyUpdate(WAIT)
+	sql, _, err := b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR NO KEY UPDATE `)
+
+	b = ds1.Where(
+		I("a").Gt(1),
+	).ForNoKeyUpdate(SKIP_LOCKED)
+	sql, _, err = b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR NO KEY UPDATE SKIP LOCKED`)
+}
+
+func (me *datasetTest) TestForKeyShare() {
+	t := me.T()
+	ds1 := From("test")
+
+	b := ds1.Where(
+		I("a").Gt(1),
+	).ForKeyShare(WAIT)
+	sql, _, err := b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR KEY SHARE `)
+
+	b = ds1.Where(
+		I("a").Gt(1),
+	).ForKeyShare(SKIP_LOCKED)
+	sql, _, err = b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR KEY SHARE SKIP LOCKED`)
+}
+
+func (me *datasetTest) TestForShare() {
+	t := me.T()
+	ds1 := From("test")
+
+	b := ds1.Where(
+		I("a").Gt(1),
+	).ForShare(WAIT)
+	sql, _, err := b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR SHARE `)
+
+	b = ds1.Where(
+		I("a").Gt(1),
+	).ForShare(SKIP_LOCKED)
+	sql, _, err = b.ToSql()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `SELECT * FROM "test" WHERE ("a" > 1) FOR SHARE SKIP LOCKED`)
+}
+
 func (me *datasetTest) TestGroupBy() {
 	t := me.T()
 	ds1 := From("test")

@@ -210,6 +210,46 @@ func (me *Dataset) ClearWhere() *Dataset {
 	return ret
 }
 
+//Adds a FOR UPDATE clause. See examples.
+func (me *Dataset) ForUpdate(waitOption WaitOption) *Dataset {
+	ret := me.copy()
+	ret.clauses.Lock = Lock{
+		Strength:   FOR_UPDATE,
+		WaitOption: waitOption,
+	}
+	return ret
+}
+
+//Adds a FOR NO KEY UPDATE clause. See examples.
+func (me *Dataset) ForNoKeyUpdate(waitOption WaitOption) *Dataset {
+	ret := me.copy()
+	ret.clauses.Lock = Lock{
+		Strength:   FOR_NO_KEY_UPDATE,
+		WaitOption: waitOption,
+	}
+	return ret
+}
+
+//Adds a FOR KEY SHARE clause. See examples.
+func (me *Dataset) ForKeyShare(waitOption WaitOption) *Dataset {
+	ret := me.copy()
+	ret.clauses.Lock = Lock{
+		Strength:   FOR_KEY_SHARE,
+		WaitOption: waitOption,
+	}
+	return ret
+}
+
+//Adds a FOR SHARE clause. See examples.
+func (me *Dataset) ForShare(waitOption WaitOption) *Dataset {
+	ret := me.copy()
+	ret.clauses.Lock = Lock{
+		Strength:   FOR_SHARE,
+		WaitOption: waitOption,
+	}
+	return ret
+}
+
 //Adds a GROUP BY clause. See examples.
 func (me *Dataset) GroupBy(groupBy ...interface{}) *Dataset {
 	ret := me.copy()
@@ -400,6 +440,8 @@ func (me *Dataset) selectSqlWriteTo(buf *SqlBuilder) error {
 	if err := me.adapter.LimitSql(buf, me.clauses.Limit); err != nil {
 		return err
 	}
-	return me.adapter.OffsetSql(buf, me.clauses.Offset)
-
+	if err := me.adapter.OffsetSql(buf, me.clauses.Offset); err != nil {
+		return err
+	}
+	return me.adapter.ForSql(buf, me.clauses.Lock)
 }

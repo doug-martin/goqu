@@ -32,6 +32,7 @@ type (
 		Offset         uint
 		Returning      ColumnList
 		Compounds      []CompoundExpression
+		Lock           Lock
 	}
 	//A Dataset is used to build up an SQL statement, each method returns a copy of the current Dataset with options added to it.
 	//Once done building up your Dataset you can either call an action method on it to execute the statement or use one of the SQL generation methods.

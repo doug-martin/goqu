@@ -10,55 +10,61 @@ import (
 )
 
 var (
-	replacement_rune                = '?'
-	comma_rune                      = ','
-	space_rune                      = ' '
-	left_paren_rune                 = '('
-	right_paren_rune                = ')'
-	star_rune                       = '*'
-	default_quote                   = '"'
-	period_rune                     = '.'
-	empty_string                    = ""
-	default_null                    = []byte("NULL")
-	default_true                    = []byte("TRUE")
-	default_false                   = []byte("FALSE")
-	default_update_clause           = []byte("UPDATE")
-	default_insert_clause           = []byte("INSERT INTO")
-	default_select_clause           = []byte("SELECT")
-	default_delete_clause           = []byte("DELETE")
-	default_truncate_clause         = []byte("TRUNCATE")
-	default_with_fragment           = []byte("WITH ")
-	default_recursive_fragment      = []byte("RECURSIVE ")
-	default_cascade_fragment        = []byte(" CASCADE")
-	default_retrict_fragment        = []byte(" RESTRICT")
-	default_default_values_fragment = []byte(" DEFAULT VALUES")
-	default_values_fragment         = []byte(" VALUES ")
-	default_identity_fragment       = []byte(" IDENTITY")
-	default_set_fragment            = []byte(" SET ")
-	default_distinct_fragment       = []byte(" DISTINCT ")
-	default_returning_fragment      = []byte(" RETURNING ")
-	default_from_fragment           = []byte(" FROM")
-	default_where_fragment          = []byte(" WHERE ")
-	default_group_by_fragment       = []byte(" GROUP BY ")
-	default_having_fragment         = []byte(" HAVING ")
-	default_order_by_fragment       = []byte(" ORDER BY ")
-	default_limit_fragment          = []byte(" LIMIT ")
-	default_offset_fragment         = []byte(" OFFSET ")
-	default_as_fragment             = []byte(" AS ")
-	default_asc_fragment            = []byte(" ASC")
-	default_desc_fragment           = []byte(" DESC")
-	default_nulls_first_fragment    = []byte(" NULLS FIRST")
-	default_nulls_last_fragment     = []byte(" NULLS LAST")
-	default_and_fragment            = []byte(" AND ")
-	default_or_fragment             = []byte(" OR ")
-	default_union_fragment          = []byte(" UNION ")
-	default_union_all_fragment      = []byte(" UNION ALL ")
-	default_intersect_fragment      = []byte(" INTERSECT ")
-	default_intersect_all_fragment  = []byte(" INTERSECT ALL ")
-	default_set_operator_rune       = '='
-	default_string_quote_rune       = '\''
-	default_place_holder_rune       = '?'
-	default_operator_lookup         = map[BooleanOperation][]byte{
+	replacement_rune                   = '?'
+	comma_rune                         = ','
+	space_rune                         = ' '
+	left_paren_rune                    = '('
+	right_paren_rune                   = ')'
+	star_rune                          = '*'
+	default_quote                      = '"'
+	period_rune                        = '.'
+	empty_string                       = ""
+	default_null                       = []byte("NULL")
+	default_true                       = []byte("TRUE")
+	default_false                      = []byte("FALSE")
+	default_update_clause              = []byte("UPDATE")
+	default_insert_clause              = []byte("INSERT INTO")
+	default_select_clause              = []byte("SELECT")
+	default_delete_clause              = []byte("DELETE")
+	default_truncate_clause            = []byte("TRUNCATE")
+	default_with_fragment              = []byte("WITH ")
+	default_recursive_fragment         = []byte("RECURSIVE ")
+	default_cascade_fragment           = []byte(" CASCADE")
+	default_retrict_fragment           = []byte(" RESTRICT")
+	default_default_values_fragment    = []byte(" DEFAULT VALUES")
+	default_values_fragment            = []byte(" VALUES ")
+	default_identity_fragment          = []byte(" IDENTITY")
+	default_set_fragment               = []byte(" SET ")
+	default_distinct_fragment          = []byte(" DISTINCT ")
+	default_returning_fragment         = []byte(" RETURNING ")
+	default_from_fragment              = []byte(" FROM")
+	default_where_fragment             = []byte(" WHERE ")
+	default_group_by_fragment          = []byte(" GROUP BY ")
+	default_having_fragment            = []byte(" HAVING ")
+	default_order_by_fragment          = []byte(" ORDER BY ")
+	default_limit_fragment             = []byte(" LIMIT ")
+	default_offset_fragment            = []byte(" OFFSET ")
+	default_for_update_fragment        = []byte(" FOR UPDATE ")
+	default_for_no_key_update_fragment = []byte(" FOR NO KEY UPDATE ")
+	default_for_share_fragment         = []byte(" FOR SHARE ")
+	default_for_key_share_fragment     = []byte(" FOR KEY SHARE ")
+	default_nowait_fragment            = []byte("NOWAIT")
+	default_skip_locked_fragment       = []byte("SKIP LOCKED")
+	default_as_fragment                = []byte(" AS ")
+	default_asc_fragment               = []byte(" ASC")
+	default_desc_fragment              = []byte(" DESC")
+	default_nulls_first_fragment       = []byte(" NULLS FIRST")
+	default_nulls_last_fragment        = []byte(" NULLS LAST")
+	default_and_fragment               = []byte(" AND ")
+	default_or_fragment                = []byte(" OR ")
+	default_union_fragment             = []byte(" UNION ")
+	default_union_all_fragment         = []byte(" UNION ALL ")
+	default_intersect_fragment         = []byte(" INTERSECT ")
+	default_intersect_all_fragment     = []byte(" INTERSECT ALL ")
+	default_set_operator_rune          = '='
+	default_string_quote_rune          = '\''
+	default_place_holder_rune          = '?'
+	default_operator_lookup            = map[BooleanOperation][]byte{
 		EQ_OP:                []byte("="),
 		NEQ_OP:               []byte("!="),
 		GT_OP:                []byte(">"),
@@ -155,6 +161,18 @@ type (
 		LimitFragment []byte
 		//The SQL OFFSET BY clause fragment(DEFAULT=[]byte(" OFFSET "))
 		OffsetFragment []byte
+		// The SQL FOR UPDATE fragment(DEFAULT=[]byte(" FOR UPDATE "))
+		ForUpdateFragment []byte
+		// The SQL FOR NO KEY UPDATE fragment(DEFAULT=[]byte(" FOR NO KEY UPDATE "))
+		ForNoKeyUpdateFragment []byte
+		// The SQL FOR SHARE fragment(DEFAULT=[]byte(" FOR SHARE "))
+		ForShareFragment []byte
+		// The SQL FOR KEY SHARE fragment(DEFAULT=[]byte(" FOR KEY SHARE "))
+		ForKeyShareFragment []byte
+		// The SQL NOWAIT fragment(DEFAULT=[]byte("NOWAIT"))
+		NowaitFragment []byte
+		// The SQL SKIP LOCKED fragment(DEFAULT=[]byte("SKIP LOCKED"))
+		SkipLockedFragment []byte
 		//The SQL AS fragment when aliasing an Expression(DEFAULT=[]byte(" AS "))
 		AsFragment []byte
 		//The quote rune to use when quoting identifiers(DEFAULT='"')
@@ -242,6 +260,12 @@ func NewDefaultAdapter(ds *Dataset) Adapter {
 		OrderByFragment:              default_order_by_fragment,
 		LimitFragment:                default_limit_fragment,
 		OffsetFragment:               default_offset_fragment,
+		ForUpdateFragment:            default_for_update_fragment,
+		ForNoKeyUpdateFragment:       default_for_no_key_update_fragment,
+		ForShareFragment:             default_for_share_fragment,
+		ForKeyShareFragment:          default_for_key_share_fragment,
+		NowaitFragment:               default_nowait_fragment,
+		SkipLockedFragment:           default_skip_locked_fragment,
 		AsFragment:                   default_as_fragment,
 		QuoteRune:                    default_quote,
 		Null:                         default_null,
@@ -664,6 +688,31 @@ func (me *DefaultAdapter) OffsetSql(buf *SqlBuilder, offset uint) error {
 	if offset > 0 {
 		buf.Write(me.OffsetFragment)
 		return me.Literal(buf, offset)
+	}
+	return nil
+}
+
+//Generates the FOR (aka "locking") clause for an SQL statement
+func (me *DefaultAdapter) ForSql(buf *SqlBuilder, lockingClause Lock) error {
+	switch lockingClause.Strength {
+	case FOR_NOLOCK:
+		return nil
+	case FOR_UPDATE:
+		buf.Write(me.ForUpdateFragment)
+	case FOR_NO_KEY_UPDATE:
+		buf.Write(me.ForNoKeyUpdateFragment)
+	case FOR_SHARE:
+		buf.Write(me.ForShareFragment)
+	case FOR_KEY_SHARE:
+		buf.Write(me.ForKeyShareFragment)
+	}
+	// the WAIT case is the default in Postgres, and is what you get if you don't specify NOWAIT or
+	// SKIP LOCKED.  There's no special syntax for it in PG, so we don't do anything for it here
+	switch lockingClause.WaitOption {
+	case NOWAIT:
+		buf.Write(me.NowaitFragment)
+	case SKIP_LOCKED:
+		buf.Write(me.SkipLockedFragment)
 	}
 	return nil
 }

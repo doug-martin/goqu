@@ -300,6 +300,27 @@ func (me columnList) Append(cols ...Expression) ColumnList {
 }
 
 type (
+	LockStrength int
+	WaitOption   int
+	Lock         struct {
+		Strength   LockStrength
+		WaitOption WaitOption
+	}
+)
+
+const (
+	FOR_NOLOCK LockStrength = iota
+	FOR_UPDATE
+	FOR_NO_KEY_UPDATE
+	FOR_SHARE
+	FOR_KEY_SHARE
+
+	WAIT WaitOption = iota
+	NOWAIT
+	SKIP_LOCKED
+)
+
+type (
 	JoinType      int
 	JoinCondition int
 	//Parent type for join expressions
@@ -1450,10 +1471,10 @@ func With(recursive bool, name string, subQuery SqlExpression) CommonTableExpres
 func (me commonExpr) Expression() Expression { return me }
 
 func (me commonExpr) Clone() Expression {
-	return commonExpr{recursive: me.recursive, name: me.name, subQuery:me.subQuery.Clone().(SqlExpression)}
+	return commonExpr{recursive: me.recursive, name: me.name, subQuery: me.subQuery.Clone().(SqlExpression)}
 }
 
-func (me commonExpr) IsRecursive() bool { return me.recursive }
+func (me commonExpr) IsRecursive() bool       { return me.recursive }
 func (me commonExpr) Name() LiteralExpression { return me.name }
 func (me commonExpr) SubQuery() SqlExpression { return me.subQuery }
 
