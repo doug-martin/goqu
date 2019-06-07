@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 type testActionItem struct {
@@ -142,7 +142,7 @@ func (me *databaseTest) TestScanVal() {
 	var id int64
 	found, err := db.ScanVal(&id, `SELECT "id" FROM "items"`)
 	assert.NoError(t, err)
-	assert.Equal(t, id, 10)
+	assert.Equal(t, id, int64(10))
 	assert.True(t, found)
 
 	found, err = db.ScanVal([]int64{}, `SELECT "id" FROM "items"`)
@@ -441,7 +441,7 @@ func (me *txDatabaseTest) TestScanVal() {
 	var id int64
 	found, err := tx.ScanVal(&id, `SELECT "id" FROM "items"`)
 	assert.NoError(t, err)
-	assert.Equal(t, id, 10)
+	assert.Equal(t, id, int64(10))
 	assert.True(t, found)
 
 	found, err = tx.ScanVal([]int64{}, `SELECT "id" FROM "items"`)

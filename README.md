@@ -54,7 +54,7 @@ or hooks I would recommend looking at some of the great ORM libraries such as:
 ## Installation
 
 ```sh
-go get -u gopkg.in/doug-martin/goqu.v5
+go get -u github.com/doug-martin/goqu
 ```
 
 
@@ -63,17 +63,17 @@ go get -u gopkg.in/doug-martin/goqu.v5
 
 In order to start using goqu with your database you need to load an adapter. We have included some adapters by default.
 
-1. Postgres - `import "gopkg.in/doug-martin/goqu.v5/adapters/postgres"`
-2. MySQL - `import "gopkg.in/doug-martin/goqu.v5/adapters/mysql"`
-3. SQLite3 - `import "gopkg.in/doug-martin/goqu.v5/adapters/sqlite3"`
+1. Postgres - `import "github.com/doug-martin/goqu/adapters/postgres"`
+2. MySQL - `import "github.com/doug-martin/goqu/adapters/mysql"`
+3. SQLite3 - `import "github.com/doug-martin/goqu/adapters/sqlite3"`
 
 Adapters in goqu work the same way as a driver with the database in that they register themselves with goqu once loaded.
 
 ```go
 import (
   "database/sql"
-  "gopkg.in/doug-martin/goqu.v5"
-  _ "gopkg.in/doug-martin/goqu.v5/adapters/postgres"
+  "github.com/doug-martin/goqu"
+  _ "github.com/doug-martin/goqu/adapters/postgres"
   _ "github.com/lib/pq"
 )
 ```
@@ -709,7 +709,7 @@ For example the code for the postgres adapter is fairly short.
 package postgres
 
 import (
-    "gopkg.in/doug-martin/goqu.v5"
+    "github.com/doug-martin/goqu"
 )
 
 //postgres requires a $ placeholder for prepared statements

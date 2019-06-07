@@ -161,7 +161,6 @@ func (me *Dataset) getFieldsValues(value reflect.Value) (rowCols []interface{}, 
 	return rowCols, rowVals
 }
 
-
 //Creates an INSERT statement with the columns and values passed in
 func (me *Dataset) insertSql(cols ColumnList, values [][]interface{}, prepared bool, c ConflictExpression) (string, []interface{}, error) {
 	buf := NewSqlBuilder(prepared)

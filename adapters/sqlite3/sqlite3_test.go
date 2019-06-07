@@ -3,13 +3,13 @@ package sqlite3
 import (
 	"database/sql"
 	"fmt"
+	"github.com/doug-martin/goqu"
 	"testing"
 	"time"
 
-	"github.com/c2fo/testify/assert"
-	"github.com/c2fo/testify/suite"
 	_ "github.com/mattn/go-sqlite3"
-	"gopkg.in/doug-martin/goqu.v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -93,7 +93,7 @@ func (me *sqlite3Test) TestSelectSql() {
 
 	sql, args, err := ds.Prepared(true).Where(goqu.L("? = ?", goqu.I("int"), 10)).ToSql()
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{10})
+	assert.Equal(t, args, []interface{}{int64(10)})
 	assert.Equal(t, sql, "SELECT * FROM `entry` WHERE `int` = ?")
 }
 
@@ -200,19 +200,19 @@ func (me *sqlite3Test) TestCount() {
 	ds := me.db.From("entry")
 	count, err := ds.Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 10)
+	assert.Equal(t, count, int64(10))
 	count, err = ds.Where(goqu.I("int").Gt(4)).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 5)
+	assert.Equal(t, count, int64(5))
 	count, err = ds.Where(goqu.I("int").Gte(4)).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 6)
+	assert.Equal(t, count, int64(6))
 	count, err = ds.Where(goqu.I("string").Like("0.1%")).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 1)
+	assert.Equal(t, count, int64(1))
 	count, err = ds.Where(goqu.I("string").IsNull()).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 0)
+	assert.Equal(t, count, int64(0))
 }
 
 func (me *sqlite3Test) TestInsert() {
@@ -278,7 +278,7 @@ func (me *sqlite3Test) TestUpdate() {
 
 	count, err := ds.Where(goqu.I("int").Eq(11)).Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 1)
+	assert.Equal(t, count, int64(1))
 }
 
 func (me *sqlite3Test) TestUpdateReturning() {
@@ -302,7 +302,7 @@ func (me *sqlite3Test) TestDelete() {
 
 	count, err := ds.Count()
 	assert.NoError(t, err)
-	assert.Equal(t, count, 9)
+	assert.Equal(t, count, int64(9))
 
 	var id uint32
 	found, err = ds.Where(goqu.I("id").Eq(e.Id)).ScanVal(&id)
@@ -313,7 +313,7 @@ func (me *sqlite3Test) TestDelete() {
 	found, err = ds.Where(goqu.I("int").Eq(8)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
-	assert.NotEqual(t, e.Id, 0)
+	assert.NotEqual(t, e.Id, int64(0))
 
 	id = 0
 	_, err = ds.Where(goqu.I("id").Eq(e.Id)).Returning("id").Delete().ScanVal(&id)

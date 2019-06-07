@@ -1,7 +1,7 @@
 package postgres
 
 import (
-	"gopkg.in/doug-martin/goqu.v5"
+	"github.com/doug-martin/goqu"
 )
 
 const placeholder_rune = '$'
