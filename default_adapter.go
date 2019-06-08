@@ -454,9 +454,16 @@ func (me *DefaultAdapter) OnConflictSql(buf *SqlBuilder, o ConflictExpression) e
 	if u := o.Updates(); u != nil {
 		target := u.Target
 		if me.SupportsConflictTarget() && target != "" {
-			buf.Write([]byte(" ("))
+			wrapParens := !strings.HasPrefix(strings.ToLower(target), "on constraint")
+
+			buf.Write([]byte(" "))
+			if wrapParens {
+				buf.Write([]byte("("))
+			}
 			buf.Write([]byte(target))
-			buf.Write([]byte(")"))
+			if wrapParens {
+				buf.Write([]byte(")"))
+			}
 		}
 		if err := me.onConflictDoUpdateSql(buf, *u); err != nil {
 			return err

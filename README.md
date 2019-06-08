@@ -5,9 +5,9 @@
  \__, |\___/ \__, |\__,_|
  |___/          |_|
 ```
-[![GitHub tag](https://img.shields.io/github/tag/doug-martin/goqu.svg?style=flat)](https://github.com/doug-martin/goqu/v6/releases)
+[![GitHub tag](https://img.shields.io/github/tag/doug-martin/goqu.svg?style=flat)](https://github.com/doug-martin/goqu/releases)
 [![Build Status](https://travis-ci.org/doug-martin/goqu.svg?branch=master)](https://travis-ci.org/doug-martin/goqu)
-[![GoDoc](https://godoc.org/github.com/doug-martin/goqu/v6?status.png)](http://godoc.org/github.com/doug-martin/goqu)
+[![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![codecov](https://codecov.io/gh/doug-martin/goqu/branch/master/graph/badge.svg)](https://codecov.io/gh/doug-martin/goqu)
 [![Go Report Card](https://goreportcard.com/badge/github.com/doug-martin/goqu/v6)](https://goreportcard.com/report/github.com/doug-martin/goqu/v6)
 
@@ -24,7 +24,7 @@
 * [Logging](#logging)
 * [Adapters](#adapters)
 * [Contributions](#contributions)
-* [Changelog](https://github.com/doug-martin/goqu/v6/tree/master/HISTORY.md)
+* [Changelog](https://github.com/doug-martin/goqu/tree/master/HISTORY.md)
 
 This library was built with the following goals:
 
@@ -119,7 +119,7 @@ SELECT * FROM "user" WHERE "id" = $1
 
 The entry points for expressions are:
 
-* [`Ex{}`](https://godoc.org/github.com/doug-martin/goqu/v6#Ex) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `Ex` will use the equality operator except in cases where the equality operator will not work, see the example below.
+* [`Ex{}`](https://godoc.org/github.com/doug-martin/goqu#Ex) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `Ex` will use the equality operator except in cases where the equality operator will not work, see the example below.
 ```go
 sql, _, _ := db.From("items").Where(goqu.Ex{
 	"col1": "a",
@@ -135,7 +135,7 @@ Output:
 ```sql
 SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c')))
 ```
-You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu/v6#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
+You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
 ```go
 sql, _, _ := db.From("items").Where(goqu.Ex{
     "col1": goqu.Op{"neq": "a"},
@@ -148,9 +148,9 @@ Output:
 ```sql
 SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
 ```
-For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu/v6#Op) and [`Ex`](https://godoc.org/github.com/doug-martin/goqu/v6#Ex) docs
+For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`Ex`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
 
-* [`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu/v6#ExOr) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `ExOr` will use the equality operator except in cases where the equality operator will not work, see the example below.
+* [`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu#ExOr) - A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `ExOr` will use the equality operator except in cases where the equality operator will not work, see the example below.
 ```go
 sql, _, _ := db.From("items").Where(goqu.ExOr{
 	"col1": "a",
@@ -166,7 +166,7 @@ Output:
 ```sql
 SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c')))
 ```
-You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu/v6#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
+You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
 ```go
 sql, _, _ := db.From("items").Where(goqu.ExOr{
     "col1": goqu.Op{"neq": "a"},
@@ -179,24 +179,24 @@ Output:
 ```sql
 SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
 ```
-For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu/v6#Op) and [`ExOr`](https://godoc.org/github.com/doug-martin/goqu/v6#Ex) docs
+For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`ExOr`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
 
-* [`I()`](https://godoc.org/github.com/doug-martin/goqu/v6#I) - An Identifier represents a schema, table, or column or any combination. You can use this when your expression cannot be expressed via the [`Ex`](https://godoc.org/github.com/doug-martin/goqu/v6#Ex) map (e.g. Cast).
+* [`I()`](https://godoc.org/github.com/doug-martin/goqu#I) - An Identifier represents a schema, table, or column or any combination. You can use this when your expression cannot be expressed via the [`Ex`](https://godoc.org/github.com/doug-martin/goqu#Ex) map (e.g. Cast).
 ```go
 goqu.I("my_schema.table.col")
 goqu.I("table.col")
 goqu.I("col")
 ```
-If you look at the [`IdentiferExpression`](https://godoc.org/github.com/doug-martin/goqu/v6#IdentifierExpression) docs it implements many of your common sql operations that you would perform.
+If you look at the [`IdentiferExpression`](https://godoc.org/github.com/doug-martin/goqu#IdentifierExpression) docs it implements many of your common sql operations that you would perform.
 ```go
 goqu.I("col").Eq(10)
 goqu.I("col").In([]int64{1,2,3,4})
 goqu.I("col").Like(regexp.MustCompile("^(a|b)")
 goqu.I("col").IsNull()
 ```
-Please see the exmaples for [`I()`](https://godoc.org/github.com/doug-martin/goqu/v6#example-I) to see more in depth examples
+Please see the exmaples for [`I()`](https://godoc.org/github.com/doug-martin/goqu#example-I) to see more in depth examples
 
-* [`L()`](https://godoc.org/github.com/doug-martin/goqu/v6#example-L) - An SQL literal. You may find yourself in a situation where an IdentifierExpression cannot expression an SQL fragment that your database supports. In that case you can use a LiteralExpression
+* [`L()`](https://godoc.org/github.com/doug-martin/goqu#example-L) - An SQL literal. You may find yourself in a situation where an IdentifierExpression cannot expression an SQL fragment that your database supports. In that case you can use a LiteralExpression
 ```go
 goqu.L(`"col"::TEXT = ""other_col"::text`)
 ```
@@ -216,7 +216,7 @@ fmt.Println(sql)
 SELECT * FROM "test" WHERE (("col" = 10) AND "json"::TEXT = "other_json"::TEXT)
 ```
 Both the Identifier and Literal expressions will be ANDed together by default.
-You may however want to have your expressions ORed together you can use the [`Or()`](https://godoc.org/github.com/doug-martin/goqu/v6#example-Or) function to create an ExpressionList
+You may however want to have your expressions ORed together you can use the [`Or()`](https://godoc.org/github.com/doug-martin/goqu#example-Or) function to create an ExpressionList
 ```go
 sql, _, _ := db.From("test").Where(
    goqu.Or(
@@ -356,9 +356,9 @@ goqu also has basic query support through the use of either the Database or the 
 <a name="dataset"></a>
 ### Dataset
 
-* [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.ScanStructs) - scans rows into a slice of structs
+* [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStructs) - scans rows into a slice of structs
 
-**NOTE** [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.ScanStructs) will only select the columns that can be scanned in to the structs unless you have explicitly selected certain columns.
+**NOTE** [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStructs) will only select the columns that can be scanned in to the structs unless you have explicitly selected certain columns.
 
 ```go
 type User struct{
@@ -383,9 +383,9 @@ if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
 fmt.Printf("\n%+v", users)
 ```
 
-* [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.ScanStruct) - scans a row into a slice a struct, returns false if a row wasnt found
+* [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStruct) - scans a row into a slice a struct, returns false if a row wasnt found
 
-**NOTE** [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.ScanStruct) will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns.
+**NOTE** [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanStruct) will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns.
 
 ```go
 
@@ -408,7 +408,28 @@ if !found {
 }
 ```
 
-* [`ScanVals`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.ScanVals) - scans a rows of 1 column into a slice of primitive values
+
+**NOTE** Using the `goqu.SetColumnRenameFunction` function, you can change the function that's used to rename struct fields when struct tags aren't defined
+
+```go
+import "strings"
+
+goqu.SetColumnRenameFunction(strings.ToUpper)
+
+type User struct{
+  FirstName string
+  LastName string
+}
+
+var user User
+//SELECT "FIRSTNAME", "LASTNAME" FROM "user" LIMIT 1;
+found, err := db.From("user").ScanStruct(&user)
+// ...
+```
+
+
+
+* [`ScanVals`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanVals) - scans a rows of 1 column into a slice of primitive values
 ```go
 var ids []int64
 if err := db.From("user").Select("id").ScanVals(&ids); err != nil{
@@ -418,7 +439,7 @@ if err := db.From("user").Select("id").ScanVals(&ids); err != nil{
 fmt.Printf("\n%+v", ids)
 ```
 
-* [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.ScanVal) - scans a row of 1 column into a primitive value, returns false if a row wasnt found. **Note** when using the dataset a `LIMIT` of 1 is automatically applied.
+* [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu#Dataset.ScanVal) - scans a row of 1 column into a primitive value, returns false if a row wasnt found. **Note** when using the dataset a `LIMIT` of 1 is automatically applied.
 ```go
 var id int64
 found, err := db.From("user").Select("id").ScanVal(&id)
@@ -433,7 +454,7 @@ if !found{
 }
 ```
 
-* [`Count`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.Count) - Returns the count for the current query
+* [`Count`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Count) - Returns the count for the current query
 ```go
 count, err := db.From("user").Count()
 if err != nil{
@@ -443,7 +464,7 @@ if err != nil{
 fmt.Printf("\nCount:= %d", count)
 ```
 
-* [`Pluck`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.Pluck) - Selects a single column and stores the results into a slice of primitive values
+* [`Pluck`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Pluck) - Selects a single column and stores the results into a slice of primitive values
 ```go
 var ids []int64
 if err := db.From("user").Pluck(&ids, "id"); err != nil{
@@ -453,7 +474,7 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 fmt.Printf("\nIds := %+v", ids)
 ```
 
-* [`Insert`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.Insert) - Creates an `INSERT` statement and returns a [`CrudExec`](http://godoc.org/github.com/doug-martin/goqu/v6#CrudExec) to execute the statement
+* [`Insert`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Insert) - Creates an `INSERT` statement and returns a [`CrudExec`](http://godoc.org/github.com/doug-martin/goqu#CrudExec) to execute the statement
 ```go
 insert := db.From("user").Insert(goqu.Record{"first_name": "Bob", "last_name":"Yukon", "created": time.Now()})
 if _, err := insert.Exec(); err != nil{
@@ -487,7 +508,7 @@ if err := db.From("user").Returning(goqu.I("id")).Insert(users).ScanVals(&ids); 
 }
 ```
 
-* [`Update`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.Update) - Creates an `UPDATE` statement and returns an[`CrudExec`](http://godoc.org/github.com/doug-martin/goqu/v6#CrudExec) to execute the statement
+* [`Update`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Update) - Creates an `UPDATE` statement and returns an[`CrudExec`](http://godoc.org/github.com/doug-martin/goqu#CrudExec) to execute the statement
 ```go
 update := db.From("user").
     Where(goqu.I("status").Eq("inactive")).
@@ -509,7 +530,7 @@ if err := update.ScanVals(&ids); err != nil{
     return
 }
 ```
-* [`Delete`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.Delete) - Creates an `DELETE` statement and returns a [`CrudExec`](http://godoc.org/github.com/doug-martin/goqu/v6#CrudExec) to execute the statement
+* [`Delete`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Delete) - Creates an `DELETE` statement and returns a [`CrudExec`](http://godoc.org/github.com/doug-martin/goqu#CrudExec) to execute the statement
 ```go
 delete := db.From("invoice").
     Where(goqu.Ex{"status":"paid"}).
@@ -535,7 +556,7 @@ if err := delete.ScanVals(&ids); err != nil{
 <a name="dataset_prepared"></a>
 #### Prepared Statements
 
-By default the `Dataset` will interpolate all parameters, if you do not want to have values interpolated you can use the [`Prepared`](http://godoc.org/github.com/doug-martin/goqu/v6#Dataset.Prepared) method to prevent this.
+By default the `Dataset` will interpolate all parameters, if you do not want to have values interpolated you can use the [`Prepared`](http://godoc.org/github.com/doug-martin/goqu#Dataset.Prepared) method to prevent this.
 
 **Note** For the examples all placeholders are `?` this will be adapter specific when using other examples (e.g. Postgres `$1, $2...`)
 
@@ -594,15 +615,15 @@ db.ScanStructs(&items, `SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = 
 
 The Database also allows you to execute queries but expects raw SQL to execute. The supported methods are
 
-* [`Exec`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.Exec)
-* [`Prepare`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.Prepare)
-* [`Query`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.Query)
-* [`QueryRow`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.QueryRow)
-* [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.ScanStructs)
-* [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.ScanStruct)
-* [`ScanVals`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.ScanVals)
-* [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.ScanVal)
-* [`Begin`](http://godoc.org/github.com/doug-martin/goqu/v6#Database.Begin)
+* [`Exec`](http://godoc.org/github.com/doug-martin/goqu#Database.Exec)
+* [`Prepare`](http://godoc.org/github.com/doug-martin/goqu#Database.Prepare)
+* [`Query`](http://godoc.org/github.com/doug-martin/goqu#Database.Query)
+* [`QueryRow`](http://godoc.org/github.com/doug-martin/goqu#Database.QueryRow)
+* [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#Database.ScanStructs)
+* [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#Database.ScanStruct)
+* [`ScanVals`](http://godoc.org/github.com/doug-martin/goqu#Database.ScanVals)
+* [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu#Database.ScanVal)
+* [`Begin`](http://godoc.org/github.com/doug-martin/goqu#Database.Begin)
 
 <a name="transactions"></a>
 ### Transactions
@@ -630,15 +651,15 @@ if err = tx.Commit(); err != nil{
 return
 ```
 
-The [`TxDatabase`](http://godoc.org/github.com/doug-martin/goqu/v6/#TxDatabase)  also has all methods that the [`Database`](http://godoc.org/github.com/doug-martin/goqu/v6/#Database) has along with
+The [`TxDatabase`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase)  also has all methods that the [`Database`](http://godoc.org/github.com/doug-martin/goqu/#Database) has along with
 
-* [`Commit`](http://godoc.org/github.com/doug-martin/goqu/v6#TxDatabase.Commit)
-* [`Rollback`](http://godoc.org/github.com/doug-martin/goqu/v6#TxDatabase.Rollback)
-* [`Wrap`](http://godoc.org/github.com/doug-martin/goqu/v6#TxDatabase.Wrap)
+* [`Commit`](http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Commit)
+* [`Rollback`](http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Rollback)
+* [`Wrap`](http://godoc.org/github.com/doug-martin/goqu#TxDatabase.Wrap)
 
 #### Wrap
 
-The [`TxDatabase.Wrap`](http://godoc.org/github.com/doug-martin/goqu/v6/#TxDatabase.Wrap) is a convience method for automatically handling `COMMIT` and `ROLLBACK`
+The [`TxDatabase.Wrap`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase.Wrap) is a convience method for automatically handling `COMMIT` and `ROLLBACK`
 
 ```go
 tx, err := db.Begin()
@@ -663,9 +684,9 @@ if err != nil{
 <a name="logging"></a>
 ## Logging
 
-To enable trace logging of SQL statements use the [`Database.Logger`](http://godoc.org/github.com/doug-martin/goqu/v6/#Database.Logger) method to set your logger.
+To enable trace logging of SQL statements use the [`Database.Logger`](http://godoc.org/github.com/doug-martin/goqu/#Database.Logger) method to set your logger.
 
-**NOTE** The logger must implement the [`Logger`](http://godoc.org/github.com/doug-martin/goqu/v6/#Logger) interface
+**NOTE** The logger must implement the [`Logger`](http://godoc.org/github.com/doug-martin/goqu/#Logger) interface
 
 **NOTE** If you start a transaction using a database your set a logger on the transaction will inherit that logger automatically
 
@@ -675,20 +696,20 @@ To enable trace logging of SQL statements use the [`Database.Logger`](http://god
 
 Adapters in goqu are the foundation of building the correct SQL for each DB dialect.
 
-Between most dialects there is a large portion of shared syntax, for this reason we have a [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/v6/#DefaultAdapter) that can be used as a base for any new Dialect specific adapter.
-In fact for most use cases you will not have to override any methods but instead just override the default values as documented for [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/v6/#DefaultAdapter).
+Between most dialects there is a large portion of shared syntax, for this reason we have a [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter) that can be used as a base for any new Dialect specific adapter.
+In fact for most use cases you will not have to override any methods but instead just override the default values as documented for [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter).
 
 ### Literal
 
-The [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/v6/#DefaultAdapter) has a [`Literal`](http://godoc.org/github.com/doug-martin/goqu/v6/#DefaultAdapter.Literal) function which should be used to serialize all sub expressions or values. This method prevents you from having to re-implement each adapter method while having your adapter methods called correctly.
+The [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter) has a [`Literal`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter.Literal) function which should be used to serialize all sub expressions or values. This method prevents you from having to re-implement each adapter method while having your adapter methods called correctly.
 
 **How does it work?**
 
-The Literal method delegates back to the [`Dataset.Literal`](http://godoc.org/github.com/doug-martin/goqu/v6/#Dataset.Literal) method which then calls the appropriate method on the adapter acting as a trampoline, between the DefaultAdapter and your Adapter.
+The Literal method delegates back to the [`Dataset.Literal`](http://godoc.org/github.com/doug-martin/goqu/#Dataset.Literal) method which then calls the appropriate method on the adapter acting as a trampoline, between the DefaultAdapter and your Adapter.
 
-For example if your adapter overrode the [`DefaultAdapter.QuoteIdentifier`](http://godoc.org/github.com/doug-martin/goqu/v6/#DefaultAdapter.QuoteIdentifier), method which is used by most methods in the [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/v6/#DefaultAdapter), we need to ensure that your Adapters QuoteIdentifier method is called instead of the default implementation.
+For example if your adapter overrode the [`DefaultAdapter.QuoteIdentifier`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter.QuoteIdentifier), method which is used by most methods in the [`DefaultAdapter`](http://godoc.org/github.com/doug-martin/goqu/#DefaultAdapter), we need to ensure that your Adapters QuoteIdentifier method is called instead of the default implementation.
 
-Because the Dataset has a pointer to your Adapter it will call the correct method, so instead of calling `DefaultAdapter.QuoteIdentifier` internally we delegate back to the Dataset by calling the [`Dataset.Literal`](http://godoc.org/github.com/doug-martin/goqu/v6/#Dataset.Literal) which will the call your Adapters method.
+Because the Dataset has a pointer to your Adapter it will call the correct method, so instead of calling `DefaultAdapter.QuoteIdentifier` internally we delegate back to the Dataset by calling the [`Dataset.Literal`](http://godoc.org/github.com/doug-martin/goqu/#Dataset.Literal) which will the call your Adapters method.
 
 ```
 Dataset.Literal -> Adapter.ExpressionListSql -> Adapter.Literal -> Dataset.Literal -> YourAdapter.QuoteIdentifier
@@ -698,7 +719,7 @@ It is important to maintain this pattern when writing your own Adapter.
 
 ### Registering
 
-When creating your adapters you must register your adapter with [`RegisterAdapter`](http://godoc.org/github.com/doug-martin/goqu/v6/#RegisterAdapter). This method requires 2 arguments.
+When creating your adapters you must register your adapter with [`RegisterAdapter`](http://godoc.org/github.com/doug-martin/goqu/#RegisterAdapter). This method requires 2 arguments.
 
 1. dialect - The dialect for your adapter.
 2. datasetAdapterFactory - This is a factory function that will return a new goqu.Adapter  used to create the dialect specific SQL.
@@ -731,7 +752,7 @@ func init() {
 }
 ```
 
-If you are looking to write your own adapter take a look at the postgresm, mysql or sqlite3 adapter located at <https://github.com/doug-martin/goqu/v6/tree/master/adapters>.
+If you are looking to write your own adapter take a look at the postgresm, mysql or sqlite3 adapter located at <https://github.com/doug-martin/goqu/tree/master/adapters>.
 
 <a name="contributions"></a>
 ## Contributions
@@ -767,7 +788,7 @@ If you find an issue you want to work on please comment on it letting other peop
 If want to work on an issue but dont know where to start just leave a comment and I'll be more than happy to point you in the right direction.
 
 ### Running tests
-The test suite requires a postgres and mysql database. You can override the mysql/postgres connection strings with the [`MYSQL_URI` and `PG_URI` environment variables](https://github.com/doug-martin/goqu/v6/blob/2fe3349/docker-compose.yml#L26)*
+The test suite requires a postgres and mysql database. You can override the mysql/postgres connection strings with the [`MYSQL_URI` and `PG_URI` environment variables](https://github.com/doug-martin/goqu/blob/2fe3349/docker-compose.yml#L26)*
 
 ```sh
 go test -v -race ./...
