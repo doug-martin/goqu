@@ -1,3 +1,7 @@
+## v6.1.0
+
+* Handle nil *time.Time Literal [#73](https://github.com/doug-martin/goqu/pull/73) and [#52](https://github.com/doug-martin/goqu/pull/52) - [@RoarkeRandall](https://github.com/RoarkeRandall) and [@quetz](https://github.com/quetz)
+
 ## v6.0.0
 
 * Updated go support to `1.10`, `1.11` and `1.12`

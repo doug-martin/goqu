@@ -229,6 +229,9 @@ func (me *Dataset) Literal(buf *SqlBuilder, val interface{}) error {
 	} else if v, ok := val.(time.Time); ok {
 		return me.adapter.LiteralTime(buf, v)
 	} else if v, ok := val.(*time.Time); ok {
+		if v == nil {
+			return me.adapter.LiteralNil(buf)
+		}
 		return me.adapter.LiteralTime(buf, *v)
 	} else if v, ok := val.(driver.Valuer); ok {
 		dVal, err := v.Value()
