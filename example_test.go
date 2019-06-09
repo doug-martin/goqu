@@ -1861,8 +1861,7 @@ func ExampleDataset_Prepared() {
 
 }
 
-
-func ExampleColumnRename() {
+func ExampleSetColumnRenameFunction() {
 	mDb, mock, _ := sqlmock.New()
 
 	mock.ExpectQuery(`SELECT "ADDRESS", "NAME" FROM "items" LIMIT 1`).
@@ -1875,7 +1874,7 @@ func ExampleColumnRename() {
 
 	anonStruct := struct {
 		Address string
-		Name string
+		Name    string
 	}{}
 	found, _ := db.From("items").ScanStruct(&anonStruct)
 	fmt.Println(found)

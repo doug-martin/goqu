@@ -3,8 +3,8 @@ package goqu
 import (
 	"context"
 	"fmt"
-	"sync"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -253,7 +253,6 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, noTags[1].Address, "211 Test Addr")
 	assert.Equal(t, noTags[1].Name, "Test2")
 
-
 	noTags = nil
 	assert.NoError(t, exec.ScanStructsContext(ctx, &noTags))
 	assert.Len(t, noTags, 2)
@@ -264,7 +263,6 @@ func (me *crudExecTest) TestScanStructs() {
 	assert.Equal(t, noTags[1].Name, "Test2")
 }
 
-
 func (me *crudExecTest) TestColumnRename() {
 	t := me.T()
 	// different key names are used each time to circumvent the caching that happens
@@ -273,13 +271,13 @@ func (me *crudExecTest) TestColumnRename() {
 	// and not change between requests like this
 	lowerAnon := struct {
 		FirstLower string
-		LastLower string
+		LastLower  string
 	}{}
 	lowerColumnMap, lowerErr := getColumnMap(&lowerAnon)
 	assert.NoError(t, lowerErr)
 
 	var lowerKeys []string
-	for key, _ := range lowerColumnMap {
+	for key := range lowerColumnMap {
 		lowerKeys = append(lowerKeys, key)
 	}
 	assert.Contains(t, lowerKeys, "firstlower")
@@ -290,13 +288,13 @@ func (me *crudExecTest) TestColumnRename() {
 
 	upperAnon := struct {
 		FirstUpper string
-		LastUpper string
+		LastUpper  string
 	}{}
 	upperColumnMap, upperErr := getColumnMap(&upperAnon)
 	assert.NoError(t, upperErr)
 
 	var upperKeys []string
-	for key, _ := range upperColumnMap {
+	for key := range upperColumnMap {
 		upperKeys = append(upperKeys, key)
 	}
 	assert.Contains(t, upperKeys, "FIRSTUPPER")
