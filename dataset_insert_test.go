@@ -8,6 +8,17 @@ import (
 	"time"
 )
 
+func (me *datasetTest) TestInsertNullTime() {
+	t := me.T()
+	ds1 := From("items")
+	type item struct {
+		CreatedAt *time.Time `db:"created_at"`
+	}
+	sql, _, err := ds1.ToInsertSql(item{CreatedAt: nil})
+	assert.NoError(t, err)
+	assert.Equal(t, sql, `INSERT INTO "items" ("created_at") VALUES (NULL)`)
+}
+
 func (me *datasetTest) TestInsertSqlNoReturning() {
 	t := me.T()
 	mDb, _, _ := sqlmock.New()

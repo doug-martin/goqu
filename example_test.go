@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/doug-martin/goqu/v6"
 
@@ -1858,4 +1859,30 @@ func ExampleDataset_Prepared() {
 	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
 	// DELETE FROM "items" WHERE ("id" > ?) [10]
 
+}
+
+func ExampleSetColumnRenameFunction() {
+	mDb, mock, _ := sqlmock.New()
+
+	mock.ExpectQuery(`SELECT "ADDRESS", "NAME" FROM "items" LIMIT 1`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"ADDRESS", "NAME"}).FromCSVString("111 Test Addr,Test1"))
+
+	db := goqu.New("db-mock", mDb)
+
+	goqu.SetColumnRenameFunction(strings.ToUpper)
+
+	anonStruct := struct {
+		Address string
+		Name    string
+	}{}
+	found, _ := db.From("items").ScanStruct(&anonStruct)
+	fmt.Println(found)
+	fmt.Println(anonStruct.Address)
+	fmt.Println(anonStruct.Name)
+
+	// Output:
+	// true
+	// 111 Test Addr
+	// Test1
 }
