@@ -1,10 +1,13 @@
 package postgres
 
 import (
+	"reflect"
 	"github.com/doug-martin/goqu/v6"
 )
 
 const placeholder_rune = '$'
+const comma_rune = ','
+const space_rune = ' '
 
 type DatasetAdapter struct {
 	*goqu.DefaultAdapter
