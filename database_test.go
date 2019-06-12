@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/doug-martin/goqu/v7/internal/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -18,25 +19,26 @@ type dbTestMockLogger struct {
 	Messages []string
 }
 
-func (me *dbTestMockLogger) Printf(format string, v ...interface{}) {
-	me.Messages = append(me.Messages, fmt.Sprintf(format, v...))
+func (dtml *dbTestMockLogger) Printf(format string, v ...interface{}) {
+	dtml.Messages = append(dtml.Messages, fmt.Sprintf(format, v...))
 }
 
-func (me *dbTestMockLogger) Reset(format string, v ...interface{}) {
-	me.Messages = me.Messages[0:0]
+func (dtml *dbTestMockLogger) Reset(format string, v ...interface{}) {
+	dtml.Messages = dtml.Messages[0:0]
 }
 
 type databaseTest struct {
 	suite.Suite
 }
 
-func (me *databaseTest) TestLogger() {
-	t := me.T()
+func (dt *databaseTest) TestLogger() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
 		WithArgs(1).
@@ -57,13 +59,14 @@ func (me *databaseTest) TestLogger() {
 	})
 }
 
-func (me *databaseTest) TestScanStructs() {
-	t := me.T()
+func (dt *databaseTest) TestScanStructs() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
@@ -80,13 +83,16 @@ func (me *databaseTest) TestScanStructs() {
 	assert.Equal(t, items[1].Name, "Test2")
 
 	items = items[0:0]
-	assert.EqualError(t, db.ScanStructs(items, `SELECT * FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, db.ScanStructs(&testActionItem{}, `SELECT * FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, db.ScanStructs(&items, `SELECT "test" FROM "items"`), `goqu: Unable to find corresponding field to column "test" returned by query`)
+	assert.EqualError(t, db.ScanStructs(items, `SELECT * FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into structs")
+	assert.EqualError(t, db.ScanStructs(&testActionItem{}, `SELECT * FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into structs")
+	assert.EqualError(t, db.ScanStructs(&items, `SELECT "test" FROM "items"`),
+		`goqu: unable to find corresponding field to column "test" returned by query`)
 }
 
-func (me *databaseTest) TestScanStruct() {
-	t := me.T()
+func (dt *databaseTest) TestScanStruct() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
@@ -106,15 +112,15 @@ func (me *databaseTest) TestScanStruct() {
 	assert.Equal(t, item.Name, "Test1")
 
 	_, err = db.ScanStruct(item, `SELECT * FROM "items" LIMIT 1`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
+	assert.EqualError(t, err, "goqu: type must be a pointer to a struct when scanning into a struct")
 	_, err = db.ScanStruct([]testActionItem{}, `SELECT * FROM "items" LIMIT 1`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
+	assert.EqualError(t, err, "goqu: type must be a pointer to a struct when scanning into a struct")
 	_, err = db.ScanStruct(&item, `SELECT "test" FROM "items" LIMIT 1`)
-	assert.EqualError(t, err, `goqu: Unable to find corresponding field to column "test" returned by query`)
+	assert.EqualError(t, err, `goqu: unable to find corresponding field to column "test" returned by query`)
 }
 
-func (me *databaseTest) TestScanVals() {
-	t := me.T()
+func (dt *databaseTest) TestScanVals() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
@@ -126,12 +132,14 @@ func (me *databaseTest) TestScanVals() {
 	assert.NoError(t, db.ScanVals(&ids, `SELECT "id" FROM "items"`))
 	assert.Len(t, ids, 5)
 
-	assert.EqualError(t, db.ScanVals([]uint32{}, `SELECT "id" FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanVals")
-	assert.EqualError(t, db.ScanVals(testActionItem{}, `SELECT "id" FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanVals")
+	assert.EqualError(t, db.ScanVals([]uint32{}, `SELECT "id" FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into vals")
+	assert.EqualError(t, db.ScanVals(testActionItem{}, `SELECT "id" FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into vals")
 }
 
-func (me *databaseTest) TestScanVal() {
-	t := me.T()
+func (dt *databaseTest) TestScanVal() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
@@ -146,13 +154,15 @@ func (me *databaseTest) TestScanVal() {
 	assert.True(t, found)
 
 	found, err = db.ScanVal([]int64{}, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
+	assert.False(t, found)
+	assert.EqualError(t, err, "goqu: type must be a pointer when scanning into val")
 	found, err = db.ScanVal(10, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
+	assert.False(t, found)
+	assert.EqualError(t, err, "goqu: type must be a pointer when scanning into val")
 }
 
-func (me *databaseTest) TestExec() {
-	t := me.T()
+func (dt *databaseTest) TestExec() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
@@ -161,7 +171,7 @@ func (me *databaseTest) TestExec() {
 
 	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
-		WillReturnError(NewGoquError("mock error"))
+		WillReturnError(errors.New("mock error"))
 
 	db := New("mock", mDb)
 	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
@@ -170,17 +180,18 @@ func (me *databaseTest) TestExec() {
 	assert.EqualError(t, err, "goqu: mock error")
 }
 
-func (me *databaseTest) TestQuery() {
-	t := me.T()
+func (dt *databaseTest) TestQuery() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnError(NewGoquError("mock error"))
+		WillReturnError(errors.New("mock error"))
 
 	db := New("mock", mDb)
 	_, err = db.Query(`SELECT * FROM "items"`)
@@ -190,17 +201,18 @@ func (me *databaseTest) TestQuery() {
 	assert.EqualError(t, err, "goqu: mock error")
 }
 
-func (me *databaseTest) TestQueryRow() {
-	t := me.T()
+func (dt *databaseTest) TestQueryRow() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnError(NewGoquError("mock error"))
+		WillReturnError(errors.New("mock error"))
 
 	db := New("mock", mDb)
 	rows := db.QueryRow(`SELECT * FROM "items"`)
@@ -212,8 +224,8 @@ func (me *databaseTest) TestQueryRow() {
 	assert.EqualError(t, rows.Scan(&address, &name), "goqu: mock error")
 }
 
-func (me *databaseTest) TestPrepare() {
-	t := me.T()
+func (dt *databaseTest) TestPrepare() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectPrepare("SELECT \\* FROM test WHERE id = \\?")
@@ -223,16 +235,16 @@ func (me *databaseTest) TestPrepare() {
 	assert.NotNil(t, stmt)
 }
 
-func (me *databaseTest) TestBegin() {
-	t := me.T()
+func (dt *databaseTest) TestBegin() {
+	t := dt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
-	mock.ExpectBegin().WillReturnError(NewGoquError("transaction error"))
+	mock.ExpectBegin().WillReturnError(errors.New("transaction error"))
 	db := New("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
-	assert.Equal(t, tx.Dialect, "mock")
+	assert.Equal(t, tx.Dialect(), "mock")
 
 	_, err = db.Begin()
 	assert.EqualError(t, err, "goqu: transaction error")
@@ -246,21 +258,22 @@ type txDatabaseTest struct {
 	suite.Suite
 }
 
-func (me *txDatabaseTest) TestLogger() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestLogger() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
-	tx, err := New("db-mock", mDb).Begin()
+	tx, err := newDatabase("db-mock", mDb).Begin()
 	assert.NoError(t, err)
 	logger := new(dbTestMockLogger)
 	tx.Logger(logger)
@@ -268,7 +281,7 @@ func (me *txDatabaseTest) TestLogger() {
 	assert.NoError(t, tx.ScanStructs(&items, `SELECT * FROM "items"`))
 	_, err = tx.Exec(`SELECT * FROM "items" WHERE "id" = ?`, 1)
 	assert.NoError(t, err)
-	tx.Commit()
+	assert.NoError(t, tx.Commit())
 	assert.Equal(t, logger.Messages, []string{
 		"[goqu - transaction] QUERY [query:=`SELECT * FROM \"items\"`] ",
 		"[goqu - transaction] EXEC [query:=`SELECT * FROM \"items\" WHERE \"id\" = ?` args:=[1]] ",
@@ -276,14 +289,15 @@ func (me *txDatabaseTest) TestLogger() {
 	})
 }
 
-func (me *txDatabaseTest) TestLogger_FromDb() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestLogger_FromDb() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectExec(`SELECT \* FROM "items" WHERE "id" = ?`).
 		WithArgs(1).
@@ -300,7 +314,7 @@ func (me *txDatabaseTest) TestLogger_FromDb() {
 	assert.NoError(t, tx.ScanStructs(&items, `SELECT * FROM "items"`))
 	_, err = tx.Exec(`SELECT * FROM "items" WHERE "id" = ?`, 1)
 	assert.NoError(t, err)
-	tx.Commit()
+	assert.NoError(t, tx.Commit())
 	assert.Equal(t, logger.Messages, []string{
 		"[goqu - transaction] QUERY [query:=`SELECT * FROM \"items\"`] ",
 		"[goqu - transaction] EXEC [query:=`SELECT * FROM \"items\" WHERE \"id\" = ?` args:=[1]] ",
@@ -308,57 +322,59 @@ func (me *txDatabaseTest) TestLogger_FromDb() {
 	})
 }
 
-func (me *txDatabaseTest) TestCommit() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestCommit() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectCommit()
-	db := New("mock", mDb)
+	db := newDatabase("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestRollback() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestRollback() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectRollback()
-	db := New("mock", mDb)
+	db := newDatabase("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Rollback())
 }
 
-func (me *txDatabaseTest) TestFrom() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestFrom() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectCommit()
-	db := New("mock", mDb)
+	db := newDatabase("mock", mDb)
 	tx, err := db.Begin()
 	assert.NoError(t, err)
-	assert.NotNil(t, tx.From("test"))
+	assert.NotNil(t, From("test"))
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestScanStructs() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestScanStructs() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 	mock.ExpectCommit()
-	tx, err := New("db-mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	var items []testActionItem
 	assert.NoError(t, tx.ScanStructs(&items, `SELECT * FROM "items"`))
@@ -370,14 +386,17 @@ func (me *txDatabaseTest) TestScanStructs() {
 	assert.Equal(t, items[1].Name, "Test2")
 
 	items = items[0:0]
-	assert.EqualError(t, tx.ScanStructs(items, `SELECT * FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, tx.ScanStructs(&testActionItem{}, `SELECT * FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanStructs")
-	assert.EqualError(t, tx.ScanStructs(&items, `SELECT "test" FROM "items"`), `goqu: Unable to find corresponding field to column "test" returned by query`)
+	assert.EqualError(t, tx.ScanStructs(items, `SELECT * FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into structs")
+	assert.EqualError(t, tx.ScanStructs(&testActionItem{}, `SELECT * FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into structs")
+	assert.EqualError(t, tx.ScanStructs(&items, `SELECT "test" FROM "items"`),
+		`goqu: unable to find corresponding field to column "test" returned by query`)
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestScanStruct() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestScanStruct() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
@@ -389,7 +408,8 @@ func (me *txDatabaseTest) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 	mock.ExpectCommit()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	var item testActionItem
 	found, err := tx.ScanStruct(&item, `SELECT * FROM "items" LIMIT 1`)
@@ -399,16 +419,16 @@ func (me *txDatabaseTest) TestScanStruct() {
 	assert.Equal(t, item.Name, "Test1")
 
 	_, err = tx.ScanStruct(item, `SELECT * FROM "items" LIMIT 1`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
+	assert.EqualError(t, err, "goqu: type must be a pointer to a struct when scanning into a struct")
 	_, err = tx.ScanStruct([]testActionItem{}, `SELECT * FROM "items" LIMIT 1`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer to a struct when calling ScanStruct")
+	assert.EqualError(t, err, "goqu: type must be a pointer to a struct when scanning into a struct")
 	_, err = tx.ScanStruct(&item, `SELECT "test" FROM "items" LIMIT 1`)
-	assert.EqualError(t, err, `goqu: Unable to find corresponding field to column "test" returned by query`)
+	assert.EqualError(t, err, `goqu: unable to find corresponding field to column "test" returned by query`)
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestScanVals() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestScanVals() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
@@ -416,19 +436,22 @@ func (me *txDatabaseTest) TestScanVals() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 	mock.ExpectCommit()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	var ids []uint32
 	assert.NoError(t, tx.ScanVals(&ids, `SELECT "id" FROM "items"`))
 	assert.Len(t, ids, 5)
 
-	assert.EqualError(t, tx.ScanVals([]uint32{}, `SELECT "id" FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanVals")
-	assert.EqualError(t, tx.ScanVals(testActionItem{}, `SELECT "id" FROM "items"`), "goqu: Type must be a pointer to a slice when calling ScanVals")
+	assert.EqualError(t, tx.ScanVals([]uint32{}, `SELECT "id" FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into vals")
+	assert.EqualError(t, tx.ScanVals(testActionItem{}, `SELECT "id" FROM "items"`),
+		"goqu: type must be a pointer to a slice when scanning into vals")
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestScanVal() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestScanVal() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
@@ -436,7 +459,8 @@ func (me *txDatabaseTest) TestScanVal() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 	mock.ExpectCommit()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	var id int64
 	found, err := tx.ScanVal(&id, `SELECT "id" FROM "items"`)
@@ -445,14 +469,16 @@ func (me *txDatabaseTest) TestScanVal() {
 	assert.True(t, found)
 
 	found, err = tx.ScanVal([]int64{}, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
+	assert.False(t, found)
+	assert.EqualError(t, err, "goqu: type must be a pointer when scanning into val")
 	found, err = tx.ScanVal(10, `SELECT "id" FROM "items"`)
-	assert.EqualError(t, err, "goqu: Type must be a pointer when calling ScanVal")
+	assert.False(t, found)
+	assert.EqualError(t, err, "goqu: type must be a pointer when scanning into val")
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestExec() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestExec() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
@@ -462,9 +488,10 @@ func (me *txDatabaseTest) TestExec() {
 
 	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
-		WillReturnError(NewGoquError("mock error"))
+		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
 	assert.NoError(t, err)
@@ -473,20 +500,22 @@ func (me *txDatabaseTest) TestExec() {
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestQuery() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestQuery() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnError(NewGoquError("mock error"))
+		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	_, err = tx.Query(`SELECT * FROM "items"`)
 	assert.NoError(t, err, "goqu - mock error")
@@ -496,20 +525,22 @@ func (me *txDatabaseTest) TestQuery() {
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestQueryRow() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestQueryRow() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnError(NewGoquError("mock error"))
+		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	rows := tx.QueryRow(`SELECT * FROM "items"`)
 	var address string
@@ -521,23 +552,24 @@ func (me *txDatabaseTest) TestQueryRow() {
 	assert.NoError(t, tx.Commit())
 }
 
-func (me *txDatabaseTest) TestWrap() {
-	t := me.T()
+func (tdt *txDatabaseTest) TestWrap() {
+	t := tdt.T()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 	mock.ExpectBegin()
 	mock.ExpectRollback()
-	tx, err := New("mock", mDb).Begin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Wrap(func() error {
 		return nil
 	}))
-	tx, err = New("mock", mDb).Begin()
+	tx, err = db.Begin()
 	assert.NoError(t, err)
 	assert.EqualError(t, tx.Wrap(func() error {
-		return NewGoquError("tx error")
+		return errors.New("tx error")
 	}), "goqu: tx error")
 }
 

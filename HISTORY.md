@@ -1,3 +1,34 @@
+## v7.0.0
+
+**Linting**
+* Add linting checks and fixed errors 
+    * Renamed all snake_case variables to be camelCase.     
+    * Fixed examples to always map to a defined method
+* Renamed `adapters` to `dialect` to more closely match their intended purpose.
+
+**API Changes**
+* Updated all sql generations methods to from `Sql` to `SQL`
+    * `ToSql` -> `ToSQL`
+    * `ToInsertSql` -> `ToInsertSQL`
+    * `ToUpdateSql` -> `ToUpdateSQL`
+    * `ToDeleteSql` -> `ToDeleteSQL`
+    * `ToTruncateSql` -> `ToTruncateSQL`
+* Abstracted out `dialect_options` from the adapter to make the dialect self contained.
+    * This also removed the dataset<->adapter co dependency making the dialect self contained.
+* Refactored the `goqu.I` method.
+    * Added new `goqu.S`, `goqu.T` and `goqu.C` methods to clarify why type of identifier you are using.
+    * `goqu.I` should only be used when you have a qualified identifier (e.g. `goqu.I("my_schema.my_table.my_col")
+* Added new `goqu.Dialect` method to make using `goqu` as an SQL builder easier.
+
+**Internal Changes**
+* Pulled expressions into their own package
+    * Broke up expressions.go into multiple files to make working with and defining them easier.
+    * Moved the user facing methods into the main `goqu` to keep the same API as before.
+* Added more examples
+* Moved non-user facing structs and interfaces to internal modules to clean up API.
+* Increased test coverage.
+ 
+
 ## v6.1.0
 
 * Handle nil *time.Time Literal [#73](https://github.com/doug-martin/goqu/pull/73) and [#52](https://github.com/doug-martin/goqu/pull/52) - [@RoarkeRandall](https://github.com/RoarkeRandall) and [@quetz](https://github.com/quetz)
