@@ -294,11 +294,7 @@ func assignVals(i interface{}, results []Record, cm columnMap) error {
 			if ok {
 				srcVal := reflect.ValueOf(src)
 				f := val.FieldByName(data.FieldName)
-				if f.Kind() == reflect.Ptr {
-					f.Set(reflect.ValueOf(srcVal))
-				} else {
-					f.Set(reflect.Indirect(srcVal))
-				}
+				f.Set(reflect.Indirect(srcVal))
 			}
 		}
 	case reflect.Slice:
