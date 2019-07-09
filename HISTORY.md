@@ -1,3 +1,7 @@
+## v7.0.1
+
+* Fix issue where structs with pointer fields where not set properly [#86](https://github.com/doug-martin/goqu/pull/86) and [#89](https://github.com/doug-martin/goqu/pull/89) - [@efureev](https://github.com/efureev)
+
 ## v7.0.0
 
 **Linting**

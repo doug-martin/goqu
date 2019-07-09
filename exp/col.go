@@ -29,10 +29,8 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 					panic(err.Error())
 				}
 				var structCols []string
-				for key, col := range cm {
-					if !col.Transient {
-						structCols = append(structCols, key)
-					}
+				for key := range cm {
+					structCols = append(structCols, key)
 				}
 				sort.Strings(structCols)
 				for _, col := range structCols {

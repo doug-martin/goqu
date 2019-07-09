@@ -11,7 +11,6 @@ import (
 type (
 	ColumnData struct {
 		ColumnName string
-		Transient  bool
 		FieldName  string
 		GoType     reflect.Type
 	}
@@ -94,45 +93,39 @@ func GetTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind, 
 	return t, valKind, isSliceOfPointers
 }
 
-func AssignStructVals(i interface{}, results []map[string]interface{}, cm ColumnMap) {
+type rowData = map[string]interface{}
+
+func AssignStructVals(i interface{}, results []rowData, cm ColumnMap) {
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, _, isSliceOfPointers := GetTypeInfo(i, val)
 	switch val.Kind() {
 	case reflect.Struct:
 		result := results[0]
-		initEmbeddedPtr(val)
-		for name, data := range cm {
-			src, ok := result[name]
-			if ok {
-				srcVal := reflect.ValueOf(src)
-				f := val.FieldByName(data.FieldName)
-				if f.Kind() == reflect.Ptr {
-					f.Set(reflect.ValueOf(srcVal))
-				} else {
-					f.Set(reflect.Indirect(srcVal))
-				}
-			}
-		}
+		assignRowData(val, result, cm)
 	case reflect.Slice:
 		for _, result := range results {
 			row := reflect.Indirect(reflect.New(t))
-			initEmbeddedPtr(row)
-			for name, data := range cm {
-				src, ok := result[name]
-				if ok {
-					srcVal := reflect.ValueOf(src)
-					f := row.FieldByName(data.FieldName)
-					if f.Kind() == reflect.Ptr {
-						f.Set(reflect.ValueOf(srcVal))
-					} else {
-						f.Set(reflect.Indirect(srcVal))
-					}
-				}
-			}
+			assignRowData(row, result, cm)
 			if isSliceOfPointers {
 				val.Set(reflect.Append(val, row.Addr()))
 			} else {
 				val.Set(reflect.Append(val, row))
+			}
+		}
+	}
+}
+
+func assignRowData(row reflect.Value, rd rowData, cm ColumnMap) {
+	initEmbeddedPtr(row)
+	for name, data := range cm {
+		src, ok := rd[name]
+		if ok {
+			srcVal := reflect.ValueOf(src)
+			f := row.FieldByName(data.FieldName)
+			if f.Kind() == reflect.Ptr {
+				f.Set(srcVal)
+			} else {
+				f.Set(reflect.Indirect(srcVal))
 			}
 		}
 	}
@@ -181,11 +174,12 @@ func createColumnMap(t reflect.Type) ColumnMap {
 			if columnName == "" {
 				columnName = columnRenameFunction(f.Name)
 			}
-			cm[columnName] = ColumnData{
-				ColumnName: columnName,
-				Transient:  columnName == "-",
-				FieldName:  f.Name,
-				GoType:     f.Type,
+			if columnName != "-" {
+				cm[columnName] = ColumnData{
+					ColumnName: columnName,
+					FieldName:  f.Name,
+					GoType:     f.Type,
+				}
 			}
 		}
 	}

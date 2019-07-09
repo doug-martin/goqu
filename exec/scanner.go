@@ -105,10 +105,14 @@ func (q *scanner) ScanVals(i interface{}) (found bool, err error) {
 func (q *scanner) scanIntoRecord(columns []string, cm util.ColumnMap) (record exp.Record, err error) {
 	scans := make([]interface{}, len(columns))
 	for i, col := range columns {
-		if data, ok := cm[col]; ok {
-			scans[i] = reflect.New(data.GoType).Interface()
-		} else {
+		data, ok := cm[col]
+		switch {
+		case !ok:
 			return record, unableToFindFieldError(col)
+		case util.IsPointer(data.GoType.Kind()):
+			scans[i] = reflect.New(data.GoType.Elem()).Interface()
+		default:
+			scans[i] = reflect.New(data.GoType).Interface()
 		}
 	}
 	if err := q.rows.Scan(scans...); err != nil {
