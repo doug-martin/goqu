@@ -21,6 +21,11 @@ type TestCrudActionNoTagsItem struct {
 	Name    string
 }
 
+type TestCrudActionWithPointerField struct {
+	Address *string
+	Name    *string
+}
+
 type TestComposedCrudActionItem struct {
 	TestCrudActionItem
 	PhoneNumber string `db:"phone_number"`
@@ -32,6 +37,13 @@ type TestEmbeddedPtrCrudActionItem struct {
 	PhoneNumber string `db:"phone_number"`
 	Age         int64  `db:"age"`
 }
+
+var (
+	testAddr1 = "111 Test Addr"
+	testAddr2 = "211 Test Addr"
+	testName1 = "Test1"
+	testName2 = "Test2"
+)
 
 type mockDB struct {
 	db *sql.DB
@@ -81,66 +93,11 @@ func (cet *crudExecTest) TestWithError() {
 	assert.False(t, found)
 }
 
-func (cet *crudExecTest) TestScanStructs() {
+func (cet *crudExecTest) TestScanStructs_withTaggedFields() {
 	t := cet.T()
-	ctx := context.Background()
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WillReturnError(fmt.Errorf("queryExecutor error"))
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WillReturnError(fmt.Errorf("queryExecutor error"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
-			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
-			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
-			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
-			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
-			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
-			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
-			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
-			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
-			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
-			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
-
-	mock.ExpectQuery(`SELECT \* FROM "items"`).
-		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
-			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
@@ -150,143 +107,392 @@ func (cet *crudExecTest) TestScanStructs() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
-	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructs(items))
-	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructsContext(ctx, items))
-	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructs(&TestCrudActionItem{}))
-	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructsContext(ctx, &TestCrudActionItem{}))
-	assert.EqualError(t, e.ScanStructs(&items), "queryExecutor error")
-	assert.EqualError(t, e.ScanStructsContext(ctx, &items), "queryExecutor error")
-
 	assert.NoError(t, e.ScanStructs(&items))
-	assert.Len(t, items, 2)
-	assert.Equal(t, items[0].Address, "111 Test Addr")
-	assert.Equal(t, items[0].Name, "Test1")
+	assert.Equal(t, []TestCrudActionItem{
+		{Address: "111 Test Addr", Name: "Test1"},
+		{Address: "211 Test Addr", Name: "Test2"},
+	}, items)
+}
 
-	assert.Equal(t, items[1].Address, "211 Test Addr")
-	assert.Equal(t, items[1].Name, "Test2")
+func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	items = nil
-	assert.NoError(t, e.ScanStructsContext(ctx, &items))
-	assert.Len(t, items, 2)
-	assert.Equal(t, items[0].Address, "111 Test Addr")
-	assert.Equal(t, items[0].Name, "Test1")
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	assert.Equal(t, items[1].Address, "211 Test Addr")
-	assert.Equal(t, items[1].Name, "Test2")
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionNoTagsItem
+	assert.NoError(t, e.ScanStructs(&items))
+	assert.Equal(t, []TestCrudActionNoTagsItem{
+		{Address: "111 Test Addr", Name: "Test1"},
+		{Address: "211 Test Addr", Name: "Test2"},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructs_withPointerFields() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionWithPointerField
+	assert.NoError(t, e.ScanStructs(&items))
+	assert.Equal(t, []TestCrudActionWithPointerField{
+		{Address: &testAddr1, Name: &testName1},
+		{Address: &testAddr2, Name: &testName2},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructs_pointers() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []*TestCrudActionItem
+	assert.NoError(t, e.ScanStructs(&items))
+	assert.Equal(t, []*TestCrudActionItem{
+		{Address: "111 Test Addr", Name: "Test1"},
+		{Address: "211 Test Addr", Name: "Test2"},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []TestComposedCrudActionItem
 	assert.NoError(t, e.ScanStructs(&composed))
-	assert.Len(t, composed, 2)
-	assert.Equal(t, composed[0].Address, "111 Test Addr")
-	assert.Equal(t, composed[0].Name, "Test1")
-	assert.Equal(t, composed[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composed[0].Age, int64(20))
+	assert.Equal(t, []TestComposedCrudActionItem{
+		{TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
 
-	assert.Equal(t, composed[1].Address, "211 Test Addr")
-	assert.Equal(t, composed[1].Name, "Test2")
-	assert.Equal(t, composed[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composed[1].Age, int64(30))
+func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	composed = nil
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []*TestComposedCrudActionItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []*TestComposedCrudActionItem{
+		{TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []TestEmbeddedPtrCrudActionItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []TestEmbeddedPtrCrudActionItem{
+		{TestCrudActionItem: &TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: &TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []*TestEmbeddedPtrCrudActionItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []*TestEmbeddedPtrCrudActionItem{
+		{TestCrudActionItem: &TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: &TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_badValue() {
+	t := cet.T()
+	mDb, _, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionItem
+	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructs(items))
+	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructs(&TestCrudActionItem{}))
+}
+
+func (cet *crudExecTest) TestScanStructs_queryError() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnError(fmt.Errorf("queryExecutor error"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionItem
+	assert.EqualError(t, e.ScanStructs(&items), "queryExecutor error")
+}
+
+func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionItem
+	assert.NoError(t, e.ScanStructsContext(ctx, &items))
+	assert.Equal(t, []TestCrudActionItem{
+		{Address: "111 Test Addr", Name: "Test1"},
+		{Address: "211 Test Addr", Name: "Test2"},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionNoTagsItem
+	assert.NoError(t, e.ScanStructsContext(ctx, &items))
+	assert.Equal(t, []TestCrudActionNoTagsItem{
+		{Address: "111 Test Addr", Name: "Test1"},
+		{Address: "211 Test Addr", Name: "Test2"},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructsContext_withPointerFields() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionWithPointerField
+	assert.NoError(t, e.ScanStructsContext(ctx, &items))
+	assert.Equal(t, []TestCrudActionWithPointerField{
+		{Address: &testAddr1, Name: &testName1},
+		{Address: &testAddr2, Name: &testName2},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructsContext_pointers() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []*TestCrudActionItem
+	assert.NoError(t, e.ScanStructsContext(ctx, &items))
+	assert.Equal(t, []*TestCrudActionItem{
+		{Address: "111 Test Addr", Name: "Test1"},
+		{Address: "211 Test Addr", Name: "Test2"},
+	}, items)
+}
+
+func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []TestComposedCrudActionItem
 	assert.NoError(t, e.ScanStructsContext(ctx, &composed))
-	assert.Len(t, composed, 2)
-	assert.Equal(t, composed[0].Address, "111 Test Addr")
-	assert.Equal(t, composed[0].Name, "Test1")
-	assert.Equal(t, composed[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composed[0].Age, int64(20))
+	assert.Equal(t, []TestComposedCrudActionItem{
+		{TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
 
-	assert.Equal(t, composed[1].Address, "211 Test Addr")
-	assert.Equal(t, composed[1].Name, "Test2")
-	assert.Equal(t, composed[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composed[1].Age, int64(30))
+func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	var pointers []*TestCrudActionItem
-	assert.NoError(t, e.ScanStructs(&pointers))
-	assert.Len(t, pointers, 2)
-	assert.Equal(t, pointers[0].Address, "111 Test Addr")
-	assert.Equal(t, pointers[0].Name, "Test1")
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	assert.Equal(t, pointers[1].Address, "211 Test Addr")
-	assert.Equal(t, pointers[1].Name, "Test2")
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
-	pointers = nil
-	assert.NoError(t, e.ScanStructsContext(ctx, &pointers))
-	assert.Len(t, pointers, 2)
-	assert.Equal(t, pointers[0].Address, "111 Test Addr")
-	assert.Equal(t, pointers[0].Name, "Test1")
+	var composed []*TestComposedCrudActionItem
+	assert.NoError(t, e.ScanStructsContext(ctx, &composed))
+	assert.Equal(t, []*TestComposedCrudActionItem{
+		{TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
 
-	assert.Equal(t, pointers[1].Address, "211 Test Addr")
-	assert.Equal(t, pointers[1].Name, "Test2")
+func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	var composedPointers []*TestComposedCrudActionItem
-	assert.NoError(t, e.ScanStructs(&composedPointers))
-	assert.Len(t, composedPointers, 2)
-	assert.Equal(t, composedPointers[0].Address, "111 Test Addr")
-	assert.Equal(t, composedPointers[0].Name, "Test1")
-	assert.Equal(t, composedPointers[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composedPointers[0].Age, int64(20))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	assert.Equal(t, composedPointers[1].Address, "211 Test Addr")
-	assert.Equal(t, composedPointers[1].Name, "Test2")
-	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composedPointers[1].Age, int64(30))
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
-	composedPointers = nil
-	assert.NoError(t, e.ScanStructsContext(ctx, &composedPointers))
-	assert.Len(t, composedPointers, 2)
-	assert.Equal(t, composedPointers[0].Address, "111 Test Addr")
-	assert.Equal(t, composedPointers[0].Name, "Test1")
-	assert.Equal(t, composedPointers[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, composedPointers[0].Age, int64(20))
+	var composed []TestEmbeddedPtrCrudActionItem
+	assert.NoError(t, e.ScanStructsContext(ctx, &composed))
+	assert.Equal(t, []TestEmbeddedPtrCrudActionItem{
+		{TestCrudActionItem: &TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: &TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
 
-	assert.Equal(t, composedPointers[1].Address, "211 Test Addr")
-	assert.Equal(t, composedPointers[1].Name, "Test2")
-	assert.Equal(t, composedPointers[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, composedPointers[1].Age, int64(30))
+func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointer() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	var embeddedPtrs []*TestEmbeddedPtrCrudActionItem
-	assert.NoError(t, e.ScanStructs(&embeddedPtrs))
-	assert.Len(t, embeddedPtrs, 2)
-	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
-	assert.Equal(t, embeddedPtrs[0].Name, "Test1")
-	assert.Equal(t, embeddedPtrs[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, embeddedPtrs[0].Age, int64(20))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
+			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	assert.Equal(t, embeddedPtrs[1].Address, "211 Test Addr")
-	assert.Equal(t, embeddedPtrs[1].Name, "Test2")
-	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, embeddedPtrs[1].Age, int64(30))
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
-	embeddedPtrs = nil
-	assert.NoError(t, e.ScanStructsContext(ctx, &embeddedPtrs))
-	assert.Len(t, embeddedPtrs, 2)
-	assert.Equal(t, embeddedPtrs[0].Address, "111 Test Addr")
-	assert.Equal(t, embeddedPtrs[0].Name, "Test1")
-	assert.Equal(t, embeddedPtrs[0].PhoneNumber, "111-111-1111")
-	assert.Equal(t, embeddedPtrs[0].Age, int64(20))
+	var composed []*TestEmbeddedPtrCrudActionItem
+	assert.NoError(t, e.ScanStructsContext(ctx, &composed))
+	assert.Equal(t, []*TestEmbeddedPtrCrudActionItem{
+		{TestCrudActionItem: &TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
+		{TestCrudActionItem: &TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
 
-	assert.Equal(t, embeddedPtrs[1].Address, "211 Test Addr")
-	assert.Equal(t, embeddedPtrs[1].Name, "Test2")
-	assert.Equal(t, embeddedPtrs[1].PhoneNumber, "222-222-2222")
-	assert.Equal(t, embeddedPtrs[1].Age, int64(30))
+func (cet *crudExecTest) TestScanStructsContext_badValue() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, _, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	var noTags []TestCrudActionNoTagsItem
-	assert.NoError(t, e.ScanStructs(&noTags))
-	assert.Len(t, noTags, 2)
-	assert.Equal(t, noTags[0].Address, "111 Test Addr")
-	assert.Equal(t, noTags[0].Name, "Test1")
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
-	assert.Equal(t, noTags[1].Address, "211 Test Addr")
-	assert.Equal(t, noTags[1].Name, "Test2")
+	var items []TestCrudActionItem
+	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructsContext(ctx, items))
+	assert.Equal(t, errUnsupportedScanStructsType, e.ScanStructsContext(ctx, &TestCrudActionItem{}))
+}
 
-	noTags = nil
-	assert.NoError(t, e.ScanStructsContext(ctx, &noTags))
-	assert.Len(t, noTags, 2)
-	assert.Equal(t, noTags[0].Address, "111 Test Addr")
-	assert.Equal(t, noTags[0].Name, "Test1")
+func (cet *crudExecTest) TestScanStructsContext_queryError() {
+	t := cet.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
 
-	assert.Equal(t, noTags[1].Address, "211 Test Addr")
-	assert.Equal(t, noTags[1].Name, "Test2")
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnError(fmt.Errorf("queryExecutor error"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var items []TestCrudActionItem
+	assert.EqualError(t, e.ScanStructsContext(ctx, &items), "queryExecutor error")
 }
 
 func (cet *crudExecTest) TestScanStruct() {
