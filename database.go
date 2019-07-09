@@ -3,48 +3,35 @@ package goqu
 import (
 	"context"
 	"database/sql"
+
+	"github.com/doug-martin/goqu/v7/exec"
 )
 
 type (
-	database interface {
-		queryAdapter(builder *Dataset) Adapter
-		From(cols ...interface{}) *Dataset
-		Logger(logger Logger)
-		Exec(query string, args ...interface{}) (sql.Result, error)
-		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-		Prepare(query string) (*sql.Stmt, error)
-		PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
-		Query(query string, args ...interface{}) (*sql.Rows, error)
-		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-		QueryRow(query string, args ...interface{}) *sql.Row
-		QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
-		ScanStructs(i interface{}, query string, args ...interface{}) error
-		ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error
-		ScanStruct(i interface{}, query string, args ...interface{}) (bool, error)
-		ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error)
-		ScanVals(i interface{}, query string, args ...interface{}) error
-		ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error
-		ScanVal(i interface{}, query string, args ...interface{}) (bool, error)
-		ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error)
+	Logger interface {
+		Printf(format string, v ...interface{})
 	}
-	//This struct is the wrapper for a Db. The struct delegates most calls to either an Exec instance or to the Db passed into the constructor.
+	// This struct is the wrapper for a Db. The struct delegates most calls to either an Exec instance or to the Db
+	// passed into the constructor.
 	Database struct {
 		logger  Logger
-		Dialect string
+		dialect string
 		Db      *sql.DB
+		qf      exec.QueryFactory
 	}
 )
 
-//This is the common entry point into goqu.
+// This is the common entry point into goqu.
 //
-//dialect: This is the adapter dialect, you should see your database adapter for the string to use. Built in adpaters can be found at https://github.com/doug-martin/goqu/tree/master/adapters
+// dialect: This is the adapter dialect, you should see your database adapter for the string to use. Built in adapters
+// can be found at https://github.com/doug-martin/goqu/tree/master/adapters
 //
-//db: A sql.Db to use for querying the database
+// db: A sql.Db to use for querying the database
 //      import (
 //          "database/sql"
 //          "fmt"
-//          "github.com/doug-martin/goqu/v6"
-//          _ "github.com/doug-martin/goqu/v6/adapters/postgres"
+//          "github.com/doug-martin/goqu/v7"
+//          _ "github.com/doug-martin/goqu/v7/adapters/postgres"
 //          _ "github.com/lib/pq"
 //      )
 //
@@ -55,86 +42,86 @@ type (
 //          }
 //          db := goqu.New("postgres", sqlDb)
 //      }
-//The most commonly used Database method is From, which creates a new Dataset that uses the correct adapter and supports queries.
+// The most commonly used Database method is From, which creates a new Dataset that uses the correct adapter and
+// supports queries.
 //          var ids []uint32
 //          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
-func New(dialect string, db *sql.DB) *Database {
-	return &Database{Dialect: dialect, Db: db}
+func newDatabase(dialect string, db *sql.DB) *Database {
+	return &Database{dialect: dialect, Db: db}
 }
 
-//Starts a new Transaction.
-func (me *Database) Begin() (*TxDatabase, error) {
-	tx, err := me.Db.Begin()
+// returns this databases dialect
+func (d *Database) Dialect() string {
+	return d.dialect
+}
+
+// Starts a new Transaction.
+func (d *Database) Begin() (*TxDatabase, error) {
+	tx, err := d.Db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	return &TxDatabase{Dialect: me.Dialect, Tx: tx, logger: me.logger}, nil
+	return &TxDatabase{dialect: d.dialect, Tx: tx, logger: d.logger}, nil
 }
 
-//used internally to create a new Adapter for a dataset
-func (me *Database) queryAdapter(dataset *Dataset) Adapter {
-	return NewAdapter(me.Dialect, dataset)
-}
-
-//Creates a new Dataset that uses the correct adapter and supports queries.
+// Creates a new Dataset that uses the correct adapter and supports queries.
 //          var ids []uint32
 //          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
 //
-//from...: Sources for you dataset, could be table names (strings), a goqu.Literal or another goqu.Dataset
-func (me *Database) From(from ...interface{}) *Dataset {
-	return withDatabase(me).From(from...)
+// from...: Sources for you dataset, could be table names (strings), a goqu.Literal or another goqu.Dataset
+func (d *Database) From(from ...interface{}) *Dataset {
+	return newDataset(d.dialect, d.queryFactory()).From(from...)
 }
 
-//Sets the logger for to use when logging queries
-func (me *Database) Logger(logger Logger) {
-	me.logger = logger
+// Sets the logger for to use when logging queries
+func (d *Database) Logger(logger Logger) {
+	d.logger = logger
 }
 
-//Logs a given operation with the specified sql and arguments
-func (me *Database) Trace(op, sql string, args ...interface{}) {
-	if me.logger != nil {
-		if sql != "" {
+// Logs a given operation with the specified sql and arguments
+func (d *Database) Trace(op, sqlString string, args ...interface{}) {
+	if d.logger != nil {
+		if sqlString != "" {
 			if len(args) != 0 {
-				me.logger.Printf("[goqu] %s [query:=`%s` args:=%+v]", op, sql, args)
+				d.logger.Printf("[goqu] %s [query:=`%s` args:=%+v]", op, sqlString, args)
 			} else {
-				me.logger.Printf("[goqu] %s [query:=`%s`]", op, sql)
+				d.logger.Printf("[goqu] %s [query:=`%s`]", op, sqlString)
 			}
 		} else {
-			me.logger.Printf("[goqu] %s", op)
+			d.logger.Printf("[goqu] %s", op)
 		}
 	}
 }
 
-//Uses the db to Execute the query with arguments and return the sql.Result
+// Uses the db to Execute the query with arguments and return the sql.Result
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC", query, args...)
-	return me.Db.Exec(query, args...)
+// args...: for any placeholder parameters in the query
+func (d *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return d.ExecContext(context.Background(), query, args...)
 }
 
-//Uses the db to Execute the query with arguments and return the sql.Result
+// Uses the db to Execute the query with arguments and return the sql.Result
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC", query, args...)
-	return me.Db.ExecContext(ctx, query, args...)
+// args...: for any placeholder parameters in the query
+func (d *Database) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	d.Trace("EXEC", query, args...)
+	return d.Db.ExecContext(ctx, query, args...)
 }
 
-//Can be used to prepare a query.
+// Can be used to prepare a query.
 //
-//You can use this in tandem with a dataset by doing the following.
-//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSql(true)
+// You can use this in tandem with a dataset by doing the following.
+//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -155,16 +142,15 @@ func (me *Database) ExecContext(ctx context.Context, query string, args ...inter
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
 //
-//query: The SQL statement to prepare.
-func (me *Database) Prepare(query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE", query)
-	return me.Db.Prepare(query)
+// query: The SQL statement to prepare.
+func (d *Database) Prepare(query string) (*sql.Stmt, error) {
+	return d.PrepareContext(context.Background(), query)
 }
 
-//Can be used to prepare a query.
+// Can be used to prepare a query.
 //
-//You can use this in tandem with a dataset by doing the following.
-//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSql(true)
+// You can use this in tandem with a dataset by doing the following.
+//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -185,16 +171,16 @@ func (me *Database) Prepare(query string) (*sql.Stmt, error) {
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
 //
-//query: The SQL statement to prepare.
-func (me *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE", query)
-	return me.Db.PrepareContext(ctx, query)
+// query: The SQL statement to prepare.
+func (d *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	d.Trace("PREPARE", query)
+	return d.Db.PrepareContext(ctx, query)
 }
 
-//Used to query for multiple rows.
+// Used to query for multiple rows.
 //
-//You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Sql()
+// You can use this in tandem with a dataset by doing the following.
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -210,18 +196,17 @@ func (me *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY", query, args...)
-	return me.Db.Query(query, args...)
+// args...: for any placeholder parameters in the query
+func (d *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return d.QueryContext(context.Background(), query, args...)
 }
 
-//Used to query for multiple rows.
+// Used to query for multiple rows.
 //
-//You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Sql()
+// You can use this in tandem with a dataset by doing the following.
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -237,18 +222,18 @@ func (me *Database) Query(query string, args ...interface{}) (*sql.Rows, error) 
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY", query, args...)
-	return me.Db.QueryContext(ctx, query, args...)
+// args...: for any placeholder parameters in the query
+func (d *Database) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	d.Trace("QUERY", query, args...)
+	return d.Db.QueryContext(ctx, query, args...)
 }
 
-//Used to query for a single row.
+// Used to query for a single row.
 //
-//You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).Sql()
+// You can use this in tandem with a dataset by doing the following.
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -258,18 +243,17 @@ func (me *Database) QueryContext(ctx context.Context, query string, args ...inte
 //    }
 //    //scan your row
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) QueryRow(query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW", query, args...)
-	return me.Db.QueryRow(query, args...)
+// args...: for any placeholder parameters in the query
+func (d *Database) QueryRow(query string, args ...interface{}) *sql.Row {
+	return d.QueryRowContext(context.Background(), query, args...)
 }
 
-//Used to query for a single row.
+// Used to query for a single row.
 //
-//You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).Sql()
+// You can use this in tandem with a dataset by doing the following.
+//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
 //    if err != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
@@ -279,276 +263,280 @@ func (me *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 //    }
 //    //scan your row
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW", query, args...)
-	return me.Db.QueryRowContext(ctx, query, args...)
+// args...: for any placeholder parameters in the query
+func (d *Database) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	d.Trace("QUERY ROW", query, args...)
+	return d.Db.QueryRowContext(ctx, query, args...)
 }
 
-//Queries the database using the supplied query, and args and uses CrudExec.ScanStructs to scan the results into a slice of structs
-//
-//i: A pointer to a slice of structs
-//
-//query: The SQL to execute
-//
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStructs(i)
+func (d *Database) queryFactory() exec.QueryFactory {
+	if d.qf == nil {
+		d.qf = exec.NewQueryFactory(d)
+	}
+	return d.qf
 }
 
-//Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructsContext to scan the results into a slice of structs
+// Queries the database using the supplied query, and args and uses CrudExec.ScanStructs to scan the results into a
+// slice of structs
 //
-//i: A pointer to a slice of structs
+// i: A pointer to a slice of structs
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStructsContext(ctx, i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
+	return d.ScanStructsContext(context.Background(), i, query, args...)
 }
 
-//Queries the database using the supplied query, and args and uses CrudExec.ScanStruct to scan the results into a struct
+// Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructsContext to scan the
+// results into a slice of structs
 //
-//i: A pointer to a struct
+// i: A pointer to a slice of structs
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStruct(i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	return d.queryFactory().FromSQL(query, args...).ScanStructsContext(ctx, i)
 }
 
-//Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructContext to scan the results into a struct
+// Queries the database using the supplied query, and args and uses CrudExec.ScanStruct to scan the results into a
+// struct
 //
-//i: A pointer to a struct
+// i: A pointer to a struct
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStructContext(ctx, i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
+	return d.ScanStructContext(context.Background(), i, query, args...)
 }
 
-//Queries the database using the supplied query, and args and uses CrudExec.ScanVals to scan the results into a slice of primitive values
+// Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructContext to scan the
+// results into a struct
 //
-//i: A pointer to a slice of primitive values
+// i: A pointer to a struct
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanVals(i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanVals(i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	return d.queryFactory().FromSQL(query, args...).ScanStructContext(ctx, i)
 }
 
-//Queries the database using the supplied context, query, and args and uses CrudExec.ScanValsContext to scan the results into a slice of primitive values
+// Queries the database using the supplied query, and args and uses CrudExec.ScanVals to scan the results into a slice
+// of primitive values
 //
-//i: A pointer to a slice of primitive values
+// i: A pointer to a slice of primitive values
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanValsContext(ctx, i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanVals(i interface{}, query string, args ...interface{}) error {
+	return d.ScanValsContext(context.Background(), i, query, args...)
 }
 
-//Queries the database using the supplied query, and args and uses CrudExec.ScanVal to scan the results into a primitive value
+// Queries the database using the supplied context, query, and args and uses CrudExec.ScanValsContext to scan the
+// results into a slice of primitive values
 //
-//i: A pointer to a primitive value
+// i: A pointer to a slice of primitive values
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanVal(i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	return d.queryFactory().FromSQL(query, args...).ScanValsContext(ctx, i)
 }
 
-//Queries the database using the supplied context, query, and args and uses CrudExec.ScanValContext to scan the results into a primitive value
+// Queries the database using the supplied query, and args and uses CrudExec.ScanVal to scan the results into a
+// primitive value
 //
-//i: A pointer to a primitive value
+// i: A pointer to a primitive value
 //
-//query: The SQL to execute
+// query: The SQL to execute
 //
-//args...: for any placeholder parameters in the query
-func (me *Database) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanValContext(ctx, i)
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
+	return d.ScanValContext(context.Background(), i, query, args...)
 }
 
-//A wrapper around a sql.Tx and works the same way as Database
-type TxDatabase struct {
-	logger  Logger
-	Dialect string
-	Tx      *sql.Tx
+// Queries the database using the supplied context, query, and args and uses CrudExec.ScanValContext to scan the
+// results into a primitive value
+//
+// i: A pointer to a primitive value
+//
+// query: The SQL to execute
+//
+// args...: for any placeholder parameters in the query
+func (d *Database) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	return d.queryFactory().FromSQL(query, args...).ScanValContext(ctx, i)
 }
 
-//used internally to create a new query adapter for a Dataset
-func (me *TxDatabase) queryAdapter(dataset *Dataset) Adapter {
-	return NewAdapter(me.Dialect, dataset)
+// A wrapper around a sql.Tx and works the same way as Database
+type (
+	TxDatabase struct {
+		logger  Logger
+		dialect string
+		Tx      *sql.Tx
+		qf      exec.QueryFactory
+	}
+)
+
+// returns this databases dialect
+func (td *TxDatabase) Dialect() string {
+	return td.dialect
 }
 
-//Creates a new Dataset for querying a Database.
-func (me *TxDatabase) From(cols ...interface{}) *Dataset {
-	return withDatabase(me).From(cols...)
-
+// Creates a new Dataset for querying a Database.
+func (td *TxDatabase) From(cols ...interface{}) *Dataset {
+	return newDataset(td.dialect, td.queryFactory()).From(cols...)
 }
 
-//Sets the logger
-func (me *TxDatabase) Logger(logger Logger) {
-	me.logger = logger
+// Sets the logger
+func (td *TxDatabase) Logger(logger Logger) {
+	td.logger = logger
 }
 
-func (me *TxDatabase) Trace(op, sql string, args ...interface{}) {
-	if me.logger != nil {
-		if sql != "" {
+func (td *TxDatabase) Trace(op, sqlString string, args ...interface{}) {
+	if td.logger != nil {
+		if sqlString != "" {
 			if len(args) != 0 {
-				me.logger.Printf("[goqu - transaction] %s [query:=`%s` args:=%+v] ", op, sql, args)
+				td.logger.Printf("[goqu - transaction] %s [query:=`%s` args:=%+v] ", op, sqlString, args)
 			} else {
-				me.logger.Printf("[goqu - transaction] %s [query:=`%s`] ", op, sql)
+				td.logger.Printf("[goqu - transaction] %s [query:=`%s`] ", op, sqlString)
 			}
 		} else {
-			me.logger.Printf("[goqu - transaction] %s", op)
+			td.logger.Printf("[goqu - transaction] %s", op)
 		}
 	}
 }
 
-//See Database#Exec
-func (me *TxDatabase) Exec(query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC", query, args...)
-	return me.Tx.Exec(query, args...)
+// See Database#Exec
+func (td *TxDatabase) Exec(query string, args ...interface{}) (sql.Result, error) {
+	return td.ExecContext(context.Background(), query, args...)
 }
 
-//See Database#ExecContext
-func (me *TxDatabase) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	me.Trace("EXEC", query, args...)
-	return me.Tx.ExecContext(ctx, query, args...)
+// See Database#ExecContext
+func (td *TxDatabase) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	td.Trace("EXEC", query, args...)
+	return td.Tx.ExecContext(ctx, query, args...)
 }
 
-//See Database#Prepare
-func (me *TxDatabase) Prepare(query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE", query)
-	return me.Tx.Prepare(query)
+// See Database#Prepare
+func (td *TxDatabase) Prepare(query string) (*sql.Stmt, error) {
+	return td.PrepareContext(context.Background(), query)
 }
 
-//See Database#PrepareContext
-func (me *TxDatabase) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
-	me.Trace("PREPARE", query)
-	return me.Tx.PrepareContext(ctx, query)
+// See Database#PrepareContext
+func (td *TxDatabase) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	td.Trace("PREPARE", query)
+	return td.Tx.PrepareContext(ctx, query)
 }
 
-//See Database#Query
-func (me *TxDatabase) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY", query, args...)
-	return me.Tx.Query(query, args...)
+// See Database#Query
+func (td *TxDatabase) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	return td.QueryContext(context.Background(), query, args...)
 }
 
-//See Database#QueryContext
-func (me *TxDatabase) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	me.Trace("QUERY", query, args...)
-	return me.Tx.QueryContext(ctx, query, args...)
+// See Database#QueryContext
+func (td *TxDatabase) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+	td.Trace("QUERY", query, args...)
+	return td.Tx.QueryContext(ctx, query, args...)
 }
 
-//See Database#QueryRow
-func (me *TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW", query, args...)
-	return me.Tx.QueryRow(query, args...)
+// See Database#QueryRow
+func (td *TxDatabase) QueryRow(query string, args ...interface{}) *sql.Row {
+	return td.QueryRowContext(context.Background(), query, args...)
 }
 
-//See Database#QueryRowContext
-func (me *TxDatabase) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
-	me.Trace("QUERY ROW", query, args...)
-	return me.Tx.QueryRowContext(ctx, query, args...)
+// See Database#QueryRowContext
+func (td *TxDatabase) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+	td.Trace("QUERY ROW", query, args...)
+	return td.Tx.QueryRowContext(ctx, query, args...)
 }
 
-//See Database#ScanStructs
-func (me *TxDatabase) ScanStructs(i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStructs(i)
+func (td *TxDatabase) queryFactory() exec.QueryFactory {
+	if td.qf == nil {
+		td.qf = exec.NewQueryFactory(td)
+	}
+	return td.qf
 }
 
-//See Database#ScanStructsContext
-func (me *TxDatabase) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStructsContext(ctx, i)
+// See Database#ScanStructs
+func (td *TxDatabase) ScanStructs(i interface{}, query string, args ...interface{}) error {
+	return td.ScanStructsContext(context.Background(), i, query, args...)
 }
 
-//See Database#ScanStruct
-func (me *TxDatabase) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStruct(i)
+// See Database#ScanStructsContext
+func (td *TxDatabase) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	return td.queryFactory().FromSQL(query, args...).ScanStructsContext(ctx, i)
 }
 
-//See Database#ScanStructContext
-func (me *TxDatabase) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanStructContext(ctx, i)
+// See Database#ScanStruct
+func (td *TxDatabase) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
+	return td.ScanStructContext(context.Background(), i, query, args...)
 }
 
-//See Database#ScanVals
-func (me *TxDatabase) ScanVals(i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanVals(i)
+// See Database#ScanStructContext
+func (td *TxDatabase) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	return td.queryFactory().FromSQL(query, args...).ScanStructContext(ctx, i)
 }
 
-//See Database#ScanValsContext
-func (me *TxDatabase) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanValsContext(ctx, i)
+// See Database#ScanVals
+func (td *TxDatabase) ScanVals(i interface{}, query string, args ...interface{}) error {
+	return td.ScanValsContext(context.Background(), i, query, args...)
 }
 
-//See Database#ScanVal
-func (me *TxDatabase) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanVal(i)
+// See Database#ScanValsContext
+func (td *TxDatabase) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
+	return td.queryFactory().FromSQL(query, args...).ScanValsContext(ctx, i)
 }
 
-//See Database#ScanValContext
-func (me *TxDatabase) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
-	exec := newCrudExec(me, nil, query, args...)
-	return exec.ScanValContext(ctx, i)
+// See Database#ScanVal
+func (td *TxDatabase) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
+	return td.ScanValContext(context.Background(), i, query, args...)
 }
 
-//COMMIT the transaction
-func (me *TxDatabase) Commit() error {
-	me.Trace("COMMIT", "")
-	return me.Tx.Commit()
+// See Database#ScanValContext
+func (td *TxDatabase) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
+	return td.queryFactory().FromSQL(query, args...).ScanValContext(ctx, i)
 }
 
-//ROLLBACK the transaction
-func (me *TxDatabase) Rollback() error {
-	me.Trace("ROLLBACK", "")
-	return me.Tx.Rollback()
+// COMMIT the transaction
+func (td *TxDatabase) Commit() error {
+	td.Trace("COMMIT", "")
+	return td.Tx.Commit()
 }
 
-//A helper method that will automatically COMMIT or ROLLBACK once the  supplied function is done executing
+// ROLLBACK the transaction
+func (td *TxDatabase) Rollback() error {
+	td.Trace("ROLLBACK", "")
+	return td.Tx.Rollback()
+}
+
+// A helper method that will automatically COMMIT or ROLLBACK once the  supplied function is done executing
 //
 //      tx, err := db.Begin()
 //      if err != nil{
-//           panic(err.Error()) //you could gracefully handle the error also
+//           panic(err.Error()) // you could gracefully handle the error also
 //      }
 //      if err := tx.Wrap(func() error{
 //          if _, err := tx.From("test").Insert(Record{"a":1, "b": "b"}).Exec(){
-//              //this error will be the return error from the Wrap call
+//              // this error will be the return error from the Wrap call
 //              return err
 //          }
 //          return nil
 //      }); err != nil{
-//           panic(err.Error()) //you could gracefully handle the error also
+//           panic(err.Error()) // you could gracefully handle the error also
 //      }
-func (me *TxDatabase) Wrap(fn func() error) error {
+func (td *TxDatabase) Wrap(fn func() error) error {
 	if err := fn(); err != nil {
-		if rollbackErr := me.Rollback(); rollbackErr != nil {
+		if rollbackErr := td.Rollback(); rollbackErr != nil {
 			return rollbackErr
 		}
 		return err
 	}
-	return me.Commit()
+	return td.Commit()
 }

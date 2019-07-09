@@ -1,13 +1,14 @@
 package goqu
 
 import (
-	"database/sql/driver"
-	"fmt"
-	"regexp"
 	"testing"
-	"time"
 
+	"github.com/doug-martin/goqu/v7/exp"
+	"github.com/doug-martin/goqu/v7/internal/errors"
+	"github.com/doug-martin/goqu/v7/internal/sb"
+	"github.com/doug-martin/goqu/v7/mocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,866 +16,812 @@ type datasetTest struct {
 	suite.Suite
 }
 
-func (me *datasetTest) Truncate(buf *SqlBuilder) *SqlBuilder {
-	buf.Truncate(0)
-	buf.args = make([]interface{}, 0)
-	return buf
-}
-
-func (me *datasetTest) TestClone() {
-	t := me.T()
+func (dt *datasetTest) TestClone() {
+	t := dt.T()
 	ds := From("test")
 	assert.Equal(t, ds.Clone(), ds)
 }
 
-func (me *datasetTest) TestExpression() {
-	t := me.T()
+func (dt *datasetTest) TestExpression() {
+	t := dt.T()
 	ds := From("test")
 	assert.Equal(t, ds.Expression(), ds)
 }
 
-func (me *datasetTest) TestAdapter() {
-	t := me.T()
+func (dt *datasetTest) TestDialect() {
+	t := dt.T()
 	ds := From("test")
-	assert.Equal(t, ds.Adapter(), ds.adapter)
+	assert.NotNil(t, ds.Dialect())
 }
 
-func (me *datasetTest) TestSetAdapter() {
-	t := me.T()
+func (dt *datasetTest) TestWithDialect() {
+	t := dt.T()
 	ds := From("test")
-	adapter := NewAdapter("default", ds)
-	ds.SetAdapter(adapter)
-	assert.Equal(t, ds.Adapter(), adapter)
+	dialect := GetDialect("default")
+	ds.WithDialect("default")
+	assert.Equal(t, ds.Dialect(), dialect)
 }
 
-func (me *datasetTest) TestPrepared() {
-	t := me.T()
+func (dt *datasetTest) TestPrepared() {
+	t := dt.T()
 	ds := From("test")
 	preparedDs := ds.Prepared(true)
-	assert.True(t, preparedDs.isPrepared)
-	assert.False(t, ds.isPrepared)
-
-	//should apply the prepared to any datasets created from the root
-	assert.True(t, preparedDs.Where(Ex{"a": 1}).isPrepared)
+	assert.True(t, preparedDs.IsPrepared())
+	assert.False(t, ds.IsPrepared())
+	// should apply the prepared to any datasets created from the root
+	assert.True(t, preparedDs.Where(Ex{"a": 1}).IsPrepared())
 }
 
-func (me *datasetTest) TestLiteralUnsupportedType() {
-	t := me.T()
-	assert.EqualError(t, From("test").Literal(NewSqlBuilder(false), struct{}{}), "goqu: Unable to encode value {}")
-}
-
-type unknowExpression struct {
-}
-
-func (me unknowExpression) Expression() Expression {
-	return me
-}
-func (me unknowExpression) Clone() Expression {
-	return me
-}
-func (me *datasetTest) TestLiteralUnsupportedExpression() {
-	t := me.T()
-	assert.EqualError(t, From("test").Literal(NewSqlBuilder(false), unknowExpression{}), "goqu: Unsupported expression type goqu.unknowExpression")
-}
-
-func (me *datasetTest) TestLiteralFloatTypes() {
-	t := me.T()
+func (dt *datasetTest) TestGetClauses() {
+	t := dt.T()
 	ds := From("test")
-	var float float64
-	buf := NewSqlBuilder(false)
-	assert.NoError(t, ds.Literal(buf, float32(10.01)))
-	assert.Equal(t, buf.String(), "10.010000228881836")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), float64(10.01)))
-	assert.Equal(t, buf.String(), "10.01")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &float))
-	assert.Equal(t, buf.String(), "0")
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(buf, float32(10.01)))
-	assert.Equal(t, buf.args, []interface{}{float64(float32(10.01))})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), float64(10.01)))
-	assert.Equal(t, buf.args, []interface{}{float64(10.01)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &float))
-	assert.Equal(t, buf.args, []interface{}{float})
-	assert.Equal(t, buf.String(), "?")
+	ce := exp.NewClauses().SetFrom(exp.NewColumnListExpression(I("test")))
+	assert.Equal(t, ce, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralIntTypes() {
-	t := me.T()
+func (dt *datasetTest) TestWith() {
+	t := dt.T()
+	from := From("cte")
 	ds := From("test")
-	var i int64
-	buf := NewSqlBuilder(false)
-	assert.NoError(t, ds.Literal(buf, int(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int8(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int16(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int32(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int64(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint8(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint16(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint32(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint64(10)))
-	assert.Equal(t, buf.String(), "10")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &i))
-	assert.Equal(t, buf.String(), "0")
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(buf, int(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int8(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int16(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int32(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), int64(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint8(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint16(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint32(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), uint64(10)))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &i))
-	assert.Equal(t, buf.args, []interface{}{i})
-	assert.Equal(t, buf.String(), "?")
+	dsc := ds.GetClauses()
+	ec := dsc.CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from))
+	assert.Equal(t, ec, ds.With("test-cte", from).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralStringTypes() {
-	t := me.T()
+func (dt *datasetTest) TestWithRecursive() {
+	t := dt.T()
+	from := From("cte")
 	ds := From("test")
-	var str string
-	buf := NewSqlBuilder(false)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), "Hello"))
-	assert.Equal(t, buf.String(), "'Hello'")
-	//should esacpe single quotes
-	assert.NoError(t, ds.Literal(me.Truncate(buf), "hello'"))
-	assert.Equal(t, buf.String(), "'hello'''")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &str))
-	assert.Equal(t, buf.String(), "''")
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), "Hello"))
-	assert.Equal(t, buf.args, []interface{}{"Hello"})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), "hello'"))
-	assert.Equal(t, buf.args, []interface{}{"hello'"})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &str))
-	assert.Equal(t, buf.args, []interface{}{str})
-	assert.Equal(t, buf.String(), "?")
+	dsc := ds.GetClauses()
+	ec := dsc.CommonTablesAppend(exp.NewCommonTableExpression(true, "test-cte", from))
+	assert.Equal(t, ec, ds.WithRecursive("test-cte", from).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralBytesTypes() {
-	t := me.T()
+func (dt *datasetTest) TestSelect(selects ...interface{}) {
+	t := dt.T()
 	ds := From("test")
-	var b string
-	buf := NewSqlBuilder(false)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("Hello")))
-	assert.Equal(t, buf.Bytes(), []byte("'Hello'"))
-	//should escape single quotes
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("hello'")))
-	assert.Equal(t, buf.Bytes(), []byte("'hello'''"))
-	assert.NoError(t, ds.Literal(me.Truncate(buf), (&b)))
-	assert.Equal(t, buf.Bytes(), []byte("''"))
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("Hello")))
-	assert.Equal(t, buf.args, []interface{}{[]byte("Hello")})
-	assert.Equal(t, buf.Bytes(), []byte("?"))
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte("hello'")))
-	assert.Equal(t, buf.args, []interface{}{[]byte("hello'")})
-	assert.Equal(t, buf.Bytes(), []byte("?"))
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []byte(*(&b))))
-	assert.Equal(t, buf.args, []interface{}{[]byte(b)})
-	assert.Equal(t, buf.Bytes(), []byte("?"))
+	dsc := ds.GetClauses()
+	ec := dsc.SetSelect(exp.NewColumnListExpression(C("a")))
+	assert.Equal(t, ec, ds.Select(C("a")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralBoolTypes() {
-	t := me.T()
-	var b bool
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestSelectDistinct(selects ...interface{}) {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), true))
-	assert.Equal(t, buf.String(), "TRUE")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), false))
-	assert.Equal(t, buf.String(), "FALSE")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &b))
-	assert.Equal(t, buf.String(), "FALSE")
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), true))
-	assert.Equal(t, buf.args, []interface{}{true})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), false))
-	assert.Equal(t, buf.args, []interface{}{false})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &b))
-	assert.Equal(t, buf.args, []interface{}{b})
-	assert.Equal(t, buf.String(), "?")
+	dsc := ds.GetClauses()
+	ec := dsc.SetSelectDistinct(exp.NewColumnListExpression(C("a")))
+	assert.Equal(t, ec, ds.SelectDistinct(C("a")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralTimeTypes() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestClearSelect() {
+	t := dt.T()
+	ds := From("test").Select(C("a"))
+	dsc := ds.GetClauses()
+	ec := dsc.SetSelect(exp.NewColumnListExpression(Star()))
+	assert.Equal(t, ec, ds.ClearSelect().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestSelectAppend(selects ...interface{}) {
+	t := dt.T()
+	ds := From("test").Select(C("a"))
+	dsc := ds.GetClauses()
+	ec := dsc.SelectAppend(exp.NewColumnListExpression(C("b")))
+	assert.Equal(t, ec, ds.SelectAppend(C("b")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestFrom(from ...interface{}) {
+	t := dt.T()
 	ds := From("test")
-	now := time.Now().UTC()
-	assert.NoError(t, ds.Literal(me.Truncate(buf), now))
-	assert.Equal(t, buf.String(), "'"+now.Format(time.RFC3339Nano)+"'")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &now))
-	assert.Equal(t, buf.String(), "'"+now.Format(time.RFC3339Nano)+"'")
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), now))
-	assert.Equal(t, buf.args, []interface{}{now})
-	assert.Equal(t, buf.String(), "?")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), &now))
-	assert.Equal(t, buf.args, []interface{}{now})
-	assert.Equal(t, buf.String(), "?")
+	dsc := ds.GetClauses()
+	ec := dsc.SetFrom(exp.NewColumnListExpression(T("t")))
+	assert.Equal(t, ec, ds.From(T("t")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralNilTypes() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestFromSelf() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), nil))
-	assert.Equal(t, buf.String(), "NULL")
+	dsc := ds.GetClauses()
+	ec := dsc.SetFrom(exp.NewColumnListExpression(ds.As("t1")))
+	assert.Equal(t, ec, ds.FromSelf().GetClauses())
 
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), nil))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), "NULL")
+	ec2 := dsc.SetFrom(exp.NewColumnListExpression(ds.As("test")))
+	assert.Equal(t, ec2, ds.As("test").FromSelf().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-type datasetValuerType int64
-
-func (j datasetValuerType) Value() (driver.Value, error) {
-	return []byte(fmt.Sprintf("Hello World %d", j)), nil
-}
-
-func (me *datasetTest) TestLiteralValuer() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestCompoundFromSelf() {
+	t := dt.T()
 	ds := From("test")
+	dsc := ds.GetClauses()
+	assert.Equal(t, dsc, ds.CompoundFromSelf().GetClauses())
 
-	assert.NoError(t, ds.Literal(me.Truncate(buf), datasetValuerType(10)))
-	assert.Equal(t, buf.String(), "'Hello World 10'")
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), datasetValuerType(10)))
-	assert.Equal(t, buf.args, []interface{}{[]byte("Hello World 10")})
-	assert.Equal(t, buf.String(), "?")
-
+	ds2 := ds.Limit(1)
+	dsc2 := exp.NewClauses().SetFrom(exp.NewColumnListExpression(ds2.As("t1")))
+	assert.Equal(t, dsc2, ds2.CompoundFromSelf().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteraSlice() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []string{"a", "b", "c"}))
-	assert.Equal(t, buf.String(), `('a', 'b', 'c')`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), []string{"a", "b", "c"}))
-	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
-	assert.Equal(t, buf.String(), `(?, ?, ?)`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.InnerJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.Join(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralDataset() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestInnerJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), From("a")))
-	assert.Equal(t, buf.String(), `(SELECT * FROM "a")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), From("a").As("b")))
-	assert.Equal(t, buf.String(), `(SELECT * FROM "a") AS "b"`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), From("a")))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `(SELECT * FROM "a")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), From("a").As("b")))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `(SELECT * FROM "a") AS "b"`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.InnerJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.InnerJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralColumnList() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestFullOuterJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), cols("a", Literal("true"))))
-	assert.Equal(t, buf.String(), `"a", true`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), cols("a", Literal("true"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a", true`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.FullOuterJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.FullOuterJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralExpressionList() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestRightOuterJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), And(I("a").Eq("b"), I("c").Neq(1))))
-	assert.Equal(t, buf.String(), `(("a" = 'b') AND ("c" != 1))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Or(I("a").Eq("b"), I("c").Neq(1))))
-	assert.Equal(t, buf.String(), `(("a" = 'b') OR ("c" != 1))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Or(I("a").Eq("b"), And(I("c").Neq(1), I("d").Eq(Literal("NOW()"))))))
-	assert.Equal(t, buf.String(), `(("a" = 'b') OR (("c" != 1) AND ("d" = NOW())))`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), And(I("a").Eq("b"), I("c").Neq(1))))
-	assert.Equal(t, buf.args, []interface{}{"b", int64(1)})
-	assert.Equal(t, buf.String(), `(("a" = ?) AND ("c" != ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Or(I("a").Eq("b"), I("c").Neq(1))))
-	assert.Equal(t, buf.args, []interface{}{"b", int64(1)})
-	assert.Equal(t, buf.String(), `(("a" = ?) OR ("c" != ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Or(I("a").Eq("b"), And(I("c").Neq(1), I("d").Eq(Literal("NOW()"))))))
-	assert.Equal(t, buf.args, []interface{}{"b", int64(1)})
-	assert.Equal(t, buf.String(), `(("a" = ?) OR (("c" != ?) AND ("d" = NOW())))`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.RightOuterJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.RightOuterJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralLiteralExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestLeftOuterJoin() {
+	t := dt.T()
 	ds := From("test")
-
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal(`"b"::DATE = '2010-09-02'`)))
-	assert.Equal(t, buf.String(), `"b"::DATE = '2010-09-02'`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal(`"b" = ? or "c" = ? or d IN ?`, "a", 1, []int{1, 2, 3, 4})))
-	assert.Equal(t, buf.String(), `"b" = 'a' or "c" = 1 or d IN (1, 2, 3, 4)`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal(`"b"::DATE = '2010-09-02'`)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"b"::DATE = '2010-09-02'`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal(`"b" = ? or "c" = ? or d IN ?`, "a", 1, []int{1, 2, 3, 4})))
-	assert.Equal(t, buf.args, []interface{}{"a", int64(1), int64(1), int64(2), int64(3), int64(4)})
-	assert.Equal(t, buf.String(), `"b" = ? or "c" = ? or d IN (?, ?, ?, ?)`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.LeftOuterJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.LeftOuterJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralAliasedExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestFullJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").As("b")))
-	assert.Equal(t, buf.String(), `"a" AS "b"`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal("count(*)").As("count")))
-	assert.Equal(t, buf.String(), `count(*) AS "count"`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").As("b")))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" AS "b"`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Literal("count(*)").As("count")))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `count(*) AS "count"`)
-
-	buf = NewSqlBuilder(false)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").As(I("b"))))
-	assert.Equal(t, buf.String(), `"a" AS "b"`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.FullJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.FullJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestBooleanExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestRightJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(1)))
-	assert.Equal(t, buf.String(), `("a" = 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(true)))
-	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(false)))
-	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(nil)))
-	assert.Equal(t, buf.String(), `("a" IS NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq([]int64{1, 2, 3})))
-	assert.Equal(t, buf.String(), `("a" IN (1, 2, 3))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(From("test2").Select("id"))))
-	assert.Equal(t, buf.String(), `("a" IN (SELECT "id" FROM "test2"))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(1)))
-	assert.Equal(t, buf.String(), `("a" != 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(true)))
-	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(false)))
-	assert.Equal(t, buf.String(), `("a" IS NOT FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(nil)))
-	assert.Equal(t, buf.String(), `("a" IS NOT NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq([]int64{1, 2, 3})))
-	assert.Equal(t, buf.String(), `("a" NOT IN (1, 2, 3))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(From("test2").Select("id"))))
-	assert.Equal(t, buf.String(), `("a" NOT IN (SELECT "id" FROM "test2"))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(nil)))
-	assert.Equal(t, buf.String(), `("a" IS NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(false)))
-	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(true)))
-	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").IsNot(nil)))
-	assert.Equal(t, buf.String(), `("a" IS NOT NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").IsNot(false)))
-	assert.Equal(t, buf.String(), `("a" IS NOT FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").IsNot(true)))
-	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Gt(1)))
-	assert.Equal(t, buf.String(), `("a" > 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Gte(1)))
-	assert.Equal(t, buf.String(), `("a" >= 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Lt(1)))
-	assert.Equal(t, buf.String(), `("a" < 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Lte(1)))
-	assert.Equal(t, buf.String(), `("a" <= 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").In([]int{1, 2, 3})))
-	assert.Equal(t, buf.String(), `("a" IN (1, 2, 3))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotIn([]int{1, 2, 3})))
-	assert.Equal(t, buf.String(), `("a" NOT IN (1, 2, 3))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Like("a%")))
-	assert.Equal(t, buf.String(), `("a" LIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Like(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.String(), `("a" ~ '(a|b)')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotLike("a%")))
-	assert.Equal(t, buf.String(), `("a" NOT LIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotLike(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.String(), `("a" !~ '(a|b)')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").ILike("a%")))
-	assert.Equal(t, buf.String(), `("a" ILIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").ILike(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.String(), `("a" ~* '(a|b)')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotILike("a%")))
-	assert.Equal(t, buf.String(), `("a" NOT ILIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotILike(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.String(), `("a" !~* '(a|b)')`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" = ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(true)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(false)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq(nil)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Eq([]int64{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
-	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" != ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(true)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(false)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq(nil)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Neq([]int64{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
-	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(nil)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(false)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Is(true)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").IsNot(nil)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").IsNot(false)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").IsNot(true)))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Gt(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" > ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Gte(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" >= ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Lt(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" < ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Lte(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" <= ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").In([]int{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
-	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotIn([]int{1, 2, 3})))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2), int64(3)})
-	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Like("a%")))
-	assert.Equal(t, buf.args, []interface{}{"a%"})
-	assert.Equal(t, buf.String(), `("a" LIKE ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Like(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.args, []interface{}{"(a|b)"})
-	assert.Equal(t, buf.String(), `("a" ~ ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotLike("a%")))
-	assert.Equal(t, buf.args, []interface{}{"a%"})
-	assert.Equal(t, buf.String(), `("a" NOT LIKE ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotLike(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.args, []interface{}{"(a|b)"})
-	assert.Equal(t, buf.String(), `("a" !~ ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").ILike("a%")))
-	assert.Equal(t, buf.args, []interface{}{"a%"})
-	assert.Equal(t, buf.String(), `("a" ILIKE ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").ILike(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.args, []interface{}{"(a|b)"})
-	assert.Equal(t, buf.String(), `("a" ~* ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotILike("a%")))
-	assert.Equal(t, buf.args, []interface{}{"a%"})
-	assert.Equal(t, buf.String(), `("a" NOT ILIKE ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotILike(regexp.MustCompile("(a|b)"))))
-	assert.Equal(t, buf.args, []interface{}{"(a|b)"})
-	assert.Equal(t, buf.String(), `("a" !~* ?)`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.RightJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.RightJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestRangeExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestLeftJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(RangeVal{Start: 1, End: 2})))
-	assert.Equal(t, buf.String(), `("a" BETWEEN 1 AND 2)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotBetween(RangeVal{Start: 1, End: 2})))
-	assert.Equal(t, buf.String(), `("a" NOT BETWEEN 1 AND 2)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(RangeVal{Start: "aaa", End: "zzz"})))
-	assert.Equal(t, buf.String(), `("a" BETWEEN 'aaa' AND 'zzz')`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(RangeVal{Start: 1, End: 2})))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2)})
-	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").NotBetween(RangeVal{Start: 1, End: 2})))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(2)})
-	assert.Equal(t, buf.String(), `("a" NOT BETWEEN ? AND ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Between(RangeVal{Start: "aaa", End: "zzz"})))
-	assert.Equal(t, buf.args, []interface{}{"aaa", "zzz"})
-	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewConditionedJoinExpression(exp.LeftJoinType, T("foo"), On(C("a").IsNull())),
+	)
+	assert.Equal(t, ec, ds.LeftJoin(T("foo"), On(C("a").IsNull())).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralOrderedExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestNaturalJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Asc()))
-	assert.Equal(t, buf.String(), `"a" ASC`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Desc()))
-	assert.Equal(t, buf.String(), `"a" DESC`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Asc().NullsLast()))
-	assert.Equal(t, buf.String(), `"a" ASC NULLS LAST`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Desc().NullsLast()))
-	assert.Equal(t, buf.String(), `"a" DESC NULLS LAST`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Asc().NullsFirst()))
-	assert.Equal(t, buf.String(), `"a" ASC NULLS FIRST`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Desc().NullsFirst()))
-	assert.Equal(t, buf.String(), `"a" DESC NULLS FIRST`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Asc()))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" ASC`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Desc()))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" DESC`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Asc().NullsLast()))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" ASC NULLS LAST`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Desc().NullsLast()))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" DESC NULLS LAST`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Asc().NullsFirst()))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" ASC NULLS FIRST`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Desc().NullsFirst()))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `"a" DESC NULLS FIRST`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewUnConditionedJoinExpression(exp.NaturalJoinType, T("foo")),
+	)
+	assert.Equal(t, ec, ds.NaturalJoin(T("foo")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralUpdateExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestNaturalLeftJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Set(1)))
-	assert.Equal(t, buf.String(), `"a"=1`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Set(1)))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `"a"=?`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewUnConditionedJoinExpression(exp.NaturalLeftJoinType, T("foo")),
+	)
+	assert.Equal(t, ec, ds.NaturalLeftJoin(T("foo")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralSqlFunctionExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestNaturalRightJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Func("MIN", I("a"))))
-	assert.Equal(t, buf.String(), `MIN("a")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), MIN("a")))
-	assert.Equal(t, buf.String(), `MIN("a")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), COALESCE(I("a"), "a")))
-	assert.Equal(t, buf.String(), `COALESCE("a", 'a')`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Func("MIN", I("a"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `MIN("a")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), MIN("a")))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `MIN("a")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), COALESCE(I("a"), "a")))
-	assert.Equal(t, buf.args, []interface{}{"a"})
-	assert.Equal(t, buf.String(), `COALESCE("a", ?)`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewUnConditionedJoinExpression(exp.NaturalRightJoinType, T("foo")),
+	)
+	assert.Equal(t, ec, ds.NaturalRightJoin(T("foo")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+func (dt *datasetTest) TestNaturalFullJoin() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewUnConditionedJoinExpression(exp.NaturalFullJoinType, T("foo")),
+	)
+	assert.Equal(t, ec, ds.NaturalFullJoin(T("foo")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralCastExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestCrossJoin() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Cast("DATE")))
-	assert.Equal(t, buf.String(), `CAST("a" AS DATE)`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a").Cast("DATE")))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `CAST("a" AS DATE)`)
+	dsc := ds.GetClauses()
+	ec := dsc.JoinsAppend(
+		exp.NewUnConditionedJoinExpression(exp.CrossJoinType, T("foo")),
+	)
+	assert.Equal(t, ec, ds.CrossJoin(T("foo")).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestCommonTableExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestWhere() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a", From("b"))))
-	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a(x,y)", From("b"))))
-	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a", From("b"))))
-	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a(x,y)", From("b"))))
-	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a", From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(false, "a(x,y)", From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a", From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `a AS (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), With(true, "a(x,y)", From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `a(x,y) AS (SELECT * FROM "b")`)
+	dsc := ds.GetClauses()
+	w := Ex{
+		"a": 1,
+	}
+	ec := dsc.WhereAppend(w)
+	assert.Equal(t, ec, ds.Where(w).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestCompoundExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
-	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Union(From("b"))))
-	assert.Equal(t, buf.String(), ` UNION (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), UnionAll(From("b"))))
-	assert.Equal(t, buf.String(), ` UNION ALL (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Intersect(From("b"))))
-	assert.Equal(t, buf.String(), ` INTERSECT (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), IntersectAll(From("b"))))
-	assert.Equal(t, buf.String(), ` INTERSECT ALL (SELECT * FROM "b")`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Union(From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), ` UNION (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), UnionAll(From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), ` UNION ALL (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Intersect(From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), ` INTERSECT (SELECT * FROM "b")`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), IntersectAll(From("b"))))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), ` INTERSECT ALL (SELECT * FROM "b")`)
+func (dt *datasetTest) TestClearWhere() {
+	t := dt.T()
+	w := Ex{
+		"a": 1,
+	}
+	ds := From("test").Where(w)
+	dsc := ds.GetClauses()
+	ec := dsc.ClearWhere()
+	assert.Equal(t, ec, ds.ClearWhere().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralIdentifierExpression() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestForUpdate() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a")))
-	assert.Equal(t, buf.String(), `"a"`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.b")))
-	assert.Equal(t, buf.String(), `"a"."b"`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.b.c")))
-	assert.Equal(t, buf.String(), `"a"."b"."c"`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.b.*")))
-	assert.Equal(t, buf.String(), `"a"."b".*`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.*")))
-	assert.Equal(t, buf.String(), `"a".*`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a")))
-	assert.Equal(t, buf.String(), `"a"`)
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.b")))
-	assert.Equal(t, buf.String(), `"a"."b"`)
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.b.c")))
-	assert.Equal(t, buf.String(), `"a"."b"."c"`)
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.b.*")))
-	assert.Equal(t, buf.String(), `"a"."b".*`)
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.NoError(t, ds.Literal(me.Truncate(buf), I("a.*")))
-	assert.Equal(t, buf.String(), `"a".*`)
-	assert.Equal(t, buf.args, []interface{}{})
+	dsc := ds.GetClauses()
+	ec := dsc.SetLock(exp.NewLock(exp.ForUpdate, NoWait))
+	assert.Equal(t, ec, ds.ForUpdate(NoWait).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralExpressionMap() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestForNoKeyUpdate() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": 1}))
-	assert.Equal(t, buf.String(), `("a" = 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": true}))
-	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": false}))
-	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": nil}))
-	assert.Equal(t, buf.String(), `("a" IS NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": []string{"a", "b", "c"}}))
-	assert.Equal(t, buf.String(), `("a" IN ('a', 'b', 'c'))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"neq": 1}}))
-	assert.Equal(t, buf.String(), `("a" != 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"isnot": true}}))
-	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gt": 1}}))
-	assert.Equal(t, buf.String(), `("a" > 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gte": 1}}))
-	assert.Equal(t, buf.String(), `("a" >= 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lt": 1}}))
-	assert.Equal(t, buf.String(), `("a" < 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lte": 1}}))
-	assert.Equal(t, buf.String(), `("a" <= 1)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"like": "a%"}}))
-	assert.Equal(t, buf.String(), `("a" LIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notLike": "a%"}}))
-	assert.Equal(t, buf.String(), `("a" NOT LIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notLike": "a%"}}))
-	assert.Equal(t, buf.String(), `("a" NOT LIKE 'a%')`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"in": []string{"a", "b", "c"}}}))
-	assert.Equal(t, buf.String(), `("a" IN ('a', 'b', 'c'))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notIn": []string{"a", "b", "c"}}}))
-	assert.Equal(t, buf.String(), `("a" NOT IN ('a', 'b', 'c'))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
-	assert.Equal(t, buf.String(), `(("a" = 10) OR ("a" IS NULL))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"between": RangeVal{Start: 1, End: 10}}}))
-	assert.Equal(t, buf.String(), `("a" BETWEEN 1 AND 10)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notbetween": RangeVal{Start: 1, End: 10}}}))
-	assert.Equal(t, buf.String(), `("a" NOT BETWEEN 1 AND 10)`)
-
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": 1}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" = ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": true}))
-	assert.Equal(t, buf.String(), `("a" IS TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": false}))
-	assert.Equal(t, buf.String(), `("a" IS FALSE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": nil}))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NULL)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": []string{"a", "b", "c"}}))
-	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
-	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"neq": 1}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" != ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"isnot": true}}))
-	assert.Equal(t, buf.args, []interface{}{})
-	assert.Equal(t, buf.String(), `("a" IS NOT TRUE)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gt": 1}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" > ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"gte": 1}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" >= ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lt": 1}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" < ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"lte": 1}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `("a" <= ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"like": "a%"}}))
-	assert.Equal(t, buf.args, []interface{}{"a%"})
-	assert.Equal(t, buf.String(), `("a" LIKE ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notLike": "a%"}}))
-	assert.Equal(t, buf.args, []interface{}{"a%"})
-	assert.Equal(t, buf.String(), `("a" NOT LIKE ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"in": []string{"a", "b", "c"}}}))
-	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
-	assert.Equal(t, buf.String(), `("a" IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notIn": []string{"a", "b", "c"}}}))
-	assert.Equal(t, buf.args, []interface{}{"a", "b", "c"})
-	assert.Equal(t, buf.String(), `("a" NOT IN (?, ?, ?))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"is": nil, "eq": 10}}))
-	assert.Equal(t, buf.args, []interface{}{int64(10)})
-	assert.Equal(t, buf.String(), `(("a" = ?) OR ("a" IS NULL))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"between": RangeVal{Start: 1, End: 10}}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(10)})
-	assert.Equal(t, buf.String(), `("a" BETWEEN ? AND ?)`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), Ex{"a": Op{"notbetween": RangeVal{Start: 1, End: 10}}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1), int64(10)})
-	assert.Equal(t, buf.String(), `("a" NOT BETWEEN ? AND ?)`)
+	dsc := ds.GetClauses()
+	ec := dsc.SetLock(exp.NewLock(exp.ForNoKeyUpdate, NoWait))
+	assert.Equal(t, ec, ds.ForNoKeyUpdate(NoWait).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
 }
 
-func (me *datasetTest) TestLiteralExpressionOrMap() {
-	t := me.T()
-	buf := NewSqlBuilder(false)
+func (dt *datasetTest) TestForKeyShare() {
+	t := dt.T()
 	ds := From("test")
-	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": true}))
-	assert.Equal(t, buf.String(), `(("a" = 1) OR ("b" IS TRUE))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": []string{"a", "b", "c"}}))
-	assert.Equal(t, buf.String(), `(("a" = 1) OR ("b" IN ('a', 'b', 'c')))`)
+	dsc := ds.GetClauses()
+	ec := dsc.SetLock(exp.NewLock(exp.ForKeyShare, NoWait))
+	assert.Equal(t, ec, ds.ForKeyShare(NoWait).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
 
-	buf = NewSqlBuilder(true)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": true}))
-	assert.Equal(t, buf.args, []interface{}{int64(1)})
-	assert.Equal(t, buf.String(), `(("a" = ?) OR ("b" IS TRUE))`)
-	assert.NoError(t, ds.Literal(me.Truncate(buf), ExOr{"a": 1, "b": []string{"a", "b", "c"}}))
-	assert.Equal(t, buf.args, []interface{}{int64(1), "a", "b", "c"})
-	assert.Equal(t, buf.String(), `(("a" = ?) OR ("b" IN (?, ?, ?)))`)
+func (dt *datasetTest) TestForShare() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetLock(exp.NewLock(exp.ForShare, NoWait))
+	assert.Equal(t, ec, ds.ForShare(NoWait).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
 
+func (dt *datasetTest) TestGroupBy() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetGroupBy(exp.NewColumnListExpression(C("a")))
+	assert.Equal(t, ec, ds.GroupBy("a").GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestHaving() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	h := C("a").Gt(1)
+	ec := dsc.HavingAppend(h)
+	assert.Equal(t, ec, ds.Having(h).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestOrder() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	o := C("a").Desc()
+	ec := dsc.SetOrder(o)
+	assert.Equal(t, ec, ds.Order(o).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestOrderAppend() {
+	t := dt.T()
+	ds := From("test").Order(C("a").Desc())
+	dsc := ds.GetClauses()
+	o := C("b").Desc()
+	ec := dsc.OrderAppend(o)
+	assert.Equal(t, ec, ds.OrderAppend(o).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestClearOrder() {
+	t := dt.T()
+	ds := From("test").Order(C("a").Desc())
+	dsc := ds.GetClauses()
+	ec := dsc.ClearOrder()
+	assert.Equal(t, ec, ds.ClearOrder().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestLimit() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetLimit(uint(1))
+	assert.Equal(t, ec, ds.Limit(1).GetClauses())
+	assert.Equal(t, dsc, ds.Limit(0).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestLimitAll() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetLimit(L("ALL"))
+	assert.Equal(t, ec, ds.LimitAll().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestClearLimit() {
+	t := dt.T()
+	ds := From("test").Limit(1)
+	dsc := ds.GetClauses()
+	ec := dsc.ClearLimit()
+	assert.Equal(t, ec, ds.ClearLimit().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestOffset() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetOffset(1)
+	assert.Equal(t, ec, ds.Offset(1).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestClearOffset() {
+	t := dt.T()
+	ds := From("test").Offset(1)
+	dsc := ds.GetClauses()
+	ec := dsc.ClearOffset()
+	assert.Equal(t, ec, ds.ClearOffset().GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestUnion() {
+	t := dt.T()
+	uds := From("union_test")
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.CompoundsAppend(exp.NewCompoundExpression(exp.UnionCompoundType, uds))
+	assert.Equal(t, ec, ds.Union(uds).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestUnionAll() {
+	t := dt.T()
+	uds := From("union_test")
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.CompoundsAppend(exp.NewCompoundExpression(exp.UnionAllCompoundType, uds))
+	assert.Equal(t, ec, ds.UnionAll(uds).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestIntersect() {
+	t := dt.T()
+	uds := From("union_test")
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.CompoundsAppend(exp.NewCompoundExpression(exp.IntersectCompoundType, uds))
+	assert.Equal(t, ec, ds.Intersect(uds).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+func (dt *datasetTest) TestIntersectAll() {
+	t := dt.T()
+	uds := From("union_test")
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.CompoundsAppend(exp.NewCompoundExpression(exp.IntersectAllCompoundType, uds))
+	assert.Equal(t, ec, ds.IntersectAll(uds).GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestReturning() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetReturning(exp.NewColumnListExpression(C("a")))
+	assert.Equal(t, ec, ds.Returning("a").GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestAs() {
+	t := dt.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetAlias(T("a"))
+	assert.Equal(t, ec, ds.As("a").GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (dt *datasetTest) TestToSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	sql, args, err := ds.ToSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToSQL_ReturnedError() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	ee := errors.New("expected error")
+	md.On("ToSelectSQL", sqlB, c).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+
+	sql, args, err := ds.ToSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Equal(t, ee, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestAppendSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	ds.AppendSQL(sqlB)
+	assert.NoError(t, sqlB.Error())
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToInsertSQL_WithNoArgs() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	eie, err := exp.NewInsertExpression()
+	assert.NoError(t, err)
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToInsertSQL", sqlB, c, eie).Return(nil).Once()
+	sql, args, err := ds.ToInsertSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToInsertSQL_WithReturnedError() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	rows := []interface{}{
+		Record{"c": "a"},
+		Record{"c": "b"},
+	}
+	eie, err := exp.NewInsertExpression(rows...)
+	assert.NoError(t, err)
+
+	sqlB := sb.NewSQLBuilder(false)
+	ee := errors.New("test")
+	md.On("ToInsertSQL", sqlB, c, eie).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+	sql, args, err := ds.ToInsertSQL(rows...)
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Equal(t, ee, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToInsertIgnoreSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	rows := []interface{}{
+		Record{"c": "a"},
+		Record{"c": "b"},
+	}
+	eie, err := exp.NewInsertExpression(rows...)
+	assert.NoError(t, err)
+	eie = eie.DoNothing()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToInsertSQL", sqlB, c, eie).Return(nil).Once()
+	sql, args, err := ds.ToInsertIgnoreSQL(rows...)
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToInsertConflictSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	ce := DoUpdate("a", "b")
+	rows := []interface{}{
+		Record{"c": "a"},
+		Record{"c": "b"},
+	}
+	eie, err := exp.NewInsertExpression(rows...)
+	assert.NoError(t, err)
+	sqlB := sb.NewSQLBuilder(false)
+	eie = eie.SetOnConflict(ce)
+	md.On("ToInsertSQL", sqlB, c, eie).Return(nil).Once()
+	sql, args, err := ds.ToInsertConflictSQL(ce, rows...)
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToUpdateSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	r := Record{"c": "a"}
+	md.On("ToUpdateSQL", sqlB, c, r).Return(nil).Once()
+	sql, args, err := ds.ToUpdateSQL(Record{"c": "a"})
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToUpdateSQL_Prepared() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").Prepared(true).SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(true)
+	r := Record{"c": "a"}
+	md.On("ToUpdateSQL", sqlB, c, r).Return(nil).Once()
+	sql, args, err := ds.ToUpdateSQL(Record{"c": "a"})
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToUpdateSQL_WithError() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	r := Record{"c": "a"}
+	ee := errors.New("expected error")
+	md.On("ToUpdateSQL", sqlB, c, r).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+
+	sql, args, err := ds.ToUpdateSQL(Record{"c": "a"})
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Equal(t, ee, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToDeleteSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToDeleteSQL", sqlB, c).Return(nil).Once()
+
+	sql, args, err := ds.ToDeleteSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToDeleteSQL_Prepared() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").Prepared(true).SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(true)
+	md.On("ToDeleteSQL", sqlB, c).Return(nil).Once()
+
+	sql, args, err := ds.ToDeleteSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToDeleteSQL_WithError() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	ee := errors.New("expected error")
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToDeleteSQL", sqlB, c).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+
+	sql, args, err := ds.ToDeleteSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Equal(t, ee, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToTruncateSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToTruncateSQL", sqlB, c, TruncateOptions{}).Return(nil).Once()
+
+	sql, args, err := ds.ToTruncateSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToTruncateSQL__Prepared() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").Prepared(true).SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(true)
+	md.On("ToTruncateSQL", sqlB, c, TruncateOptions{}).Return(nil).Once()
+
+	sql, args, err := ds.ToTruncateSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToTruncateSQL_WithError() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	ee := errors.New("expected error")
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToTruncateSQL", sqlB, c, TruncateOptions{}).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+
+	sql, args, err := ds.ToTruncateSQL()
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Equal(t, ee, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToTruncateWithOptsSQL() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	to := TruncateOptions{Cascade: true}
+	md.On("ToTruncateSQL", sqlB, c, to).Return(nil).Once()
+
+	sql, args, err := ds.ToTruncateWithOptsSQL(to)
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToTruncateWithOptsSQL_Prepared() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").Prepared(true).SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(true)
+	to := TruncateOptions{Cascade: true}
+	md.On("ToTruncateSQL", sqlB, c, to).Return(nil).Once()
+
+	sql, args, err := ds.ToTruncateWithOptsSQL(to)
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Nil(t, err)
+	md.AssertExpectations(t)
+}
+
+func (dt *datasetTest) TestToTruncateWithOptsSQL_WithError() {
+	t := dt.T()
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	c := ds.GetClauses()
+	ee := errors.New("expected error")
+	to := TruncateOptions{Cascade: true}
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToTruncateSQL", sqlB, c, to).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+
+	sql, args, err := ds.ToTruncateWithOptsSQL(to)
+	assert.Empty(t, sql)
+	assert.Empty(t, args)
+	assert.Equal(t, ee, err)
+	md.AssertExpectations(t)
 }
 
 func TestDatasetSuite(t *testing.T) {

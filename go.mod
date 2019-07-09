@@ -1,9 +1,10 @@
-module github.com/doug-martin/goqu/v6
+module github.com/doug-martin/goqu/v7
 
 go 1.12
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/lib/pq v1.1.1
 	github.com/mattn/go-sqlite3 v1.10.0
