@@ -31,6 +31,23 @@ func (sds *sqlite3DialectSuite) TestIdentifiers() {
 	assert.Equal(t, sql, "SELECT `a`, `a`.`b`.`c`, `c`.`d`, `test` AS `test` FROM `test`")
 }
 
+func (sds *sqlite3DialectSuite) TestCompoundExpressions() {
+	t := sds.T()
+	ds1 := sds.GetDs("test").Select("a")
+	ds2 := sds.GetDs("test2").Select("b")
+	sql, _, err := ds1.Union(ds2).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT `a` FROM `test` UNION SELECT `b` FROM `test2`")
+
+	sql, _, err = ds1.UnionAll(ds2).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT `a` FROM `test` UNION ALL SELECT `b` FROM `test2`")
+
+	sql, _, err = ds1.Intersect(ds2).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, sql, "SELECT `a` FROM `test` INTERSECT SELECT `b` FROM `test2`")
+}
+
 func (sds *sqlite3DialectSuite) TestLiteralString() {
 	t := sds.T()
 	ds := sds.GetDs("test")

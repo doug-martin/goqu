@@ -458,7 +458,7 @@ func (ct *clausesTest) TestSetOffset() {
 func (ct *clausesTest) TestCompounds() {
 	t := ct.T()
 
-	ce := NewCompoundExpression(UnionCompoundType, testSQLExpression("test_ce"))
+	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo", []interface{}{}))
 
 	c := NewClauses()
 	c2 := c.CompoundsAppend(ce)
@@ -470,8 +470,8 @@ func (ct *clausesTest) TestCompounds() {
 func (ct *clausesTest) TestCompoundsAppend() {
 	t := ct.T()
 
-	ce := NewCompoundExpression(UnionCompoundType, testSQLExpression("test_ce"))
-	ce2 := NewCompoundExpression(UnionCompoundType, testSQLExpression("test_ce_2"))
+	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo1", []interface{}{}))
+	ce2 := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo2", []interface{}{}))
 
 	c := NewClauses().CompoundsAppend(ce)
 	c2 := c.CompoundsAppend(ce2)
@@ -511,7 +511,7 @@ func (ct *clausesTest) TestSetLock() {
 func (ct *clausesTest) TestCommonTables() {
 	t := ct.T()
 
-	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
+	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
 	c := NewClauses()
 	c2 := c.CommonTablesAppend(cte)

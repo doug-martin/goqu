@@ -424,7 +424,7 @@ func (d *Dataset) IntersectAll(other *Dataset) *Dataset {
 	return d.withCompound(exp.IntersectAllCompoundType, other.CompoundFromSelf())
 }
 
-func (d *Dataset) withCompound(ct exp.CompoundType, other Expression) *Dataset {
+func (d *Dataset) withCompound(ct exp.CompoundType, other exp.AppendableExpression) *Dataset {
 	ce := exp.NewCompoundExpression(ct, other)
 	ret := d.CompoundFromSelf()
 	ret.clauses = ret.clauses.CompoundsAppend(ce)

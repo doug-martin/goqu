@@ -197,7 +197,7 @@ type (
 	CompoundExpression interface {
 		Expression
 		Type() CompoundType
-		RHS() Expression
+		RHS() AppendableExpression
 	}
 	// An Expression that the ON CONFLICT/ON DUPLICATE KEY portion of an INSERT statement
 	ConflictAction     int

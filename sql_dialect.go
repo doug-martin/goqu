@@ -1142,7 +1142,14 @@ func (d *sqlDialect) compoundExpressionSQL(b sb.SQLBuilder, compound exp.Compoun
 	case exp.IntersectAllCompoundType:
 		b.Write(d.dialectOptions.IntersectAllFragment)
 	}
-	d.Literal(b, compound.RHS())
+	if d.dialectOptions.WrapCompoundsInParens {
+		b.WriteRunes(d.dialectOptions.LeftParenRune)
+		compound.RHS().AppendSQL(b)
+		b.WriteRunes(d.dialectOptions.RightParenRune)
+	} else {
+		compound.RHS().AppendSQL(b)
+	}
+
 }
 
 func (d *sqlDialect) expressionMapSQL(b sb.SQLBuilder, ex exp.Ex) {

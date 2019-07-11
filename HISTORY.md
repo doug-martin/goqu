@@ -1,3 +1,7 @@
+## v7.1.1
+
+* [FIXED] Sqlite3 does not accept SELECT * UNION (SELECT *) - [#79](https://github.com/doug-martin/goqu/issues/79)
+
 ## v7.1.0
 
 * [FIXED] Embedded pointers with property names that duplicate parent struct properties. [#23](https://github.com/doug-martin/goqu/issues/23)

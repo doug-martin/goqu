@@ -30,6 +30,8 @@ type (
 		SupportsWithCTE bool
 		// Set to true if the dialect supports recursive Common Table Expressions (DEFAULT=true)
 		SupportsWithCTERecursive bool
+		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
+		WrapCompoundsInParens bool
 
 		// The UPDATE fragment to use when generating sql. (DEFAULT=[]byte("UPDATE"))
 		UpdateClause []byte
@@ -351,6 +353,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		SupportsConflictTarget:      true,
 		SupportsWithCTE:             true,
 		SupportsWithCTERecursive:    true,
+		WrapCompoundsInParens:       true,
 
 		UpdateClause:              []byte("UPDATE"),
 		InsertClause:              []byte("INSERT INTO"),
