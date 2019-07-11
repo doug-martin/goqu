@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -36,6 +37,18 @@ type TestEmbeddedPtrCrudActionItem struct {
 	*TestCrudActionItem
 	PhoneNumber string `db:"phone_number"`
 	Age         int64  `db:"age"`
+}
+
+type TestComposedDuplicateFieldsItem struct {
+	TestCrudActionItem
+	Address string `db:"other_address"`
+	Name    string `db:"other_name"`
+}
+
+type TestComposedPointerDuplicateFieldsItem struct {
+	*TestCrudActionItem
+	Address string `db:"other_address"`
+	Name    string `db:"other_name"`
 }
 
 var (
@@ -216,6 +229,64 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 	assert.Equal(t, []*TestComposedCrudActionItem{
 		{TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
 		{TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFields() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "other_address", "other_name"}).
+			FromCSVString("111 Test Addr,Test1,111 Test Addr Other,Test1 Other\n211 Test Addr,Test2,211 Test Addr Other,Test2 Other"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []*TestComposedDuplicateFieldsItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []*TestComposedDuplicateFieldsItem{
+		{
+			TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"},
+			Address:            "111 Test Addr Other",
+			Name:               "Test1 Other",
+		},
+		{
+			TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"},
+			Address:            "211 Test Addr Other",
+			Name:               "Test2 Other",
+		},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFields() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "other_address", "other_name"}).
+			FromCSVString("111 Test Addr,Test1,111 Test Addr Other,Test1 Other\n211 Test Addr,Test2,211 Test Addr Other,Test2 Other"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []*TestComposedPointerDuplicateFieldsItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []*TestComposedPointerDuplicateFieldsItem{
+		{
+			TestCrudActionItem: &TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"},
+			Address:            "111 Test Addr Other",
+			Name:               "Test1 Other",
+		},
+		{
+			TestCrudActionItem: &TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"},
+			Address:            "211 Test Addr Other",
+			Name:               "Test2 Other",
+		},
 	}, composed)
 }
 
@@ -635,6 +706,81 @@ func (cet *crudExecTest) TestScanVal() {
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, ptrID, int64(1))
+}
+
+func (cet *crudExecTest) TestScanVal_withByteSlice() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("byte slice result"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT "name" FROM "items"`)
+
+	var bytes []byte
+	found, err := e.ScanVal(bytes)
+	assert.Equal(t, errScanValPointer, err)
+	assert.False(t, found)
+
+	found, err = e.ScanVal(&bytes)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, []byte("byte slice result"), bytes)
+}
+
+func (cet *crudExecTest) TestScanVal_withRawBytes() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("byte slice result"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT "name" FROM "items"`)
+
+	var bytes sql.RawBytes
+	found, err := e.ScanVal(bytes)
+	assert.Equal(t, errScanValPointer, err)
+	assert.False(t, found)
+
+	found, err = e.ScanVal(&bytes)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, sql.RawBytes("byte slice result"), bytes)
+}
+
+type JSONBoolArray []bool
+
+func (b *JSONBoolArray) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), b)
+}
+
+func (cet *crudExecTest) TestScanVal_withValuerSlice() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT "bools" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"bools"}).FromCSVString(`"[true, false, true]"`))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT "bools" FROM "items"`)
+
+	var bools JSONBoolArray
+	found, err := e.ScanVal(bools)
+	assert.Equal(t, errScanValPointer, err)
+	assert.False(t, found)
+
+	found, err = e.ScanVal(&bools)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, JSONBoolArray{true, false, true}, bools)
 }
 
 func TestCrudExecSuite(t *testing.T) {
