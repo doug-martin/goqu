@@ -37,6 +37,7 @@ type (
 		ClearOrder() Clauses
 		SetOrder(oes ...OrderedExpression) Clauses
 		OrderAppend(...OrderedExpression) Clauses
+		OrderPrepend(...OrderedExpression) Clauses
 
 		GroupBy() ColumnListExpression
 		SetGroupBy(cl ColumnListExpression) Clauses
@@ -282,6 +283,15 @@ func (c *clauses) OrderAppend(oes ...OrderedExpression) Clauses {
 	}
 	ret := c.clone()
 	ret.order = ret.order.Append(NewOrderedColumnList(oes...).Columns()...)
+	return ret
+}
+
+func (c *clauses) OrderPrepend(oes ...OrderedExpression) Clauses {
+	if c.order == nil {
+		return c.SetOrder(oes...)
+	}
+	ret := c.clone()
+	ret.order = NewOrderedColumnList(oes...).Append(ret.order.Columns()...)
 	return ret
 }
 

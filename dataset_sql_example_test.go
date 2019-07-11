@@ -271,6 +271,14 @@ func ExampleDataset_OrderAppend() {
 	// SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC NULLS LAST
 }
 
+func ExampleDataset_OrderPrepend() {
+	ds := goqu.From("test").Order(goqu.C("a").Asc())
+	sql, _, _ := ds.OrderPrepend(goqu.C("b").Desc().NullsLast()).ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM "test" ORDER BY "b" DESC NULLS LAST, "a" ASC
+}
+
 func ExampleDataset_ClearOrder() {
 	ds := goqu.From("test").Order(goqu.C("a").Asc())
 	sql, _, _ := ds.ClearOrder().ToSQL()

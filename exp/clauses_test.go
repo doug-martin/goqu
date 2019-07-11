@@ -344,6 +344,19 @@ func (ct *clausesTest) TestOrderAppend() {
 	assert.Equal(t, NewColumnListExpression(oe, oe2), c2.Order())
 }
 
+func (ct *clausesTest) TestOrderPrepend() {
+	t := ct.T()
+	oe := NewIdentifierExpression("", "", "a").Desc()
+	oe2 := NewIdentifierExpression("", "", "b").Desc()
+
+	c := NewClauses().SetOrder(oe)
+	c2 := c.OrderPrepend(oe2)
+
+	assert.Equal(t, NewColumnListExpression(oe), c.Order())
+
+	assert.Equal(t, NewColumnListExpression(oe2, oe), c2.Order())
+}
+
 func (ct *clausesTest) TestGroupBy() {
 	t := ct.T()
 	g := NewColumnListExpression(NewIdentifierExpression("", "", "a"))
