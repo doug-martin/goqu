@@ -1861,6 +1861,9 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionMap() {
 	d.Literal(b.Clear(), exp.Ex{"a": 1})
 	dts.assertNotPreparedSQL(t, b, `("a" = 1)`)
 
+	d.Literal(b.Clear(), exp.Ex{})
+	dts.assertNotPreparedSQL(t, b, ``)
+
 	d.Literal(b.Clear(), exp.Ex{"a": true})
 	dts.assertNotPreparedSQL(t, b, `("a" IS TRUE)`)
 

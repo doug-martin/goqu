@@ -232,6 +232,8 @@ type (
 		Expressions() []Expression
 		// Returns a new expression list with the given expressions appended to the current Expressions list
 		Append(...Expression) ExpressionList
+
+		IsEmpty() bool
 	}
 	// An Identifier that can contain schema, table and column identifiers
 	IdentifierExpression interface {

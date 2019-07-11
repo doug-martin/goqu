@@ -441,7 +441,7 @@ func (d *sqlDialect) WhereSQL(b sb.SQLBuilder, where exp.ExpressionList) {
 	if b.Error() != nil {
 		return
 	}
-	if where != nil && len(where.Expressions()) > 0 {
+	if where != nil && !where.IsEmpty() {
 		b.Write(d.dialectOptions.WhereFragment)
 		d.Literal(b, where)
 	}
@@ -1041,6 +1041,9 @@ func (d *sqlDialect) orderedExpressionSQL(b sb.SQLBuilder, order exp.OrderedExpr
 
 // Generates SQL for an ExpressionList (e.g. And(I("a").Eq("a"), I("b").Eq("b")) -> (("a" = 'a') AND ("b" = 'b')))
 func (d *sqlDialect) expressionListSQL(b sb.SQLBuilder, expressionList exp.ExpressionList) {
+	if expressionList.IsEmpty() {
+		return
+	}
 	var op []byte
 	if expressionList.Type() == exp.AndType {
 		op = d.dialectOptions.AndFragment

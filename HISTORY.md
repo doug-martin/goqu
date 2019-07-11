@@ -1,6 +1,7 @@
 ## v7.1.1
 
-* [FIXED] Sqlite3 does not accept SELECT * UNION (SELECT *) - [#79](https://github.com/doug-martin/goqu/issues/79)
+* [FIXED] Sqlite3 does not accept SELECT * UNION (SELECT *) [#79](https://github.com/doug-martin/goqu/issues/79)
+* [FIXED] Where(Ex{}) causes panics [mysql] [#49](https://github.com/doug-martin/goqu/issues/49)
 
 ## v7.1.0
 
