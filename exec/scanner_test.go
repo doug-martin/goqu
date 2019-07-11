@@ -38,6 +38,18 @@ type TestEmbeddedPtrCrudActionItem struct {
 	Age         int64  `db:"age"`
 }
 
+type TestComposedDuplicateFieldsItem struct {
+	TestCrudActionItem
+	Address string `db:"other_address"`
+	Name    string `db:"other_name"`
+}
+
+type TestComposedPointerDuplicateFieldsItem struct {
+	*TestCrudActionItem
+	Address string `db:"other_address"`
+	Name    string `db:"other_name"`
+}
+
 var (
 	testAddr1 = "111 Test Addr"
 	testAddr2 = "211 Test Addr"
@@ -216,6 +228,64 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 	assert.Equal(t, []*TestComposedCrudActionItem{
 		{TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"}, PhoneNumber: "111-111-1111", Age: 20},
 		{TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"}, PhoneNumber: "222-222-2222", Age: 30},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFields() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "other_address", "other_name"}).
+			FromCSVString("111 Test Addr,Test1,111 Test Addr Other,Test1 Other\n211 Test Addr,Test2,211 Test Addr Other,Test2 Other"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []*TestComposedDuplicateFieldsItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []*TestComposedDuplicateFieldsItem{
+		{
+			TestCrudActionItem: TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"},
+			Address:            "111 Test Addr Other",
+			Name:               "Test1 Other",
+		},
+		{
+			TestCrudActionItem: TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"},
+			Address:            "211 Test Addr Other",
+			Name:               "Test2 Other",
+		},
+	}, composed)
+}
+
+func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFields() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "other_address", "other_name"}).
+			FromCSVString("111 Test Addr,Test1,111 Test Addr Other,Test1 Other\n211 Test Addr,Test2,211 Test Addr Other,Test2 Other"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+
+	var composed []*TestComposedPointerDuplicateFieldsItem
+	assert.NoError(t, e.ScanStructs(&composed))
+	assert.Equal(t, []*TestComposedPointerDuplicateFieldsItem{
+		{
+			TestCrudActionItem: &TestCrudActionItem{Address: "111 Test Addr", Name: "Test1"},
+			Address:            "111 Test Addr Other",
+			Name:               "Test1 Other",
+		},
+		{
+			TestCrudActionItem: &TestCrudActionItem{Address: "211 Test Addr", Name: "Test2"},
+			Address:            "211 Test Addr Other",
+			Name:               "Test2 Other",
+		},
 	}, composed)
 }
 

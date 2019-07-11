@@ -11,7 +11,7 @@ import (
 type (
 	ColumnData struct {
 		ColumnName string
-		FieldName  string
+		FieldIndex []int
 		GoType     reflect.Type
 	}
 	ColumnMap map[string]ColumnData
@@ -121,7 +121,7 @@ func assignRowData(row reflect.Value, rd rowData, cm ColumnMap) {
 		src, ok := rd[name]
 		if ok {
 			srcVal := reflect.ValueOf(src)
-			f := row.FieldByName(data.FieldName)
+			f := row.FieldByIndex(data.FieldIndex)
 			if f.Kind() == reflect.Ptr {
 				f.Set(srcVal)
 			} else {
@@ -153,21 +153,21 @@ func GetColumnMap(i interface{}) (ColumnMap, error) {
 	structMapCacheLock.Lock()
 	defer structMapCacheLock.Unlock()
 	if _, ok := structMapCache[t]; !ok {
-		structMapCache[t] = createColumnMap(t)
+		structMapCache[t] = createColumnMap(t, []int{})
 	}
 	return structMapCache[t], nil
 }
 
-func createColumnMap(t reflect.Type) ColumnMap {
+func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
 	cm, n := ColumnMap{}, t.NumField()
 	var subColMaps []ColumnMap
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
 		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
 			if f.Type.Kind() == reflect.Ptr {
-				subColMaps = append(subColMaps, createColumnMap(f.Type.Elem()))
+				subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), append(fieldIndex, f.Index...)))
 			} else {
-				subColMaps = append(subColMaps, createColumnMap(f.Type))
+				subColMaps = append(subColMaps, createColumnMap(f.Type, append(fieldIndex, f.Index...)))
 			}
 		} else {
 			columnName := f.Tag.Get("db")
@@ -177,7 +177,7 @@ func createColumnMap(t reflect.Type) ColumnMap {
 			if columnName != "-" {
 				cm[columnName] = ColumnData{
 					ColumnName: columnName,
-					FieldName:  f.Name,
+					FieldIndex: append(fieldIndex, f.Index...),
 					GoType:     f.Type,
 				}
 			}

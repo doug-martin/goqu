@@ -722,10 +722,10 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"str":    {ColumnName: "str", FieldName: "Str", GoType: reflect.TypeOf("")},
-		"int":    {ColumnName: "int", FieldName: "Int", GoType: reflect.TypeOf(int64(1))},
-		"bool":   {ColumnName: "bool", FieldName: "Bool", GoType: reflect.TypeOf(true)},
-		"valuer": {ColumnName: "valuer", FieldName: "Valuer", GoType: reflect.TypeOf(&sql.NullString{})},
+		"str":    {ColumnName: "str", FieldIndex: []int{0}, GoType: reflect.TypeOf("")},
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
@@ -742,10 +742,10 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"s": {ColumnName: "s", FieldName: "Str", GoType: reflect.TypeOf("")},
-		"i": {ColumnName: "i", FieldName: "Int", GoType: reflect.TypeOf(int64(1))},
-		"b": {ColumnName: "b", FieldName: "Bool", GoType: reflect.TypeOf(true)},
-		"v": {ColumnName: "v", FieldName: "Valuer", GoType: reflect.TypeOf(&sql.NullString{})},
+		"s": {ColumnName: "s", FieldIndex: []int{0}, GoType: reflect.TypeOf("")},
+		"i": {ColumnName: "i", FieldIndex: []int{1}, GoType: reflect.TypeOf(int64(1))},
+		"b": {ColumnName: "b", FieldIndex: []int{2}, GoType: reflect.TypeOf(true)},
+		"v": {ColumnName: "v", FieldIndex: []int{3}, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
@@ -762,9 +762,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"str":  {ColumnName: "str", FieldName: "Str", GoType: reflect.TypeOf("")},
-		"int":  {ColumnName: "int", FieldName: "Int", GoType: reflect.TypeOf(int64(1))},
-		"bool": {ColumnName: "bool", FieldName: "Bool", GoType: reflect.TypeOf(true)},
+		"str":  {ColumnName: "str", FieldIndex: []int{0}, GoType: reflect.TypeOf("")},
+		"int":  {ColumnName: "int", FieldIndex: []int{1}, GoType: reflect.TypeOf(int64(1))},
+		"bool": {ColumnName: "bool", FieldIndex: []int{2}, GoType: reflect.TypeOf(true)},
 	}, cm)
 }
 
@@ -781,10 +781,10 @@ func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"str":    {ColumnName: "str", FieldName: "Str", GoType: reflect.TypeOf("")},
-		"int":    {ColumnName: "int", FieldName: "Int", GoType: reflect.TypeOf(int64(1))},
-		"bool":   {ColumnName: "bool", FieldName: "Bool", GoType: reflect.TypeOf(true)},
-		"valuer": {ColumnName: "valuer", FieldName: "Valuer", GoType: reflect.TypeOf(&sql.NullString{})},
+		"str":    {ColumnName: "str", FieldIndex: []int{0}, GoType: reflect.TypeOf("")},
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
@@ -813,10 +813,10 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"str":    {ColumnName: "str", FieldName: "Str", GoType: reflect.TypeOf("")},
-		"int":    {ColumnName: "int", FieldName: "Int", GoType: reflect.TypeOf(int64(1))},
-		"bool":   {ColumnName: "bool", FieldName: "Bool", GoType: reflect.TypeOf(true)},
-		"valuer": {ColumnName: "valuer", FieldName: "Valuer", GoType: reflect.TypeOf(&sql.NullString{})},
+		"str":    {ColumnName: "str", FieldIndex: []int{0, 0}, GoType: reflect.TypeOf("")},
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
@@ -836,10 +836,10 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"str":    {ColumnName: "str", FieldName: "Str", GoType: reflect.TypeOf("")},
-		"int":    {ColumnName: "int", FieldName: "Int", GoType: reflect.TypeOf(int64(1))},
-		"bool":   {ColumnName: "bool", FieldName: "Bool", GoType: reflect.TypeOf(true)},
-		"valuer": {ColumnName: "valuer", FieldName: "Valuer", GoType: reflect.TypeOf(&sql.NullString{})},
+		"str":    {ColumnName: "str", FieldIndex: []int{0, 0}, GoType: reflect.TypeOf("")},
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
