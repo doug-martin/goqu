@@ -13,6 +13,7 @@ type (
 	Scanner interface {
 		ScanStructs(i interface{}) (bool, error)
 		ScanVals(i interface{}) (bool, error)
+		ScanVal(i interface{}) (found bool, err error)
 	}
 	scanner struct {
 		rows *sql.Rows
@@ -76,28 +77,35 @@ func (q *scanner) ScanVals(i interface{}) (found bool, err error) {
 	defer q.rows.Close()
 	val := reflect.Indirect(reflect.ValueOf(i))
 	t, _, isSliceOfPointers := util.GetTypeInfo(i, val)
-	switch val.Kind() {
-	case reflect.Slice:
-		for q.rows.Next() {
-			found = true
-			row := reflect.New(t)
-			if err = q.rows.Scan(row.Interface()); err != nil {
-				return found, err
-			}
-			if isSliceOfPointers {
-				val.Set(reflect.Append(val, row))
-			} else {
-				val.Set(reflect.Append(val, reflect.Indirect(row)))
-			}
+	for q.rows.Next() {
+		found = true
+		row := reflect.New(t)
+		if err = q.rows.Scan(row.Interface()); err != nil {
+			return found, err
 		}
-	default:
-		for q.rows.Next() {
-			found = true
-			if err = q.rows.Scan(i); err != nil {
-				return false, err
-			}
+		if isSliceOfPointers {
+			val.Set(reflect.Append(val, row))
+		} else {
+			val.Set(reflect.Append(val, reflect.Indirect(row)))
 		}
+	}
+	return found, q.rows.Err()
+}
 
+// This will execute the SQL and append results to the slice.
+//    var ids []uint32
+//    if err := From("test").Select("id").ScanVals(&ids); err != nil{
+//        panic(err.Error()
+//    }
+//
+// i: Takes a pointer to a slice of primitive values.
+func (q *scanner) ScanVal(i interface{}) (found bool, err error) {
+	defer q.rows.Close()
+	for q.rows.Next() {
+		found = true
+		if err = q.rows.Scan(i); err != nil {
+			return false, err
+		}
 	}
 	return found, q.rows.Err()
 }

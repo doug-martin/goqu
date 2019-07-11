@@ -3,6 +3,7 @@ package exec
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -705,6 +706,81 @@ func (cet *crudExecTest) TestScanVal() {
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, ptrID, int64(1))
+}
+
+func (cet *crudExecTest) TestScanVal_withByteSlice() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("byte slice result"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT "name" FROM "items"`)
+
+	var bytes []byte
+	found, err := e.ScanVal(bytes)
+	assert.Equal(t, errScanValPointer, err)
+	assert.False(t, found)
+
+	found, err = e.ScanVal(&bytes)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, []byte("byte slice result"), bytes)
+}
+
+func (cet *crudExecTest) TestScanVal_withRawBytes() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("byte slice result"))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT "name" FROM "items"`)
+
+	var bytes sql.RawBytes
+	found, err := e.ScanVal(bytes)
+	assert.Equal(t, errScanValPointer, err)
+	assert.False(t, found)
+
+	found, err = e.ScanVal(&bytes)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, sql.RawBytes("byte slice result"), bytes)
+}
+
+type JSONBoolArray []bool
+
+func (b *JSONBoolArray) Scan(src interface{}) error {
+	return json.Unmarshal(src.([]byte), b)
+}
+
+func (cet *crudExecTest) TestScanVal_withValuerSlice() {
+	t := cet.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectQuery(`SELECT "bools" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"bools"}).FromCSVString(`"[true, false, true]"`))
+
+	db := newMockDb(mDb)
+	e := newQueryExecutor(db, nil, `SELECT "bools" FROM "items"`)
+
+	var bools JSONBoolArray
+	found, err := e.ScanVal(bools)
+	assert.Equal(t, errScanValPointer, err)
+	assert.False(t, found)
+
+	found, err = e.ScanVal(&bools)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, JSONBoolArray{true, false, true}, bools)
 }
 
 func TestCrudExecSuite(t *testing.T) {

@@ -203,13 +203,19 @@ func (q QueryExecutor) ScanValContext(ctx context.Context, i interface{}) (bool,
 	}
 	val = reflect.Indirect(val)
 	if util.IsSlice(val.Kind()) {
-		return false, errScanValNonSlice
+		switch i.(type) {
+		case *sql.RawBytes: // do nothing
+		case *[]byte: // do nothing
+		case sql.Scanner: // do nothing
+		default:
+			return false, errScanValNonSlice
+		}
 	}
 	rows, err := q.QueryContext(ctx)
 	if err != nil {
 		return false, err
 	}
-	return NewScanner(rows).ScanVals(i)
+	return NewScanner(rows).ScanVal(i)
 }
 
 func (q QueryExecutor) rowsScanner(ctx context.Context) (Scanner, error) {
