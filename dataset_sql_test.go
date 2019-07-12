@@ -183,7 +183,7 @@ func (dit *datasetIntegrationTest) TestToInsertSQLWithStructs() {
 	insertSQL, _, err := ds1.ToInsertSQL(item{Name: "Test", Address: "111 Test Addr", Created: created})
 	assert.NoError(t, err)
 	assert.Equal(t, insertSQL,
-		`INSERT INTO "items" ("address", "name", "created") VALUES ('111 Test Addr', 'Test', '`+created.Format(time.RFC3339Nano)+`')`,
+		`INSERT INTO "items" ("address", "created", "name") VALUES ('111 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test')`,
 	) // #nosec
 
 	insertSQL, _, err = ds1.ToInsertSQL(
@@ -194,11 +194,11 @@ func (dit *datasetIntegrationTest) TestToInsertSQLWithStructs() {
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, insertSQL,
-		`INSERT INTO "items" ("address", "name", "created") VALUES `+
-			`('111 Test Addr', 'Test1', '`+created.Format(time.RFC3339Nano)+`'), `+
-			`('211 Test Addr', 'Test2', '`+created.Format(time.RFC3339Nano)+`'), `+
-			`('311 Test Addr', 'Test3', '`+created.Format(time.RFC3339Nano)+`'), `+
-			`('411 Test Addr', 'Test4', '`+created.Format(time.RFC3339Nano)+`')`,
+		`INSERT INTO "items" ("address", "created", "name") VALUES `+
+			`('111 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test1'), `+
+			`('211 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test2'), `+
+			`('311 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test3'), `+
+			`('411 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test4')`,
 	)
 }
 
@@ -223,8 +223,8 @@ func (dit *datasetIntegrationTest) TestToInsertSQLWithEmbeddedStruct() {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, insertSQL, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES `+
-		`('456456', '123123', '111 Test Addr', 'Test')`)
+	assert.Equal(t, insertSQL, `INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
+		`('111 Test Addr', '123123', 'Test', '456456')`)
 
 	insertSQL, _, err = ds1.ToInsertSQL(
 		item{Address: "111 Test Addr", Name: "Test1", Phone: Phone{Home: "123123", Primary: "456456"}},
@@ -233,11 +233,11 @@ func (dit *datasetIntegrationTest) TestToInsertSQLWithEmbeddedStruct() {
 		item{Address: "411 Test Addr", Name: "Test4", Phone: Phone{Home: "123123", Primary: "456456"}},
 	)
 	assert.NoError(t, err)
-	assert.Equal(t, insertSQL, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES `+
-		`('456456', '123123', '111 Test Addr', 'Test1'), `+
-		`('456456', '123123', '211 Test Addr', 'Test2'), `+
-		`('456456', '123123', '311 Test Addr', 'Test3'), `+
-		`('456456', '123123', '411 Test Addr', 'Test4')`)
+	assert.Equal(t, insertSQL, `INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
+		`('111 Test Addr', '123123', 'Test1', '456456'), `+
+		`('211 Test Addr', '123123', 'Test2', '456456'), `+
+		`('311 Test Addr', '123123', 'Test3', '456456'), `+
+		`('411 Test Addr', '123123', 'Test4', '456456')`)
 }
 
 func (dit *datasetIntegrationTest) TestToInsertSQLWithEmbeddedStructPtr() {
@@ -261,8 +261,8 @@ func (dit *datasetIntegrationTest) TestToInsertSQLWithEmbeddedStructPtr() {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, insertSQL, `INSERT INTO "items" `+
-		`("primary_phone", "home_phone", "address", "name", "valuer")`+
-		` VALUES ('456456', '123123', '111 Test Addr', 'Test', 10)`)
+		`("address", "home_phone", "name", "primary_phone", "valuer")`+
+		` VALUES ('111 Test Addr', '123123', 'Test', '456456', 10)`)
 
 	insertSQL, _, err = ds1.ToInsertSQL(
 		item{Address: "111 Test Addr", Name: "Test1", Phone: &Phone{Home: "123123", Primary: "456456"}},
@@ -272,11 +272,11 @@ func (dit *datasetIntegrationTest) TestToInsertSQLWithEmbeddedStructPtr() {
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, insertSQL,
-		`INSERT INTO "items" ("primary_phone", "home_phone", "address", "name", "valuer") VALUES `+
-			`('456456', '123123', '111 Test Addr', 'Test1', NULL), `+
-			`('456456', '123123', '211 Test Addr', 'Test2', NULL), `+
-			`('456456', '123123', '311 Test Addr', 'Test3', NULL), `+
-			`('456456', '123123', '411 Test Addr', 'Test4', NULL)`)
+		`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone", "valuer") VALUES `+
+			`('111 Test Addr', '123123', 'Test1', '456456', NULL), `+
+			`('211 Test Addr', '123123', 'Test2', '456456', NULL), `+
+			`('311 Test Addr', '123123', 'Test3', '456456', NULL), `+
+			`('411 Test Addr', '123123', 'Test4', '456456', NULL)`)
 }
 
 func (dit *datasetIntegrationTest) TestToInsertSQLWithValuer() {
@@ -762,11 +762,11 @@ func (dit *datasetIntegrationTest) TestPreparedToInsertSQLWithEmbeddedStruct() {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"456456", "123123", "111 Test Addr", "Test"})
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "123123", "Test", "456456"})
 	assert.Equal(
 		t,
 		insertSQL,
-		`INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?)`,
+		`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES (?, ?, ?, ?)`,
 	)
 
 	insertSQL, args, err = ds1.Prepared(true).ToInsertSQL(
@@ -777,12 +777,12 @@ func (dit *datasetIntegrationTest) TestPreparedToInsertSQLWithEmbeddedStruct() {
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{
-		"456456", "123123", "111 Test Addr", "Test1",
-		"456456", "123123", "211 Test Addr", "Test2",
-		"456456", "123123", "311 Test Addr", "Test3",
-		"456456", "123123", "411 Test Addr", "Test4",
+		"111 Test Addr", "123123", "Test1", "456456",
+		"211 Test Addr", "123123", "Test2", "456456",
+		"311 Test Addr", "123123", "Test3", "456456",
+		"411 Test Addr", "123123", "Test4", "456456",
 	})
-	assert.Equal(t, insertSQL, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES `+
+	assert.Equal(t, insertSQL, `INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
 		`(?, ?, ?, ?), `+
 		`(?, ?, ?, ?), `+
 		`(?, ?, ?, ?), `+
@@ -810,11 +810,11 @@ func (dit *datasetIntegrationTest) TestPreparedToInsertSQLWithEmbeddedStructPtr(
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"456456", "123123", "111 Test Addr", "Test"})
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "123123", "Test", "456456"})
 	assert.Equal(
 		t,
 		insertSQL,
-		`INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES (?, ?, ?, ?)`,
+		`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES (?, ?, ?, ?)`,
 	)
 
 	insertSQL, args, err = ds1.Prepared(true).ToInsertSQL(
@@ -825,12 +825,12 @@ func (dit *datasetIntegrationTest) TestPreparedToInsertSQLWithEmbeddedStructPtr(
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{
-		"456456", "123123", "111 Test Addr", "Test1",
-		"456456", "123123", "211 Test Addr", "Test2",
-		"456456", "123123", "311 Test Addr", "Test3",
-		"456456", "123123", "411 Test Addr", "Test4",
+		"111 Test Addr", "123123", "Test1", "456456",
+		"211 Test Addr", "123123", "Test2", "456456",
+		"311 Test Addr", "123123", "Test3", "456456",
+		"411 Test Addr", "123123", "Test4", "456456",
 	})
-	assert.Equal(t, insertSQL, `INSERT INTO "items" ("primary_phone", "home_phone", "address", "name") VALUES `+
+	assert.Equal(t, insertSQL, `INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
 		`(?, ?, ?, ?), `+
 		`(?, ?, ?, ?), `+
 		`(?, ?, ?, ?), `+
@@ -1082,7 +1082,7 @@ func (dit *datasetIntegrationTest) TestToUpdateSQLWithByteSlice() {
 		Returning(T("items").All()).
 		ToUpdateSQL(item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
 	assert.NoError(t, err)
-	assert.Equal(t, `UPDATE "items" SET "name"='Test',"data"='{"someJson":"data"}' RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"='{"someJson":"data"}',"name"='Test' RETURNING "items".*`, updateSQL)
 }
 
 type valuerType []byte
@@ -1102,7 +1102,7 @@ func (dit *datasetIntegrationTest) TestToUpdateSQLWithCustomValuer() {
 		Returning(T("items").All()).
 		ToUpdateSQL(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
-	assert.Equal(t, `UPDATE "items" SET "name"='Test',"data"='Hello World' RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"='Hello World',"name"='Test' RETURNING "items".*`, updateSQL)
 }
 
 func (dit *datasetIntegrationTest) TestToUpdateSQLWithValuer() {
@@ -1117,7 +1117,7 @@ func (dit *datasetIntegrationTest) TestToUpdateSQLWithValuer() {
 		Returning(T("items").All()).
 		ToUpdateSQL(item{Name: "Test", Data: sql.NullString{String: "Hello World", Valid: true}})
 	assert.NoError(t, err)
-	assert.Equal(t, `UPDATE "items" SET "name"='Test',"data"='Hello World' RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"='Hello World',"name"='Test' RETURNING "items".*`, updateSQL)
 }
 
 func (dit *datasetIntegrationTest) TestToUpdateSQLWithValuerNull() {
@@ -1129,7 +1129,7 @@ func (dit *datasetIntegrationTest) TestToUpdateSQLWithValuerNull() {
 	}
 	updateSQL, _, err := ds1.Returning(T("items").All()).ToUpdateSQL(item{Name: "Test"})
 	assert.NoError(t, err)
-	assert.Equal(t, `UPDATE "items" SET "name"='Test',"data"=NULL RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"=NULL,"name"='Test' RETURNING "items".*`, updateSQL)
 }
 
 func (dit *datasetIntegrationTest) TestToUpdateSQLWithEmbeddedStruct() {
@@ -1162,12 +1162,12 @@ func (dit *datasetIntegrationTest) TestToUpdateSQLWithEmbeddedStruct() {
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
 	assert.Equal(t, `UPDATE "items" SET `+
-		`"primary_phone"='456456',`+
-		`"home_phone"='123123',`+
-		`"phone_created"='2015-01-01T00:00:00Z',`+
-		`"name"='Test',`+
 		`"created"='2015-01-01T00:00:00Z',`+
-		`"nil_pointer"=NULL`, updateSQL)
+		`"home_phone"='123123',`+
+		`"name"='Test',`+
+		`"nil_pointer"=NULL,`+
+		`"phone_created"='2015-01-01T00:00:00Z',`+
+		`"primary_phone"='456456'`, updateSQL)
 }
 
 func (dit *datasetIntegrationTest) TestToUpdateSQLWithEmbeddedStructPtr() {
@@ -1199,11 +1199,11 @@ func (dit *datasetIntegrationTest) TestToUpdateSQLWithEmbeddedStructPtr() {
 	assert.NoError(t, err)
 	assert.Equal(t, args, []interface{}{})
 	assert.Equal(t, `UPDATE "items" SET `+
-		`"primary_phone"='456456',`+
+		`"created"='2015-01-01T00:00:00Z',`+
 		`"home_phone"='123123',`+
-		`"phone_created"='2015-01-01T00:00:00Z',`+
 		`"name"='Test',`+
-		`"created"='2015-01-01T00:00:00Z'`, updateSQL)
+		`"phone_created"='2015-01-01T00:00:00Z',`+
+		`"primary_phone"='456456'`, updateSQL)
 }
 
 func (dit *datasetIntegrationTest) TestToUpdateSQLWithUnsupportedType() {
@@ -1305,8 +1305,8 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithByteSlice() {
 		Prepared(true).
 		ToUpdateSQL(item{Name: "Test", Data: []byte(`{"someJson":"data"}`)})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"Test", []byte(`{"someJson":"data"}`)})
-	assert.Equal(t, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"=?,"name"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, args, []interface{}{[]byte(`{"someJson":"data"}`), "Test"})
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithCustomValuer() {
@@ -1321,8 +1321,8 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithCustomValuer() {
 		Prepared(true).
 		ToUpdateSQL(item{Name: "Test", Data: []byte(`Hello`)})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"Test", []byte("Hello World")})
-	assert.Equal(t, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"=?,"name"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, args, []interface{}{[]byte("Hello World"), "Test"})
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithValuer() {
@@ -1337,8 +1337,8 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithValuer() {
 		Prepared(true).
 		ToUpdateSQL(item{Name: "Test", Data: sql.NullString{String: "Hello World", Valid: true}})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"Test", "Hello World"})
-	assert.Equal(t, `UPDATE "items" SET "name"=?,"data"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, `UPDATE "items" SET "data"=?,"name"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, args, []interface{}{"Hello World", "Test"})
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithSkipupdateTag() {
@@ -1350,8 +1350,8 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithSkipupdateTag() {
 	}
 	updateSQL, args, err := ds1.Prepared(true).ToUpdateSQL(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"Test"})
 	assert.Equal(t, `UPDATE "items" SET "name"=?`, updateSQL)
+	assert.Equal(t, args, []interface{}{"Test"})
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithEmbeddedStruct() {
@@ -1382,9 +1382,9 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithEmbeddedStruct() {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created})
 	assert.Equal(t, `UPDATE "items" `+
-		`SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?,"nil_pointer"=NULL`, updateSQL)
+		`SET "created"=?,"home_phone"=?,"name"=?,"nil_pointer"=NULL,"phone_created"=?,"primary_phone"=?`, updateSQL)
+	assert.Equal(t, []interface{}{created, "123123", "Test", created, "456456"}, args)
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithEmbeddedStructPtr() {
@@ -1414,11 +1414,9 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithEmbeddedStructPtr(
 		},
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"456456", "123123", created, "Test", created})
-	assert.Equal(t,
-		`UPDATE "items" SET "primary_phone"=?,"home_phone"=?,"phone_created"=?,"name"=?,"created"=?`,
-		updateSQL,
-	)
+	assert.Equal(t, `UPDATE "items" `+
+		`SET "created"=?,"home_phone"=?,"name"=?,"phone_created"=?,"primary_phone"=?`, updateSQL)
+	assert.Equal(t, []interface{}{created, "123123", "Test", created, "456456"}, args)
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithWhere() {
@@ -1433,16 +1431,16 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithWhere() {
 		Prepared(true).
 		ToUpdateSQL(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`, updateSQL)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 
 	updateSQL, args, err = ds1.
 		Where(C("name").IsNull()).
 		Prepared(true).
 		ToUpdateSQL(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`, updateSQL)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 }
 
 func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithReturning() {
@@ -1457,8 +1455,8 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithReturning() {
 		Prepared(true).
 		ToUpdateSQL(item{Name: "Test", Address: "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, `UPDATE "items" SET "address"=?,"name"=? RETURNING "items".*`, updateSQL)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 
 	updateSQL, args, err = ds1.
 		Where(C("name").IsNull()).
@@ -1466,8 +1464,8 @@ func (dit *datasetIntegrationTest) TestPreparedToUpdateSQLWithReturning() {
 		Prepared(true).
 		ToUpdateSQL(Record{"name": "Test", "address": "111 Test Addr"})
 	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 	assert.Equal(t, `UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL) RETURNING "items".*`, updateSQL)
+	assert.Equal(t, args, []interface{}{"111 Test Addr", "Test"})
 }
 
 func (dit *datasetIntegrationTest) TestSelect() {

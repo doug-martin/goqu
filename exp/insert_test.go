@@ -140,6 +140,66 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructs() {
 	assert.False(t, ie.IsInsertFrom())
 }
 
+func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithoutTags() {
+	type testRecord struct {
+		FieldA int64
+		FieldB bool
+		FieldC string
+	}
+	t := iets.T()
+	ie, err := NewInsertExpression(
+		testRecord{FieldA: 1, FieldB: true, FieldC: "a"},
+		testRecord{FieldA: 2, FieldB: false, FieldC: "b"},
+	)
+	assert.NoError(t, err)
+	eie := new(insert).
+		SetCols(NewColumnListExpression("fielda", "fieldb", "fieldc")).
+		SetVals([][]interface{}{{int64(1), true, "a"}, {int64(2), false, "b"}})
+	assert.Equal(t, eie, ie)
+	assert.False(t, ie.IsEmpty())
+	assert.False(t, ie.IsInsertFrom())
+}
+
+func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsIgnoredDbTag() {
+	type testRecord struct {
+		FieldA int64 `db:"-"`
+		FieldB bool
+		FieldC string
+	}
+	t := iets.T()
+	ie, err := NewInsertExpression(
+		testRecord{FieldA: 1, FieldB: true, FieldC: "a"},
+		testRecord{FieldA: 2, FieldB: false, FieldC: "b"},
+	)
+	assert.NoError(t, err)
+	eie := new(insert).
+		SetCols(NewColumnListExpression("fieldb", "fieldc")).
+		SetVals([][]interface{}{{true, "a"}, {false, "b"}})
+	assert.Equal(t, eie, ie)
+	assert.False(t, ie.IsEmpty())
+	assert.False(t, ie.IsInsertFrom())
+}
+
+func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithGoquSkipInsert() {
+	type testRecord struct {
+		FieldA int64
+		FieldB bool   `goqu:"skipupdate"`
+		FieldC string `goqu:"skipinsert"`
+	}
+	t := iets.T()
+	ie, err := NewInsertExpression(
+		testRecord{FieldA: 1, FieldB: true, FieldC: "a"},
+		testRecord{FieldA: 2, FieldB: false, FieldC: "b"},
+	)
+	assert.NoError(t, err)
+	eie := new(insert).
+		SetCols(NewColumnListExpression("fielda", "fieldb")).
+		SetVals([][]interface{}{{int64(1), true}, {int64(2), false}})
+	assert.Equal(t, eie, ie)
+	assert.False(t, ie.IsEmpty())
+	assert.False(t, ie.IsInsertFrom())
+}
+
 func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructPointers() {
 	type testRecord struct {
 		C string `db:"c"`
@@ -177,12 +237,12 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithEm
 	)
 	assert.NoError(t, err)
 	eie := new(insert).
-		SetCols(NewColumnListExpression("primary_phone", "home_phone", "address", "name")).
+		SetCols(NewColumnListExpression("address", "home_phone", "name", "primary_phone")).
 		SetVals([][]interface{}{
-			{"456456", "123123", "111 Test Addr", "Test1"},
-			{"456456", "123123", "211 Test Addr", "Test2"},
-			{"456456", "123123", "311 Test Addr", "Test3"},
-			{"456456", "123123", "411 Test Addr", "Test4"},
+			{"111 Test Addr", "123123", "Test1", "456456"},
+			{"211 Test Addr", "123123", "Test2", "456456"},
+			{"311 Test Addr", "123123", "Test3", "456456"},
+			{"411 Test Addr", "123123", "Test4", "456456"},
 		})
 	assert.Equal(t, eie, ie)
 	assert.False(t, ie.IsEmpty())
@@ -208,12 +268,12 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithEm
 	)
 	assert.NoError(t, err)
 	eie := new(insert).
-		SetCols(NewColumnListExpression("primary_phone", "home_phone", "address", "name")).
+		SetCols(NewColumnListExpression("address", "home_phone", "name", "primary_phone")).
 		SetVals([][]interface{}{
-			{"456456", "123123", "111 Test Addr", "Test1"},
-			{"456456", "123123", "211 Test Addr", "Test2"},
-			{"456456", "123123", "311 Test Addr", "Test3"},
-			{"456456", "123123", "411 Test Addr", "Test4"},
+			{"111 Test Addr", "123123", "Test1", "456456"},
+			{"211 Test Addr", "123123", "Test2", "456456"},
+			{"311 Test Addr", "123123", "Test3", "456456"},
+			{"411 Test Addr", "123123", "Test4", "456456"},
 		})
 	assert.Equal(t, eie, ie)
 	assert.False(t, ie.IsEmpty())

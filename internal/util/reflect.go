@@ -2,19 +2,28 @@ package util
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 
 	"github.com/doug-martin/goqu/v7/internal/errors"
+	"github.com/doug-martin/goqu/v7/internal/tag"
 )
 
 type (
 	ColumnData struct {
-		ColumnName string
-		FieldIndex []int
-		GoType     reflect.Type
+		ColumnName   string
+		FieldIndex   []int
+		ShouldInsert bool
+		ShouldUpdate bool
+		GoType       reflect.Type
 	}
 	ColumnMap map[string]ColumnData
+)
+
+const (
+	skipUpdateTagName = "skipupdate"
+	skipInsertTagName = "skipinsert"
 )
 
 func IsUint(k reflect.Kind) bool {
@@ -170,15 +179,21 @@ func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
 				subColMaps = append(subColMaps, createColumnMap(f.Type, append(fieldIndex, f.Index...)))
 			}
 		} else {
-			columnName := f.Tag.Get("db")
-			if columnName == "" {
+			dbTag := tag.New("db", f.Tag)
+			var columnName string
+			if dbTag.IsEmpty() {
 				columnName = columnRenameFunction(f.Name)
+			} else {
+				columnName = dbTag.Values()[0]
 			}
-			if columnName != "-" {
+			goquTag := tag.New("goqu", f.Tag)
+			if !dbTag.Equals("-") {
 				cm[columnName] = ColumnData{
-					ColumnName: columnName,
-					FieldIndex: append(fieldIndex, f.Index...),
-					GoType:     f.Type,
+					ColumnName:   columnName,
+					ShouldInsert: !goquTag.Contains(skipInsertTagName),
+					ShouldUpdate: !goquTag.Contains(skipUpdateTagName),
+					FieldIndex:   append(fieldIndex, f.Index...),
+					GoType:       f.Type,
 				}
 			}
 		}
@@ -191,4 +206,13 @@ func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
 		}
 	}
 	return cm
+}
+
+func (cm ColumnMap) Cols() []string {
+	var structCols []string
+	for key := range cm {
+		structCols = append(structCols, key)
+	}
+	sort.Strings(structCols)
+	return structCols
 }

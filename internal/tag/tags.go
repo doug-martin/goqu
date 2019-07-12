@@ -13,28 +13,24 @@ func New(tagName string, st reflect.StructTag) Options {
 	return Options(st.Get(tagName))
 }
 
+func (o Options) Values() []string {
+	return strings.Split(string(o), ",")
+}
+
 // Contains reports whether a comma-separated list of options
 // contains a particular substr flag. substr must be surrounded by a
 // string boundary or commas.
 func (o Options) Contains(optionName string) bool {
-	if len(o) == 0 {
+	if o.IsEmpty() {
 		return false
 	}
-	ret := false
-	s := string(o)
-	for s != "" {
-		var next string
-		i := strings.Index(s, ",")
-		if i >= 0 {
-			s, next = s[:i], s[i+1:]
-		}
+	values := o.Values()
+	for _, s := range values {
 		if s == optionName {
-			ret = true
-			break
+			return true
 		}
-		s = next
 	}
-	return ret
+	return false
 }
 
 // Contains reports whether a comma-separated list of options

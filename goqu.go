@@ -13,8 +13,6 @@ Please see https://github.com/doug-martin/goqu for an introduction to goqu.
 package goqu
 
 import (
-	"database/sql"
-
 	"github.com/doug-martin/goqu/v7/internal/util"
 )
 
@@ -31,11 +29,11 @@ func (dw DialectWrapper) From(table ...interface{}) *Dataset {
 	return From(table...).WithDialect(dw.dialect)
 }
 
-func (dw DialectWrapper) DB(db *sql.DB) *Database {
+func (dw DialectWrapper) DB(db SQLDatabase) *Database {
 	return newDatabase(dw.dialect, db)
 }
 
-func New(dialect string, db *sql.DB) *Database {
+func New(dialect string, db SQLDatabase) *Database {
 	return newDatabase(dialect, db)
 }
 

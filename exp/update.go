@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/doug-martin/goqu/v7/internal/errors"
-	"github.com/doug-martin/goqu/v7/internal/tag"
 	"github.com/doug-martin/goqu/v7/internal/util"
 )
 
@@ -34,33 +33,27 @@ func NewUpdateExpressions(update interface{}) (updates []UpdateExpression, err e
 			updates = append(updates, ParseIdentifier(key.String()).Set(updateValue.MapIndex(key).Interface()))
 		}
 	case reflect.Struct:
-		updates = getUpdateExpressionsStruct(updateValue)
+		return getUpdateExpressionsStruct(updateValue)
 	default:
 		return nil, errors.New("unsupported update interface type %+v", updateValue.Type())
 	}
 	return updates, nil
 }
 
-func getUpdateExpressionsStruct(value reflect.Value) (updates []UpdateExpression) {
-	for i := 0; i < value.NumField(); i++ {
-		v := value.Field(i)
-		t := value.Type().Field(i)
-		if !t.Anonymous {
-			if canUpdateField(&t) {
-				updates = append(updates, ParseIdentifier(t.Tag.Get("db")).Set(v.Interface()))
-			}
-		} else {
-			updates = append(updates, getUpdateExpressionsStruct(reflect.Indirect(reflect.ValueOf(v.Interface())))...)
+func getUpdateExpressionsStruct(value reflect.Value) (updates []UpdateExpression, err error) {
+	cm, err := util.GetColumnMap(value.Interface())
+	if err != nil {
+		return updates, err
+	}
+	cols := cm.Cols()
+	for _, col := range cols {
+		f := cm[col]
+		if f.ShouldUpdate {
+			v := value.FieldByIndex(f.FieldIndex)
+			updates = append(updates, ParseIdentifier(col).Set(v.Interface()))
 		}
 	}
-
-	return updates
-}
-
-func canUpdateField(field *reflect.StructField) bool {
-	goquTag := tag.New("goqu", field.Tag)
-	dbTag := tag.New("db", field.Tag)
-	return !goquTag.Contains("skipupdate") && !(dbTag.IsEmpty() || dbTag.Equals("-"))
+	return updates, nil
 }
 
 func (u update) Expression() Expression {

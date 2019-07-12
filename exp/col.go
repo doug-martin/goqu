@@ -3,7 +3,6 @@ package exp
 import (
 	"fmt"
 	"reflect"
-	"sort"
 
 	"github.com/doug-martin/goqu/v7/internal/util"
 )
@@ -28,11 +27,7 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 				if err != nil {
 					panic(err.Error())
 				}
-				var structCols []string
-				for key := range cm {
-					structCols = append(structCols, key)
-				}
-				sort.Strings(structCols)
+				structCols := cm.Cols()
 				for _, col := range structCols {
 					cols = append(cols, ParseIdentifier(col))
 				}
