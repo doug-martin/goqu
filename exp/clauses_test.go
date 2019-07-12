@@ -344,6 +344,19 @@ func (ct *clausesTest) TestOrderAppend() {
 	assert.Equal(t, NewColumnListExpression(oe, oe2), c2.Order())
 }
 
+func (ct *clausesTest) TestOrderPrepend() {
+	t := ct.T()
+	oe := NewIdentifierExpression("", "", "a").Desc()
+	oe2 := NewIdentifierExpression("", "", "b").Desc()
+
+	c := NewClauses().SetOrder(oe)
+	c2 := c.OrderPrepend(oe2)
+
+	assert.Equal(t, NewColumnListExpression(oe), c.Order())
+
+	assert.Equal(t, NewColumnListExpression(oe2, oe), c2.Order())
+}
+
 func (ct *clausesTest) TestGroupBy() {
 	t := ct.T()
 	g := NewColumnListExpression(NewIdentifierExpression("", "", "a"))
@@ -458,7 +471,7 @@ func (ct *clausesTest) TestSetOffset() {
 func (ct *clausesTest) TestCompounds() {
 	t := ct.T()
 
-	ce := NewCompoundExpression(UnionCompoundType, testSQLExpression("test_ce"))
+	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo", []interface{}{}))
 
 	c := NewClauses()
 	c2 := c.CompoundsAppend(ce)
@@ -470,8 +483,8 @@ func (ct *clausesTest) TestCompounds() {
 func (ct *clausesTest) TestCompoundsAppend() {
 	t := ct.T()
 
-	ce := NewCompoundExpression(UnionCompoundType, testSQLExpression("test_ce"))
-	ce2 := NewCompoundExpression(UnionCompoundType, testSQLExpression("test_ce_2"))
+	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo1", []interface{}{}))
+	ce2 := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo2", []interface{}{}))
 
 	c := NewClauses().CompoundsAppend(ce)
 	c2 := c.CompoundsAppend(ce2)
@@ -511,7 +524,7 @@ func (ct *clausesTest) TestSetLock() {
 func (ct *clausesTest) TestCommonTables() {
 	t := ct.T()
 
-	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
+	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
 	c := NewClauses()
 	c2 := c.CommonTablesAppend(cte)

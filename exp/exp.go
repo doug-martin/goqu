@@ -197,7 +197,7 @@ type (
 	CompoundExpression interface {
 		Expression
 		Type() CompoundType
-		RHS() Expression
+		RHS() AppendableExpression
 	}
 	// An Expression that the ON CONFLICT/ON DUPLICATE KEY portion of an INSERT statement
 	ConflictAction     int
@@ -232,6 +232,8 @@ type (
 		Expressions() []Expression
 		// Returns a new expression list with the given expressions appended to the current Expressions list
 		Append(...Expression) ExpressionList
+
+		IsEmpty() bool
 	}
 	// An Identifier that can contain schema, table and column identifiers
 	IdentifierExpression interface {

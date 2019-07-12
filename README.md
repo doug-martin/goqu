@@ -51,26 +51,128 @@ We tried a few other sql builders but each was a thin wrapper around sql fragmen
 
 ## Usage
 
-* [Building SQL](#building-sql)
-  * [Expressions](#expressions)
-    * [`Ex{}`](#ex) - Expression map filtering
-    * [`ExOr{}`](#ex-or) - ORed expression map filtering
-    * [`S()`](#S) - Schema identifiers
-    * [`T()`](#T) - Table identifiers
-    * [`C()`](#C) - Column identifiers
-    * [`I()`](#I) - Parsing identifiers wit
-    * [`L()`](#L) - Literal SQL expressions
-    * [`And()`](#and) - ANDed sql expressions
-    * [`OR()`](#or) - ORed sql expressions
-    * [Complex Example](#complex-example)
-  * [Querying](#querying)
-    * [Executing Queries](#executing-queries) 
-    * [Dataset](#dataset)
+* [Dialect](#dialect)
+  * [Postgres](#postgres)
+  * [MySQL](#mysql)
+  * [SQLite3](#sqlite3)
+* [Dataset](#dataset)
+  * [Building SQL](#building-sql)
+    * [Expressions](#expressions)
+      * [`Ex{}`](#ex) - Expression map filtering
+      * [`ExOr{}`](#ex-or) - ORed expression map filtering
+      * [`S()`](#S) - Schema identifiers
+      * [`T()`](#T) - Table identifiers
+      * [`C()`](#C) - Column identifiers
+      * [`I()`](#I) - Parsing identifiers wit
+      * [`L()`](#L) - Literal SQL expressions
+      * [`And()`](#and) - ANDed sql expressions
+      * [`OR()`](#or) - ORed sql expressions
+      * [Complex Example](#complex-example)
+    * [Querying](#querying)
+      * [Executing Queries](#executing-queries) 
+      * [Dataset](#dataset)
         * [Prepared Statements](#dataset_prepared)
 * [Database](#database)
   * [Transactions](#transactions)
 * [Logging](#logging)
-* [Dialects](#dialects)
+* [Custom Dialects](#custom-dialects)
+
+<a name="dialect"></a>
+## Dialect
+
+Dialects allow goqu the build the correct SQL for each database. There are three dialects that come packaged with `goqu`
+
+* [mysql](./dialect/mysql/mysql.go) - `import _ "github.com/doug-martin/goqu/v7/dialect/mysql"`
+* [postgres](./dialect/postgres/postgres.go) - `import _ "github.com/doug-martin/goqu/v7/dialect/postgres"`
+* [sqlite3](./dialect/sqlite3/sqlite3.go) - `import _ "github.com/doug-martin/goqu/v7/dialect/sqlite3"`
+
+**NOTE** Dialects work like drivers in go where they are not registered until you import the package.
+
+Below are examples for each dialect. Notice how the dialect is imported and then looked up using `goqu.Dialect`
+
+<a name="postgres"></a>
+### Postgres
+```go
+import (
+  "fmt"
+  "github.com/doug-martin/goqu/v7"
+  // import the dialect
+  _ "github.com/doug-martin/goqu/v7/dialect/postgres"
+)
+
+// look up the dialect
+dialect := goqu.Dialect("postgres")
+
+// use dialect.From to get a dataset to build your SQL
+ds := dialect.From("test").Where(goqu.Ex{"id": 10})
+sql, args, err := ds.ToSQL()
+if err != nil{
+  fmt.Println("An error occurred while generating the SQL", err.Error())
+}else{
+  fmt.Println(sql, args)
+}
+```
+
+Output:
+```
+SELECT * FROM "test" WHERE "id" = 10 []
+```
+
+<a name="mysql"></a>
+### MySQL
+```go
+import (
+  "fmt"
+  "github.com/doug-martin/goqu/v7"
+  // import the dialect
+  _ "github.com/doug-martin/goqu/v7/dialect/mysql"
+)
+
+// look up the dialect
+dialect := goqu.Dialect("mysql")
+
+// use dialect.From to get a dataset to build your SQL
+ds := dialect.From("test").Where(goqu.Ex{"id": 10})
+sql, args, err := ds.ToSQL()
+if err != nil{
+  fmt.Println("An error occurred while generating the SQL", err.Error())
+}else{
+  fmt.Println(sql, args)
+}
+```
+
+Output:
+```
+SELECT * FROM `test` WHERE `id` = 10 []
+```
+
+<a name="sqlite3"></a>
+### SQLite3
+```go
+import (
+  "fmt"
+  "github.com/doug-martin/goqu/v7"
+  // import the dialect
+  _ "github.com/doug-martin/goqu/v7/dialect/sqlite3"
+)
+
+// look up the dialect
+dialect := goqu.Dialect("sqlite3")
+
+// use dialect.From to get a dataset to build your SQL
+ds := dialect.From("test").Where(goqu.Ex{"id": 10})
+sql, args, err := ds.ToSQL()
+if err != nil{
+  fmt.Println("An error occurred while generating the SQL", err.Error())
+}else{
+  fmt.Println(sql, args)
+}
+```
+
+Output:
+```
+SELECT * FROM `test` WHERE `id` = 10 []
+```
 
 <a name="dataset"></a>
 ## Dataset
@@ -868,8 +970,8 @@ To enable trace logging of SQL statements use the [`Database.Logger`](http://god
 **NOTE** If you start a transaction using a database your set a logger on the transaction will inherit that logger automatically
 
 
-<a name="dialects"></a>
-## Dialects
+<a name="custom-dialects"></a>
+## Custom Dialects
 
 Dialects in goqu are the foundation of building the correct SQL for each DB dialect.
 
@@ -978,5 +1080,6 @@ GO_VERSION=latest docker-compose run goqu
 ## License
 
 `goqu` is released under the [MIT License](http://www.opensource.org/licenses/MIT).
+
 
 

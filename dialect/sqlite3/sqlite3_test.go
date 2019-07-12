@@ -93,6 +93,27 @@ func (st *sqlite3Suite) TestSelectSQL() {
 	assert.Equal(t, s, "SELECT * FROM `entry` WHERE `int` = ?")
 }
 
+func (st *sqlite3Suite) TestCompoundQueries() {
+	t := st.T()
+	ds1 := st.db.From("entry").Select("int").Where(goqu.C("int").Gt(0))
+	ds2 := st.db.From("entry").Select("int").Where(goqu.C("int").Gt(5))
+
+	var ids []int64
+	err := ds1.Union(ds2).ScanVals(&ids)
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2, 3, 4, 5, 6, 7, 8, 9}, ids)
+
+	ids = ids[0:0]
+	err = ds1.UnionAll(ds2).ScanVals(&ids)
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 6, 7, 8, 9}, ids)
+
+	ids = ids[0:0]
+	err = ds1.Intersect(ds2).ScanVals(&ids)
+	assert.NoError(t, err)
+	assert.Equal(t, []int64{6, 7, 8, 9}, ids)
+}
+
 func (st *sqlite3Suite) TestQuery() {
 	t := st.T()
 	var entries []entry

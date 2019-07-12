@@ -11,15 +11,11 @@ type testAppendableExpression struct {
 	AppendableExpression
 	sql     string
 	args    []interface{}
-	err     error
 	clauses Clauses
 }
 
-func newTestAppendableExpression(sql string, args []interface{}, err error, clauses Clauses) AppendableExpression {
-	if clauses == nil {
-		clauses = NewClauses()
-	}
-	return &testAppendableExpression{sql: sql, args: args, err: err, clauses: clauses}
+func newTestAppendableExpression(sql string, args []interface{}) AppendableExpression {
+	return &testAppendableExpression{sql: sql, args: args}
 }
 
 func (tae *testAppendableExpression) Expression() Expression {
@@ -77,7 +73,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withNoValues() {
 func (iets *insertExpressionTestSuite) TestNewInsertExpression_appendableExpression() {
 	t := iets.T()
 
-	ae := newTestAppendableExpression("test ae", nil, nil, nil)
+	ae := newTestAppendableExpression("test ae", nil)
 
 	ie, err := NewInsertExpression(ae)
 	assert.NoError(t, err)

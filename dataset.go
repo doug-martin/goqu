@@ -363,6 +363,12 @@ func (d *Dataset) OrderAppend(order ...exp.OrderedExpression) *Dataset {
 	return d.copy(d.clauses.OrderAppend(order...))
 }
 
+// Adds a more columns to the beginning of the current ORDER BY clause. If no order has be previously specified it is the same as
+// calling Order. See examples.
+func (d *Dataset) OrderPrepend(order ...exp.OrderedExpression) *Dataset {
+	return d.copy(d.clauses.OrderPrepend(order...))
+}
+
 // Removes the ORDER BY clause. See examples.
 func (d *Dataset) ClearOrder() *Dataset {
 	return d.copy(d.clauses.ClearOrder())
@@ -424,7 +430,7 @@ func (d *Dataset) IntersectAll(other *Dataset) *Dataset {
 	return d.withCompound(exp.IntersectAllCompoundType, other.CompoundFromSelf())
 }
 
-func (d *Dataset) withCompound(ct exp.CompoundType, other Expression) *Dataset {
+func (d *Dataset) withCompound(ct exp.CompoundType, other exp.AppendableExpression) *Dataset {
 	ce := exp.NewCompoundExpression(ct, other)
 	ret := d.CompoundFromSelf()
 	ret.clauses = ret.clauses.CompoundsAppend(ce)
