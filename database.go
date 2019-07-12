@@ -15,6 +15,7 @@ type (
 	// libraries such as sqlx instead of the native sql.DB
 	SQLDatabase interface {
 		Begin() (*sql.Tx, error)
+		BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
 		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 		PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
 		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
@@ -70,6 +71,17 @@ func (d *Database) Dialect() string {
 // Starts a new Transaction.
 func (d *Database) Begin() (*TxDatabase, error) {
 	sqlTx, err := d.Db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	tx := NewTx(d.dialect, sqlTx)
+	tx.Logger(d.logger)
+	return tx, nil
+}
+
+// Starts a new Transaction. See sql.DB#BeginTx for option description
+func (d *Database) BeginTx(ctx context.Context, opts *sql.TxOptions) (*TxDatabase, error) {
+	sqlTx, err := d.Db.BeginTx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}

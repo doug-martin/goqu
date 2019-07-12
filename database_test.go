@@ -1,6 +1,7 @@
 package goqu
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -247,6 +248,22 @@ func (dt *databaseTest) TestBegin() {
 	assert.Equal(t, tx.Dialect(), "mock")
 
 	_, err = db.Begin()
+	assert.EqualError(t, err, "goqu: transaction error")
+}
+
+func (dt *databaseTest) TestBeginTx() {
+	t := dt.T()
+	ctx := context.Background()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	mock.ExpectBegin()
+	mock.ExpectBegin().WillReturnError(errors.New("transaction error"))
+	db := New("mock", mDb)
+	tx, err := db.BeginTx(ctx, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, tx.Dialect(), "mock")
+
+	_, err = db.BeginTx(ctx, nil)
 	assert.EqualError(t, err, "goqu: transaction error")
 }
 

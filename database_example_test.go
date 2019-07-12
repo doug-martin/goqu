@@ -2,6 +2,7 @@ package goqu_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -12,6 +13,39 @@ func ExampleDatabase_Begin() {
 	db := getDb()
 
 	tx, err := db.Begin()
+	if err != nil {
+		fmt.Println("Error starting transaction", err.Error())
+	}
+
+	// use tx.From to get a dataset that will execute within this transaction
+	update := tx.From("goqu_user").
+		Where(goqu.Ex{"last_name": "Yukon"}).
+		Returning("id").
+		Update(goqu.Record{"last_name": "Ucon"})
+
+	var ids []int64
+	if err := update.ScanVals(&ids); err != nil {
+		if rErr := tx.Rollback(); rErr != nil {
+			fmt.Println("An error occurred while issuing ROLLBACK\n\t", rErr.Error())
+		} else {
+			fmt.Println("An error occurred while updating users ROLLBACK transaction\n\t", err.Error())
+		}
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		fmt.Println("An error occurred while issuing COMMIT\n\t", err.Error())
+	} else {
+		fmt.Printf("Updated users in transaction [ids:=%+v]", ids)
+	}
+	// Output:
+	// Updated users in transaction [ids:=[1 2 3]]
+}
+
+func ExampleDatabase_BeginTx() {
+	db := getDb()
+
+	ctx := context.Background()
+	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
 	if err != nil {
 		fmt.Println("Error starting transaction", err.Error())
 	}
