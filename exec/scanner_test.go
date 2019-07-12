@@ -58,21 +58,6 @@ var (
 	testName2 = "Test2"
 )
 
-type mockDB struct {
-	db *sql.DB
-}
-
-func newMockDb(db *sql.DB) DbExecutor {
-	return &mockDB{db: db}
-}
-
-func (m *mockDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
-	return m.db.ExecContext(ctx, query, args...)
-}
-func (m *mockDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
-	return m.db.QueryContext(ctx, query, args...)
-}
-
 type crudExecTest struct {
 	suite.Suite
 }
@@ -80,9 +65,8 @@ type crudExecTest struct {
 func (cet *crudExecTest) TestWithError() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, _, err := sqlmock.New()
+	db, _, err := sqlmock.New()
 	assert.NoError(t, err)
-	db := newMockDb(mDb)
 	expectedErr := fmt.Errorf("crud exec error")
 	e := newQueryExecutor(db, expectedErr, `SELECT * FROM "items"`)
 	var items []TestCrudActionItem
@@ -108,7 +92,7 @@ func (cet *crudExecTest) TestWithError() {
 
 func (cet *crudExecTest) TestScanStructs_withTaggedFields() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -116,7 +100,6 @@ func (cet *crudExecTest) TestScanStructs_withTaggedFields() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
@@ -129,7 +112,7 @@ func (cet *crudExecTest) TestScanStructs_withTaggedFields() {
 
 func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -137,7 +120,6 @@ func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionNoTagsItem
@@ -150,7 +132,7 @@ func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
 
 func (cet *crudExecTest) TestScanStructs_withPointerFields() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -158,7 +140,6 @@ func (cet *crudExecTest) TestScanStructs_withPointerFields() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionWithPointerField
@@ -171,7 +152,7 @@ func (cet *crudExecTest) TestScanStructs_withPointerFields() {
 
 func (cet *crudExecTest) TestScanStructs_pointers() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -179,7 +160,6 @@ func (cet *crudExecTest) TestScanStructs_pointers() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []*TestCrudActionItem
@@ -192,7 +172,7 @@ func (cet *crudExecTest) TestScanStructs_pointers() {
 
 func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -200,7 +180,6 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []TestComposedCrudActionItem
@@ -213,7 +192,7 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
 
 func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -221,7 +200,6 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*TestComposedCrudActionItem
@@ -234,7 +212,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 
 func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFields() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -242,7 +220,6 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFiel
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "other_address", "other_name"}).
 			FromCSVString("111 Test Addr,Test1,111 Test Addr Other,Test1 Other\n211 Test Addr,Test2,211 Test Addr Other,Test2 Other"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*TestComposedDuplicateFieldsItem
@@ -263,7 +240,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFiel
 
 func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFields() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -271,7 +248,6 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFie
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "other_address", "other_name"}).
 			FromCSVString("111 Test Addr,Test1,111 Test Addr Other,Test1 Other\n211 Test Addr,Test2,211 Test Addr Other,Test2 Other"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*TestComposedPointerDuplicateFieldsItem
@@ -292,7 +268,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFie
 
 func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -300,7 +276,6 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []TestEmbeddedPtrCrudActionItem
@@ -313,7 +288,7 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
 
 func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -321,7 +296,6 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*TestEmbeddedPtrCrudActionItem
@@ -334,10 +308,9 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
 
 func (cet *crudExecTest) TestScanStructs_badValue() {
 	t := cet.T()
-	mDb, _, err := sqlmock.New()
+	db, _, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
@@ -347,13 +320,12 @@ func (cet *crudExecTest) TestScanStructs_badValue() {
 
 func (cet *crudExecTest) TestScanStructs_queryError() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
@@ -363,7 +335,7 @@ func (cet *crudExecTest) TestScanStructs_queryError() {
 func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -371,7 +343,6 @@ func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
@@ -385,7 +356,7 @@ func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
 func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -393,7 +364,6 @@ func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionNoTagsItem
@@ -407,7 +377,7 @@ func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
 func (cet *crudExecTest) TestScanStructsContext_withPointerFields() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -415,7 +385,6 @@ func (cet *crudExecTest) TestScanStructsContext_withPointerFields() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionWithPointerField
@@ -429,7 +398,7 @@ func (cet *crudExecTest) TestScanStructsContext_withPointerFields() {
 func (cet *crudExecTest) TestScanStructsContext_pointers() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -437,7 +406,6 @@ func (cet *crudExecTest) TestScanStructsContext_pointers() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []*TestCrudActionItem
@@ -451,7 +419,7 @@ func (cet *crudExecTest) TestScanStructsContext_pointers() {
 func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -459,7 +427,6 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []TestComposedCrudActionItem
@@ -473,7 +440,7 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
 func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -481,7 +448,6 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*TestComposedCrudActionItem
@@ -495,7 +461,7 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
 func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -503,7 +469,6 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []TestEmbeddedPtrCrudActionItem
@@ -517,7 +482,7 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
 func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointer() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -525,7 +490,6 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointe
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "phone_number", "age"}).
 			FromCSVString("111 Test Addr,Test1,111-111-1111,20\n211 Test Addr,Test2,222-222-2222,30"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*TestEmbeddedPtrCrudActionItem
@@ -539,10 +503,9 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointe
 func (cet *crudExecTest) TestScanStructsContext_badValue() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, _, err := sqlmock.New()
+	db, _, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
@@ -553,13 +516,12 @@ func (cet *crudExecTest) TestScanStructsContext_badValue() {
 func (cet *crudExecTest) TestScanStructsContext_queryError() {
 	t := cet.T()
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []TestCrudActionItem
@@ -568,7 +530,7 @@ func (cet *crudExecTest) TestScanStructsContext_queryError() {
 
 func (cet *crudExecTest) TestScanStruct() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -592,7 +554,6 @@ func (cet *crudExecTest) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var slicePtr []TestCrudActionItem
@@ -641,7 +602,7 @@ func (cet *crudExecTest) TestScanStruct() {
 
 func (cet *crudExecTest) TestScanVals() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
@@ -655,7 +616,6 @@ func (cet *crudExecTest) TestScanVals() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT "id" FROM "items"`)
 
 	var id int64
@@ -676,7 +636,7 @@ func (cet *crudExecTest) TestScanVals() {
 
 func (cet *crudExecTest) TestScanVal() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
@@ -686,7 +646,6 @@ func (cet *crudExecTest) TestScanVal() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT "id" FROM "items"`)
 
 	var id int64
@@ -710,14 +669,13 @@ func (cet *crudExecTest) TestScanVal() {
 
 func (cet *crudExecTest) TestScanVal_withByteSlice() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("byte slice result"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT "name" FROM "items"`)
 
 	var bytes []byte
@@ -733,14 +691,13 @@ func (cet *crudExecTest) TestScanVal_withByteSlice() {
 
 func (cet *crudExecTest) TestScanVal_withRawBytes() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("byte slice result"))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT "name" FROM "items"`)
 
 	var bytes sql.RawBytes
@@ -762,14 +719,13 @@ func (b *JSONBoolArray) Scan(src interface{}) error {
 
 func (cet *crudExecTest) TestScanVal_withValuerSlice() {
 	t := cet.T()
-	mDb, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
 	mock.ExpectQuery(`SELECT "bools" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"bools"}).FromCSVString(`"[true, false, true]"`))
 
-	db := newMockDb(mDb)
 	e := newQueryExecutor(db, nil, `SELECT "bools" FROM "items"`)
 
 	var bools JSONBoolArray

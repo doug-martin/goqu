@@ -11,12 +11,21 @@ type (
 	Logger interface {
 		Printf(format string, v ...interface{})
 	}
+	// Interface for sql.DB, an interface is used so you can use with other
+	// libraries such as sqlx instead of the native sql.DB
+	SQLDatabase interface {
+		Begin() (*sql.Tx, error)
+		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+		PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+		QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+	}
 	// This struct is the wrapper for a Db. The struct delegates most calls to either an Exec instance or to the Db
 	// passed into the constructor.
 	Database struct {
 		logger  Logger
 		dialect string
-		Db      *sql.DB
+		Db      SQLDatabase
 		qf      exec.QueryFactory
 	}
 )
@@ -49,7 +58,7 @@ type (
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
-func newDatabase(dialect string, db *sql.DB) *Database {
+func newDatabase(dialect string, db SQLDatabase) *Database {
 	return &Database{dialect: dialect, Db: db}
 }
 
