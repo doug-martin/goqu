@@ -69,11 +69,13 @@ func (d *Database) Dialect() string {
 
 // Starts a new Transaction.
 func (d *Database) Begin() (*TxDatabase, error) {
-	tx, err := d.Db.Begin()
+	sqlTx, err := d.Db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	return &TxDatabase{dialect: d.dialect, Tx: tx, logger: d.logger}, nil
+	tx := NewTx(d.dialect, sqlTx)
+	tx.Logger(d.logger)
+	return tx, nil
 }
 
 // Creates a new Dataset that uses the correct adapter and supports queries.
@@ -385,13 +387,28 @@ func (d *Database) ScanValContext(ctx context.Context, i interface{}, query stri
 
 // A wrapper around a sql.Tx and works the same way as Database
 type (
+	// Interface for sql.Tx, an interface is used so you can use with other
+	// libraries such as sqlx instead of the native sql.DB
+	SQLTx interface {
+		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+		PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+		QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
+		Commit() error
+		Rollback() error
+	}
 	TxDatabase struct {
 		logger  Logger
 		dialect string
-		Tx      *sql.Tx
+		Tx      SQLTx
 		qf      exec.QueryFactory
 	}
 )
+
+// Creates a new TxDatabase
+func NewTx(dialect string, tx SQLTx) *TxDatabase {
+	return &TxDatabase{dialect: dialect, Tx: tx}
+}
 
 // returns this databases dialect
 func (td *TxDatabase) Dialect() string {
