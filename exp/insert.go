@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	"github.com/doug-martin/goqu/v7/internal/errors"
-	"github.com/doug-martin/goqu/v7/internal/tag"
 	"github.com/doug-martin/goqu/v7/internal/util"
 )
 
@@ -140,7 +139,10 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 			}
 			vals[i] = rowVals
 		case reflect.Struct:
-			rowCols, rowVals := getFieldsValues(newRowValue)
+			rowCols, rowVals, err := getFieldsValues(newRowValue)
+			if err != nil {
+				return nil, err
+			}
 			if columns == nil {
 				columns = NewColumnListExpression(rowCols...)
 			}
@@ -155,28 +157,21 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 	return &insert{cols: columns, vals: vals}, nil
 }
 
-func getFieldsValues(value reflect.Value) (rowCols, rowVals []interface{}) {
+func getFieldsValues(value reflect.Value) (rowCols, rowVals []interface{}, err error) {
 	if value.IsValid() {
-		for i := 0; i < value.NumField(); i++ {
-			v := value.Field(i)
-			t := value.Type().Field(i)
-			if !t.Anonymous {
-				if canInsertField(&t) {
-					rowCols = append(rowCols, t.Tag.Get("db"))
-					rowVals = append(rowVals, v.Interface())
-				}
-			} else {
-				cols, vals := getFieldsValues(reflect.Indirect(reflect.ValueOf(v.Interface())))
-				rowCols = append(rowCols, cols...)
-				rowVals = append(rowVals, vals...)
+		cm, err := util.GetColumnMap(value.Interface())
+		if err != nil {
+			return rowCols, rowVals, err
+		}
+		cols := cm.Cols()
+		for _, col := range cols {
+			f := cm[col]
+			if f.ShouldInsert {
+				v := value.FieldByIndex(f.FieldIndex)
+				rowCols = append(rowCols, col)
+				rowVals = append(rowVals, v.Interface())
 			}
 		}
 	}
-	return rowCols, rowVals
-}
-
-func canInsertField(field *reflect.StructField) bool {
-	goquTag := tag.New("goqu", field.Tag)
-	dbTag := tag.New("db", field.Tag)
-	return !goquTag.Contains("skipinsert") && !(dbTag.IsEmpty() || dbTag.Equals("-"))
+	return rowCols, rowVals, nil
 }

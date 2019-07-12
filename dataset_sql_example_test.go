@@ -978,6 +978,34 @@ func ExampleDataset_ToUpdateSQL() {
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 }
 
+func ExampleDataset_ToUpdateSQL_withSkipUpdateTag() {
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name" goqu:"skipupdate"`
+	}
+	sql, args, _ := goqu.From("items").ToUpdateSQL(
+		item{Name: "Test", Address: "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "address"='111 Test Addr' []
+}
+
+func ExampleDataset_ToUpdateSQL_withNoTags() {
+	type item struct {
+		Address string
+		Name    string
+	}
+	sql, args, _ := goqu.From("items").ToUpdateSQL(
+		item{Name: "Test", Address: "111 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+}
+
 func ExampleDataset_ToUpdateSQL_prepared() {
 	type item struct {
 		Address string `db:"address"`
@@ -1040,6 +1068,36 @@ func ExampleDataset_ToInsertSQL() {
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
+}
+
+func ExampleDataset_ToInsertSQL_withNoDbTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string
+		Name    string
+	}
+	sql, args, _ := goqu.From("items").ToInsertSQL(
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
+}
+
+func ExampleDataset_ToInsertSQL_withGoquSkipInsertTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string `goqu:"skipinsert"`
+		Name    string
+	}
+	sql, args, _ := goqu.From("items").ToInsertSQL(
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+	// Output:
+	// INSERT INTO "items" ("name") VALUES ('Test1'), ('Test2') []
 }
 
 func ExampleDataset_ToInsertSQL_prepared() {
@@ -1119,6 +1177,36 @@ func ExampleDataset_ToInsertIgnoreSQL() {
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
 }
 
+func ExampleDataset_ToInsertIgnoreSQL_withNoDBTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string
+		Name    string
+	}
+	sql, args, _ := goqu.From("items").ToInsertIgnoreSQL(
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+}
+
+func ExampleDataset_ToInsertIgnoreSQL_withGoquSkipInsertTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string
+		Name    string `goqu:"skipinsert"`
+	}
+	sql, args, _ := goqu.From("items").ToInsertIgnoreSQL(
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+	// Output:
+	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT DO NOTHING []
+}
+
 func ExampleDataset_ToInsertConflictSQL() {
 	type item struct {
 		ID      uint32 `db:"id" goqu:"skipinsert"`
@@ -1152,6 +1240,76 @@ func ExampleDataset_ToInsertConflictSQL() {
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
+}
+
+func ExampleDataset_ToInsertConflictSQL_withNoDbTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string
+		Name    string
+	}
+	sql, args, _ := goqu.From("items").ToInsertConflictSQL(
+		goqu.DoNothing(),
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
+		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}),
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
+		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}).Where(goqu.C("allow_update").IsTrue()),
+		[]item{
+			{Name: "Test1", Address: "111 Test Addr"},
+			{Name: "Test2", Address: "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
+
+	// nolint:lll
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
+}
+
+func ExampleDataset_ToInsertConflictSQL_withGoquSkipInsertTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string
+		Name    string `goqu:"skipinsert"`
+	}
+	sql, args, _ := goqu.From("items").ToInsertConflictSQL(
+		goqu.DoNothing(),
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
+		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}),
+		item{Name: "Test1", Address: "111 Test Addr"},
+		item{Name: "Test2", Address: "112 Test Addr"},
+	)
+	fmt.Println(sql, args)
+
+	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
+		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}).Where(goqu.C("allow_update").IsTrue()),
+		[]item{
+			{Name: "Test1", Address: "111 Test Addr"},
+			{Name: "Test2", Address: "112 Test Addr"},
+		})
+	fmt.Println(sql, args)
+
+	// nolint:lll
+	// Output:
+	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT DO NOTHING []
+	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
+	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
 }
 
 func ExampleDataset_ToDeleteSQL() {
