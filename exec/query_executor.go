@@ -30,6 +30,10 @@ func newQueryExecutor(de DbExecutor, err error, query string, args ...interface{
 	return QueryExecutor{de: de, err: err, query: query, args: args}
 }
 
+func (q QueryExecutor) Sql() (sql string, args []interface{}) {
+	return q.query, q.args
+}
+
 func (q QueryExecutor) Exec() (sql.Result, error) {
 	return q.ExecContext(context.Background())
 }
