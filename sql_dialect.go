@@ -891,7 +891,7 @@ func (d *sqlDialect) literalTime(b sb.SQLBuilder, t time.Time) {
 		d.placeHolderSQL(b, t)
 		return
 	}
-	d.Literal(b, t.UTC().Format(d.dialectOptions.TimeFormat))
+	d.Literal(b, t.Format(d.dialectOptions.TimeFormat))
 }
 
 // Generates SQL for a Float Value
