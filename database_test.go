@@ -267,6 +267,25 @@ func (dt *databaseTest) TestBeginTx() {
 	assert.EqualError(t, err, "goqu: transaction error")
 }
 
+func (dt *databaseTest) TestWithTx() {
+	t := dt.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+
+	mock.ExpectBegin()
+	mock.ExpectCommit()
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	db := newDatabase("mock", mDb)
+	assert.NoError(t, db.WithTx(func(tx *TxDatabase) error {
+		return nil
+	}))
+	assert.EqualError(t, db.WithTx(func(_ *TxDatabase) error {
+		return errors.New("tx error")
+	}), "goqu: tx error")
+}
+
 func TestDatabaseSuite(t *testing.T) {
 	suite.Run(t, new(databaseTest))
 }
