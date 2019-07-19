@@ -3,10 +3,11 @@ package goqu
 import (
 	"database/sql/driver"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/doug-martin/goqu/v7/exp"
 	"github.com/doug-martin/goqu/v7/internal/errors"
@@ -1184,7 +1185,8 @@ func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
 		time.Now().In(asiaShanghai),
 	}
 
-	for _, now := range testDatas {
+	for _, n := range testDatas {
+		var now = n
 		b := sb.NewSQLBuilder(false)
 		d.Literal(b.Clear(), now)
 		dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
