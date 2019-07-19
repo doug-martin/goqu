@@ -1174,12 +1174,11 @@ func (dts *dialectTestSuite) TestLiteral_BoolTypes() {
 }
 
 func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
-	asiaShanghai, err := time.LoadLocation("Asia/Shanghai")
-	require.NoError(dts.T(), err)
-
 	t := dts.T()
 	d := sqlDialect{DefaultDialectOptions()}
 	var nt *time.Time
+	asiaShanghai, err := time.LoadLocation("Asia/Shanghai")
+	require.NoError(t, err)
 	testDatas := []time.Time{
 		time.Now().UTC(),
 		time.Now().In(asiaShanghai),
