@@ -74,6 +74,26 @@ func ExampleDatabase_BeginTx() {
 	// Updated users in transaction [ids:=[1 2 3]]
 }
 
+func ExampleDatabase_WithTx() {
+	db := getDb()
+	var ids []int64
+	if err := db.WithTx(func(tx *goqu.TxDatabase) error {
+		// use tx.From to get a dataset that will execute within this transaction
+		update := tx.From("goqu_user").
+			Where(goqu.Ex{"last_name": "Yukon"}).
+			Returning("id").
+			Update(goqu.Record{"last_name": "Ucon"})
+
+		return update.ScanVals(&ids)
+	}); err != nil {
+		fmt.Println("An error occurred in transaction\n\t", err.Error())
+	} else {
+		fmt.Printf("Updated users in transaction [ids:=%+v]", ids)
+	}
+	// Output:
+	// Updated users in transaction [ids:=[1 2 3]]
+}
+
 func ExampleDatabase_Dialect() {
 	db := getDb()
 
