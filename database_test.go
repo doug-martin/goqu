@@ -272,18 +272,58 @@ func (dt *databaseTest) TestWithTx() {
 	mDb, mock, err := sqlmock.New()
 	assert.NoError(t, err)
 
-	mock.ExpectBegin()
-	mock.ExpectCommit()
-	mock.ExpectBegin()
-	mock.ExpectRollback()
-
 	db := newDatabase("mock", mDb)
-	assert.NoError(t, db.WithTx(func(tx *TxDatabase) error {
-		return nil
-	}))
-	assert.EqualError(t, db.WithTx(func(_ *TxDatabase) error {
-		return errors.New("tx error")
-	}), "goqu: tx error")
+
+	cases := []struct {
+		expectf func(sqlmock.Sqlmock)
+		f       func(*TxDatabase) error
+		wantErr bool
+		errStr  string
+	}{
+		{
+			expectf: func(mock sqlmock.Sqlmock) {
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+			},
+			f:       func(_ *TxDatabase) error { return nil },
+			wantErr: false,
+		},
+		{
+			expectf: func(mock sqlmock.Sqlmock) {
+				mock.ExpectBegin().WillReturnError(errors.New("transaction begin error"))
+			},
+			f:       func(_ *TxDatabase) error { return nil },
+			wantErr: true,
+			errStr:  "goqu: transaction begin error",
+		},
+		{
+			expectf: func(mock sqlmock.Sqlmock) {
+				mock.ExpectBegin()
+				mock.ExpectRollback()
+			},
+			f:       func(_ *TxDatabase) error { return errors.New("transaction error") },
+			wantErr: true,
+			errStr:  "goqu: transaction error",
+		},
+		{
+			expectf: func(mock sqlmock.Sqlmock) {
+				mock.ExpectBegin()
+				mock.ExpectRollback().WillReturnError(errors.New("transaction rollback error"))
+			},
+			f:       func(_ *TxDatabase) error { return errors.New("something wrong") },
+			wantErr: true,
+			errStr:  "goqu: transaction rollback error",
+		},
+	}
+	for _, c := range cases {
+		c.expectf(mock)
+		err := db.WithTx(c.f)
+		if c.wantErr {
+			assert.EqualError(t, err, c.errStr)
+		} else {
+			assert.NoError(t, err)
+		}
+	}
 }
 
 func TestDatabaseSuite(t *testing.T) {
