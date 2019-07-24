@@ -1,7 +1,7 @@
 package goqu
 
 import (
-	"github.com/doug-martin/goqu/v7/exp"
+	"github.com/doug-martin/goqu/v8/exp"
 )
 
 type (
@@ -10,6 +10,7 @@ type (
 	ExOr       = exp.ExOr
 	Op         = exp.Op
 	Record     = exp.Record
+	Vals       = exp.Vals
 	// Options to use when generating a TRUNCATE statement
 	TruncateOptions = exp.TruncateOptions
 )

@@ -3,7 +3,7 @@ package goqu_test
 import (
 	"testing"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

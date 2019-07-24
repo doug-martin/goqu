@@ -1,70 +1,66 @@
 package exp
 
 type (
-	Clauses interface {
+	SelectClauses interface {
 		HasSources() bool
 		IsDefaultSelect() bool
-		clone() *clauses
+		clone() *selectClauses
 
 		Select() ColumnListExpression
-		SelectAppend(cl ColumnListExpression) Clauses
-		SetSelect(cl ColumnListExpression) Clauses
+		SelectAppend(cl ColumnListExpression) SelectClauses
+		SetSelect(cl ColumnListExpression) SelectClauses
 
 		SelectDistinct() ColumnListExpression
 		HasSelectDistinct() bool
-		SetSelectDistinct(cl ColumnListExpression) Clauses
+		SetSelectDistinct(cl ColumnListExpression) SelectClauses
 
 		From() ColumnListExpression
-		SetFrom(cl ColumnListExpression) Clauses
+		SetFrom(cl ColumnListExpression) SelectClauses
 
 		HasAlias() bool
 		Alias() IdentifierExpression
-		SetAlias(ie IdentifierExpression) Clauses
+		SetAlias(ie IdentifierExpression) SelectClauses
 
 		Joins() JoinExpressions
-		JoinsAppend(jc JoinExpression) Clauses
+		JoinsAppend(jc JoinExpression) SelectClauses
 
 		Where() ExpressionList
-		ClearWhere() Clauses
-		WhereAppend(expressions ...Expression) Clauses
+		ClearWhere() SelectClauses
+		WhereAppend(expressions ...Expression) SelectClauses
 
 		Having() ExpressionList
-		ClearHaving() Clauses
-		HavingAppend(expressions ...Expression) Clauses
+		ClearHaving() SelectClauses
+		HavingAppend(expressions ...Expression) SelectClauses
 
 		Order() ColumnListExpression
 		HasOrder() bool
-		ClearOrder() Clauses
-		SetOrder(oes ...OrderedExpression) Clauses
-		OrderAppend(...OrderedExpression) Clauses
-		OrderPrepend(...OrderedExpression) Clauses
+		ClearOrder() SelectClauses
+		SetOrder(oes ...OrderedExpression) SelectClauses
+		OrderAppend(...OrderedExpression) SelectClauses
+		OrderPrepend(...OrderedExpression) SelectClauses
 
 		GroupBy() ColumnListExpression
-		SetGroupBy(cl ColumnListExpression) Clauses
+		SetGroupBy(cl ColumnListExpression) SelectClauses
 
 		Limit() interface{}
 		HasLimit() bool
-		ClearLimit() Clauses
-		SetLimit(limit interface{}) Clauses
+		ClearLimit() SelectClauses
+		SetLimit(limit interface{}) SelectClauses
 
 		Offset() uint
-		ClearOffset() Clauses
-		SetOffset(offset uint) Clauses
+		ClearOffset() SelectClauses
+		SetOffset(offset uint) SelectClauses
 
 		Compounds() []CompoundExpression
-		CompoundsAppend(ce CompoundExpression) Clauses
+		CompoundsAppend(ce CompoundExpression) SelectClauses
 
 		Lock() Lock
-		SetLock(l Lock) Clauses
+		SetLock(l Lock) SelectClauses
 
 		CommonTables() []CommonTableExpression
-		CommonTablesAppend(cte CommonTableExpression) Clauses
-
-		Returning() ColumnListExpression
-		HasReturning() bool
-		SetReturning(cl ColumnListExpression) Clauses
+		CommonTablesAppend(cte CommonTableExpression) SelectClauses
 	}
-	clauses struct {
+	selectClauses struct {
 		commonTables   []CommonTableExpression
 		selectColumns  ColumnListExpression
 		selectDistinct ColumnListExpression
@@ -77,23 +73,22 @@ type (
 		order          ColumnListExpression
 		limit          interface{}
 		offset         uint
-		returning      ColumnListExpression
 		compounds      []CompoundExpression
 		lock           Lock
 	}
 )
 
-func NewClauses() Clauses {
-	return &clauses{
+func NewSelectClauses() SelectClauses {
+	return &selectClauses{
 		selectColumns: NewColumnListExpression(Star()),
 	}
 }
 
-func (c *clauses) HasSources() bool {
+func (c *selectClauses) HasSources() bool {
 	return c.from != nil && len(c.from.Columns()) > 0
 }
 
-func (c *clauses) IsDefaultSelect() bool {
+func (c *selectClauses) IsDefaultSelect() bool {
 	ret := false
 	if c.selectColumns != nil {
 		selects := c.selectColumns.Columns()
@@ -106,8 +101,8 @@ func (c *clauses) IsDefaultSelect() bool {
 	return ret
 }
 
-func (c *clauses) clone() *clauses {
-	return &clauses{
+func (c *selectClauses) clone() *selectClauses {
+	return &selectClauses{
 		commonTables:   c.commonTables,
 		selectColumns:  c.selectColumns,
 		selectDistinct: c.selectDistinct,
@@ -120,25 +115,24 @@ func (c *clauses) clone() *clauses {
 		order:          c.order,
 		limit:          c.limit,
 		offset:         c.offset,
-		returning:      c.returning,
 		compounds:      c.compounds,
 		lock:           c.lock,
 	}
 }
 
-func (c *clauses) CommonTables() []CommonTableExpression {
+func (c *selectClauses) CommonTables() []CommonTableExpression {
 	return c.commonTables
 }
-func (c *clauses) CommonTablesAppend(cte CommonTableExpression) Clauses {
+func (c *selectClauses) CommonTablesAppend(cte CommonTableExpression) SelectClauses {
 	ret := c.clone()
 	ret.commonTables = append(ret.commonTables, cte)
 	return ret
 }
 
-func (c *clauses) Select() ColumnListExpression {
+func (c *selectClauses) Select() ColumnListExpression {
 	return c.selectColumns
 }
-func (c *clauses) SelectAppend(cl ColumnListExpression) Clauses {
+func (c *selectClauses) SelectAppend(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	if ret.selectDistinct != nil {
 		ret.selectDistinct = ret.selectDistinct.Append(cl.Columns()...)
@@ -148,69 +142,69 @@ func (c *clauses) SelectAppend(cl ColumnListExpression) Clauses {
 	return ret
 }
 
-func (c *clauses) SetSelect(cl ColumnListExpression) Clauses {
+func (c *selectClauses) SetSelect(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.selectDistinct = nil
 	ret.selectColumns = cl
 	return ret
 }
 
-func (c *clauses) SelectDistinct() ColumnListExpression {
+func (c *selectClauses) SelectDistinct() ColumnListExpression {
 	return c.selectDistinct
 }
-func (c *clauses) HasSelectDistinct() bool {
+func (c *selectClauses) HasSelectDistinct() bool {
 	return c.selectDistinct != nil
 }
-func (c *clauses) SetSelectDistinct(cl ColumnListExpression) Clauses {
+func (c *selectClauses) SetSelectDistinct(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.selectColumns = nil
 	ret.selectDistinct = cl
 	return ret
 }
 
-func (c *clauses) From() ColumnListExpression {
+func (c *selectClauses) From() ColumnListExpression {
 	return c.from
 }
-func (c *clauses) SetFrom(cl ColumnListExpression) Clauses {
+func (c *selectClauses) SetFrom(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.from = cl
 	return ret
 }
 
-func (c *clauses) HasAlias() bool {
+func (c *selectClauses) HasAlias() bool {
 	return c.alias != nil
 }
 
-func (c *clauses) Alias() IdentifierExpression {
+func (c *selectClauses) Alias() IdentifierExpression {
 	return c.alias
 }
 
-func (c *clauses) SetAlias(ie IdentifierExpression) Clauses {
+func (c *selectClauses) SetAlias(ie IdentifierExpression) SelectClauses {
 	ret := c.clone()
 	ret.alias = ie
 	return ret
 }
 
-func (c *clauses) Joins() JoinExpressions {
+func (c *selectClauses) Joins() JoinExpressions {
 	return c.joins
 }
-func (c *clauses) JoinsAppend(jc JoinExpression) Clauses {
+func (c *selectClauses) JoinsAppend(jc JoinExpression) SelectClauses {
 	ret := c.clone()
 	ret.joins = append(ret.joins, jc)
 	return ret
 }
 
-func (c *clauses) Where() ExpressionList {
+func (c *selectClauses) Where() ExpressionList {
 	return c.where
 }
 
-func (c *clauses) ClearWhere() Clauses {
+func (c *selectClauses) ClearWhere() SelectClauses {
 	ret := c.clone()
 	ret.where = nil
 	return ret
 }
 
-func (c *clauses) WhereAppend(expressions ...Expression) Clauses {
+func (c *selectClauses) WhereAppend(expressions ...Expression) SelectClauses {
 	expLen := len(expressions)
 	if expLen == 0 {
 		return c
@@ -224,17 +218,17 @@ func (c *clauses) WhereAppend(expressions ...Expression) Clauses {
 	return ret
 }
 
-func (c *clauses) Having() ExpressionList {
+func (c *selectClauses) Having() ExpressionList {
 	return c.having
 }
 
-func (c *clauses) ClearHaving() Clauses {
+func (c *selectClauses) ClearHaving() SelectClauses {
 	ret := c.clone()
 	ret.having = nil
 	return ret
 }
 
-func (c *clauses) HavingAppend(expressions ...Expression) Clauses {
+func (c *selectClauses) HavingAppend(expressions ...Expression) SelectClauses {
 	expLen := len(expressions)
 	if expLen == 0 {
 		return c
@@ -248,36 +242,36 @@ func (c *clauses) HavingAppend(expressions ...Expression) Clauses {
 	return ret
 }
 
-func (c *clauses) Lock() Lock {
+func (c *selectClauses) Lock() Lock {
 	return c.lock
 }
-func (c *clauses) SetLock(l Lock) Clauses {
+func (c *selectClauses) SetLock(l Lock) SelectClauses {
 	ret := c.clone()
 	ret.lock = l
 	return ret
 }
 
-func (c *clauses) Order() ColumnListExpression {
+func (c *selectClauses) Order() ColumnListExpression {
 	return c.order
 }
 
-func (c *clauses) HasOrder() bool {
+func (c *selectClauses) HasOrder() bool {
 	return c.order != nil
 }
 
-func (c *clauses) ClearOrder() Clauses {
+func (c *selectClauses) ClearOrder() SelectClauses {
 	ret := c.clone()
 	ret.order = nil
 	return ret
 }
 
-func (c *clauses) SetOrder(oes ...OrderedExpression) Clauses {
+func (c *selectClauses) SetOrder(oes ...OrderedExpression) SelectClauses {
 	ret := c.clone()
 	ret.order = NewOrderedColumnList(oes...)
 	return ret
 }
 
-func (c *clauses) OrderAppend(oes ...OrderedExpression) Clauses {
+func (c *selectClauses) OrderAppend(oes ...OrderedExpression) SelectClauses {
 	if c.order == nil {
 		return c.SetOrder(oes...)
 	}
@@ -286,7 +280,7 @@ func (c *clauses) OrderAppend(oes ...OrderedExpression) Clauses {
 	return ret
 }
 
-func (c *clauses) OrderPrepend(oes ...OrderedExpression) Clauses {
+func (c *selectClauses) OrderPrepend(oes ...OrderedExpression) SelectClauses {
 	if c.order == nil {
 		return c.SetOrder(oes...)
 	}
@@ -295,69 +289,55 @@ func (c *clauses) OrderPrepend(oes ...OrderedExpression) Clauses {
 	return ret
 }
 
-func (c *clauses) GroupBy() ColumnListExpression {
+func (c *selectClauses) GroupBy() ColumnListExpression {
 	return c.groupBy
 }
-func (c *clauses) SetGroupBy(cl ColumnListExpression) Clauses {
+func (c *selectClauses) SetGroupBy(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.groupBy = cl
 	return ret
 }
 
-func (c *clauses) Limit() interface{} {
+func (c *selectClauses) Limit() interface{} {
 	return c.limit
 }
 
-func (c *clauses) HasLimit() bool {
+func (c *selectClauses) HasLimit() bool {
 	return c.limit != nil
 }
 
-func (c *clauses) ClearLimit() Clauses {
+func (c *selectClauses) ClearLimit() SelectClauses {
 	ret := c.clone()
 	ret.limit = nil
 	return ret
 }
 
-func (c *clauses) SetLimit(limit interface{}) Clauses {
+func (c *selectClauses) SetLimit(limit interface{}) SelectClauses {
 	ret := c.clone()
 	ret.limit = limit
 	return ret
 }
 
-func (c *clauses) Offset() uint {
+func (c *selectClauses) Offset() uint {
 	return c.offset
 }
 
-func (c *clauses) ClearOffset() Clauses {
+func (c *selectClauses) ClearOffset() SelectClauses {
 	ret := c.clone()
 	ret.offset = 0
 	return ret
 }
-func (c *clauses) SetOffset(offset uint) Clauses {
+func (c *selectClauses) SetOffset(offset uint) SelectClauses {
 	ret := c.clone()
 	ret.offset = offset
 	return ret
 }
 
-func (c *clauses) Compounds() []CompoundExpression {
+func (c *selectClauses) Compounds() []CompoundExpression {
 	return c.compounds
 }
-func (c *clauses) CompoundsAppend(ce CompoundExpression) Clauses {
+func (c *selectClauses) CompoundsAppend(ce CompoundExpression) SelectClauses {
 	ret := c.clone()
 	ret.compounds = append(ret.compounds, ce)
-	return ret
-}
-
-func (c *clauses) Returning() ColumnListExpression {
-	return c.returning
-}
-
-func (c *clauses) HasReturning() bool {
-	return c.returning != nil
-}
-
-func (c *clauses) SetReturning(cl ColumnListExpression) Clauses {
-	ret := c.clone()
-	ret.returning = cl
 	return ret
 }

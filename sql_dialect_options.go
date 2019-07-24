@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/doug-martin/goqu/v7/exp"
+	"github.com/doug-martin/goqu/v8/exp"
 )
 
 type (
@@ -289,6 +289,7 @@ const (
 	ForSQLFragment
 	UpdateBeginSQLFragment
 	SourcesSQLFragment
+	IntoSQLFragment
 	UpdateSQLFragment
 	ReturningSQLFragment
 	InsertBeingSQLFragment
@@ -297,6 +298,7 @@ const (
 	TruncateSQLFragment
 )
 
+// nolint:gocyclo
 func (sf SQLFragmentType) String() string {
 	switch sf {
 	case CommonTableSQLFragment:
@@ -327,6 +329,8 @@ func (sf SQLFragmentType) String() string {
 		return "UpdateBeginSQLFragment"
 	case SourcesSQLFragment:
 		return "SourcesSQLFragment"
+	case IntoSQLFragment:
+		return "IntoSQLFragment"
 	case UpdateSQLFragment:
 		return "UpdateSQLFragment"
 	case ReturningSQLFragment:
@@ -490,7 +494,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		InsertSQLOrder: []SQLFragmentType{
 			CommonTableSQLFragment,
 			InsertBeingSQLFragment,
-			SourcesSQLFragment,
+			IntoSQLFragment,
 			InsertSQLFragment,
 			ReturningSQLFragment,
 		},

@@ -3,7 +3,7 @@ package goqu_test
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
 )
 
 func ExampleRegisterDialect() {

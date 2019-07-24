@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -13,7 +13,7 @@ type mysqlDialectSuite struct {
 	suite.Suite
 }
 
-func (mds *mysqlDialectSuite) GetDs(table string) *goqu.Dataset {
+func (mds *mysqlDialectSuite) GetDs(table string) *goqu.SelectDataset {
 	return goqu.Dialect("mysql").From(table)
 }
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/doug-martin/goqu/v7/exec"
+	"github.com/doug-martin/goqu/v8/exec"
 )
 
 type (
@@ -40,8 +40,8 @@ type (
 //      import (
 //          "database/sql"
 //          "fmt"
-//          "github.com/doug-martin/goqu/v7"
-//          _ "github.com/doug-martin/goqu/v7/adapters/postgres"
+//          "github.com/doug-martin/goqu/v8"
+//          _ "github.com/doug-martin/goqu/v8/adapters/postgres"
 //          _ "github.com/lib/pq"
 //      )
 //
@@ -107,8 +107,28 @@ func (d *Database) WithTx(fn func(*TxDatabase) error) error {
 //          fmt.Printf("%+v", ids)
 //
 // from...: Sources for you dataset, could be table names (strings), a goqu.Literal or another goqu.Dataset
-func (d *Database) From(from ...interface{}) *Dataset {
+func (d *Database) From(from ...interface{}) *SelectDataset {
 	return newDataset(d.dialect, d.queryFactory()).From(from...)
+}
+
+func (d *Database) Select(cols ...interface{}) *SelectDataset {
+	return newDataset(d.dialect, d.queryFactory()).Select(cols...)
+}
+
+func (d *Database) Update(table interface{}) *UpdateDataset {
+	return newUpdateDataset(d.dialect, d.queryFactory()).Table(table)
+}
+
+func (d *Database) Insert(table interface{}) *InsertDataset {
+	return newInsertDataset(d.dialect, d.queryFactory()).Into(table)
+}
+
+func (d *Database) Delete(table interface{}) *DeleteDataset {
+	return newDeleteDataset(d.dialect, d.queryFactory()).From(table)
+}
+
+func (d *Database) Truncate(table ...interface{}) *TruncateDataset {
+	return newTruncateDataset(d.dialect, d.queryFactory()).Table(table...)
 }
 
 // Sets the logger for to use when logging queries
@@ -437,8 +457,28 @@ func (td *TxDatabase) Dialect() string {
 }
 
 // Creates a new Dataset for querying a Database.
-func (td *TxDatabase) From(cols ...interface{}) *Dataset {
+func (td *TxDatabase) From(cols ...interface{}) *SelectDataset {
 	return newDataset(td.dialect, td.queryFactory()).From(cols...)
+}
+
+func (td *TxDatabase) Select(cols ...interface{}) *SelectDataset {
+	return newDataset(td.dialect, td.queryFactory()).Select(cols...)
+}
+
+func (td *TxDatabase) Update(table interface{}) *UpdateDataset {
+	return newUpdateDataset(td.dialect, td.queryFactory()).Table(table)
+}
+
+func (td *TxDatabase) Insert(table interface{}) *InsertDataset {
+	return newInsertDataset(td.dialect, td.queryFactory()).Into(table)
+}
+
+func (td *TxDatabase) Delete(table interface{}) *DeleteDataset {
+	return newDeleteDataset(td.dialect, td.queryFactory()).From(table)
+}
+
+func (td *TxDatabase) Truncate(table ...interface{}) *TruncateDataset {
+	return newTruncateDataset(td.dialect, td.queryFactory()).Table(table...)
 }
 
 // Sets the logger

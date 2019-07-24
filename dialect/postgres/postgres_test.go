@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
 
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
@@ -218,7 +218,7 @@ func (pt *postgresTest) TestInsert() {
 	ds := pt.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	_, err := ds.Insert(e).Exec()
+	_, err := ds.Insert().Rows(e).Executor().Exec()
 	assert.NoError(t, err)
 
 	var insertedEntry entry
@@ -233,19 +233,19 @@ func (pt *postgresTest) TestInsert() {
 		{Int: 13, Float: 1.300000, String: "1.300000", Time: now, Bool: false, Bytes: []byte("1.300000")},
 		{Int: 14, Float: 1.400000, String: "1.400000", Time: now, Bool: true, Bytes: []byte("1.400000")},
 	}
-	_, err = ds.Insert(entries).Exec()
+	_, err = ds.Insert().Rows(entries).Executor().Exec()
 	assert.NoError(t, err)
 
 	var newEntries []entry
 	assert.NoError(t, ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
 	assert.Len(t, newEntries, 4)
 
-	_, err = ds.Insert(
+	_, err = ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},
 		entry{Int: 16, Float: 1.600000, String: "1.600000", Time: now, Bool: true, Bytes: []byte("1.600000")},
 		entry{Int: 17, Float: 1.700000, String: "1.700000", Time: now, Bool: false, Bytes: []byte("1.700000")},
 		entry{Int: 18, Float: 1.800000, String: "1.800000", Time: now, Bool: true, Bytes: []byte("1.800000")},
-	).Exec()
+	).Executor().Exec()
 	assert.NoError(t, err)
 
 	newEntries = newEntries[0:0]
@@ -258,30 +258,30 @@ func (pt *postgresTest) TestInsertReturning() {
 	ds := pt.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	found, err := ds.Returning(goqu.Star()).Insert(e).ScanStruct(&e)
+	found, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.True(t, e.ID > 0)
 
 	var ids []uint32
-	assert.NoError(t, ds.Returning("id").Insert([]entry{
+	assert.NoError(t, ds.Insert().Rows([]entry{
 		{Int: 11, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")},
 		{Int: 12, Float: 1.200000, String: "1.200000", Time: now, Bool: true, Bytes: []byte("1.200000")},
 		{Int: 13, Float: 1.300000, String: "1.300000", Time: now, Bool: false, Bytes: []byte("1.300000")},
 		{Int: 14, Float: 1.400000, String: "1.400000", Time: now, Bool: true, Bytes: []byte("1.400000")},
-	}).ScanVals(&ids))
+	}).Returning("id").Executor().ScanVals(&ids))
 	assert.Len(t, ids, 4)
 	for _, id := range ids {
 		assert.True(t, id > 0)
 	}
 
 	var ints []int64
-	assert.NoError(t, ds.Returning("int").Insert(
+	assert.NoError(t, ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},
 		entry{Int: 16, Float: 1.600000, String: "1.600000", Time: now, Bool: true, Bytes: []byte("1.600000")},
 		entry{Int: 17, Float: 1.700000, String: "1.700000", Time: now, Bool: false, Bytes: []byte("1.700000")},
 		entry{Int: 18, Float: 1.800000, String: "1.800000", Time: now, Bool: true, Bytes: []byte("1.800000")},
-	).ScanVals(&ints))
+	).Returning("int").Executor().ScanVals(&ints))
 	assert.True(t, found)
 	assert.Equal(t, ints, []int64{15, 16, 17, 18})
 }
@@ -294,7 +294,7 @@ func (pt *postgresTest) TestUpdate() {
 	assert.NoError(t, err)
 	assert.True(t, found)
 	e.Int = 11
-	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Update(e).Exec()
+	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Update().Set(e).Executor().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Where(goqu.C("int").Eq(11)).Count()
@@ -302,7 +302,10 @@ func (pt *postgresTest) TestUpdate() {
 	assert.Equal(t, count, int64(1))
 
 	var id uint32
-	found, err = ds.Where(goqu.C("int").Eq(11)).Returning("id").Update(goqu.Record{"int": 9}).ScanVal(&id)
+	found, err = ds.Where(goqu.C("int").Eq(11)).
+		Update().
+		Set(goqu.Record{"int": 9}).
+		Returning("id").Executor().ScanVal(&id)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, id, e.ID)
@@ -315,7 +318,7 @@ func (pt *postgresTest) TestDelete() {
 	found, err := ds.Where(goqu.C("int").Eq(9)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
-	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Exec()
+	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Executor().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Count()
@@ -334,49 +337,33 @@ func (pt *postgresTest) TestDelete() {
 	assert.NotEqual(t, e.ID, int64(0))
 
 	id = 0
-	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Returning("id").Delete().ScanVal(&id)
+	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Returning("id").Executor().ScanVal(&id)
 	assert.NoError(t, err)
 	assert.Equal(t, id, e.ID)
 }
 
-func (pt *postgresTest) TestInsertIgnore() {
-	t := pt.T()
-	ds := pt.db.From("entry")
-	now := time.Now()
-
-	// insert one
-	entries := []entry{
-		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
-		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
-		{Int: 10, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
-	}
-	_, err := ds.InsertIgnore(entries).Exec()
-	assert.NoError(t, err)
-
-	count, err := ds.Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(11))
-}
-
-func (pt *postgresTest) TestInsertConflict() {
+func (pt *postgresTest) TestInsert_OnConflict() {
 	t := pt.T()
 	ds := pt.db.From("entry")
 	now := time.Now()
 
 	// DO NOTHING insert
 	e := entry{Int: 10, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
-	_, err := ds.InsertConflict(goqu.DoNothing(), e).Exec()
+	_, err := ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
 	assert.NoError(t, err)
 
 	// DO NOTHING duplicate
 	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
-	_, err = ds.InsertConflict(goqu.DoNothing(), e).Exec()
+	_, err = ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
 	assert.NoError(t, err)
 
 	// DO NOTHING update
 	var entryActual entry
 	e2 := entry{Int: 0, String: "2.000000"}
-	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
+	_, err = ds.Insert().
+		Rows(e2).
+		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"})).
+		Executor().Exec()
 	assert.NoError(t, err)
 	_, err = ds.Where(goqu.C("int").Eq(0)).ScanStruct(&entryActual)
 	assert.NoError(t, err)
@@ -387,7 +374,11 @@ func (pt *postgresTest) TestInsertConflict() {
 		{Int: 1, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
 		{Int: 2, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
-	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("excluded.int").Eq(2)), entries).Exec()
+	_, err = ds.Insert().
+		Rows(entries).
+		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.I("excluded.int").Eq(2))).
+		Executor().
+		Exec()
 	assert.NoError(t, err)
 
 	var entry8, entry9 entry

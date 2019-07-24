@@ -1,3 +1,33 @@
+## v8.0.0
+
+A major change the the API was made in `v8` to seperate concerns between the different SQL statement types. 
+
+**Why the change?**
+
+1. There were feature requests that could not be cleanly implemented with everything in a single dataset. 
+2. Too much functionality was encapsulated in a single datastructure.
+    * It was unclear what methods could be used for each SQL statement type.
+    * Changing a feature for one statement type had the possiblity of breaking another statement type.
+    * Test coverage was decent but was almost solely concerned about SELECT statements, breaking them up allowed for focused testing on each statement type.
+    * Most the SQL generation methods (`ToInsertSQL`, `ToUpdateSQL` etc.) took arguments which lead to an ugly API that was not uniform for each statement type, and proved to be inflexible.
+
+**What Changed**
+
+There are now five dataset types, `SelectDataset`, `InsertDataset`, `UpdateDataset`, `DeleteDataset` and `TruncateDataset`
+
+Each dataset type has its own entry point.
+
+* `goqu.From`, `Database#From`, `DialectWrapper#From` - Create SELECT
+* `goqu.Insert`, `Database#Insert`, `DialectWrapper#Insert` - Create INSERT
+* `goqu.Update`, `Database#db.Update`, `DialectWrapper#Update` - Create UPDATE
+* `goqu.Delete`, `Database#Delete`, `DialectWrapper#Delete` - Create DELETE
+* `goqu.Truncate`, `Database#Truncate`, `DialectWrapper#Truncate` - Create TRUNCATE
+  
+`ToInsertSQL`, `ToUpdateSQL`, `ToDeleteSQL`, and `ToTruncateSQL` (and variations of them) methods have been removed from the `SelectDataset`. Instead use the `ToSQL` methods on each dataset type.
+
+Each dataset type will have an `Executor` and `ToSQL` method so a common interface can be created for each type.
+
+
 ## v7.4.0
 
 * [FIXED] literalTime use t.UTC() , This behavior is different from the original sql.DB [#106](https://github.com/doug-martin/goqu/issues/106) - [chen56](https://github.com/chen56)

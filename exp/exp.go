@@ -3,7 +3,7 @@ package exp
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v7/internal/sb"
+	"github.com/doug-martin/goqu/v8/internal/sb"
 )
 
 // Behaviors
@@ -130,6 +130,7 @@ type (
 type (
 	// Alternative to writing map[string]interface{}. Can be used for Inserts, Updates or Deletes
 	Record map[string]interface{}
+	Vals   []interface{}
 	// Parent of all expression types
 	Expression interface {
 		Clone() Expression
@@ -144,7 +145,7 @@ type (
 	AppendableExpression interface {
 		Expression
 		AppendSQL(b sb.SQLBuilder)
-		GetClauses() Clauses
+		GetClauses() SelectClauses
 	}
 	// Expression for Aliased expressions
 	//   I("a").As("b") -> "a" AS "b"
@@ -273,10 +274,6 @@ type (
 		SetCols(cols ColumnListExpression) InsertExpression
 		Vals() [][]interface{}
 		SetVals([][]interface{}) InsertExpression
-		OnConflict() ConflictExpression
-		SetOnConflict(ce ConflictExpression) InsertExpression
-		DoNothing() InsertExpression
-		DoUpdate(target string, update interface{}) InsertExpression
 	}
 
 	JoinType       int
