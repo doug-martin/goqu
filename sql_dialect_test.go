@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/doug-martin/goqu/v7/exp"
 	"github.com/doug-martin/goqu/v7/internal/errors"
 	"github.com/doug-martin/goqu/v7/internal/sb"
@@ -1175,28 +1177,36 @@ func (dts *dialectTestSuite) TestLiteral_BoolTypes() {
 func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
 	t := dts.T()
 	d := sqlDialect{DefaultDialectOptions()}
-	now := time.Now().UTC()
 	var nt *time.Time
+	asiaShanghai, err := time.LoadLocation("Asia/Shanghai")
+	require.NoError(t, err)
+	testDatas := []time.Time{
+		time.Now().UTC(),
+		time.Now().In(asiaShanghai),
+	}
 
-	b := sb.NewSQLBuilder(false)
-	d.Literal(b.Clear(), now)
-	dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
+	for _, n := range testDatas {
+		var now = n
+		b := sb.NewSQLBuilder(false)
+		d.Literal(b.Clear(), now)
+		dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
 
-	d.Literal(b.Clear(), &now)
-	dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
+		d.Literal(b.Clear(), &now)
+		dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
 
-	d.Literal(b.Clear(), nt)
-	dts.assertNotPreparedSQL(t, b, "NULL")
+		d.Literal(b.Clear(), nt)
+		dts.assertNotPreparedSQL(t, b, "NULL")
 
-	b = sb.NewSQLBuilder(true)
-	d.Literal(b.Clear(), now)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{now})
+		b = sb.NewSQLBuilder(true)
+		d.Literal(b.Clear(), now)
+		dts.assertPreparedSQL(t, b, "?", []interface{}{now})
 
-	d.Literal(b.Clear(), &now)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{now})
+		d.Literal(b.Clear(), &now)
+		dts.assertPreparedSQL(t, b, "?", []interface{}{now})
 
-	d.Literal(b.Clear(), nt)
-	dts.assertPreparedSQL(t, b, "NULL", emptyArgs)
+		d.Literal(b.Clear(), nt)
+		dts.assertPreparedSQL(t, b, "NULL", emptyArgs)
+	}
 }
 
 func (dts *dialectTestSuite) TestLiteral_NilTypes() {
