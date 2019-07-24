@@ -90,6 +90,15 @@ func (d *Database) BeginTx(ctx context.Context, opts *sql.TxOptions) (*TxDatabas
 	return tx, nil
 }
 
+// WithTx starts a new transaction and executes it in Wrap method
+func (d *Database) WithTx(fn func(*TxDatabase) error) error {
+	tx, err := d.Begin()
+	if err != nil {
+		return err
+	}
+	return tx.Wrap(func() error { return fn(tx) })
+}
+
 // Creates a new Dataset that uses the correct adapter and supports queries.
 //          var ids []uint32
 //          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
