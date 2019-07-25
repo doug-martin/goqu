@@ -5,6 +5,7 @@
   * [Set with `goqu.Record`](#set-record)
   * [Set with struct](#set-struct)
   * [Set with map](#set-map)
+  * [Multi Table](#from)
   * [Where](#where)
   * [Order](#order)
   * [Limit](#limit)
@@ -165,6 +166,50 @@ fmt.Println(sql, args)
 Output:
 ```
 UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+```
+
+<a name="from"></a>
+**[From / Multi Table](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.From)**
+
+`goqu` allows joining multiple tables in a update clause through `From`.
+
+**NOTE** The `sqlite3` adapter does not support a multi table syntax.
+
+`Postgres` Example 
+
+```go
+dialect := goqu.Dialect("postgres")
+
+ds := dialect.Update("table_one").
+    Set(goqu.Record{"foo": goqu.I("table_two.bar")}).
+    From("table_two").
+    Where(goqu.Ex{"table_one.id": goqu.I("table_two.id")})
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```sql
+UPDATE "table_one" SET "foo"="table_two"."bar" FROM "table_two" WHERE ("table_one"."id" = "table_two"."id")
+```
+
+`MySQL` Example
+
+```go
+dialect := goqu.Dialect("mysql")
+
+ds := dialect.Update("table_one").
+    Set(goqu.Record{"foo": goqu.I("table_two.bar")}).
+    From("table_two").
+    Where(goqu.Ex{"table_one.id": goqu.I("table_two.id")})
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+Output:
+```sql
+UPDATE `table_one`,`table_two` SET `foo`=`table_two`.`bar` WHERE (`table_one`.`id` = `table_two`.`id`)
 ```
 
 <a name="where"></a>

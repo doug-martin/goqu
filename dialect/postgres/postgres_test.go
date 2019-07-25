@@ -311,6 +311,17 @@ func (pt *postgresTest) TestUpdate() {
 	assert.Equal(t, id, e.ID)
 }
 
+func (pt *postgresTest) TestUpdateSQL_multipleTables() {
+	ds := pt.db.Update("test")
+	updateSQL, _, err := ds.
+		Set(goqu.Record{"foo": "bar"}).
+		From("test_2").
+		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))).
+		ToSQL()
+	pt.NoError(err)
+	pt.Equal(`UPDATE "test" SET "foo"='bar' FROM "test_2" WHERE ("test"."id" = "test_2"."test_id")`, updateSQL)
+}
+
 func (pt *postgresTest) TestDelete() {
 	t := pt.T()
 	ds := pt.db.From("entry")

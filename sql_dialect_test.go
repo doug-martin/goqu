@@ -11,7 +11,6 @@ import (
 	"github.com/doug-martin/goqu/v8/internal/errors"
 	"github.com/doug-martin/goqu/v8/internal/sb"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -59,30 +58,29 @@ type dialectTestSuite struct {
 	suite.Suite
 }
 
-func (dts *dialectTestSuite) assertNotPreparedSQL(t *testing.T, b sb.SQLBuilder, expectedSQL string) {
+func (dts *dialectTestSuite) assertNotPreparedSQL(b sb.SQLBuilder, expectedSQL string) {
 	actualSQL, actualArgs, err := b.ToSQL()
-	assert.NoError(t, err)
-	assert.Equal(t, expectedSQL, actualSQL)
-	assert.Empty(t, actualArgs)
+	dts.NoError(err)
+	dts.Equal(expectedSQL, actualSQL)
+	dts.Empty(actualArgs)
 }
 
 func (dts *dialectTestSuite) assertPreparedSQL(
-	t *testing.T,
 	b sb.SQLBuilder,
 	expectedSQL string,
 	expectedArgs []interface{},
 ) {
 	actualSQL, actualArgs, err := b.ToSQL()
-	assert.NoError(t, err)
-	assert.Equal(t, expectedSQL, actualSQL)
-	assert.Equal(t, expectedArgs, actualArgs)
+	dts.NoError(err)
+	dts.Equal(expectedSQL, actualSQL)
+	dts.Equal(expectedArgs, actualArgs)
 }
 
-func (dts *dialectTestSuite) assertErrorSQL(t *testing.T, b sb.SQLBuilder, errMsg string) {
+func (dts *dialectTestSuite) assertErrorSQL(b sb.SQLBuilder, errMsg string) {
 	actualSQL, actualArgs, err := b.ToSQL()
-	assert.EqualError(t, err, errMsg)
-	assert.Empty(t, actualSQL)
-	assert.Empty(t, actualArgs)
+	dts.EqualError(err, errMsg)
+	dts.Empty(actualSQL)
+	dts.Empty(actualArgs)
 }
 
 func (dts *dialectTestSuite) TestSupportsReturn() {
@@ -156,8 +154,6 @@ func (dts *dialectTestSuite) TestSupportsLimitOnDelete() {
 }
 
 func (dts *dialectTestSuite) TestUpdateBeginSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
@@ -167,22 +163,20 @@ func (dts *dialectTestSuite) TestUpdateBeginSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.UpdateBeginSQL(b)
-	dts.assertNotPreparedSQL(t, b, "UPDATE")
+	dts.assertNotPreparedSQL(b, "UPDATE")
 
 	d2.UpdateBeginSQL(b.Clear())
-	dts.assertNotPreparedSQL(t, b, "update")
+	dts.assertNotPreparedSQL(b, "update")
 
 	b = sb.NewSQLBuilder(true)
 	d.UpdateBeginSQL(b)
-	dts.assertPreparedSQL(t, b, "UPDATE", emptyArgs)
+	dts.assertPreparedSQL(b, "UPDATE", emptyArgs)
 
 	d2.UpdateBeginSQL(b.Clear())
-	dts.assertPreparedSQL(t, b, "update", emptyArgs)
+	dts.assertPreparedSQL(b, "update", emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestInsertBeginSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
@@ -192,22 +186,20 @@ func (dts *dialectTestSuite) TestInsertBeginSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertBeginSQL(b, nil)
-	dts.assertNotPreparedSQL(t, b, "INSERT INTO")
+	dts.assertNotPreparedSQL(b, "INSERT INTO")
 
 	d2.InsertBeginSQL(b.Clear(), nil)
-	dts.assertNotPreparedSQL(t, b, "insert into")
+	dts.assertNotPreparedSQL(b, "insert into")
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertBeginSQL(b, nil)
-	dts.assertPreparedSQL(t, b, "INSERT INTO", emptyArgs)
+	dts.assertPreparedSQL(b, "INSERT INTO", emptyArgs)
 
 	d2.InsertBeginSQL(b.Clear(), nil)
-	dts.assertPreparedSQL(t, b, "insert into", emptyArgs)
+	dts.assertPreparedSQL(b, "insert into", emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestInsertBeginSQL_WithConflictExpression() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.SupportsInsertIgnoreSyntax = true
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -220,22 +212,20 @@ func (dts *dialectTestSuite) TestInsertBeginSQL_WithConflictExpression() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertBeginSQL(b, ce)
-	dts.assertNotPreparedSQL(t, b, "INSERT IGNORE INTO")
+	dts.assertNotPreparedSQL(b, "INSERT IGNORE INTO")
 
 	d2.InsertBeginSQL(b.Clear(), ce)
-	dts.assertNotPreparedSQL(t, b, "insert ignore into")
+	dts.assertNotPreparedSQL(b, "insert ignore into")
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertBeginSQL(b, ce)
-	dts.assertPreparedSQL(t, b, "INSERT IGNORE INTO", emptyArgs)
+	dts.assertPreparedSQL(b, "INSERT IGNORE INTO", emptyArgs)
 
 	d2.InsertBeginSQL(b.Clear(), ce)
-	dts.assertPreparedSQL(t, b, "insert ignore into", emptyArgs)
+	dts.assertPreparedSQL(b, "insert ignore into", emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestDeleteBeginSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
@@ -245,22 +235,20 @@ func (dts *dialectTestSuite) TestDeleteBeginSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.DeleteBeginSQL(b)
-	dts.assertNotPreparedSQL(t, b, "DELETE")
+	dts.assertNotPreparedSQL(b, "DELETE")
 
 	d2.DeleteBeginSQL(b.Clear())
-	dts.assertNotPreparedSQL(t, b, "delete")
+	dts.assertNotPreparedSQL(b, "delete")
 
 	b = sb.NewSQLBuilder(true)
 	d.DeleteBeginSQL(b)
-	dts.assertPreparedSQL(t, b, "DELETE", emptyArgs)
+	dts.assertPreparedSQL(b, "DELETE", emptyArgs)
 
 	d2.DeleteBeginSQL(b.Clear())
-	dts.assertPreparedSQL(t, b, "delete", emptyArgs)
+	dts.assertPreparedSQL(b, "delete", emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestTruncateSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
@@ -274,58 +262,56 @@ func (dts *dialectTestSuite) TestTruncateSQL() {
 	cols := exp.NewColumnListExpression("a")
 	b := sb.NewSQLBuilder(false)
 	d.TruncateSQL(b, cols, exp.TruncateOptions{})
-	dts.assertNotPreparedSQL(t, b, `TRUNCATE "a"`)
+	dts.assertNotPreparedSQL(b, `TRUNCATE "a"`)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{})
-	dts.assertNotPreparedSQL(t, b, `truncate "a"`)
+	dts.assertNotPreparedSQL(b, `truncate "a"`)
 
 	d.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Identity: "restart"})
-	dts.assertNotPreparedSQL(t, b, `TRUNCATE "a" RESTART IDENTITY`)
+	dts.assertNotPreparedSQL(b, `TRUNCATE "a" RESTART IDENTITY`)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Identity: "restart"})
-	dts.assertNotPreparedSQL(t, b, `truncate "a" RESTART identity`)
+	dts.assertNotPreparedSQL(b, `truncate "a" RESTART identity`)
 
 	d.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Cascade: true})
-	dts.assertNotPreparedSQL(t, b, `TRUNCATE "a" CASCADE`)
+	dts.assertNotPreparedSQL(b, `TRUNCATE "a" CASCADE`)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Cascade: true})
-	dts.assertNotPreparedSQL(t, b, `truncate "a" cascade`)
+	dts.assertNotPreparedSQL(b, `truncate "a" cascade`)
 
 	d.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Restrict: true})
-	dts.assertNotPreparedSQL(t, b, `TRUNCATE "a" RESTRICT`)
+	dts.assertNotPreparedSQL(b, `TRUNCATE "a" RESTRICT`)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Restrict: true})
-	dts.assertNotPreparedSQL(t, b, `truncate "a" restrict`)
+	dts.assertNotPreparedSQL(b, `truncate "a" restrict`)
 
 	b = sb.NewSQLBuilder(true)
 	d.TruncateSQL(b, cols, exp.TruncateOptions{})
-	dts.assertPreparedSQL(t, b, `TRUNCATE "a"`, emptyArgs)
+	dts.assertPreparedSQL(b, `TRUNCATE "a"`, emptyArgs)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{})
-	dts.assertPreparedSQL(t, b, `truncate "a"`, emptyArgs)
+	dts.assertPreparedSQL(b, `truncate "a"`, emptyArgs)
 
 	d.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Identity: "restart"})
-	dts.assertPreparedSQL(t, b, `TRUNCATE "a" RESTART IDENTITY`, emptyArgs)
+	dts.assertPreparedSQL(b, `TRUNCATE "a" RESTART IDENTITY`, emptyArgs)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Identity: "restart"})
-	dts.assertPreparedSQL(t, b, `truncate "a" RESTART identity`, emptyArgs)
+	dts.assertPreparedSQL(b, `truncate "a" RESTART identity`, emptyArgs)
 
 	d.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Cascade: true})
-	dts.assertPreparedSQL(t, b, `TRUNCATE "a" CASCADE`, emptyArgs)
+	dts.assertPreparedSQL(b, `TRUNCATE "a" CASCADE`, emptyArgs)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Cascade: true})
-	dts.assertPreparedSQL(t, b, `truncate "a" cascade`, emptyArgs)
+	dts.assertPreparedSQL(b, `truncate "a" cascade`, emptyArgs)
 
 	d.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Restrict: true})
-	dts.assertPreparedSQL(t, b, `TRUNCATE "a" RESTRICT`, emptyArgs)
+	dts.assertPreparedSQL(b, `TRUNCATE "a" RESTRICT`, emptyArgs)
 
 	d2.TruncateSQL(b.Clear(), cols, exp.TruncateOptions{Restrict: true})
-	dts.assertPreparedSQL(t, b, `truncate "a" restrict`, emptyArgs)
+	dts.assertPreparedSQL(b, `truncate "a" restrict`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_empty() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
@@ -336,15 +322,13 @@ func (dts *dialectTestSuite) TestInsertSQL_empty() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, ic)
-	dts.assertNotPreparedSQL(t, b, " DEFAULT VALUES")
+	dts.assertNotPreparedSQL(b, " DEFAULT VALUES")
 
 	d2.InsertSQL(b.Clear(), ic)
-	dts.assertNotPreparedSQL(t, b, " default values")
+	dts.assertNotPreparedSQL(b, " default values")
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_nilValues() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
@@ -358,15 +342,13 @@ func (dts *dialectTestSuite) TestInsertSQL_nilValues() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, ic)
-	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES (NULL)`)
+	dts.assertNotPreparedSQL(b, ` ("a") VALUES (NULL)`)
 
 	d2.InsertSQL(b.Clear(), ic)
-	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES (NULL)`)
+	dts.assertNotPreparedSQL(b, ` ("a") VALUES (NULL)`)
 }
 
 func (dts *dialectTestSuite) TestInsertSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
@@ -394,21 +376,19 @@ func (dts *dialectTestSuite) TestInsertSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, ic)
-	dts.assertNotPreparedSQL(t, b, ` {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`)
+	dts.assertNotPreparedSQL(b, ` {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`)
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertSQL(b, ic)
-	dts.assertPreparedSQL(t, b, ` {"a"; "b"} values {#; #}; {#; #}; {#; #}`, []interface{}{
+	dts.assertPreparedSQL(b, ` {"a"; "b"} values {#; #}; {#; #}; {#; #}`, []interface{}{
 		"a1", "b1", "a2", "b2", "a3", "b3",
 	})
 
 	d.InsertSQL(b.Clear(), bic)
-	dts.assertErrorSQL(t, b, "goqu: rows with different value length expected 1 got 2")
+	dts.assertErrorSQL(b, "goqu: rows with different value length expected 1 got 2")
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_withRows() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
@@ -435,21 +415,19 @@ func (dts *dialectTestSuite) TestInsertSQL_withRows() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, ic)
-	dts.assertNotPreparedSQL(t, b, ` {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`)
+	dts.assertNotPreparedSQL(b, ` {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`)
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertSQL(b, ic)
-	dts.assertPreparedSQL(t, b, ` {"a"; "b"} values {#; #}; {#; #}; {#; #}`, []interface{}{
+	dts.assertPreparedSQL(b, ` {"a"; "b"} values {#; #}; {#; #}; {#; #}`, []interface{}{
 		"a1", "b1", "a2", "b2", "a3", "b3",
 	})
 
 	d.InsertSQL(b.Clear(), bic)
-	dts.assertErrorSQL(t, b, "goqu: rows with different value length expected 1 got 2")
+	dts.assertErrorSQL(b, "goqu: rows with different value length expected 1 got 2")
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_colsWithFrom() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
@@ -466,16 +444,14 @@ func (dts *dialectTestSuite) TestInsertSQL_colsWithFrom() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, ic)
-	dts.assertNotPreparedSQL(t, b, ` {"a"; "b"} select c, d from test where a = 'b'`)
+	dts.assertNotPreparedSQL(b, ` {"a"; "b"} select c, d from test where a = 'b'`)
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertSQL(b, ic)
-	dts.assertPreparedSQL(t, b, ` {"a"; "b"} select c, d from test where a = 'b'`, emptyArgs)
+	dts.assertPreparedSQL(b, ` {"a"; "b"} select c, d from test where a = 'b'`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_withFrom() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
@@ -491,16 +467,14 @@ func (dts *dialectTestSuite) TestInsertSQL_withFrom() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, ic)
-	dts.assertNotPreparedSQL(t, b, ` select c, d from test where a = 'b'`)
+	dts.assertNotPreparedSQL(b, ` select c, d from test where a = 'b'`)
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertSQL(b, ic)
-	dts.assertPreparedSQL(t, b, ` select c, d from test where a = 'b'`, emptyArgs)
+	dts.assertPreparedSQL(b, ` select c, d from test where a = 'b'`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_onConflict() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.ConflictFragment = []byte(" on conflict")
@@ -525,33 +499,31 @@ func (dts *dialectTestSuite) TestInsertSQL_onConflict() {
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertSQL(b, icnoc)
-	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3')`)
+	dts.assertNotPreparedSQL(b, ` ("a") VALUES ('a1'), ('a2'), ('a3')`)
 
 	d.InsertSQL(b.Clear(), icdn)
-	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict do nothing`)
+	dts.assertNotPreparedSQL(b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict do nothing`)
 
 	d.InsertSQL(b.Clear(), icdu)
 	dts.assertNotPreparedSQL(
-		t,
 		b,
 		` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict (test) do update set "a"='b'`,
 	)
 
 	d.InsertSQL(b.Clear(), icdoc)
-	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict on constraint test do update set "a"='b'`)
+	dts.assertNotPreparedSQL(b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict on constraint test do update set "a"='b'`)
 
 	d.InsertSQL(b.Clear(), icduw)
-	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`)
+	dts.assertNotPreparedSQL(b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`)
 
 	b = sb.NewSQLBuilder(true)
 	d.InsertSQL(b, icdn)
-	dts.assertPreparedSQL(t, b, ` ("a") VALUES (?), (?), (?) on conflict do nothing`, []interface{}{
+	dts.assertPreparedSQL(b, ` ("a") VALUES (?), (?), (?) on conflict do nothing`, []interface{}{
 		"a1", "a2", "a3",
 	})
 
 	d.InsertSQL(b.Clear(), icdu)
 	dts.assertPreparedSQL(
-		t,
 		b,
 		` ("a") VALUES (?), (?), (?) on conflict (test) do update set "a"=?`,
 		[]interface{}{"a1", "a2", "a3", "b"},
@@ -559,11 +531,66 @@ func (dts *dialectTestSuite) TestInsertSQL_onConflict() {
 
 	d.InsertSQL(b.Clear(), icduw)
 	dts.assertPreparedSQL(
-		t,
 		b,
 		` ("a") VALUES (?), (?), (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
 		[]interface{}{"a1", "a2", "a3", "b"},
 	)
+}
+
+func (dts *dialectTestSuite) TestToUpdateSQL_empty() {
+	opts := DefaultDialectOptions()
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+	uc := exp.NewUpdateClauses()
+
+	b := sb.NewSQLBuilder(false)
+	d.ToUpdateSQL(b, uc)
+	dts.Equal(errNoSourceForUpdate, b.Error())
+
+}
+
+func (dts *dialectTestSuite) TestToUpdateSQL_noSetValues() {
+	opts := DefaultDialectOptions()
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+	uc := exp.NewUpdateClauses().SetTable(exp.NewIdentifierExpression("", "test", ""))
+
+	b := sb.NewSQLBuilder(false)
+	d.ToUpdateSQL(b, uc)
+	dts.Equal(errNoSetValuesForUpdate, b.Error())
+}
+
+func (dts *dialectTestSuite) TestToUpdateSQL_withFrom() {
+	opts := DefaultDialectOptions()
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+	uc := exp.NewUpdateClauses().
+		SetTable(exp.NewIdentifierExpression("", "test", "")).
+		SetSetValues(exp.Record{"foo": "bar"}).
+		SetFrom(exp.NewColumnListExpression("other_test"))
+
+	b := sb.NewSQLBuilder(false)
+	d.ToUpdateSQL(b, uc)
+	dts.NoError(b.Error())
+	dts.assertNotPreparedSQL(b, `UPDATE "test" SET "foo"='bar' FROM "other_test"`)
+
+	opts = DefaultDialectOptions()
+	opts.UseFromClauseForMultipleUpdateTables = false
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
+	d.ToUpdateSQL(b.Clear(), uc)
+	dts.NoError(b.Error())
+	dts.assertNotPreparedSQL(b, `UPDATE "test","other_test" SET "foo"='bar'`)
+
+	opts = DefaultDialectOptions()
+	opts.SupportsMultipleUpdateTables = false
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
+	d.ToUpdateSQL(b.Clear(), uc)
+	dts.EqualError(b.Error(), "goqu: test dialect does not support multiple tables in UPDATE")
+
+	opts = DefaultDialectOptions()
+	opts.SupportsMultipleUpdateTables = false
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
+	d.ToUpdateSQL(b.Clear(), uc.SetFrom(nil))
+	dts.NoError(b.Error())
+	dts.assertNotPreparedSQL(b, `UPDATE "test" SET "foo"='bar'`)
+
 }
 
 func (dts *dialectTestSuite) TestUpdateExpressionsSQL() {
@@ -578,16 +605,14 @@ func (dts *dialectTestSuite) TestUpdateExpressionsSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.UpdateExpressionsSQL(b, u...)
-	dts.assertNotPreparedSQL(t, b, ` set "a"='b'`)
+	dts.assertNotPreparedSQL(b, ` set "a"='b'`)
 
 	b = sb.NewSQLBuilder(true)
 	d.UpdateExpressionsSQL(b, u...)
-	dts.assertPreparedSQL(t, b, ` set "a"=?`, []interface{}{"b"})
+	dts.assertPreparedSQL(b, ` set "a"=?`, []interface{}{"b"})
 }
 
 func (dts *dialectTestSuite) TestSelectSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SelectClause = []byte("select")
@@ -597,22 +622,20 @@ func (dts *dialectTestSuite) TestSelectSQL() {
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
 	d.SelectSQL(b, ec)
-	dts.assertNotPreparedSQL(t, b, `select #`)
+	dts.assertNotPreparedSQL(b, `select #`)
 
 	d.SelectSQL(b.Clear(), cs)
-	dts.assertNotPreparedSQL(t, b, `select "a", "b"`)
+	dts.assertNotPreparedSQL(b, `select "a", "b"`)
 
 	b = sb.NewSQLBuilder(true)
 	d.SelectSQL(b, ec)
-	dts.assertPreparedSQL(t, b, `select #`, emptyArgs)
+	dts.assertPreparedSQL(b, `select #`, emptyArgs)
 
 	d.SelectSQL(b.Clear(), cs)
-	dts.assertPreparedSQL(t, b, `select "a", "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, `select "a", "b"`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestSelectDistinctSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SelectClause = []byte("select")
@@ -622,22 +645,20 @@ func (dts *dialectTestSuite) TestSelectDistinctSQL() {
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
 	d.SelectDistinctSQL(b, ec)
-	dts.assertNotPreparedSQL(t, b, `select distinct `)
+	dts.assertNotPreparedSQL(b, `select distinct `)
 
 	d.SelectDistinctSQL(b.Clear(), cs)
-	dts.assertNotPreparedSQL(t, b, `select distinct "a", "b"`)
+	dts.assertNotPreparedSQL(b, `select distinct "a", "b"`)
 
 	b = sb.NewSQLBuilder(true)
 	d.SelectDistinctSQL(b.Clear(), ec)
-	dts.assertPreparedSQL(t, b, `select distinct `, emptyArgs)
+	dts.assertPreparedSQL(b, `select distinct `, emptyArgs)
 
 	d.SelectDistinctSQL(b.Clear(), cs)
-	dts.assertPreparedSQL(t, b, `select distinct "a", "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, `select distinct "a", "b"`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestReturningSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.ReturningFragment = []byte(" returning ")
@@ -646,22 +667,20 @@ func (dts *dialectTestSuite) TestReturningSQL() {
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
 	d.ReturningSQL(b, ec)
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	d.ReturningSQL(b.Clear(), cs)
-	dts.assertNotPreparedSQL(t, b, ` returning "a", "b"`)
+	dts.assertNotPreparedSQL(b, ` returning "a", "b"`)
 
 	b = sb.NewSQLBuilder(true)
 	d.ReturningSQL(b.Clear(), ec)
-	dts.assertPreparedSQL(t, b, ``, emptyArgs)
+	dts.assertPreparedSQL(b, ``, emptyArgs)
 
 	d.ReturningSQL(b.Clear(), cs)
-	dts.assertPreparedSQL(t, b, ` returning "a", "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, ` returning "a", "b"`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestFromSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.FromFragment = []byte(" from")
@@ -670,44 +689,40 @@ func (dts *dialectTestSuite) TestFromSQL() {
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
 	d.FromSQL(b, ec)
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	d.FromSQL(b.Clear(), cs)
-	dts.assertNotPreparedSQL(t, b, ` from "a", "b"`)
+	dts.assertNotPreparedSQL(b, ` from "a", "b"`)
 
 	b = sb.NewSQLBuilder(true)
 	d.FromSQL(b.Clear(), ec)
-	dts.assertPreparedSQL(t, b, ``, emptyArgs)
+	dts.assertPreparedSQL(b, ``, emptyArgs)
 
 	d.FromSQL(b.Clear(), cs)
-	dts.assertPreparedSQL(t, b, ` from "a", "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, ` from "a", "b"`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestSourcesSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ec := exp.NewColumnListExpression()
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
 	d.SourcesSQL(b, ec)
-	dts.assertNotPreparedSQL(t, b, ` `)
+	dts.assertNotPreparedSQL(b, ` `)
 
 	d.SourcesSQL(b.Clear(), cs)
-	dts.assertNotPreparedSQL(t, b, ` "a", "b"`)
+	dts.assertNotPreparedSQL(b, ` "a", "b"`)
 
 	b = sb.NewSQLBuilder(true)
 	d.SourcesSQL(b.Clear(), ec)
-	dts.assertPreparedSQL(t, b, ` `, emptyArgs)
+	dts.assertPreparedSQL(b, ` `, emptyArgs)
 
 	d.SourcesSQL(b.Clear(), cs)
-	dts.assertPreparedSQL(t, b, ` "a", "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, ` "a", "b"`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestJoinSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ti := exp.NewIdentifierExpression("", "test", "")
@@ -717,33 +732,32 @@ func (dts *dialectTestSuite) TestJoinSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{uj})
-	dts.assertNotPreparedSQL(t, b, ` NATURAL JOIN "test"`)
+	dts.assertNotPreparedSQL(b, ` NATURAL JOIN "test"`)
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{cjo})
-	dts.assertNotPreparedSQL(t, b, ` LEFT JOIN "test" ON ("a" = 'foo')`)
+	dts.assertNotPreparedSQL(b, ` LEFT JOIN "test" ON ("a" = 'foo')`)
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{cju})
-	dts.assertNotPreparedSQL(t, b, ` LEFT JOIN "test" USING ("a")`)
+	dts.assertNotPreparedSQL(b, ` LEFT JOIN "test" USING ("a")`)
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{uj, cjo, cju})
-	dts.assertNotPreparedSQL(t, b, ` NATURAL JOIN "test" LEFT JOIN "test" ON ("a" = 'foo') LEFT JOIN "test" USING ("a")`)
+	dts.assertNotPreparedSQL(b, ` NATURAL JOIN "test" LEFT JOIN "test" ON ("a" = 'foo') LEFT JOIN "test" USING ("a")`)
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{})
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{uj})
-	dts.assertPreparedSQL(t, b, ` NATURAL JOIN "test"`, emptyArgs)
+	dts.assertPreparedSQL(b, ` NATURAL JOIN "test"`, emptyArgs)
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{cjo})
-	dts.assertPreparedSQL(t, b, ` LEFT JOIN "test" ON ("a" = ?)`, []interface{}{"foo"})
+	dts.assertPreparedSQL(b, ` LEFT JOIN "test" ON ("a" = ?)`, []interface{}{"foo"})
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{cju})
-	dts.assertPreparedSQL(t, b, ` LEFT JOIN "test" USING ("a")`, emptyArgs)
+	dts.assertPreparedSQL(b, ` LEFT JOIN "test" USING ("a")`, emptyArgs)
 
 	d.JoinSQL(b.Clear(), exp.JoinExpressions{uj, cjo, cju})
 	dts.assertPreparedSQL(
-		t,
 		b,
 		` NATURAL JOIN "test" LEFT JOIN "test" ON ("a" = ?) LEFT JOIN "test" USING ("a")`,
 		[]interface{}{"foo"},
@@ -761,29 +775,27 @@ func (dts *dialectTestSuite) TestJoinSQL() {
 
 	b = sb.NewSQLBuilder(false)
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{uj})
-	dts.assertNotPreparedSQL(t, b, ` natural join "test"`)
+	dts.assertNotPreparedSQL(b, ` natural join "test"`)
 
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{cjo})
-	dts.assertNotPreparedSQL(t, b, ` left join "test" on ("a" = 'foo')`)
+	dts.assertNotPreparedSQL(b, ` left join "test" on ("a" = 'foo')`)
 
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{cju})
-	dts.assertNotPreparedSQL(t, b, ` left join "test" using ("a")`)
+	dts.assertNotPreparedSQL(b, ` left join "test" using ("a")`)
 
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{uj, cjo, cju})
-	dts.assertNotPreparedSQL(t, b, ` natural join "test" left join "test" on ("a" = 'foo') left join "test" using ("a")`)
+	dts.assertNotPreparedSQL(b, ` natural join "test" left join "test" on ("a" = 'foo') left join "test" using ("a")`)
 
 	rj := exp.NewConditionedJoinExpression(exp.RightJoinType, ti, exp.NewJoinUsingCondition(exp.NewIdentifierExpression("", "", "a")))
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{rj})
-	dts.assertErrorSQL(t, b, "goqu: dialect does not support RightJoinType")
+	dts.assertErrorSQL(b, "goqu: dialect does not support RightJoinType")
 
 	badJoin := exp.NewConditionedJoinExpression(exp.LeftJoinType, ti, exp.NewJoinUsingCondition())
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{badJoin})
-	dts.assertErrorSQL(t, b, "goqu: join condition required for conditioned join LeftJoinType")
+	dts.assertErrorSQL(b, "goqu: join condition required for conditioned join LeftJoinType")
 }
 
 func (dts *dialectTestSuite) TestWhereSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.WhereFragment = []byte(" where ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -792,25 +804,23 @@ func (dts *dialectTestSuite) TestWhereSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.WhereSQL(b, exp.NewExpressionList(exp.AndType, w))
-	dts.assertNotPreparedSQL(t, b, ` where ("a" = 'b')`)
+	dts.assertNotPreparedSQL(b, ` where ("a" = 'b')`)
 
 	d.WhereSQL(b.Clear(), exp.NewExpressionList(exp.AndType, w, w2))
-	dts.assertNotPreparedSQL(t, b, ` where (("a" = 'b') AND ("b" = 'c'))`)
+	dts.assertNotPreparedSQL(b, ` where (("a" = 'b') AND ("b" = 'c'))`)
 
 	d.WhereSQL(b.Clear(), exp.NewExpressionList(exp.AndType))
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.WhereSQL(b.Clear(), exp.NewExpressionList(exp.AndType, w))
-	dts.assertPreparedSQL(t, b, ` where ("a" = ?)`, []interface{}{"b"})
+	dts.assertPreparedSQL(b, ` where ("a" = ?)`, []interface{}{"b"})
 
 	d.WhereSQL(b.Clear(), exp.NewExpressionList(exp.AndType, w, w2))
-	dts.assertPreparedSQL(t, b, ` where (("a" = ?) AND ("b" = ?))`, []interface{}{"b", "c"})
+	dts.assertPreparedSQL(b, ` where (("a" = ?) AND ("b" = ?))`, []interface{}{"b", "c"})
 }
 
 func (dts *dialectTestSuite) TestGroupBySQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.GroupByFragment = []byte(" group by ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -819,24 +829,22 @@ func (dts *dialectTestSuite) TestGroupBySQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.GroupBySQL(b.Clear(), exp.NewColumnListExpression(c1))
-	dts.assertNotPreparedSQL(t, b, ` group by "a"`)
+	dts.assertNotPreparedSQL(b, ` group by "a"`)
 
 	d.GroupBySQL(b.Clear(), exp.NewColumnListExpression(c1, c2))
-	dts.assertNotPreparedSQL(t, b, ` group by "a", "b"`)
+	dts.assertNotPreparedSQL(b, ` group by "a", "b"`)
 
 	d.GroupBySQL(b.Clear(), exp.NewColumnListExpression())
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.GroupBySQL(b.Clear(), exp.NewColumnListExpression(c1))
-	dts.assertPreparedSQL(t, b, ` group by "a"`, emptyArgs)
+	dts.assertPreparedSQL(b, ` group by "a"`, emptyArgs)
 
 	d.GroupBySQL(b.Clear(), exp.NewColumnListExpression(c1, c2))
-	dts.assertPreparedSQL(t, b, ` group by "a", "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, ` group by "a", "b"`, emptyArgs)
 }
 func (dts *dialectTestSuite) TestHavingSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.HavingFragment = []byte(" having ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -845,25 +853,23 @@ func (dts *dialectTestSuite) TestHavingSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.HavingSQL(b, exp.NewExpressionList(exp.AndType, w))
-	dts.assertNotPreparedSQL(t, b, ` having ("a" = 'b')`)
+	dts.assertNotPreparedSQL(b, ` having ("a" = 'b')`)
 
 	d.HavingSQL(b.Clear(), exp.NewExpressionList(exp.AndType, w, w2))
-	dts.assertNotPreparedSQL(t, b, ` having (("a" = 'b') AND ("b" = 'c'))`)
+	dts.assertNotPreparedSQL(b, ` having (("a" = 'b') AND ("b" = 'c'))`)
 
 	d.HavingSQL(b.Clear(), exp.NewExpressionList(exp.AndType))
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.HavingSQL(b.Clear(), exp.NewExpressionList(exp.AndType, w))
-	dts.assertPreparedSQL(t, b, ` having ("a" = ?)`, []interface{}{"b"})
+	dts.assertPreparedSQL(b, ` having ("a" = ?)`, []interface{}{"b"})
 
 	d.HavingSQL(b.Clear(), exp.NewExpressionList(exp.AndType, w, w2))
-	dts.assertPreparedSQL(t, b, ` having (("a" = ?) AND ("b" = ?))`, []interface{}{"b", "c"})
+	dts.assertPreparedSQL(b, ` having (("a" = ?) AND ("b" = ?))`, []interface{}{"b", "c"})
 }
 
 func (dts *dialectTestSuite) TestOrderSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	// override fragments to ensure they are used
 	opts.OrderByFragment = []byte(" order by ")
@@ -882,85 +888,81 @@ func (dts *dialectTestSuite) TestOrderSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.OrderSQL(b, exp.NewColumnListExpression(oa))
-	dts.assertNotPreparedSQL(t, b, ` order by "a" asc`)
+	dts.assertNotPreparedSQL(b, ` order by "a" asc`)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(oanf))
-	dts.assertNotPreparedSQL(t, b, ` order by "a" asc nulls first`)
+	dts.assertNotPreparedSQL(b, ` order by "a" asc nulls first`)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(oanl))
-	dts.assertNotPreparedSQL(t, b, ` order by "a" asc nulls last`)
+	dts.assertNotPreparedSQL(b, ` order by "a" asc nulls last`)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(od))
-	dts.assertNotPreparedSQL(t, b, ` order by "a" desc`)
+	dts.assertNotPreparedSQL(b, ` order by "a" desc`)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(odnf))
-	dts.assertNotPreparedSQL(t, b, ` order by "a" desc nulls first`)
+	dts.assertNotPreparedSQL(b, ` order by "a" desc nulls first`)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(odnl))
-	dts.assertNotPreparedSQL(t, b, ` order by "a" desc nulls last`)
+	dts.assertNotPreparedSQL(b, ` order by "a" desc nulls last`)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression())
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.OrderSQL(b, exp.NewColumnListExpression(oa))
-	dts.assertPreparedSQL(t, b, ` order by "a" asc`, emptyArgs)
+	dts.assertPreparedSQL(b, ` order by "a" asc`, emptyArgs)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(oanf))
-	dts.assertPreparedSQL(t, b, ` order by "a" asc nulls first`, emptyArgs)
+	dts.assertPreparedSQL(b, ` order by "a" asc nulls first`, emptyArgs)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(oanl))
-	dts.assertPreparedSQL(t, b, ` order by "a" asc nulls last`, emptyArgs)
+	dts.assertPreparedSQL(b, ` order by "a" asc nulls last`, emptyArgs)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(od))
-	dts.assertPreparedSQL(t, b, ` order by "a" desc`, emptyArgs)
+	dts.assertPreparedSQL(b, ` order by "a" desc`, emptyArgs)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(odnf))
-	dts.assertPreparedSQL(t, b, ` order by "a" desc nulls first`, emptyArgs)
+	dts.assertPreparedSQL(b, ` order by "a" desc nulls first`, emptyArgs)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression(odnl))
-	dts.assertPreparedSQL(t, b, ` order by "a" desc nulls last`, emptyArgs)
+	dts.assertPreparedSQL(b, ` order by "a" desc nulls last`, emptyArgs)
 
 	d.OrderSQL(b.Clear(), exp.NewColumnListExpression())
-	dts.assertPreparedSQL(t, b, ``, emptyArgs)
+	dts.assertPreparedSQL(b, ``, emptyArgs)
 
 }
 func (dts *dialectTestSuite) TestLimitSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.LimitFragment = []byte(" limit ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	b := sb.NewSQLBuilder(false)
 	d.LimitSQL(b, 10)
-	dts.assertNotPreparedSQL(t, b, ` limit 10`)
+	dts.assertNotPreparedSQL(b, ` limit 10`)
 
 	d.LimitSQL(b.Clear(), 0)
-	dts.assertNotPreparedSQL(t, b, ` limit 0`)
+	dts.assertNotPreparedSQL(b, ` limit 0`)
 
 	d.LimitSQL(b.Clear(), exp.NewLiteralExpression("ALL"))
-	dts.assertNotPreparedSQL(t, b, ` limit ALL`)
+	dts.assertNotPreparedSQL(b, ` limit ALL`)
 
 	d.LimitSQL(b.Clear(), nil)
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.LimitSQL(b.Clear(), 10)
-	dts.assertPreparedSQL(t, b, ` limit ?`, []interface{}{int64(10)})
+	dts.assertPreparedSQL(b, ` limit ?`, []interface{}{int64(10)})
 
 	d.LimitSQL(b.Clear(), 0)
-	dts.assertPreparedSQL(t, b, ` limit ?`, []interface{}{int64(0)})
+	dts.assertPreparedSQL(b, ` limit ?`, []interface{}{int64(0)})
 
 	d.LimitSQL(b.Clear(), exp.NewLiteralExpression("ALL"))
-	dts.assertPreparedSQL(t, b, ` limit ALL`, emptyArgs)
+	dts.assertPreparedSQL(b, ` limit ALL`, emptyArgs)
 
 	d.LimitSQL(b.Clear(), nil)
-	dts.assertPreparedSQL(t, b, ``, emptyArgs)
+	dts.assertPreparedSQL(b, ``, emptyArgs)
 }
 func (dts *dialectTestSuite) TestOffsetSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.OffsetFragment = []byte(" offset ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -968,22 +970,20 @@ func (dts *dialectTestSuite) TestOffsetSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.OffsetSQL(b.Clear(), o)
-	dts.assertNotPreparedSQL(t, b, ` offset 10`)
+	dts.assertNotPreparedSQL(b, ` offset 10`)
 
 	d.OffsetSQL(b.Clear(), 0)
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	b = sb.NewSQLBuilder(true)
 	d.OffsetSQL(b.Clear(), o)
-	dts.assertPreparedSQL(t, b, ` offset ?`, []interface{}{int64(o)})
+	dts.assertPreparedSQL(b, ` offset ?`, []interface{}{int64(o)})
 
 	d.OffsetSQL(b.Clear(), 0)
-	dts.assertPreparedSQL(t, b, ``, emptyArgs)
+	dts.assertPreparedSQL(b, ``, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestCommonTablesSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.WithFragment = []byte("with ")
 	opts.RecursiveFragment = []byte("recursive ")
@@ -994,17 +994,16 @@ func (dts *dialectTestSuite) TestCommonTablesSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{})
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1})
-	dts.assertNotPreparedSQL(t, b, `with test_cte AS (select * from foo) `)
+	dts.assertNotPreparedSQL(b, `with test_cte AS (select * from foo) `)
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte2})
-	dts.assertNotPreparedSQL(t, b, `with recursive test_cte AS (select * from foo) `)
+	dts.assertNotPreparedSQL(b, `with recursive test_cte AS (select * from foo) `)
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1, cte2})
 	dts.assertNotPreparedSQL(
-		t,
 		b,
 		`with recursive test_cte AS (select * from foo), test_cte AS (select * from foo) `,
 	)
@@ -1014,23 +1013,21 @@ func (dts *dialectTestSuite) TestCommonTablesSQL() {
 	d = sqlDialect{dialect: "test", dialectOptions: opts}
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1})
-	dts.assertErrorSQL(t, b, "goqu: adapter does not support CTE with clause")
+	dts.assertErrorSQL(b, "goqu: adapter does not support CTE with clause")
 
 	opts = DefaultDialectOptions()
 	opts.SupportsWithCTERecursive = false
 	d = sqlDialect{dialect: "test", dialectOptions: opts}
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte2})
-	dts.assertErrorSQL(t, b, "goqu: adapter does not support CTE with recursive clause")
+	dts.assertErrorSQL(b, "goqu: adapter does not support CTE with recursive clause")
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1})
-	dts.assertNotPreparedSQL(t, b, `WITH test_cte AS (select * from foo) `)
+	dts.assertNotPreparedSQL(b, `WITH test_cte AS (select * from foo) `)
 
 }
 
 func (dts *dialectTestSuite) TestCompoundsSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.UnionFragment = []byte(" union ")
 	opts.UnionAllFragment = []byte(" union all ")
@@ -1045,23 +1042,22 @@ func (dts *dialectTestSuite) TestCompoundsSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.CompoundsSQL(b.Clear(), []exp.CompoundExpression{})
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	d.CompoundsSQL(b.Clear(), []exp.CompoundExpression{u})
-	dts.assertNotPreparedSQL(t, b, ` union (select * from foo)`)
+	dts.assertNotPreparedSQL(b, ` union (select * from foo)`)
 
 	d.CompoundsSQL(b.Clear(), []exp.CompoundExpression{ua})
-	dts.assertNotPreparedSQL(t, b, ` union all (select * from foo)`)
+	dts.assertNotPreparedSQL(b, ` union all (select * from foo)`)
 
 	d.CompoundsSQL(b.Clear(), []exp.CompoundExpression{i})
-	dts.assertNotPreparedSQL(t, b, ` intersect (select * from foo)`)
+	dts.assertNotPreparedSQL(b, ` intersect (select * from foo)`)
 
 	d.CompoundsSQL(b.Clear(), []exp.CompoundExpression{ia})
-	dts.assertNotPreparedSQL(t, b, ` intersect all (select * from foo)`)
+	dts.assertNotPreparedSQL(b, ` intersect all (select * from foo)`)
 
 	d.CompoundsSQL(b.Clear(), []exp.CompoundExpression{u, ua, i, ia})
 	dts.assertNotPreparedSQL(
-		t,
 		b,
 		` union (select * from foo) union all (select * from foo) intersect (select * from foo) intersect all (select * from foo)`,
 	)
@@ -1069,8 +1065,6 @@ func (dts *dialectTestSuite) TestCompoundsSQL() {
 }
 
 func (dts *dialectTestSuite) TestForSQL() {
-	t := dts.T()
-
 	opts := DefaultDialectOptions()
 	opts.ForUpdateFragment = []byte(" for update ")
 	opts.ForNoKeyUpdateFragment = []byte(" for no key update ")
@@ -1082,77 +1076,75 @@ func (dts *dialectTestSuite) TestForSQL() {
 
 	b := sb.NewSQLBuilder(false)
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForNolock, exp.Wait))
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForShare, exp.Wait))
-	dts.assertNotPreparedSQL(t, b, ` for share `)
+	dts.assertNotPreparedSQL(b, ` for share `)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForShare, exp.NoWait))
-	dts.assertNotPreparedSQL(t, b, ` for share nowait`)
+	dts.assertNotPreparedSQL(b, ` for share nowait`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForShare, exp.SkipLocked))
-	dts.assertNotPreparedSQL(t, b, ` for share skip locked`)
+	dts.assertNotPreparedSQL(b, ` for share skip locked`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForKeyShare, exp.Wait))
-	dts.assertNotPreparedSQL(t, b, ` for key share `)
+	dts.assertNotPreparedSQL(b, ` for key share `)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForKeyShare, exp.NoWait))
-	dts.assertNotPreparedSQL(t, b, ` for key share nowait`)
+	dts.assertNotPreparedSQL(b, ` for key share nowait`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForKeyShare, exp.SkipLocked))
-	dts.assertNotPreparedSQL(t, b, ` for key share skip locked`)
+	dts.assertNotPreparedSQL(b, ` for key share skip locked`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForUpdate, exp.Wait))
-	dts.assertNotPreparedSQL(t, b, ` for update `)
+	dts.assertNotPreparedSQL(b, ` for update `)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForUpdate, exp.NoWait))
-	dts.assertNotPreparedSQL(t, b, ` for update nowait`)
+	dts.assertNotPreparedSQL(b, ` for update nowait`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForUpdate, exp.SkipLocked))
-	dts.assertNotPreparedSQL(t, b, ` for update skip locked`)
+	dts.assertNotPreparedSQL(b, ` for update skip locked`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForNoKeyUpdate, exp.Wait))
-	dts.assertNotPreparedSQL(t, b, ` for no key update `)
+	dts.assertNotPreparedSQL(b, ` for no key update `)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForNoKeyUpdate, exp.NoWait))
-	dts.assertNotPreparedSQL(t, b, ` for no key update nowait`)
+	dts.assertNotPreparedSQL(b, ` for no key update nowait`)
 
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForNoKeyUpdate, exp.SkipLocked))
-	dts.assertNotPreparedSQL(t, b, ` for no key update skip locked`)
+	dts.assertNotPreparedSQL(b, ` for no key update skip locked`)
 
 	d.ForSQL(b.Clear(), nil)
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 }
 
 func (dts *dialectTestSuite) TestLiteral_FloatTypes() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	var float float64
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), float32(10.01))
-	dts.assertNotPreparedSQL(t, b, "10.010000228881836")
+	dts.assertNotPreparedSQL(b, "10.010000228881836")
 
 	d.Literal(b.Clear(), float64(10.01))
-	dts.assertNotPreparedSQL(t, b, "10.01")
+	dts.assertNotPreparedSQL(b, "10.01")
 
 	d.Literal(b.Clear(), &float)
-	dts.assertNotPreparedSQL(t, b, "0")
+	dts.assertNotPreparedSQL(b, "0")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), float32(10.01))
-	dts.assertPreparedSQL(t, b, "?", []interface{}{float64(float32(10.01))})
+	dts.assertPreparedSQL(b, "?", []interface{}{float64(float32(10.01))})
 
 	d.Literal(b.Clear(), float64(10.01))
-	dts.assertPreparedSQL(t, b, "?", []interface{}{float64(10.01)})
+	dts.assertPreparedSQL(b, "?", []interface{}{float64(10.01)})
 
 	d.Literal(b.Clear(), &float)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{float})
+	dts.assertPreparedSQL(b, "?", []interface{}{float})
 }
 
 func (dts *dialectTestSuite) TestLiteral_IntTypes() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	var i int64
 	b := sb.NewSQLBuilder(false)
@@ -1168,102 +1160,98 @@ func (dts *dialectTestSuite) TestLiteral_IntTypes() {
 	}
 	for _, i := range ints {
 		d.Literal(b.Clear(), i)
-		dts.assertNotPreparedSQL(t, b, "10")
+		dts.assertNotPreparedSQL(b, "10")
 	}
 	d.Literal(b.Clear(), &i)
-	dts.assertNotPreparedSQL(t, b, "0")
+	dts.assertNotPreparedSQL(b, "0")
 
 	b = sb.NewSQLBuilder(true)
 	for _, i := range ints {
 		d.Literal(b.Clear(), i)
-		dts.assertPreparedSQL(t, b, "?", []interface{}{int64(10)})
+		dts.assertPreparedSQL(b, "?", []interface{}{int64(10)})
 	}
 	d.Literal(b.Clear(), &i)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{i})
+	dts.assertPreparedSQL(b, "?", []interface{}{i})
 }
 
 func (dts *dialectTestSuite) TestLiteral_StringTypes() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	var str string
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), "Hello")
-	dts.assertNotPreparedSQL(t, b, "'Hello'")
+	dts.assertNotPreparedSQL(b, "'Hello'")
 
 	// should escape single quotes
 	d.Literal(b.Clear(), "Hello'")
-	dts.assertNotPreparedSQL(t, b, "'Hello'''")
+	dts.assertNotPreparedSQL(b, "'Hello'''")
 
 	d.Literal(b.Clear(), &str)
-	dts.assertNotPreparedSQL(t, b, "''")
+	dts.assertNotPreparedSQL(b, "''")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), "Hello")
-	dts.assertPreparedSQL(t, b, "?", []interface{}{"Hello"})
+	dts.assertPreparedSQL(b, "?", []interface{}{"Hello"})
 
 	// should escape single quotes
 	d.Literal(b.Clear(), "Hello'")
-	dts.assertPreparedSQL(t, b, "?", []interface{}{"Hello'"})
+	dts.assertPreparedSQL(b, "?", []interface{}{"Hello'"})
 
 	d.Literal(b.Clear(), &str)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{str})
+	dts.assertPreparedSQL(b, "?", []interface{}{str})
 }
 
 func (dts *dialectTestSuite) TestLiteral_BytesTypes() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), []byte("Hello"))
-	dts.assertNotPreparedSQL(t, b, "'Hello'")
+	dts.assertNotPreparedSQL(b, "'Hello'")
 
 	// should escape single quotes
 	d.Literal(b.Clear(), []byte("Hello'"))
-	dts.assertNotPreparedSQL(t, b, "'Hello'''")
+	dts.assertNotPreparedSQL(b, "'Hello'''")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), []byte("Hello"))
-	dts.assertPreparedSQL(t, b, "?", []interface{}{[]byte("Hello")})
+	dts.assertPreparedSQL(b, "?", []interface{}{[]byte("Hello")})
 
 	// should escape single quotes
 	d.Literal(b.Clear(), []byte("Hello'"))
-	dts.assertPreparedSQL(t, b, "?", []interface{}{[]byte("Hello'")})
+	dts.assertPreparedSQL(b, "?", []interface{}{[]byte("Hello'")})
 }
 
 func (dts *dialectTestSuite) TestLiteral_BoolTypes() {
-	t := dts.T()
 	var bl bool
 
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), true)
-	dts.assertNotPreparedSQL(t, b, "TRUE")
+	dts.assertNotPreparedSQL(b, "TRUE")
 
 	d.Literal(b.Clear(), false)
-	dts.assertNotPreparedSQL(t, b, "FALSE")
+	dts.assertNotPreparedSQL(b, "FALSE")
 
 	d.Literal(b.Clear(), &bl)
-	dts.assertNotPreparedSQL(t, b, "FALSE")
+	dts.assertNotPreparedSQL(b, "FALSE")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), true)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{true})
+	dts.assertPreparedSQL(b, "?", []interface{}{true})
 
 	d.Literal(b.Clear(), false)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{false})
+	dts.assertPreparedSQL(b, "?", []interface{}{false})
 
 	d.Literal(b.Clear(), &bl)
-	dts.assertPreparedSQL(t, b, "?", []interface{}{bl})
+	dts.assertPreparedSQL(b, "?", []interface{}{bl})
 }
 
 func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
-	t := dts.T()
 	d := sqlDialect{dialect: "default", dialectOptions: DefaultDialectOptions()}
 	var nt *time.Time
 	asiaShanghai, err := time.LoadLocation("Asia/Shanghai")
-	require.NoError(t, err)
+	dts.Require().NoError(err)
 	testDatas := []time.Time{
 		time.Now().UTC(),
 		time.Now().In(asiaShanghai),
@@ -1273,36 +1261,35 @@ func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
 		var now = n
 		b := sb.NewSQLBuilder(false)
 		d.Literal(b.Clear(), now)
-		dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
+		dts.assertNotPreparedSQL(b, "'"+now.Format(time.RFC3339Nano)+"'")
 
 		d.Literal(b.Clear(), &now)
-		dts.assertNotPreparedSQL(t, b, "'"+now.Format(time.RFC3339Nano)+"'")
+		dts.assertNotPreparedSQL(b, "'"+now.Format(time.RFC3339Nano)+"'")
 
 		d.Literal(b.Clear(), nt)
-		dts.assertNotPreparedSQL(t, b, "NULL")
+		dts.assertNotPreparedSQL(b, "NULL")
 
 		b = sb.NewSQLBuilder(true)
 		d.Literal(b.Clear(), now)
-		dts.assertPreparedSQL(t, b, "?", []interface{}{now})
+		dts.assertPreparedSQL(b, "?", []interface{}{now})
 
 		d.Literal(b.Clear(), &now)
-		dts.assertPreparedSQL(t, b, "?", []interface{}{now})
+		dts.assertPreparedSQL(b, "?", []interface{}{now})
 
 		d.Literal(b.Clear(), nt)
-		dts.assertPreparedSQL(t, b, "NULL", emptyArgs)
+		dts.assertPreparedSQL(b, "NULL", emptyArgs)
 	}
 }
 
 func (dts *dialectTestSuite) TestLiteral_NilTypes() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), nil)
-	dts.assertNotPreparedSQL(t, b, "NULL")
+	dts.assertNotPreparedSQL(b, "NULL")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), nil)
-	dts.assertPreparedSQL(t, b, "NULL", []interface{}{})
+	dts.assertPreparedSQL(b, "NULL", []interface{}{})
 }
 
 type datasetValuerType int64
@@ -1312,28 +1299,26 @@ func (j datasetValuerType) Value() (driver.Value, error) {
 }
 
 func (dts *dialectTestSuite) TestLiteral_Valuer() {
-	t := dts.T()
 	b := sb.NewSQLBuilder(false)
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	d.Literal(b.Clear(), datasetValuerType(10))
-	dts.assertNotPreparedSQL(t, b, "'Hello World 10'")
+	dts.assertNotPreparedSQL(b, "'Hello World 10'")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), datasetValuerType(10))
-	dts.assertPreparedSQL(t, b, "?", []interface{}{[]byte("Hello World 10")})
+	dts.assertPreparedSQL(b, "?", []interface{}{[]byte("Hello World 10")})
 }
 
 func (dts *dialectTestSuite) TestLiteral_Slice() {
-	t := dts.T()
 	b := sb.NewSQLBuilder(false)
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	d.Literal(b.Clear(), []string{"a", "b", "c"})
-	dts.assertNotPreparedSQL(t, b, `('a', 'b', 'c')`)
+	dts.assertNotPreparedSQL(b, `('a', 'b', 'c')`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), []string{"a", "b", "c"})
-	dts.assertPreparedSQL(t, b, `(?, ?, ?)`, []interface{}{"a", "b", "c"})
+	dts.assertPreparedSQL(b, `(?, ?, ?)`, []interface{}{"a", "b", "c"})
 }
 
 type unknownExpression struct {
@@ -1346,15 +1331,13 @@ func (ue unknownExpression) Clone() exp.Expression {
 	return ue
 }
 func (dts *dialectTestSuite) TestLiteralUnsupportedExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), unknownExpression{})
-	dts.assertErrorSQL(t, b, "goqu: unsupported expression type goqu.unknownExpression")
+	dts.assertErrorSQL(b, "goqu: unsupported expression type goqu.unknownExpression")
 }
 
 func (dts *dialectTestSuite) TestLiteral_AppendableExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	ti := exp.NewIdentifierExpression("", "b", "")
 	a := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, nil)
@@ -1364,40 +1347,38 @@ func (dts *dialectTestSuite) TestLiteral_AppendableExpression() {
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), a)
-	dts.assertNotPreparedSQL(t, b, `(select * from "a")`)
+	dts.assertNotPreparedSQL(b, `(select * from "a")`)
 
 	d.Literal(b.Clear(), aliasedA)
-	dts.assertNotPreparedSQL(t, b, `(select * from "a") AS "b"`)
+	dts.assertNotPreparedSQL(b, `(select * from "a") AS "b"`)
 
 	d.Literal(b.Clear(), ae)
-	dts.assertErrorSQL(t, b, "goqu: expected error")
+	dts.assertErrorSQL(b, "goqu: expected error")
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), a)
-	dts.assertPreparedSQL(t, b, `(select * from "a")`, emptyArgs)
+	dts.assertPreparedSQL(b, `(select * from "a")`, emptyArgs)
 
 	d.Literal(b.Clear(), aliasedA)
-	dts.assertPreparedSQL(t, b, `(select * from "a") AS "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, `(select * from "a") AS "b"`, emptyArgs)
 
 	d.Literal(b.Clear(), argsA)
-	dts.assertPreparedSQL(t, b, `(select * from "a" where x=?) AS "b"`, []interface{}{true})
+	dts.assertPreparedSQL(b, `(select * from "a" where x=?) AS "b"`, []interface{}{true})
 }
 
 func (dts *dialectTestSuite) TestLiteral_ColumnList() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewColumnListExpression("a", exp.NewLiteralExpression("true")))
-	dts.assertNotPreparedSQL(t, b, `"a", true`)
+	dts.assertNotPreparedSQL(b, `"a", true`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewColumnListExpression("a", exp.NewLiteralExpression("true")))
-	dts.assertPreparedSQL(t, b, `"a", true`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a", true`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
@@ -1406,14 +1387,14 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
 		exp.NewIdentifierExpression("", "", "a").Eq("b"),
 		exp.NewIdentifierExpression("", "", "c").Neq(1),
 	))
-	dts.assertNotPreparedSQL(t, b, `(("a" = 'b') AND ("c" != 1))`)
+	dts.assertNotPreparedSQL(b, `(("a" = 'b') AND ("c" != 1))`)
 
 	d.Literal(b.Clear(), exp.NewExpressionList(
 		exp.OrType,
 		exp.NewIdentifierExpression("", "", "a").Eq("b"),
 		exp.NewIdentifierExpression("", "", "c").Neq(1),
 	))
-	dts.assertNotPreparedSQL(t, b, `(("a" = 'b') OR ("c" != 1))`)
+	dts.assertNotPreparedSQL(b, `(("a" = 'b') OR ("c" != 1))`)
 
 	d.Literal(b.Clear(), exp.NewExpressionList(exp.OrType,
 		exp.NewIdentifierExpression("", "", "a").Eq("b"),
@@ -1422,7 +1403,7 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
 			exp.NewIdentifierExpression("", "", "d").Eq(exp.NewLiteralExpression("NOW()")),
 		),
 	))
-	dts.assertNotPreparedSQL(t, b, `(("a" = 'b') OR (("c" != 1) AND ("d" = NOW())))`)
+	dts.assertNotPreparedSQL(b, `(("a" = 'b') OR (("c" != 1) AND ("d" = NOW())))`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewExpressionList(
@@ -1430,14 +1411,14 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
 		exp.NewIdentifierExpression("", "", "a").Eq("b"),
 		exp.NewIdentifierExpression("", "", "c").Neq(1),
 	))
-	dts.assertPreparedSQL(t, b, `(("a" = ?) AND ("c" != ?))`, []interface{}{"b", int64(1)})
+	dts.assertPreparedSQL(b, `(("a" = ?) AND ("c" != ?))`, []interface{}{"b", int64(1)})
 
 	d.Literal(b.Clear(), exp.NewExpressionList(
 		exp.OrType,
 		exp.NewIdentifierExpression("", "", "a").Eq("b"),
 		exp.NewIdentifierExpression("", "", "c").Neq(1)),
 	)
-	dts.assertPreparedSQL(t, b, `(("a" = ?) OR ("c" != ?))`, []interface{}{"b", int64(1)})
+	dts.assertPreparedSQL(b, `(("a" = ?) OR ("c" != ?))`, []interface{}{"b", int64(1)})
 
 	d.Literal(b.Clear(), exp.NewExpressionList(
 		exp.OrType,
@@ -1448,32 +1429,31 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
 			exp.NewIdentifierExpression("", "", "d").Eq(exp.NewLiteralExpression("NOW()")),
 		),
 	))
-	dts.assertPreparedSQL(t, b, `(("a" = ?) OR (("c" != ?) AND ("d" = NOW())))`, []interface{}{"b", int64(1)})
+	dts.assertPreparedSQL(b, `(("a" = ?) OR (("c" != ?) AND ("d" = NOW())))`, []interface{}{"b", int64(1)})
 }
 
 func (dts *dialectTestSuite) TestLiteral_LiteralExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewLiteralExpression(`"b"::DATE = '2010-09-02'`))
-	dts.assertNotPreparedSQL(t, b, `"b"::DATE = '2010-09-02'`)
+	dts.assertNotPreparedSQL(b, `"b"::DATE = '2010-09-02'`)
 
 	d.Literal(b.Clear(), exp.NewLiteralExpression(
 		`"b" = ? or "c" = ? or d IN ?`,
 		"a", 1, []int{1, 2, 3, 4}),
 	)
-	dts.assertNotPreparedSQL(t, b, `"b" = 'a' or "c" = 1 or d IN (1, 2, 3, 4)`)
+	dts.assertNotPreparedSQL(b, `"b" = 'a' or "c" = 1 or d IN (1, 2, 3, 4)`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewLiteralExpression(`"b"::DATE = '2010-09-02'`))
-	dts.assertPreparedSQL(t, b, `"b"::DATE = '2010-09-02'`, emptyArgs)
+	dts.assertPreparedSQL(b, `"b"::DATE = '2010-09-02'`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewLiteralExpression(
 		`"b" = ? or "c" = ? or d IN ?`,
 		"a", 1, []int{1, 2, 3, 4},
 	))
-	dts.assertPreparedSQL(t, b, `"b" = ? or "c" = ? or d IN (?, ?, ?, ?)`, []interface{}{
+	dts.assertPreparedSQL(b, `"b" = ? or "c" = ? or d IN (?, ?, ?, ?)`, []interface{}{
 		"a",
 		int64(1),
 		int64(1),
@@ -1484,607 +1464,595 @@ func (dts *dialectTestSuite) TestLiteral_LiteralExpression() {
 }
 
 func (dts *dialectTestSuite) TestLiteral_AliasedExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").As("b"))
-	dts.assertNotPreparedSQL(t, b, `"a" AS "b"`)
+	dts.assertNotPreparedSQL(b, `"a" AS "b"`)
 
 	d.Literal(b.Clear(), exp.NewLiteralExpression("count(*)").As("count"))
-	dts.assertNotPreparedSQL(t, b, `count(*) AS "count"`)
+	dts.assertNotPreparedSQL(b, `count(*) AS "count"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		As(exp.NewIdentifierExpression("", "", "b")))
-	dts.assertNotPreparedSQL(t, b, `"a" AS "b"`)
+	dts.assertNotPreparedSQL(b, `"a" AS "b"`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").As("b"))
-	dts.assertPreparedSQL(t, b, `"a" AS "b"`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" AS "b"`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewLiteralExpression("count(*)").As("count"))
-	dts.assertPreparedSQL(t, b, `count(*) AS "count"`, emptyArgs)
+	dts.assertPreparedSQL(b, `count(*) AS "count"`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestLiteral_BooleanExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	ae := newTestAppendableExpression(`SELECT "id" FROM "test2"`, emptyArgs, nil, nil)
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(1))
-	dts.assertNotPreparedSQL(t, b, `("a" = 1)`)
+	dts.assertNotPreparedSQL(b, `("a" = 1)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(true))
-	dts.assertNotPreparedSQL(t, b, `("a" IS TRUE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS TRUE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(false))
-	dts.assertNotPreparedSQL(t, b, `("a" IS FALSE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS FALSE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(nil))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NULL)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NULL)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq([]int64{1, 2, 3}))
-	dts.assertNotPreparedSQL(t, b, `("a" IN (1, 2, 3))`)
+	dts.assertNotPreparedSQL(b, `("a" IN (1, 2, 3))`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(ae))
-	dts.assertNotPreparedSQL(t, b, `("a" IN (SELECT "id" FROM "test2"))`)
+	dts.assertNotPreparedSQL(b, `("a" IN (SELECT "id" FROM "test2"))`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(1))
-	dts.assertNotPreparedSQL(t, b, `("a" != 1)`)
+	dts.assertNotPreparedSQL(b, `("a" != 1)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(true))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT TRUE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT TRUE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(false))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT FALSE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT FALSE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(nil))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT NULL)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT NULL)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq([]int64{1, 2, 3}))
-	dts.assertNotPreparedSQL(t, b, `("a" NOT IN (1, 2, 3))`)
+	dts.assertNotPreparedSQL(b, `("a" NOT IN (1, 2, 3))`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(ae))
-	dts.assertNotPreparedSQL(t, b, `("a" NOT IN (SELECT "id" FROM "test2"))`)
+	dts.assertNotPreparedSQL(b, `("a" NOT IN (SELECT "id" FROM "test2"))`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Is(nil))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NULL)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NULL)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Is(false))
-	dts.assertNotPreparedSQL(t, b, `("a" IS FALSE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS FALSE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Is(true))
-	dts.assertNotPreparedSQL(t, b, `("a" IS TRUE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS TRUE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").IsNot(nil))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT NULL)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT NULL)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").IsNot(false))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT FALSE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT FALSE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").IsNot(true))
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT TRUE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT TRUE)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Gt(1))
-	dts.assertNotPreparedSQL(t, b, `("a" > 1)`)
+	dts.assertNotPreparedSQL(b, `("a" > 1)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Gte(1))
-	dts.assertNotPreparedSQL(t, b, `("a" >= 1)`)
+	dts.assertNotPreparedSQL(b, `("a" >= 1)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Lt(1))
-	dts.assertNotPreparedSQL(t, b, `("a" < 1)`)
+	dts.assertNotPreparedSQL(b, `("a" < 1)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Lte(1))
-	dts.assertNotPreparedSQL(t, b, `("a" <= 1)`)
+	dts.assertNotPreparedSQL(b, `("a" <= 1)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").In([]int{1, 2, 3}))
-	dts.assertNotPreparedSQL(t, b, `("a" IN (1, 2, 3))`)
+	dts.assertNotPreparedSQL(b, `("a" IN (1, 2, 3))`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").NotIn([]int{1, 2, 3}))
-	dts.assertNotPreparedSQL(t, b, `("a" NOT IN (1, 2, 3))`)
+	dts.assertNotPreparedSQL(b, `("a" NOT IN (1, 2, 3))`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Like("a%"))
-	dts.assertNotPreparedSQL(t, b, `("a" LIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" LIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		Like(regexp.MustCompile("(a|b)")))
-	dts.assertNotPreparedSQL(t, b, `("a" ~ '(a|b)')`)
+	dts.assertNotPreparedSQL(b, `("a" ~ '(a|b)')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").NotLike("a%"))
-	dts.assertNotPreparedSQL(t, b, `("a" NOT LIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" NOT LIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		NotLike(regexp.MustCompile("(a|b)")))
-	dts.assertNotPreparedSQL(t, b, `("a" !~ '(a|b)')`)
+	dts.assertNotPreparedSQL(b, `("a" !~ '(a|b)')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").ILike("a%"))
-	dts.assertNotPreparedSQL(t, b, `("a" ILIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" ILIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		ILike(regexp.MustCompile("(a|b)")))
-	dts.assertNotPreparedSQL(t, b, `("a" ~* '(a|b)')`)
+	dts.assertNotPreparedSQL(b, `("a" ~* '(a|b)')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").NotILike("a%"))
-	dts.assertNotPreparedSQL(t, b, `("a" NOT ILIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" NOT ILIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		NotILike(regexp.MustCompile("(a|b)")))
-	dts.assertNotPreparedSQL(t, b, `("a" !~* '(a|b)')`)
+	dts.assertNotPreparedSQL(b, `("a" !~* '(a|b)')`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(1))
-	dts.assertPreparedSQL(t, b, `("a" = ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" = ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(true))
-	dts.assertPreparedSQL(t, b, `("a" IS TRUE)`, []interface{}{})
+	dts.assertPreparedSQL(b, `("a" IS TRUE)`, []interface{}{})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(false))
-	dts.assertPreparedSQL(t, b, `("a" IS FALSE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS FALSE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq(nil))
-	dts.assertPreparedSQL(t, b, `("a" IS NULL)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NULL)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Eq([]int64{1, 2, 3}))
-	dts.assertPreparedSQL(t, b, `("a" IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
+	dts.assertPreparedSQL(b, `("a" IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(1))
-	dts.assertPreparedSQL(t, b, `("a" != ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" != ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(true))
-	dts.assertPreparedSQL(t, b, `("a" IS NOT TRUE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT TRUE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(false))
-	dts.assertPreparedSQL(t, b, `("a" IS NOT FALSE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT FALSE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq(nil))
-	dts.assertPreparedSQL(t, b, `("a" IS NOT NULL)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT NULL)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Neq([]int64{1, 2, 3}))
-	dts.assertPreparedSQL(t, b, `("a" NOT IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
+	dts.assertPreparedSQL(b, `("a" NOT IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Is(nil))
-	dts.assertPreparedSQL(t, b, `("a" IS NULL)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NULL)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Is(false))
-	dts.assertPreparedSQL(t, b, `("a" IS FALSE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS FALSE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Is(true))
-	dts.assertPreparedSQL(t, b, `("a" IS TRUE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS TRUE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").IsNot(nil))
-	dts.assertPreparedSQL(t, b, `("a" IS NOT NULL)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT NULL)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").IsNot(false))
-	dts.assertPreparedSQL(t, b, `("a" IS NOT FALSE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT FALSE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").IsNot(true))
-	dts.assertPreparedSQL(t, b, `("a" IS NOT TRUE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT TRUE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Gt(1))
-	dts.assertPreparedSQL(t, b, `("a" > ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" > ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Gte(1))
-	dts.assertPreparedSQL(t, b, `("a" >= ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" >= ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Lt(1))
-	dts.assertPreparedSQL(t, b, `("a" < ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" < ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Lte(1))
-	dts.assertPreparedSQL(t, b, `("a" <= ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" <= ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").In([]int{1, 2, 3}))
-	dts.assertPreparedSQL(t, b, `("a" IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
+	dts.assertPreparedSQL(b, `("a" IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").NotIn([]int{1, 2, 3}))
-	dts.assertPreparedSQL(t, b, `("a" NOT IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
+	dts.assertPreparedSQL(b, `("a" NOT IN (?, ?, ?))`, []interface{}{int64(1), int64(2), int64(3)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Like("a%"))
-	dts.assertPreparedSQL(t, b, `("a" LIKE ?)`, []interface{}{"a%"})
+	dts.assertPreparedSQL(b, `("a" LIKE ?)`, []interface{}{"a%"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		Like(regexp.MustCompile("(a|b)")))
-	dts.assertPreparedSQL(t, b, `("a" ~ ?)`, []interface{}{"(a|b)"})
+	dts.assertPreparedSQL(b, `("a" ~ ?)`, []interface{}{"(a|b)"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").NotLike("a%"))
-	dts.assertPreparedSQL(t, b, `("a" NOT LIKE ?)`, []interface{}{"a%"})
+	dts.assertPreparedSQL(b, `("a" NOT LIKE ?)`, []interface{}{"a%"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		NotLike(regexp.MustCompile("(a|b)")))
-	dts.assertPreparedSQL(t, b, `("a" !~ ?)`, []interface{}{"(a|b)"})
+	dts.assertPreparedSQL(b, `("a" !~ ?)`, []interface{}{"(a|b)"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").ILike("a%"))
-	dts.assertPreparedSQL(t, b, `("a" ILIKE ?)`, []interface{}{"a%"})
+	dts.assertPreparedSQL(b, `("a" ILIKE ?)`, []interface{}{"a%"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		ILike(regexp.MustCompile("(a|b)")))
-	dts.assertPreparedSQL(t, b, `("a" ~* ?)`, []interface{}{"(a|b)"})
+	dts.assertPreparedSQL(b, `("a" ~* ?)`, []interface{}{"(a|b)"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").NotILike("a%"))
-	dts.assertPreparedSQL(t, b, `("a" NOT ILIKE ?)`, []interface{}{"a%"})
+	dts.assertPreparedSQL(b, `("a" NOT ILIKE ?)`, []interface{}{"a%"})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		NotILike(regexp.MustCompile("(a|b)")))
-	dts.assertPreparedSQL(t, b, `("a" !~* ?)`, []interface{}{"(a|b)"})
+	dts.assertPreparedSQL(b, `("a" !~* ?)`, []interface{}{"(a|b)"})
 }
 
 func (dts *dialectTestSuite) TestLiteral_RangeExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		Between(exp.NewRangeVal(1, 2)))
-	dts.assertNotPreparedSQL(t, b, `("a" BETWEEN 1 AND 2)`)
+	dts.assertNotPreparedSQL(b, `("a" BETWEEN 1 AND 2)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		NotBetween(exp.NewRangeVal(1, 2)))
-	dts.assertNotPreparedSQL(t, b, `("a" NOT BETWEEN 1 AND 2)`)
+	dts.assertNotPreparedSQL(b, `("a" NOT BETWEEN 1 AND 2)`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		Between(exp.NewRangeVal("aaa", "zzz")))
-	dts.assertNotPreparedSQL(t, b, `("a" BETWEEN 'aaa' AND 'zzz')`)
+	dts.assertNotPreparedSQL(b, `("a" BETWEEN 'aaa' AND 'zzz')`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		Between(exp.NewRangeVal(1, 2)))
-	dts.assertPreparedSQL(t, b, `("a" BETWEEN ? AND ?)`, []interface{}{int64(1), int64(2)})
+	dts.assertPreparedSQL(b, `("a" BETWEEN ? AND ?)`, []interface{}{int64(1), int64(2)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		NotBetween(exp.NewRangeVal(1, 2)))
-	dts.assertPreparedSQL(t, b, `("a" NOT BETWEEN ? AND ?)`, []interface{}{int64(1), int64(2)})
+	dts.assertPreparedSQL(b, `("a" NOT BETWEEN ? AND ?)`, []interface{}{int64(1), int64(2)})
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
 		Between(exp.NewRangeVal("aaa", "zzz")))
-	dts.assertPreparedSQL(t, b, `("a" BETWEEN ? AND ?)`, []interface{}{"aaa", "zzz"})
+	dts.assertPreparedSQL(b, `("a" BETWEEN ? AND ?)`, []interface{}{"aaa", "zzz"})
 }
 
 func (dts *dialectTestSuite) TestLiteral_OrderedExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc())
-	dts.assertNotPreparedSQL(t, b, `"a" ASC`)
+	dts.assertNotPreparedSQL(b, `"a" ASC`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Desc())
-	dts.assertNotPreparedSQL(t, b, `"a" DESC`)
+	dts.assertNotPreparedSQL(b, `"a" DESC`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc().NullsLast())
-	dts.assertNotPreparedSQL(t, b, `"a" ASC NULLS LAST`)
+	dts.assertNotPreparedSQL(b, `"a" ASC NULLS LAST`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Desc().NullsLast())
-	dts.assertNotPreparedSQL(t, b, `"a" DESC NULLS LAST`)
+	dts.assertNotPreparedSQL(b, `"a" DESC NULLS LAST`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc().NullsFirst())
-	dts.assertNotPreparedSQL(t, b, `"a" ASC NULLS FIRST`)
+	dts.assertNotPreparedSQL(b, `"a" ASC NULLS FIRST`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Desc().NullsFirst())
-	dts.assertNotPreparedSQL(t, b, `"a" DESC NULLS FIRST`)
+	dts.assertNotPreparedSQL(b, `"a" DESC NULLS FIRST`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc())
-	dts.assertPreparedSQL(t, b, `"a" ASC`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" ASC`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Desc())
-	dts.assertPreparedSQL(t, b, `"a" DESC`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" DESC`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc().NullsLast())
-	dts.assertPreparedSQL(t, b, `"a" ASC NULLS LAST`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" ASC NULLS LAST`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Desc().NullsLast())
-	dts.assertPreparedSQL(t, b, `"a" DESC NULLS LAST`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" DESC NULLS LAST`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc().NullsFirst())
-	dts.assertPreparedSQL(t, b, `"a" ASC NULLS FIRST`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" ASC NULLS FIRST`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Desc().NullsFirst())
-	dts.assertPreparedSQL(t, b, `"a" DESC NULLS FIRST`, emptyArgs)
+	dts.assertPreparedSQL(b, `"a" DESC NULLS FIRST`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestLiteral_UpdateExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Set(1))
-	dts.assertNotPreparedSQL(t, b, `"a"=1`)
+	dts.assertNotPreparedSQL(b, `"a"=1`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Set(1))
-	dts.assertPreparedSQL(t, b, `"a"=?`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `"a"=?`, []interface{}{int64(1)})
 }
 
 func (dts *dialectTestSuite) TestLiteral_SQLFunctionExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a")))
-	dts.assertNotPreparedSQL(t, b, `MIN("a")`)
+	dts.assertNotPreparedSQL(b, `MIN("a")`)
 
 	d.Literal(b.Clear(), exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a"))
-	dts.assertNotPreparedSQL(t, b, `COALESCE("a", 'a')`)
+	dts.assertNotPreparedSQL(b, `COALESCE("a", 'a')`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a")))
-	dts.assertNotPreparedSQL(t, b, `MIN("a")`)
+	dts.assertNotPreparedSQL(b, `MIN("a")`)
 
 	d.Literal(b.Clear(), exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a"))
-	dts.assertPreparedSQL(t, b, `COALESCE("a", ?)`, []interface{}{"a"})
+	dts.assertPreparedSQL(b, `COALESCE("a", ?)`, []interface{}{"a"})
 
 }
 
 func (dts *dialectTestSuite) TestLiteral_CastExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Cast("DATE"))
-	dts.assertNotPreparedSQL(t, b, `CAST("a" AS DATE)`)
+	dts.assertNotPreparedSQL(b, `CAST("a" AS DATE)`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Cast("DATE"))
-	dts.assertPreparedSQL(t, b, `CAST("a" AS DATE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `CAST("a" AS DATE)`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestLiteral_CommonTableExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(false, "a", ae))
-	dts.assertNotPreparedSQL(t, b, `a AS (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, `a AS (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(false, "a(x,y)", ae))
-	dts.assertNotPreparedSQL(t, b, `a(x,y) AS (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, `a(x,y) AS (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(true, "a", ae))
-	dts.assertNotPreparedSQL(t, b, `a AS (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, `a AS (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(true, "a(x,y)", ae))
-	dts.assertNotPreparedSQL(t, b, `a(x,y) AS (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, `a(x,y) AS (SELECT * FROM "b")`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(false, "a", ae))
-	dts.assertPreparedSQL(t, b, `a AS (SELECT * FROM "b")`, emptyArgs)
+	dts.assertPreparedSQL(b, `a AS (SELECT * FROM "b")`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(false, "a(x,y)", ae))
-	dts.assertPreparedSQL(t, b, `a(x,y) AS (SELECT * FROM "b")`, emptyArgs)
+	dts.assertPreparedSQL(b, `a(x,y) AS (SELECT * FROM "b")`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(true, "a", ae))
-	dts.assertPreparedSQL(t, b, `a AS (SELECT * FROM "b")`, emptyArgs)
+	dts.assertPreparedSQL(b, `a AS (SELECT * FROM "b")`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(true, "a(x,y)", ae))
-	dts.assertPreparedSQL(t, b, `a(x,y) AS (SELECT * FROM "b")`, emptyArgs)
+	dts.assertPreparedSQL(b, `a(x,y) AS (SELECT * FROM "b")`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestLiteral_CompoundExpression() {
-	t := dts.T()
 	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 
 	b := sb.NewSQLBuilder(false)
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.UnionCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` UNION (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` UNION (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.UnionAllCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` UNION ALL (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` UNION ALL (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.IntersectCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` INTERSECT (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` INTERSECT (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.IntersectAllCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` INTERSECT ALL (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` INTERSECT ALL (SELECT * FROM "b")`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.UnionCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` UNION (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` UNION (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.UnionAllCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` UNION ALL (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` UNION ALL (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.IntersectCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` INTERSECT (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` INTERSECT (SELECT * FROM "b")`)
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.IntersectAllCompoundType, ae))
-	dts.assertNotPreparedSQL(t, b, ` INTERSECT ALL (SELECT * FROM "b")`)
+	dts.assertNotPreparedSQL(b, ` INTERSECT ALL (SELECT * FROM "b")`)
 }
 
 func (dts *dialectTestSuite) TestLiteral_IdentifierExpression() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "col"))
-	dts.assertNotPreparedSQL(t, b, `"col"`)
+	dts.assertNotPreparedSQL(b, `"col"`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("table.col"))
-	dts.assertNotPreparedSQL(t, b, `"table"."col"`)
+	dts.assertNotPreparedSQL(b, `"table"."col"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "col").Table("table"))
-	dts.assertNotPreparedSQL(t, b, `"table"."col"`)
+	dts.assertNotPreparedSQL(b, `"table"."col"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "table", "col"))
-	dts.assertNotPreparedSQL(t, b, `"table"."col"`)
+	dts.assertNotPreparedSQL(b, `"table"."col"`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("a.b.c"))
-	dts.assertNotPreparedSQL(t, b, `"a"."b"."c"`)
+	dts.assertNotPreparedSQL(b, `"a"."b"."c"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("schema", "table", "col"))
-	dts.assertNotPreparedSQL(t, b, `"schema"."table"."col"`)
+	dts.assertNotPreparedSQL(b, `"schema"."table"."col"`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("schema.table.*"))
-	dts.assertNotPreparedSQL(t, b, `"schema"."table".*`)
+	dts.assertNotPreparedSQL(b, `"schema"."table".*`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("table.*"))
-	dts.assertNotPreparedSQL(t, b, `"table".*`)
+	dts.assertNotPreparedSQL(b, `"table".*`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "col"))
-	dts.assertNotPreparedSQL(t, b, `"col"`)
+	dts.assertNotPreparedSQL(b, `"col"`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("table.col"))
-	dts.assertNotPreparedSQL(t, b, `"table"."col"`)
+	dts.assertNotPreparedSQL(b, `"table"."col"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "col").Table("table"))
-	dts.assertNotPreparedSQL(t, b, `"table"."col"`)
+	dts.assertNotPreparedSQL(b, `"table"."col"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "table", "col"))
-	dts.assertNotPreparedSQL(t, b, `"table"."col"`)
+	dts.assertNotPreparedSQL(b, `"table"."col"`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("a.b.c"))
-	dts.assertNotPreparedSQL(t, b, `"a"."b"."c"`)
+	dts.assertNotPreparedSQL(b, `"a"."b"."c"`)
 
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("schema", "table", "col"))
-	dts.assertNotPreparedSQL(t, b, `"schema"."table"."col"`)
+	dts.assertNotPreparedSQL(b, `"schema"."table"."col"`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("schema.table.*"))
-	dts.assertNotPreparedSQL(t, b, `"schema"."table".*`)
+	dts.assertNotPreparedSQL(b, `"schema"."table".*`)
 
 	d.Literal(b.Clear(), exp.ParseIdentifier("table.*"))
-	dts.assertNotPreparedSQL(t, b, `"table".*`)
+	dts.assertNotPreparedSQL(b, `"table".*`)
 }
 
 func (dts *dialectTestSuite) TestLiteral_ExpressionMap() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.Ex{"a": 1})
-	dts.assertNotPreparedSQL(t, b, `("a" = 1)`)
+	dts.assertNotPreparedSQL(b, `("a" = 1)`)
 
 	d.Literal(b.Clear(), exp.Ex{})
-	dts.assertNotPreparedSQL(t, b, ``)
+	dts.assertNotPreparedSQL(b, ``)
 
 	d.Literal(b.Clear(), exp.Ex{"a": true})
-	dts.assertNotPreparedSQL(t, b, `("a" IS TRUE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS TRUE)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": false})
-	dts.assertNotPreparedSQL(t, b, `("a" IS FALSE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS FALSE)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": nil})
-	dts.assertNotPreparedSQL(t, b, `("a" IS NULL)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NULL)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": []string{"a", "b", "c"}})
-	dts.assertNotPreparedSQL(t, b, `("a" IN ('a', 'b', 'c'))`)
+	dts.assertNotPreparedSQL(b, `("a" IN ('a', 'b', 'c'))`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"neq": 1}})
-	dts.assertNotPreparedSQL(t, b, `("a" != 1)`)
+	dts.assertNotPreparedSQL(b, `("a" != 1)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"isnot": true}})
-	dts.assertNotPreparedSQL(t, b, `("a" IS NOT TRUE)`)
+	dts.assertNotPreparedSQL(b, `("a" IS NOT TRUE)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"gt": 1}})
-	dts.assertNotPreparedSQL(t, b, `("a" > 1)`)
+	dts.assertNotPreparedSQL(b, `("a" > 1)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"gte": 1}})
-	dts.assertNotPreparedSQL(t, b, `("a" >= 1)`)
+	dts.assertNotPreparedSQL(b, `("a" >= 1)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"lt": 1}})
-	dts.assertNotPreparedSQL(t, b, `("a" < 1)`)
+	dts.assertNotPreparedSQL(b, `("a" < 1)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"lte": 1}})
-	dts.assertNotPreparedSQL(t, b, `("a" <= 1)`)
+	dts.assertNotPreparedSQL(b, `("a" <= 1)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"like": "a%"}})
-	dts.assertNotPreparedSQL(t, b, `("a" LIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" LIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notLike": "a%"}})
-	dts.assertNotPreparedSQL(t, b, `("a" NOT LIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" NOT LIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notLike": "a%"}})
-	dts.assertNotPreparedSQL(t, b, `("a" NOT LIKE 'a%')`)
+	dts.assertNotPreparedSQL(b, `("a" NOT LIKE 'a%')`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}})
-	dts.assertNotPreparedSQL(t, b, `("a" IN ('a', 'b', 'c'))`)
+	dts.assertNotPreparedSQL(b, `("a" IN ('a', 'b', 'c'))`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notIn": []string{"a", "b", "c"}}})
-	dts.assertNotPreparedSQL(t, b, `("a" NOT IN ('a', 'b', 'c'))`)
+	dts.assertNotPreparedSQL(b, `("a" NOT IN ('a', 'b', 'c'))`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"is": nil, "eq": 10}})
-	dts.assertNotPreparedSQL(t, b, `(("a" = 10) OR ("a" IS NULL))`)
+	dts.assertNotPreparedSQL(b, `(("a" = 10) OR ("a" IS NULL))`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"between": exp.NewRangeVal(1, 10)}})
-	dts.assertNotPreparedSQL(t, b, `("a" BETWEEN 1 AND 10)`)
+	dts.assertNotPreparedSQL(b, `("a" BETWEEN 1 AND 10)`)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notbetween": exp.NewRangeVal(1, 10)}})
-	dts.assertNotPreparedSQL(t, b, `("a" NOT BETWEEN 1 AND 10)`)
+	dts.assertNotPreparedSQL(b, `("a" NOT BETWEEN 1 AND 10)`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.Ex{"a": 1})
-	dts.assertPreparedSQL(t, b, `("a" = ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" = ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": true})
-	dts.assertPreparedSQL(t, b, `("a" IS TRUE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS TRUE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.Ex{"a": false})
-	dts.assertPreparedSQL(t, b, `("a" IS FALSE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS FALSE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.Ex{"a": nil})
-	dts.assertPreparedSQL(t, b, `("a" IS NULL)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NULL)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.Ex{"a": []string{"a", "b", "c"}})
-	dts.assertPreparedSQL(t, b, `("a" IN (?, ?, ?))`, []interface{}{"a", "b", "c"})
+	dts.assertPreparedSQL(b, `("a" IN (?, ?, ?))`, []interface{}{"a", "b", "c"})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"neq": 1}})
-	dts.assertPreparedSQL(t, b, `("a" != ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" != ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"isnot": true}})
-	dts.assertPreparedSQL(t, b, `("a" IS NOT TRUE)`, emptyArgs)
+	dts.assertPreparedSQL(b, `("a" IS NOT TRUE)`, emptyArgs)
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"gt": 1}})
-	dts.assertPreparedSQL(t, b, `("a" > ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" > ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"gte": 1}})
-	dts.assertPreparedSQL(t, b, `("a" >= ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" >= ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"lt": 1}})
-	dts.assertPreparedSQL(t, b, `("a" < ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" < ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"lte": 1}})
-	dts.assertPreparedSQL(t, b, `("a" <= ?)`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `("a" <= ?)`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"like": "a%"}})
-	dts.assertPreparedSQL(t, b, `("a" LIKE ?)`, []interface{}{"a%"})
+	dts.assertPreparedSQL(b, `("a" LIKE ?)`, []interface{}{"a%"})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notLike": "a%"}})
-	dts.assertPreparedSQL(t, b, `("a" NOT LIKE ?)`, []interface{}{"a%"})
+	dts.assertPreparedSQL(b, `("a" NOT LIKE ?)`, []interface{}{"a%"})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}})
-	dts.assertPreparedSQL(t, b, `("a" IN (?, ?, ?))`, []interface{}{"a", "b", "c"})
+	dts.assertPreparedSQL(b, `("a" IN (?, ?, ?))`, []interface{}{"a", "b", "c"})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notIn": []string{"a", "b", "c"}}})
-	dts.assertPreparedSQL(t, b, `("a" NOT IN (?, ?, ?))`, []interface{}{"a", "b", "c"})
+	dts.assertPreparedSQL(b, `("a" NOT IN (?, ?, ?))`, []interface{}{"a", "b", "c"})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"is": nil, "eq": 10}})
-	dts.assertPreparedSQL(t, b, `(("a" = ?) OR ("a" IS NULL))`, []interface{}{int64(10)})
+	dts.assertPreparedSQL(b, `(("a" = ?) OR ("a" IS NULL))`, []interface{}{int64(10)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"between": exp.NewRangeVal(1, 10)}})
-	dts.assertPreparedSQL(t, b, `("a" BETWEEN ? AND ?)`, []interface{}{int64(1), int64(10)})
+	dts.assertPreparedSQL(b, `("a" BETWEEN ? AND ?)`, []interface{}{int64(1), int64(10)})
 
 	d.Literal(b.Clear(), exp.Ex{"a": exp.Op{"notbetween": exp.NewRangeVal(1, 10)}})
-	dts.assertPreparedSQL(t, b, `("a" NOT BETWEEN ? AND ?)`, []interface{}{int64(1), int64(10)})
+	dts.assertPreparedSQL(b, `("a" NOT BETWEEN ? AND ?)`, []interface{}{int64(1), int64(10)})
 }
 
 func (dts *dialectTestSuite) TestLiteral_ExpressionOrMap() {
-	t := dts.T()
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.ExOr{"a": 1, "b": true})
-	dts.assertNotPreparedSQL(t, b, `(("a" = 1) OR ("b" IS TRUE))`)
+	dts.assertNotPreparedSQL(b, `(("a" = 1) OR ("b" IS TRUE))`)
 
 	d.Literal(b.Clear(), exp.ExOr{"a": 1, "b": []string{"a", "b", "c"}})
-	dts.assertNotPreparedSQL(t, b, `(("a" = 1) OR ("b" IN ('a', 'b', 'c')))`)
+	dts.assertNotPreparedSQL(b, `(("a" = 1) OR ("b" IN ('a', 'b', 'c')))`)
 
 	b = sb.NewSQLBuilder(true)
 	d.Literal(b.Clear(), exp.ExOr{"a": 1, "b": true})
-	dts.assertPreparedSQL(t, b, `(("a" = ?) OR ("b" IS TRUE))`, []interface{}{int64(1)})
+	dts.assertPreparedSQL(b, `(("a" = ?) OR ("b" IS TRUE))`, []interface{}{int64(1)})
 
 	d.Literal(b.Clear(), exp.ExOr{"a": 1, "b": []string{"a", "b", "c"}})
-	dts.assertPreparedSQL(t, b, `(("a" = ?) OR ("b" IN (?, ?, ?)))`, []interface{}{int64(1), "a", "b", "c"})
+	dts.assertPreparedSQL(b, `(("a" = ?) OR ("b" IN (?, ?, ?)))`, []interface{}{int64(1), "a", "b", "c"})
 
 }
 func TestDialectSuite(t *testing.T) {

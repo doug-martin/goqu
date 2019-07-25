@@ -19,6 +19,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsWithCTE = false
 	opts.SupportsWithCTERecursive = false
 
+	opts.UseFromClauseForMultipleUpdateTables = false
+
 	opts.PlaceHolderRune = '?'
 	opts.IncludePlaceholderNum = false
 	opts.QuoteRune = '`'

@@ -361,6 +361,30 @@ func (uds *updateDatasetSuite) TestSet_ToSQLWithSkipupdateTag() {
 	assert.Equal(t, `UPDATE "items" SET "name"=?`, updateSQL)
 }
 
+func (uds *updateDatasetSuite) TestFrom() {
+	ds := Update("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetFrom(exp.NewColumnListExpression("other"))
+	uds.Equal(ec, ds.From("other").GetClauses())
+	uds.Equal(dsc, ds.GetClauses())
+}
+
+func (uds *updateDatasetSuite) TestFrom_ToSQL() {
+	ds1 := Update("test").Set(C("a").Set("a1")).From("other_table").Where(Ex{
+		"test.name": T("other_test").Col("name"),
+	})
+
+	updateSQL, args, err := ds1.ToSQL()
+	uds.NoError(err)
+	uds.Empty(args)
+	uds.Equal(`UPDATE "test" SET "a"='a1' FROM "other_table" WHERE ("test"."name" = "other_test"."name")`, updateSQL)
+
+	updateSQL, args, err = ds1.Prepared(true).ToSQL()
+	uds.NoError(err)
+	uds.Equal([]interface{}{"a1"}, args)
+	uds.Equal(`UPDATE "test" SET "a"=? FROM "other_table" WHERE ("test"."name" = "other_test"."name")`, updateSQL)
+}
+
 func (uds *updateDatasetSuite) TestWhere() {
 	t := uds.T()
 	ds := Update("test")

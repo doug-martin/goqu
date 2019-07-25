@@ -121,6 +121,11 @@ func (ud *UpdateDataset) Set(values interface{}) *UpdateDataset {
 	return ud.copy(ud.clauses.SetSetValues(values))
 }
 
+// Allows specifying other tables to reference in your update (If your dialect supports it). See examples.
+func (ud *UpdateDataset) From(tables ...interface{}) *UpdateDataset {
+	return ud.copy(ud.clauses.SetFrom(exp.NewColumnListExpression(tables...)))
+}
+
 // Adds a WHERE clause. See examples.
 func (ud *UpdateDataset) Where(expressions ...exp.Expression) *UpdateDataset {
 	return ud.copy(ud.clauses.WhereAppend(expressions...))

@@ -172,7 +172,17 @@ func (mds *mysqlDialectSuite) TestBooleanOperations() {
 	sql, _, err = ds.Where(col.NotILike(regexp.MustCompile("(a|b)"))).ToSQL()
 	assert.NoError(t, err)
 	assert.Equal(t, sql, "SELECT * FROM `test` WHERE (`a` NOT REGEXP '(a|b)')")
+}
 
+func (mds *mysqlDialectSuite) TestUpdateSQL() {
+	ds := mds.GetDs("test").Update()
+	sql, _, err := ds.
+		Set(goqu.Record{"foo": "bar"}).
+		From("test_2").
+		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))).
+		ToSQL()
+	mds.NoError(err)
+	mds.Equal("UPDATE `test`,`test_2` SET `foo`='bar' WHERE (`test`.`id` = `test_2`.`test_id`)", sql)
 }
 
 func TestDatasetAdapterSuite(t *testing.T) {

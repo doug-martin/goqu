@@ -12,7 +12,12 @@ type (
 		SetTable(table Expression) UpdateClauses
 
 		SetValues() interface{}
+		HasSetValues() bool
 		SetSetValues(values interface{}) UpdateClauses
+
+		From() ColumnListExpression
+		HasFrom() bool
+		SetFrom(tables ColumnListExpression) UpdateClauses
 
 		Where() ExpressionList
 		ClearWhere() UpdateClauses
@@ -38,6 +43,7 @@ type (
 		commonTables []CommonTableExpression
 		table        Expression
 		setValues    interface{}
+		from         ColumnListExpression
 		where        ExpressionList
 		order        ColumnListExpression
 		limit        interface{}
@@ -58,6 +64,7 @@ func (uc *updateClauses) clone() *updateClauses {
 		commonTables: uc.commonTables,
 		table:        uc.table,
 		setValues:    uc.setValues,
+		from:         uc.from,
 		where:        uc.where,
 		order:        uc.order,
 		limit:        uc.limit,
@@ -86,9 +93,28 @@ func (uc *updateClauses) SetTable(table Expression) UpdateClauses {
 func (uc *updateClauses) SetValues() interface{} {
 	return uc.setValues
 }
+
+func (uc *updateClauses) HasSetValues() bool {
+	return uc.setValues != nil
+}
+
 func (uc *updateClauses) SetSetValues(values interface{}) UpdateClauses {
 	ret := uc.clone()
 	ret.setValues = values
+	return ret
+}
+
+func (uc *updateClauses) From() ColumnListExpression {
+	return uc.from
+}
+
+func (uc *updateClauses) HasFrom() bool {
+	return uc.from != nil && !uc.from.IsEmpty()
+}
+
+func (uc *updateClauses) SetFrom(from ColumnListExpression) UpdateClauses {
+	ret := uc.clone()
+	ret.from = from
 	return ret
 }
 

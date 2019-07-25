@@ -31,6 +31,16 @@ func (sds *sqlite3DialectSuite) TestIdentifiers() {
 	assert.Equal(t, sql, "SELECT `a`, `a`.`b`.`c`, `c`.`d`, `test` AS `test` FROM `test`")
 }
 
+func (sds *sqlite3DialectSuite) TestUpdateSQL_multipleTables() {
+	ds := sds.GetDs("test").Update()
+	_, _, err := ds.
+		Set(goqu.Record{"foo": "bar"}).
+		From("test_2").
+		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))).
+		ToSQL()
+	sds.EqualError(err, "goqu: sqlite3 dialect does not support multiple tables in UPDATE")
+}
+
 func (sds *sqlite3DialectSuite) TestCompoundExpressions() {
 	t := sds.T()
 	ds1 := sds.GetDs("test").Select("a")
