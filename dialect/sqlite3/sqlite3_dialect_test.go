@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -14,7 +14,7 @@ type sqlite3DialectSuite struct {
 	suite.Suite
 }
 
-func (sds *sqlite3DialectSuite) GetDs(table string) *goqu.Dataset {
+func (sds *sqlite3DialectSuite) GetDs(table string) *goqu.SelectDataset {
 	return goqu.Dialect("sqlite3").From(table)
 }
 

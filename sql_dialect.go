@@ -8,26 +8,28 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/doug-martin/goqu/v7/exp"
-	"github.com/doug-martin/goqu/v7/internal/errors"
-	"github.com/doug-martin/goqu/v7/internal/sb"
-	"github.com/doug-martin/goqu/v7/internal/util"
+	"github.com/doug-martin/goqu/v8/exp"
+	"github.com/doug-martin/goqu/v8/internal/errors"
+	"github.com/doug-martin/goqu/v8/internal/sb"
+	"github.com/doug-martin/goqu/v8/internal/util"
 )
 
 type (
 	// An adapter interface to be used by a Dataset to generate SQL for a specific dialect.
 	// See DefaultAdapter for a concrete implementation and examples.
 	SQLDialect interface {
-		ToSelectSQL(b sb.SQLBuilder, clauses exp.Clauses)
-		ToUpdateSQL(b sb.SQLBuilder, clauses exp.Clauses, update interface{})
-		ToInsertSQL(b sb.SQLBuilder, clauses exp.Clauses, ie exp.InsertExpression)
-		ToDeleteSQL(b sb.SQLBuilder, clauses exp.Clauses)
-		ToTruncateSQL(b sb.SQLBuilder, clauses exp.Clauses, options exp.TruncateOptions)
+		Dialect() string
+		ToSelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses)
+		ToUpdateSQL(b sb.SQLBuilder, clauses exp.UpdateClauses)
+		ToInsertSQL(b sb.SQLBuilder, clauses exp.InsertClauses)
+		ToDeleteSQL(b sb.SQLBuilder, clauses exp.DeleteClauses)
+		ToTruncateSQL(b sb.SQLBuilder, clauses exp.TruncateClauses)
 	}
 	// The default adapter. This class should be used when building a new adapter. When creating a new adapter you can
 	// either override methods, or more typically update default values.
 	// See (github.com/doug-martin/goqu/adapters/postgres)
 	sqlDialect struct {
+		dialect        string
 		dialectOptions *SQLDialectOptions
 	}
 )
@@ -87,7 +89,8 @@ func init() {
 }
 
 func RegisterDialect(name string, do *SQLDialectOptions) {
-	dialects[strings.ToLower(name)] = newDialect(do)
+	lowerName := strings.ToLower(name)
+	dialects[lowerName] = newDialect(lowerName, do)
 }
 
 func DeregisterDialect(name string) {
@@ -99,13 +102,16 @@ func GetDialect(name string) SQLDialect {
 	if d, ok := dialects[name]; ok {
 		return d
 	}
-	return newDialect(DefaultDialectOptions())
+	return newDialect("default", DefaultDialectOptions())
 }
 
-func newDialect(do *SQLDialectOptions) SQLDialect {
-	return &sqlDialect{dialectOptions: do}
+func newDialect(dialect string, do *SQLDialectOptions) SQLDialect {
+	return &sqlDialect{dialect: dialect, dialectOptions: do}
 }
 
+func (d *sqlDialect) Dialect() string {
+	return d.dialect
+}
 func (d *sqlDialect) SupportsReturn() bool {
 	return d.dialectOptions.SupportsReturn
 }
@@ -125,7 +131,7 @@ func (d *sqlDialect) SupportsLimitOnDelete() bool {
 	return d.dialectOptions.SupportsLimitOnDelete
 }
 
-func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.Clauses) {
+func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	for _, f := range d.dialectOptions.SelectSQLOrder {
 		if b.Error() != nil {
 			return
@@ -165,13 +171,13 @@ func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.Clauses) {
 	}
 }
 
-func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.Clauses, update interface{}) {
-	updates, err := exp.NewUpdateExpressions(update)
+func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.UpdateClauses) {
+	updates, err := exp.NewUpdateExpressions(clauses.SetValues())
 	if err != nil {
 		b.SetError(err)
 		return
 	}
-	if !clauses.HasSources() {
+	if !clauses.HasTable() {
 		b.SetError(errNoSourceForUpdate)
 		return
 	}
@@ -185,7 +191,8 @@ func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.Clauses, update in
 		case UpdateBeginSQLFragment:
 			d.UpdateBeginSQL(b)
 		case SourcesSQLFragment:
-			d.SourcesSQL(b, clauses.From())
+			b.WriteRunes(d.dialectOptions.SpaceRune)
+			d.Literal(b, clauses.Table())
 		case UpdateSQLFragment:
 			d.UpdateExpressionsSQL(b, updates...)
 		case WhereSQLFragment:
@@ -208,10 +215,9 @@ func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.Clauses, update in
 
 func (d *sqlDialect) ToInsertSQL(
 	b sb.SQLBuilder,
-	clauses exp.Clauses,
-	ie exp.InsertExpression,
+	clauses exp.InsertClauses,
 ) {
-	if !clauses.HasSources() {
+	if !clauses.HasInto() {
 		b.SetError(errNoSourceForInsert)
 		return
 	}
@@ -223,11 +229,12 @@ func (d *sqlDialect) ToInsertSQL(
 		case CommonTableSQLFragment:
 			d.CommonTablesSQL(b, clauses.CommonTables())
 		case InsertBeingSQLFragment:
-			d.InsertBeginSQL(b, ie.OnConflict())
-		case SourcesSQLFragment:
-			d.SourcesSQL(b, clauses.From())
+			d.InsertBeginSQL(b, clauses.OnConflict())
+		case IntoSQLFragment:
+			b.WriteRunes(d.dialectOptions.SpaceRune)
+			d.Literal(b, clauses.Into())
 		case InsertSQLFragment:
-			d.InsertSQL(b, ie)
+			d.InsertSQL(b, clauses)
 		case ReturningSQLFragment:
 			d.ReturningSQL(b, clauses.Returning())
 		default:
@@ -237,8 +244,8 @@ func (d *sqlDialect) ToInsertSQL(
 
 }
 
-func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.Clauses) {
-	if !clauses.HasSources() {
+func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.DeleteClauses) {
+	if !clauses.HasFrom() {
 		b.SetError(errNoSourceForDelete)
 		return
 	}
@@ -252,7 +259,7 @@ func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.Clauses) {
 		case DeleteBeginSQLFragment:
 			d.DeleteBeginSQL(b)
 		case FromSQLFragment:
-			d.FromSQL(b, clauses.From())
+			d.FromSQL(b, exp.NewColumnListExpression(clauses.From()))
 		case WhereSQLFragment:
 			d.WhereSQL(b, clauses.Where())
 		case OrderSQLFragment:
@@ -271,8 +278,8 @@ func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.Clauses) {
 	}
 }
 
-func (d *sqlDialect) ToTruncateSQL(b sb.SQLBuilder, clauses exp.Clauses, opts exp.TruncateOptions) {
-	if !clauses.HasSources() {
+func (d *sqlDialect) ToTruncateSQL(b sb.SQLBuilder, clauses exp.TruncateClauses) {
+	if !clauses.HasTable() {
 		b.SetError(errNoSourceForTruncate)
 		return
 	}
@@ -282,7 +289,7 @@ func (d *sqlDialect) ToTruncateSQL(b sb.SQLBuilder, clauses exp.Clauses, opts ex
 		}
 		switch f {
 		case TruncateSQLFragment:
-			d.TruncateSQL(b, clauses.From(), opts)
+			d.TruncateSQL(b, clauses.Table(), clauses.Options())
 		default:
 			b.SetError(notSupportedFragmentErr("TRUNCATE", f))
 		}
@@ -328,7 +335,35 @@ func (d *sqlDialect) TruncateSQL(b sb.SQLBuilder, from exp.ColumnListExpression,
 }
 
 // Adds the columns list to an insert statement
-func (d *sqlDialect) InsertSQL(b sb.SQLBuilder, ie exp.InsertExpression) {
+func (d *sqlDialect) InsertSQL(b sb.SQLBuilder, ic exp.InsertClauses) {
+	if b.Error() != nil {
+		return
+	}
+	switch {
+	case ic.HasRows():
+		ie, err := exp.NewInsertExpression(ic.Rows()...)
+		if err != nil {
+			b.SetError(err)
+			return
+		}
+		d.InsertExpressionSQL(b, ie)
+	case ic.HasCols() && ic.HasVals():
+		d.insertColumnsSQL(b, ic.Cols())
+		d.insertValuesSQL(b, ic.Vals())
+	case ic.HasCols() && ic.HasFrom():
+		d.insertColumnsSQL(b, ic.Cols())
+		d.insertFromSQL(b, ic.From())
+	case ic.HasFrom():
+		d.insertFromSQL(b, ic.From())
+	default:
+		d.defaultValuesSQL(b)
+
+	}
+
+	d.onConflictSQL(b, ic.OnConflict())
+}
+
+func (d *sqlDialect) InsertExpressionSQL(b sb.SQLBuilder, ie exp.InsertExpression) {
 	switch {
 	case b.Error() != nil:
 		return
@@ -340,7 +375,6 @@ func (d *sqlDialect) InsertSQL(b sb.SQLBuilder, ie exp.InsertExpression) {
 		d.insertColumnsSQL(b, ie.Cols())
 		d.insertValuesSQL(b, ie.Vals())
 	}
-	d.onConflictSQL(b, ie.OnConflict())
 }
 
 // Adds column setters in an update SET clause

@@ -1,13 +1,58 @@
 package goqu_test
 
 import (
+	goSQL "database/sql"
 	"fmt"
+	"os"
 	"regexp"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
+	"github.com/lib/pq"
 )
 
-func ExampleDataset() {
+const schema = `
+        DROP TABLE IF EXISTS "goqu_user";
+        CREATE  TABLE "goqu_user" (
+            "id" SERIAL PRIMARY KEY NOT NULL,
+            "first_name" VARCHAR(45) NOT NULL,
+			"last_name" VARCHAR(45) NOT NULL,
+			"created" TIMESTAMP NOT NULL DEFAULT now()
+		);
+        INSERT INTO "goqu_user" ("first_name", "last_name") VALUES
+            ('Bob', 'Yukon'),
+            ('Sally', 'Yukon'),
+			('Vinita', 'Yukon'),
+			('John', 'Doe')
+    `
+
+const defaultDbURI = "postgres://postgres:@localhost:5435/goqupostgres?sslmode=disable"
+
+var goquDb *goqu.Database
+
+func getDb() *goqu.Database {
+	if goquDb == nil {
+		dbURI := os.Getenv("PG_URI")
+		if dbURI == "" {
+			dbURI = defaultDbURI
+		}
+		uri, err := pq.ParseURL(dbURI)
+		if err != nil {
+			panic(err)
+		}
+		pdb, err := goSQL.Open("postgres", uri)
+		if err != nil {
+			panic(err)
+		}
+		goquDb = goqu.New("postgres", pdb)
+	}
+	// reset the db
+	if _, err := goquDb.Exec(schema); err != nil {
+		panic(err)
+	}
+	return goquDb
+}
+
+func ExampleSelectDataset() {
 	ds := goqu.From("test").
 		Select(goqu.COUNT("*")).
 		InnerJoin(goqu.T("test2"), goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.id")))).
@@ -40,33 +85,30 @@ func ExampleDataset() {
 	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]
 }
 
-func ExampleDataset_As() {
+func ExampleSelect() {
+	sql, _, _ := goqu.Select(goqu.L("NOW()")).ToSQL()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT NOW()
+}
+
+func ExampleFrom() {
+	sql, args, _ := goqu.From("test").ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "test" []
+}
+
+func ExampleSelectDataset_As() {
 	ds := goqu.From("test").As("t")
 	sql, _, _ := goqu.From(ds).ToSQL()
 	fmt.Println(sql)
 	// Output: SELECT * FROM (SELECT * FROM "test") AS "t"
 }
 
-func ExampleDataset_Returning() {
-	sql, _, _ := goqu.From("test").
-		Returning("id").
-		ToInsertSQL(goqu.Record{"a": "a", "b": "b"})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("test").
-		Returning(goqu.T("test").All()).
-		ToInsertSQL(goqu.Record{"a": "a", "b": "b"})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("test").
-		Returning("a", "b").
-		ToInsertSQL(goqu.Record{"a": "a", "b": "b"})
-	fmt.Println(sql)
-	// Output:
-	// INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "id"
-	// INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "test".*
-	// INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "a", "b"
-}
-
-func ExampleDataset_Union() {
+func ExampleSelectDataset_Union() {
 	sql, _, _ := goqu.From("test").
 		Union(goqu.From("test2")).
 		ToSQL()
@@ -90,7 +132,7 @@ func ExampleDataset_Union() {
 	// SELECT * FROM (SELECT * FROM "test" LIMIT 1) AS "t1" UNION (SELECT * FROM (SELECT * FROM "test2" ORDER BY "id" DESC) AS "t1")
 }
 
-func ExampleDataset_UnionAll() {
+func ExampleSelectDataset_UnionAll() {
 	sql, _, _ := goqu.From("test").
 		UnionAll(goqu.From("test2")).
 		ToSQL()
@@ -112,7 +154,7 @@ func ExampleDataset_UnionAll() {
 	// SELECT * FROM (SELECT * FROM "test" LIMIT 1) AS "t1" UNION ALL (SELECT * FROM (SELECT * FROM "test2" ORDER BY "id" DESC) AS "t1")
 }
 
-func ExampleDataset_With() {
+func ExampleSelectDataset_With() {
 	sql, _, _ := goqu.From("one").
 		With("one", goqu.From().Select(goqu.L("1"))).
 		Select(goqu.Star()).
@@ -130,31 +172,13 @@ func ExampleDataset_With() {
 		ToSQL()
 	fmt.Println(sql)
 
-	sql, _, _ = goqu.From("test").
-		With("moved_rows", goqu.From("other").Where(goqu.C("date").Lt(123))).
-		ToInsertSQL(goqu.From("moved_rows"))
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("test").
-		With("check_vals(val)", goqu.From().Select(goqu.L("123"))).
-		Where(goqu.C("val").Eq(goqu.From("check_vals").Select("val"))).
-		ToDeleteSQL()
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("test").
-		With("some_vals(val)", goqu.From().Select(goqu.L("123"))).
-		Where(goqu.C("val").Eq(goqu.From("some_vals").Select("val"))).
-		ToUpdateSQL(goqu.Record{"name": "Test"})
-	fmt.Println(sql)
-
 	// Output:
 	// WITH one AS (SELECT 1) SELECT * FROM "one"
 	// WITH intermed AS (SELECT * FROM "test" WHERE ("x" >= 5)), derived AS (SELECT * FROM "intermed" WHERE ("x" < 10)) SELECT * FROM "derived"
 	// WITH multi(x,y) AS (SELECT 1, 2) SELECT "x", "y" FROM "multi"
-	// WITH moved_rows AS (SELECT * FROM "other" WHERE ("date" < 123)) INSERT INTO "test" SELECT * FROM "moved_rows"
-	// WITH check_vals(val) AS (SELECT 123) DELETE FROM "test" WHERE ("val" IN (SELECT "val" FROM "check_vals"))
-	// WITH some_vals(val) AS (SELECT 123) UPDATE "test" SET "name"='Test' WHERE ("val" IN (SELECT "val" FROM "some_vals"))
 }
 
-func ExampleDataset_WithRecursive() {
+func ExampleSelectDataset_WithRecursive() {
 	sql, _, _ := goqu.From("nums").
 		WithRecursive("nums(x)",
 			goqu.From().Select(goqu.L("1")).
@@ -166,7 +190,7 @@ func ExampleDataset_WithRecursive() {
 	// WITH RECURSIVE nums(x) AS (SELECT 1 UNION ALL (SELECT x+1 FROM "nums" WHERE ("x" < 5))) SELECT * FROM "nums"
 }
 
-func ExampleDataset_Intersect() {
+func ExampleSelectDataset_Intersect() {
 	sql, _, _ := goqu.From("test").
 		Intersect(goqu.From("test2")).
 		ToSQL()
@@ -188,7 +212,7 @@ func ExampleDataset_Intersect() {
 	// SELECT * FROM (SELECT * FROM "test" LIMIT 1) AS "t1" INTERSECT (SELECT * FROM (SELECT * FROM "test2" ORDER BY "id" DESC) AS "t1")
 }
 
-func ExampleDataset_IntersectAll() {
+func ExampleSelectDataset_IntersectAll() {
 	sql, _, _ := goqu.From("test").
 		IntersectAll(goqu.From("test2")).
 		ToSQL()
@@ -210,7 +234,7 @@ func ExampleDataset_IntersectAll() {
 	// SELECT * FROM (SELECT * FROM "test" LIMIT 1) AS "t1" INTERSECT ALL (SELECT * FROM (SELECT * FROM "test2" ORDER BY "id" DESC) AS "t1")
 }
 
-func ExampleDataset_ClearOffset() {
+func ExampleSelectDataset_ClearOffset() {
 	ds := goqu.From("test").
 		Offset(2)
 	sql, _, _ := ds.
@@ -221,16 +245,15 @@ func ExampleDataset_ClearOffset() {
 	// SELECT * FROM "test"
 }
 
-func ExampleDataset_Offset() {
-	ds := goqu.From("test").
-		Offset(2)
+func ExampleSelectDataset_Offset() {
+	ds := goqu.From("test").Offset(2)
 	sql, _, _ := ds.ToSQL()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" OFFSET 2
 }
 
-func ExampleDataset_Limit() {
+func ExampleSelectDataset_Limit() {
 	ds := goqu.From("test").Limit(10)
 	sql, _, _ := ds.ToSQL()
 	fmt.Println(sql)
@@ -238,7 +261,7 @@ func ExampleDataset_Limit() {
 	// SELECT * FROM "test" LIMIT 10
 }
 
-func ExampleDataset_LimitAll() {
+func ExampleSelectDataset_LimitAll() {
 	ds := goqu.From("test").LimitAll()
 	sql, _, _ := ds.ToSQL()
 	fmt.Println(sql)
@@ -246,7 +269,7 @@ func ExampleDataset_LimitAll() {
 	// SELECT * FROM "test" LIMIT ALL
 }
 
-func ExampleDataset_ClearLimit() {
+func ExampleSelectDataset_ClearLimit() {
 	ds := goqu.From("test").Limit(10)
 	sql, _, _ := ds.ClearLimit().ToSQL()
 	fmt.Println(sql)
@@ -254,16 +277,15 @@ func ExampleDataset_ClearLimit() {
 	// SELECT * FROM "test"
 }
 
-func ExampleDataset_Order() {
-	ds := goqu.From("test").
-		Order(goqu.C("a").Asc())
+func ExampleSelectDataset_Order() {
+	ds := goqu.From("test").Order(goqu.C("a").Asc())
 	sql, _, _ := ds.ToSQL()
 	fmt.Println(sql)
 	// Output:
 	// SELECT * FROM "test" ORDER BY "a" ASC
 }
 
-func ExampleDataset_OrderAppend() {
+func ExampleSelectDataset_OrderAppend() {
 	ds := goqu.From("test").Order(goqu.C("a").Asc())
 	sql, _, _ := ds.OrderAppend(goqu.C("b").Desc().NullsLast()).ToSQL()
 	fmt.Println(sql)
@@ -271,7 +293,7 @@ func ExampleDataset_OrderAppend() {
 	// SELECT * FROM "test" ORDER BY "a" ASC, "b" DESC NULLS LAST
 }
 
-func ExampleDataset_OrderPrepend() {
+func ExampleSelectDataset_OrderPrepend() {
 	ds := goqu.From("test").Order(goqu.C("a").Asc())
 	sql, _, _ := ds.OrderPrepend(goqu.C("b").Desc().NullsLast()).ToSQL()
 	fmt.Println(sql)
@@ -279,7 +301,7 @@ func ExampleDataset_OrderPrepend() {
 	// SELECT * FROM "test" ORDER BY "b" DESC NULLS LAST, "a" ASC
 }
 
-func ExampleDataset_ClearOrder() {
+func ExampleSelectDataset_ClearOrder() {
 	ds := goqu.From("test").Order(goqu.C("a").Asc())
 	sql, _, _ := ds.ClearOrder().ToSQL()
 	fmt.Println(sql)
@@ -287,7 +309,17 @@ func ExampleDataset_ClearOrder() {
 	// SELECT * FROM "test"
 }
 
-func ExampleDataset_Having() {
+func ExampleSelectDataset_GroupBy() {
+	sql, _, _ := goqu.From("test").
+		Select(goqu.SUM("income").As("income_sum")).
+		GroupBy("age").
+		ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
+}
+
+func ExampleSelectDataset_Having() {
 	sql, _, _ := goqu.From("test").Having(goqu.SUM("income").Gt(1000)).ToSQL()
 	fmt.Println(sql)
 	sql, _, _ = goqu.From("test").GroupBy("age").Having(goqu.SUM("income").Gt(1000)).ToSQL()
@@ -297,7 +329,7 @@ func ExampleDataset_Having() {
 	// SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 }
 
-func ExampleDataset_Where() {
+func ExampleSelectDataset_Where() {
 	// By default everything is anded together
 	sql, _, _ := goqu.From("test").Where(goqu.Ex{
 		"a": goqu.Op{"gt": 10},
@@ -355,7 +387,7 @@ func ExampleDataset_Where() {
 	// SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
 }
 
-func ExampleDataset_Where_prepared() {
+func ExampleSelectDataset_Where_prepared() {
 	// By default everything is anded together
 	sql, args, _ := goqu.From("test").Prepared(true).Where(goqu.Ex{
 		"a": goqu.Op{"gt": 10},
@@ -413,7 +445,7 @@ func ExampleDataset_Where_prepared() {
 	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [10 10]
 }
 
-func ExampleDataset_ClearWhere() {
+func ExampleSelectDataset_ClearWhere() {
 	ds := goqu.From("test").Where(
 		goqu.Or(
 			goqu.C("a").Gt(10),
@@ -429,7 +461,7 @@ func ExampleDataset_ClearWhere() {
 	// SELECT * FROM "test"
 }
 
-func ExampleDataset_Join() {
+func ExampleSelectDataset_Join() {
 	sql, _, _ := goqu.From("test").Join(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")}),
@@ -458,7 +490,7 @@ func ExampleDataset_Join() {
 
 }
 
-func ExampleDataset_InnerJoin() {
+func ExampleSelectDataset_InnerJoin() {
 	sql, _, _ := goqu.From("test").InnerJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -491,7 +523,7 @@ func ExampleDataset_InnerJoin() {
 	// SELECT * FROM "test" INNER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_FullOuterJoin() {
+func ExampleSelectDataset_FullOuterJoin() {
 	sql, _, _ := goqu.From("test").FullOuterJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -524,7 +556,7 @@ func ExampleDataset_FullOuterJoin() {
 	// SELECT * FROM "test" FULL OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_RightOuterJoin() {
+func ExampleSelectDataset_RightOuterJoin() {
 	sql, _, _ := goqu.From("test").RightOuterJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -557,7 +589,7 @@ func ExampleDataset_RightOuterJoin() {
 	// SELECT * FROM "test" RIGHT OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_LeftOuterJoin() {
+func ExampleSelectDataset_LeftOuterJoin() {
 	sql, _, _ := goqu.From("test").LeftOuterJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -590,7 +622,7 @@ func ExampleDataset_LeftOuterJoin() {
 	// SELECT * FROM "test" LEFT OUTER JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_FullJoin() {
+func ExampleSelectDataset_FullJoin() {
 	sql, _, _ := goqu.From("test").FullJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -623,7 +655,7 @@ func ExampleDataset_FullJoin() {
 	// SELECT * FROM "test" FULL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_RightJoin() {
+func ExampleSelectDataset_RightJoin() {
 	sql, _, _ := goqu.From("test").RightJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -656,7 +688,7 @@ func ExampleDataset_RightJoin() {
 	// SELECT * FROM "test" RIGHT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_LeftJoin() {
+func ExampleSelectDataset_LeftJoin() {
 	sql, _, _ := goqu.From("test").LeftJoin(
 		goqu.T("test2"),
 		goqu.On(goqu.Ex{
@@ -689,7 +721,7 @@ func ExampleDataset_LeftJoin() {
 	// SELECT * FROM "test" LEFT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t" ON ("test"."fkey" = "t"."Id")
 }
 
-func ExampleDataset_NaturalJoin() {
+func ExampleSelectDataset_NaturalJoin() {
 	sql, _, _ := goqu.From("test").NaturalJoin(goqu.T("test2")).ToSQL()
 	fmt.Println(sql)
 
@@ -708,7 +740,7 @@ func ExampleDataset_NaturalJoin() {
 	// SELECT * FROM "test" NATURAL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
 
-func ExampleDataset_NaturalLeftJoin() {
+func ExampleSelectDataset_NaturalLeftJoin() {
 	sql, _, _ := goqu.From("test").NaturalLeftJoin(goqu.T("test2")).ToSQL()
 	fmt.Println(sql)
 
@@ -727,7 +759,7 @@ func ExampleDataset_NaturalLeftJoin() {
 	// SELECT * FROM "test" NATURAL LEFT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
 
-func ExampleDataset_NaturalRightJoin() {
+func ExampleSelectDataset_NaturalRightJoin() {
 	sql, _, _ := goqu.From("test").NaturalRightJoin(goqu.T("test2")).ToSQL()
 	fmt.Println(sql)
 
@@ -746,7 +778,7 @@ func ExampleDataset_NaturalRightJoin() {
 	// SELECT * FROM "test" NATURAL RIGHT JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
 
-func ExampleDataset_NaturalFullJoin() {
+func ExampleSelectDataset_NaturalFullJoin() {
 	sql, _, _ := goqu.From("test").NaturalFullJoin(goqu.T("test2")).ToSQL()
 	fmt.Println(sql)
 
@@ -765,7 +797,7 @@ func ExampleDataset_NaturalFullJoin() {
 	// SELECT * FROM "test" NATURAL FULL JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
 
-func ExampleDataset_CrossJoin() {
+func ExampleSelectDataset_CrossJoin() {
 	sql, _, _ := goqu.From("test").CrossJoin(goqu.T("test2")).ToSQL()
 	fmt.Println(sql)
 
@@ -784,7 +816,7 @@ func ExampleDataset_CrossJoin() {
 	// SELECT * FROM "test" CROSS JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
 }
 
-func ExampleDataset_FromSelf() {
+func ExampleSelectDataset_FromSelf() {
 	sql, _, _ := goqu.From("test").FromSelf().ToSQL()
 	fmt.Println(sql)
 	sql, _, _ = goqu.From("test").As("my_test_table").FromSelf().ToSQL()
@@ -794,7 +826,7 @@ func ExampleDataset_FromSelf() {
 	// SELECT * FROM (SELECT * FROM "test") AS "my_test_table"
 }
 
-func ExampleDataset_From() {
+func ExampleSelectDataset_From() {
 	ds := goqu.From("test")
 	sql, _, _ := ds.From("test2").ToSQL()
 	fmt.Println(sql)
@@ -802,7 +834,7 @@ func ExampleDataset_From() {
 	// SELECT * FROM "test2"
 }
 
-func ExampleDataset_From_withDataset() {
+func ExampleSelectDataset_From_withDataset() {
 	ds := goqu.From("test")
 	fromDs := ds.Where(goqu.C("age").Gt(10))
 	sql, _, _ := ds.From(fromDs).ToSQL()
@@ -811,7 +843,7 @@ func ExampleDataset_From_withDataset() {
 	// SELECT * FROM (SELECT * FROM "test" WHERE ("age" > 10)) AS "t1"
 }
 
-func ExampleDataset_From_withAliasedDataset() {
+func ExampleSelectDataset_From_withAliasedDataset() {
 	ds := goqu.From("test")
 	fromDs := ds.Where(goqu.C("age").Gt(10))
 	sql, _, _ := ds.From(fromDs.As("test2")).ToSQL()
@@ -820,14 +852,14 @@ func ExampleDataset_From_withAliasedDataset() {
 	// SELECT * FROM (SELECT * FROM "test" WHERE ("age" > 10)) AS "test2"
 }
 
-func ExampleDataset_Select() {
+func ExampleSelectDataset_Select() {
 	sql, _, _ := goqu.From("test").Select("a", "b", "c").ToSQL()
 	fmt.Println(sql)
 	// Output:
 	// SELECT "a", "b", "c" FROM "test"
 }
 
-func ExampleDataset_Select_withDataset() {
+func ExampleSelectDataset_Select_withDataset() {
 	ds := goqu.From("test")
 	fromDs := ds.Select("age").Where(goqu.C("age").Gt(10))
 	sql, _, _ := ds.From().Select(fromDs).ToSQL()
@@ -836,7 +868,7 @@ func ExampleDataset_Select_withDataset() {
 	// SELECT (SELECT "age" FROM "test" WHERE ("age" > 10))
 }
 
-func ExampleDataset_Select_withAliasedDataset() {
+func ExampleSelectDataset_Select_withAliasedDataset() {
 	ds := goqu.From("test")
 	fromDs := ds.Select("age").Where(goqu.C("age").Gt(10))
 	sql, _, _ := ds.From().Select(fromDs.As("ages")).ToSQL()
@@ -845,14 +877,14 @@ func ExampleDataset_Select_withAliasedDataset() {
 	// SELECT (SELECT "age" FROM "test" WHERE ("age" > 10)) AS "ages"
 }
 
-func ExampleDataset_Select_withLiteral() {
+func ExampleSelectDataset_Select_withLiteral() {
 	sql, _, _ := goqu.From("test").Select(goqu.L("a + b").As("sum")).ToSQL()
 	fmt.Println(sql)
 	// Output:
 	// SELECT a + b AS "sum" FROM "test"
 }
 
-func ExampleDataset_Select_withSQLFunctionExpression() {
+func ExampleSelectDataset_Select_withSQLFunctionExpression() {
 	sql, _, _ := goqu.From("test").Select(
 		goqu.COUNT("*").As("age_count"),
 		goqu.MAX("age").As("max_age"),
@@ -863,7 +895,7 @@ func ExampleDataset_Select_withSQLFunctionExpression() {
 	// SELECT COUNT(*) AS "age_count", MAX("age") AS "max_age", AVG("age") AS "avg_age" FROM "test"
 }
 
-func ExampleDataset_Select_withStruct() {
+func ExampleSelectDataset_Select_withStruct() {
 	ds := goqu.From("test")
 
 	type myStruct struct {
@@ -907,14 +939,14 @@ func ExampleDataset_Select_withStruct() {
 	// SELECT "address", "email_address", "name" FROM "test"
 }
 
-func ExampleDataset_SelectDistinct() {
+func ExampleSelectDataset_SelectDistinct() {
 	sql, _, _ := goqu.From("test").SelectDistinct("a", "b").ToSQL()
 	fmt.Println(sql)
 	// Output:
 	// SELECT DISTINCT "a", "b" FROM "test"
 }
 
-func ExampleDataset_SelectAppend() {
+func ExampleSelectDataset_SelectAppend() {
 	ds := goqu.From("test").Select("a", "b")
 	sql, _, _ := ds.SelectAppend("c").ToSQL()
 	fmt.Println(sql)
@@ -926,7 +958,7 @@ func ExampleDataset_SelectAppend() {
 	// SELECT DISTINCT "a", "b", "c" FROM "test"
 }
 
-func ExampleDataset_ClearSelect() {
+func ExampleSelectDataset_ClearSelect() {
 	ds := goqu.From("test").Select("a", "b")
 	sql, _, _ := ds.ClearSelect().ToSQL()
 	fmt.Println(sql)
@@ -938,38 +970,38 @@ func ExampleDataset_ClearSelect() {
 	// SELECT * FROM "test"
 }
 
-func ExampleDataset_ToSQL() {
+func ExampleSelectDataset_ToSQL() {
 	sql, args, _ := goqu.From("items").Where(goqu.Ex{"a": 1}).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
 	// SELECT * FROM "items" WHERE ("a" = 1) []
 }
 
-func ExampleDataset_ToSQL_prepared() {
+func ExampleSelectDataset_ToSQL_prepared() {
 	sql, args, _ := goqu.From("items").Where(goqu.Ex{"a": 1}).Prepared(true).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
 	// SELECT * FROM "items" WHERE ("a" = ?) [1]
 }
 
-func ExampleDataset_ToUpdateSQL() {
+func ExampleSelectDataset_Update() {
 	type item struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, _ := goqu.From("items").ToUpdateSQL(
+	sql, args, _ := goqu.From("items").Update().Set(
 		item{Name: "Test", Address: "111 Test Addr"},
-	)
+	).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = goqu.From("items").ToUpdateSQL(
+	sql, args, _ = goqu.From("items").Update().Set(
 		goqu.Record{"name": "Test", "address": "111 Test Addr"},
-	)
+	).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = goqu.From("items").ToUpdateSQL(
+	sql, args, _ = goqu.From("items").Update().Set(
 		map[string]interface{}{"name": "Test", "address": "111 Test Addr"},
-	)
+	).ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
@@ -978,90 +1010,36 @@ func ExampleDataset_ToUpdateSQL() {
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 }
 
-func ExampleDataset_ToUpdateSQL_withSkipUpdateTag() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name" goqu:"skipupdate"`
-	}
-	sql, args, _ := goqu.From("items").ToUpdateSQL(
-		item{Name: "Test", Address: "111 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	// Output:
-	// UPDATE "items" SET "address"='111 Test Addr' []
-}
-
-func ExampleDataset_ToUpdateSQL_withNoTags() {
-	type item struct {
-		Address string
-		Name    string
-	}
-	sql, args, _ := goqu.From("items").ToUpdateSQL(
-		item{Name: "Test", Address: "111 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	// Output:
-	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
-}
-
-func ExampleDataset_ToUpdateSQL_prepared() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-
-	sql, args, _ := goqu.From("items").Prepared(true).ToUpdateSQL(
-		item{Name: "Test", Address: "111 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToUpdateSQL(
-		goqu.Record{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToUpdateSQL(
-		map[string]interface{}{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Println(sql, args)
-	// Output:
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
-}
-
-func ExampleDataset_ToInsertSQL() {
+func ExampleSelectDataset_Insert() {
 	type item struct {
 		ID      uint32 `db:"id" goqu:"skipinsert"`
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	sql, args, _ := goqu.From("items").ToInsertSQL(
+	sql, args, _ := goqu.From("items").Insert().Rows(
 		item{Name: "Test1", Address: "111 Test Addr"},
 		item{Name: "Test2", Address: "112 Test Addr"},
-	)
+	).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = goqu.From("items").ToInsertSQL(
+	sql, args, _ = goqu.From("items").Insert().Rows(
 		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
 		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
-	)
+	).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = goqu.From("items").ToInsertSQL(
+	sql, args, _ = goqu.From("items").Insert().Rows(
 		[]item{
 			{Name: "Test1", Address: "111 Test Addr"},
 			{Name: "Test2", Address: "112 Test Addr"},
-		})
+		}).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = goqu.From("items").ToInsertSQL(
+	sql, args, _ = goqu.From("items").Insert().Rows(
 		[]goqu.Record{
 			{"name": "Test1", "address": "111 Test Addr"},
 			{"name": "Test2", "address": "112 Test Addr"},
-		})
+		}).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
@@ -1070,255 +1048,14 @@ func ExampleDataset_ToInsertSQL() {
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
 }
 
-func ExampleDataset_ToInsertSQL_withNoDbTag() {
-	type item struct {
-		ID      uint32 `goqu:"skipinsert"`
-		Address string
-		Name    string
-	}
-	sql, args, _ := goqu.From("items").ToInsertSQL(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') []
-}
-
-func ExampleDataset_ToInsertSQL_withGoquSkipInsertTag() {
-	type item struct {
-		ID      uint32 `goqu:"skipinsert"`
-		Address string `goqu:"skipinsert"`
-		Name    string
-	}
-	sql, args, _ := goqu.From("items").ToInsertSQL(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-	// Output:
-	// INSERT INTO "items" ("name") VALUES ('Test1'), ('Test2') []
-}
-
-func ExampleDataset_ToInsertSQL_prepared() {
-	type item struct {
-		ID      uint32 `db:"id" goqu:"skipinsert"`
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-
-	sql, args, _ := goqu.From("items").Prepared(true).ToInsertSQL(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToInsertSQL(
-		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
-		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToInsertSQL(
-		[]item{
-			{Name: "Test1", Address: "111 Test Addr"},
-			{Name: "Test2", Address: "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToInsertSQL(
-		[]goqu.Record{
-			{"name": "Test1", "address": "111 Test Addr"},
-			{"name": "Test2", "address": "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-}
-
-func ExampleDataset_ToInsertIgnoreSQL() {
-	type item struct {
-		ID      uint32 `db:"id" goqu:"skipinsert"`
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	sql, args, _ := goqu.From("items").ToInsertIgnoreSQL(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertIgnoreSQL(
-		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
-		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertIgnoreSQL(
-		[]item{
-			{Name: "Test1", Address: "111 Test Addr"},
-			{Name: "Test2", Address: "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertIgnoreSQL(
-		[]goqu.Record{
-			{"name": "Test1", "address": "111 Test Addr"},
-			{"name": "Test2", "address": "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-}
-
-func ExampleDataset_ToInsertIgnoreSQL_withNoDBTag() {
-	type item struct {
-		ID      uint32 `goqu:"skipinsert"`
-		Address string
-		Name    string
-	}
-	sql, args, _ := goqu.From("items").ToInsertIgnoreSQL(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-}
-
-func ExampleDataset_ToInsertIgnoreSQL_withGoquSkipInsertTag() {
-	type item struct {
-		ID      uint32 `goqu:"skipinsert"`
-		Address string
-		Name    string `goqu:"skipinsert"`
-	}
-	sql, args, _ := goqu.From("items").ToInsertIgnoreSQL(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-	// Output:
-	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT DO NOTHING []
-}
-
-func ExampleDataset_ToInsertConflictSQL() {
-	type item struct {
-		ID      uint32 `db:"id" goqu:"skipinsert"`
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	sql, args, _ := goqu.From("items").ToInsertConflictSQL(
-		goqu.DoNothing(),
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
-		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}),
-		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
-		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
-		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}).Where(goqu.C("allow_update").IsTrue()),
-		[]item{
-			{Name: "Test1", Address: "111 Test Addr"},
-			{Name: "Test2", Address: "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-
-	// nolint:lll
-	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
-}
-
-func ExampleDataset_ToInsertConflictSQL_withNoDbTag() {
-	type item struct {
-		ID      uint32 `goqu:"skipinsert"`
-		Address string
-		Name    string
-	}
-	sql, args, _ := goqu.From("items").ToInsertConflictSQL(
-		goqu.DoNothing(),
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
-		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}),
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
-		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}).Where(goqu.C("allow_update").IsTrue()),
-		[]item{
-			{Name: "Test1", Address: "111 Test Addr"},
-			{Name: "Test2", Address: "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-
-	// nolint:lll
-	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
-}
-
-func ExampleDataset_ToInsertConflictSQL_withGoquSkipInsertTag() {
-	type item struct {
-		ID      uint32 `goqu:"skipinsert"`
-		Address string
-		Name    string `goqu:"skipinsert"`
-	}
-	sql, args, _ := goqu.From("items").ToInsertConflictSQL(
-		goqu.DoNothing(),
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
-		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}),
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").ToInsertConflictSQL(
-		goqu.DoUpdate("key", goqu.Record{"updated": goqu.L("NOW()")}).Where(goqu.C("allow_update").IsTrue()),
-		[]item{
-			{Name: "Test1", Address: "111 Test Addr"},
-			{Name: "Test2", Address: "112 Test Addr"},
-		})
-	fmt.Println(sql, args)
-
-	// nolint:lll
-	// Output:
-	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT DO NOTHING []
-	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() []
-	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
-}
-
-func ExampleDataset_ToDeleteSQL() {
-	sql, args, _ := goqu.From("items").ToDeleteSQL()
+func ExampleSelectDataset_Delete() {
+	sql, args, _ := goqu.From("items").Delete().ToSQL()
 	fmt.Println(sql, args)
 
 	sql, args, _ = goqu.From("items").
 		Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
-		ToDeleteSQL()
+		Delete().
+		ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
@@ -1326,91 +1063,14 @@ func ExampleDataset_ToDeleteSQL() {
 	// DELETE FROM "items" WHERE ("id" > 10) []
 }
 
-func ExampleDataset_ToDeleteSQL_prepared() {
-	sql, args, _ := goqu.From("items").Prepared(true).ToDeleteSQL()
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").
-		Prepared(true).
-		Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
-		ToDeleteSQL()
-	fmt.Println(sql, args)
-
-	// Output:
-	// DELETE FROM "items" []
-	// DELETE FROM "items" WHERE ("id" > ?) [10]
-}
-
-func ExampleDataset_ToDeleteSQL_withWhere() {
-	sql, args, _ := goqu.From("items").Where(goqu.C("id").IsNotNull()).ToDeleteSQL()
-	fmt.Println(sql, args)
-
-	// Output:
-	// DELETE FROM "items" WHERE ("id" IS NOT NULL) []
-}
-
-func ExampleDataset_ToDeleteSQL_withReturning() {
-	ds := goqu.From("items")
-	sql, args, _ := ds.Returning("id").ToDeleteSQL()
-	fmt.Println(sql, args)
-
-	sql, args, _ = ds.Returning("id").Where(goqu.C("id").IsNotNull()).ToDeleteSQL()
-	fmt.Println(sql, args)
-
-	// Output:
-	// DELETE FROM "items" RETURNING "id" []
-	// DELETE FROM "items" WHERE ("id" IS NOT NULL) RETURNING "id" []
-}
-
-func ExampleDataset_ToTruncateSQL() {
-	sql, args, _ := goqu.From("items").ToTruncateSQL()
+func ExampleSelectDataset_Truncate() {
+	sql, args, _ := goqu.From("items").Truncate().ToSQL()
 	fmt.Println(sql, args)
 	// Output:
 	// TRUNCATE "items" []
 }
 
-func ExampleDataset_ToTruncateWithOptsSQL() {
-	sql, _, _ := goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Cascade: true})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Restrict: true})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Identity: "RESTART"})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Identity: "RESTART", Cascade: true})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Identity: "RESTART", Restrict: true})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Identity: "CONTINUE"})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Identity: "CONTINUE", Cascade: true})
-	fmt.Println(sql)
-	sql, _, _ = goqu.From("items").
-		ToTruncateWithOptsSQL(goqu.TruncateOptions{Identity: "CONTINUE", Restrict: true})
-	fmt.Println(sql)
-
-	// Output:
-	// TRUNCATE "items"
-	// TRUNCATE "items" CASCADE
-	// TRUNCATE "items" RESTRICT
-	// TRUNCATE "items" RESTART IDENTITY
-	// TRUNCATE "items" RESTART IDENTITY CASCADE
-	// TRUNCATE "items" RESTART IDENTITY RESTRICT
-	// TRUNCATE "items" CONTINUE IDENTITY
-	// TRUNCATE "items" CONTINUE IDENTITY CASCADE
-	// TRUNCATE "items" CONTINUE IDENTITY RESTRICT
-}
-
-func ExampleDataset_Prepared() {
+func ExampleSelectDataset_Prepared() {
 	sql, args, _ := goqu.From("items").Prepared(true).Where(goqu.Ex{
 		"col1": "a",
 		"col2": 1,
@@ -1419,28 +1079,147 @@ func ExampleDataset_Prepared() {
 		"col5": []string{"a", "b", "c"},
 	}).ToSQL()
 	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToInsertSQL(
-		goqu.Record{"name": "Test1", "address": "111 Test Addr"},
-		goqu.Record{"name": "Test2", "address": "112 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").Prepared(true).ToUpdateSQL(
-		goqu.Record{"name": "Test", "address": "111 Test Addr"},
-	)
-	fmt.Println(sql, args)
-
-	sql, args, _ = goqu.From("items").
-		Prepared(true).
-		Where(goqu.Ex{"id": goqu.Op{"gt": 10}}).
-		ToDeleteSQL()
-	fmt.Println(sql, args)
-
 	// nolint:lll
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
-	// INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
-	// UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
-	// DELETE FROM "items" WHERE ("id" > ?) [10]
+}
+
+func ExampleSelectDataset_ScanStructs() {
+	type User struct {
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+	}
+	db := getDb()
+	var users []User
+	if err := db.From("goqu_user").ScanStructs(&users); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("\n%+v", users)
+
+	users = users[0:0]
+	if err := db.From("goqu_user").Select("first_name").ScanStructs(&users); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("\n%+v", users)
+
+	// Output:
+	// [{FirstName:Bob LastName:Yukon} {FirstName:Sally LastName:Yukon} {FirstName:Vinita LastName:Yukon} {FirstName:John LastName:Doe}]
+	// [{FirstName:Bob LastName:} {FirstName:Sally LastName:} {FirstName:Vinita LastName:} {FirstName:John LastName:}]
+}
+
+func ExampleSelectDataset_ScanStructs_prepared() {
+	type User struct {
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+	}
+	db := getDb()
+
+	ds := db.From("goqu_user").
+		Prepared(true).
+		Where(goqu.Ex{
+			"last_name": "Yukon",
+		})
+
+	var users []User
+	if err := ds.ScanStructs(&users); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("\n%+v", users)
+
+	// Output:
+	// [{FirstName:Bob LastName:Yukon} {FirstName:Sally LastName:Yukon} {FirstName:Vinita LastName:Yukon}]
+}
+
+func ExampleSelectDataset_ScanStruct() {
+	type User struct {
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+	}
+	db := getDb()
+	findUserByName := func(name string) {
+		var user User
+		ds := db.From("goqu_user").Where(goqu.C("first_name").Eq(name))
+		found, err := ds.ScanStruct(&user)
+		switch {
+		case err != nil:
+			fmt.Println(err.Error())
+		case !found:
+			fmt.Printf("No user found for first_name %s\n", name)
+		default:
+			fmt.Printf("Found user: %+v\n", user)
+		}
+	}
+
+	findUserByName("Bob")
+	findUserByName("Zeb")
+
+	// Output:
+	// Found user: {FirstName:Bob LastName:Yukon}
+	// No user found for first_name Zeb
+}
+
+func ExampleSelectDataset_ScanVals() {
+	var ids []int64
+	if err := getDb().From("goqu_user").Select("id").ScanVals(&ids); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("UserIds = %+v", ids)
+
+	// Output:
+	// UserIds = [1 2 3 4]
+}
+
+func ExampleSelectDataset_ScanVal() {
+
+	db := getDb()
+	findUserIDByName := func(name string) {
+		var id int64
+		ds := db.From("goqu_user").
+			Select("id").
+			Where(goqu.C("first_name").Eq(name))
+
+		found, err := ds.ScanVal(&id)
+		switch {
+		case err != nil:
+			fmt.Println(err.Error())
+		case !found:
+			fmt.Printf("No id found for user %s", name)
+		default:
+			fmt.Printf("\nFound userId: %+v\n", id)
+		}
+	}
+
+	findUserIDByName("Bob")
+	findUserIDByName("Zeb")
+	// Output:
+	// Found userId: 1
+	// No id found for user Zeb
+}
+
+func ExampleSelectDataset_Count() {
+
+	if count, err := getDb().From("goqu_user").Count(); err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("\nCount:= %d", count)
+	}
+
+	// Output:
+	// Count:= 4
+}
+
+func ExampleSelectDataset_Pluck() {
+	var lastNames []string
+	if err := getDb().From("goqu_user").Pluck(&lastNames, "last_name"); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("LastNames := %+v", lastNames)
+
+	// Output:
+	// LastNames := [Yukon Yukon Yukon Doe]
 }

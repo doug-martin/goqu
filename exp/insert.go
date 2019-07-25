@@ -4,16 +4,15 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/doug-martin/goqu/v7/internal/errors"
-	"github.com/doug-martin/goqu/v7/internal/util"
+	"github.com/doug-martin/goqu/v8/internal/errors"
+	"github.com/doug-martin/goqu/v8/internal/util"
 )
 
 type (
 	insert struct {
-		from       AppendableExpression
-		cols       ColumnListExpression
-		vals       [][]interface{}
-		onConflict ConflictExpression
+		from AppendableExpression
+		cols ColumnListExpression
+		vals [][]interface{}
 	}
 )
 
@@ -47,7 +46,7 @@ func (i *insert) Clone() Expression {
 }
 
 func (i *insert) clone() *insert {
-	return &insert{from: i.from, cols: i.cols, vals: i.vals, onConflict: i.onConflict}
+	return &insert{from: i.from, cols: i.cols, vals: i.vals}
 }
 
 func (i *insert) IsEmpty() bool {
@@ -78,24 +77,6 @@ func (i *insert) SetVals(vals [][]interface{}) InsertExpression {
 	ci := i.clone()
 	ci.vals = vals
 	return ci
-}
-
-func (i *insert) OnConflict() ConflictExpression {
-	return i.onConflict
-}
-
-func (i *insert) SetOnConflict(ce ConflictExpression) InsertExpression {
-	ci := i.clone()
-	ci.onConflict = ce
-	return ci
-}
-
-func (i *insert) DoNothing() InsertExpression {
-	return i.SetOnConflict(NewDoNothingConflictExpression())
-
-}
-func (i *insert) DoUpdate(target string, update interface{}) InsertExpression {
-	return i.SetOnConflict(NewDoUpdateConflictExpression(target, update))
 }
 
 // parses the rows gathering and sorting unique columns and values for each record

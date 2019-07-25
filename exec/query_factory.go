@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/doug-martin/goqu/v7/internal/sb"
+	"github.com/doug-martin/goqu/v8/internal/sb"
 )
 
 type (

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu/v7"
-	_ "github.com/doug-martin/goqu/v7/dialect/mysql"
+	"github.com/doug-martin/goqu/v8"
+	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
@@ -224,7 +224,7 @@ func (mt *mysqlTest) TestInsert() {
 	ds := mt.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	_, err := ds.Insert(e).Exec()
+	_, err := ds.Insert().Rows(e).Executor().Exec()
 	assert.NoError(t, err)
 
 	var insertedEntry entry
@@ -239,19 +239,19 @@ func (mt *mysqlTest) TestInsert() {
 		{Int: 13, Float: 1.300000, String: "1.300000", Time: now, Bool: false, Bytes: []byte("1.300000")},
 		{Int: 14, Float: 1.400000, String: "1.400000", Time: now, Bool: true, Bytes: []byte("1.400000")},
 	}
-	_, err = ds.Insert(entries).Exec()
+	_, err = ds.Insert().Rows(entries).Executor().Exec()
 	assert.NoError(t, err)
 
 	var newEntries []entry
 	assert.NoError(t, ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
 	assert.Len(t, newEntries, 4)
 
-	_, err = ds.Insert(
+	_, err = ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},
 		entry{Int: 16, Float: 1.600000, String: "1.600000", Time: now, Bool: true, Bytes: []byte("1.600000")},
 		entry{Int: 17, Float: 1.700000, String: "1.700000", Time: now, Bool: false, Bytes: []byte("1.700000")},
 		entry{Int: 18, Float: 1.800000, String: "1.800000", Time: now, Bool: true, Bytes: []byte("1.800000")},
-	).Exec()
+	).Executor().Exec()
 	assert.NoError(t, err)
 
 	newEntries = newEntries[0:0]
@@ -264,7 +264,7 @@ func (mt *mysqlTest) TestInsertReturning() {
 	ds := mt.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	_, err := ds.Returning(goqu.Star()).Insert(e).ScanStruct(&e)
+	_, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
 	assert.Error(t, err)
 
 }
@@ -277,7 +277,7 @@ func (mt *mysqlTest) TestUpdate() {
 	assert.NoError(t, err)
 	assert.True(t, found)
 	e.Int = 11
-	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Update(e).Exec()
+	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Update().Set(e).Executor().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Where(goqu.C("int").Eq(11)).Count()
@@ -289,7 +289,11 @@ func (mt *mysqlTest) TestUpdateReturning() {
 	t := mt.T()
 	ds := mt.db.From("entry")
 	var id uint32
-	_, err := ds.Where(goqu.C("int").Eq(11)).Returning("id").Update(goqu.Record{"int": 9}).ScanVal(&id)
+	_, err := ds.Where(goqu.C("int").Eq(11)).
+		Update().
+		Set(goqu.Record{"int": 9}).
+		Returning("id").
+		Executor().ScanVal(&id)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "goqu: adapter does not support RETURNING clause")
 }
@@ -301,7 +305,7 @@ func (mt *mysqlTest) TestDelete() {
 	found, err := ds.Where(goqu.C("int").Eq(9)).Select("id").ScanStruct(&e)
 	assert.NoError(t, err)
 	assert.True(t, found)
-	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Exec()
+	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Executor().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Count()
@@ -320,7 +324,7 @@ func (mt *mysqlTest) TestDelete() {
 	assert.NotEqual(t, e.ID, 0)
 
 	id = 0
-	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Returning("id").Delete().ScanVal(&id)
+	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Returning("id").Executor().ScanVal(&id)
 	assert.Equal(t, err.Error(), "goqu: adapter does not support RETURNING clause")
 }
 
@@ -335,7 +339,7 @@ func (mt *mysqlTest) TestInsertIgnore() {
 		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 		{Int: 10, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
-	_, err := ds.InsertIgnore(entries).Exec()
+	_, err := ds.Insert().Rows(entries).OnConflict(goqu.DoNothing()).Executor().Exec()
 	assert.NoError(t, err)
 
 	count, err := ds.Count()
@@ -343,25 +347,28 @@ func (mt *mysqlTest) TestInsertIgnore() {
 	assert.Equal(t, count, int64(11))
 }
 
-func (mt *mysqlTest) TestInsertConflict() {
+func (mt *mysqlTest) TestInsert_OnConflict() {
 	t := mt.T()
 	ds := mt.db.From("entry")
 	now := time.Now()
 
 	// insert
 	e := entry{Int: 10, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
-	_, err := ds.InsertConflict(goqu.DoNothing(), e).Exec()
+	_, err := ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
 	assert.NoError(t, err)
 
 	// duplicate
 	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
-	_, err = ds.InsertConflict(goqu.DoNothing(), e).Exec()
+	_, err = ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
 	assert.NoError(t, err)
 
 	// update
 	var entryActual entry
 	e2 := entry{Int: 10, String: "2.000000"}
-	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}), e2).Exec()
+	_, err = ds.Insert().
+		Rows(e2).
+		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"})).
+		Executor().Exec()
 	assert.NoError(t, err)
 	_, err = ds.Where(goqu.C("int").Eq(10)).ScanStruct(&entryActual)
 	assert.NoError(t, err)
@@ -372,7 +379,10 @@ func (mt *mysqlTest) TestInsertConflict() {
 		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
 		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
-	_, err = ds.InsertConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.C("int").Eq(9)), entries).Exec()
+	_, err = ds.Insert().
+		Rows(entries).
+		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.C("int").Eq(9))).
+		Executor().Exec()
 	assert.Equal(t, err.Error(), "goqu: adapter does not support upsert with where clause")
 }
 

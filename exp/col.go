@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/doug-martin/goqu/v7/internal/util"
+	"github.com/doug-martin/goqu/v8/internal/util"
 )
 
 type columnList struct {
@@ -17,6 +17,8 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 		switch t := val.(type) {
 		case string:
 			cols = append(cols, ParseIdentifier(t))
+		case ColumnListExpression:
+			cols = append(cols, t.Columns()...)
 		case Expression:
 			cols = append(cols, t)
 		default:

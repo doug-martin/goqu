@@ -2,11 +2,11 @@ package exec
 
 import (
 	"context"
-	"database/sql"
+	gsql "database/sql"
 	"reflect"
 
-	"github.com/doug-martin/goqu/v7/internal/errors"
-	"github.com/doug-martin/goqu/v7/internal/util"
+	"github.com/doug-martin/goqu/v8/internal/errors"
+	"github.com/doug-martin/goqu/v8/internal/util"
 )
 
 type (
@@ -30,22 +30,26 @@ func newQueryExecutor(de DbExecutor, err error, query string, args ...interface{
 	return QueryExecutor{de: de, err: err, query: query, args: args}
 }
 
-func (q QueryExecutor) Exec() (sql.Result, error) {
+func (q QueryExecutor) ToSQL() (sql string, args []interface{}, err error) {
+	return q.query, q.args, q.err
+}
+
+func (q QueryExecutor) Exec() (gsql.Result, error) {
 	return q.ExecContext(context.Background())
 }
 
-func (q QueryExecutor) ExecContext(ctx context.Context) (sql.Result, error) {
+func (q QueryExecutor) ExecContext(ctx context.Context) (gsql.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
 	return q.de.ExecContext(ctx, q.query, q.args...)
 }
 
-func (q QueryExecutor) Query() (*sql.Rows, error) {
+func (q QueryExecutor) Query() (*gsql.Rows, error) {
 	return q.QueryContext(context.Background())
 }
 
-func (q QueryExecutor) QueryContext(ctx context.Context) (*sql.Rows, error) {
+func (q QueryExecutor) QueryContext(ctx context.Context) (*gsql.Rows, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -204,9 +208,9 @@ func (q QueryExecutor) ScanValContext(ctx context.Context, i interface{}) (bool,
 	val = reflect.Indirect(val)
 	if util.IsSlice(val.Kind()) {
 		switch i.(type) {
-		case *sql.RawBytes: // do nothing
+		case *gsql.RawBytes: // do nothing
 		case *[]byte: // do nothing
-		case sql.Scanner: // do nothing
+		case gsql.Scanner: // do nothing
 		default:
 			return false, errScanValNonSlice
 		}

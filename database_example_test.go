@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/doug-martin/goqu/v7"
+	"github.com/doug-martin/goqu/v8"
 )
 
 func ExampleDatabase_Begin() {
@@ -18,10 +18,11 @@ func ExampleDatabase_Begin() {
 	}
 
 	// use tx.From to get a dataset that will execute within this transaction
-	update := tx.From("goqu_user").
+	update := tx.Update("goqu_user").
+		Set(goqu.Record{"last_name": "Ucon"}).
 		Where(goqu.Ex{"last_name": "Yukon"}).
 		Returning("id").
-		Update(goqu.Record{"last_name": "Ucon"})
+		Executor()
 
 	var ids []int64
 	if err := update.ScanVals(&ids); err != nil {
@@ -51,10 +52,11 @@ func ExampleDatabase_BeginTx() {
 	}
 
 	// use tx.From to get a dataset that will execute within this transaction
-	update := tx.From("goqu_user").
+	update := tx.Update("goqu_user").
+		Set(goqu.Record{"last_name": "Ucon"}).
 		Where(goqu.Ex{"last_name": "Yukon"}).
 		Returning("id").
-		Update(goqu.Record{"last_name": "Ucon"})
+		Executor()
 
 	var ids []int64
 	if err := update.ScanVals(&ids); err != nil {
@@ -79,10 +81,11 @@ func ExampleDatabase_WithTx() {
 	var ids []int64
 	if err := db.WithTx(func(tx *goqu.TxDatabase) error {
 		// use tx.From to get a dataset that will execute within this transaction
-		update := tx.From("goqu_user").
+		update := tx.Update("goqu_user").
 			Where(goqu.Ex{"last_name": "Yukon"}).
 			Returning("id").
-			Update(goqu.Record{"last_name": "Ucon"})
+			Set(goqu.Record{"last_name": "Ucon"}).
+			Executor()
 
 		return update.ScanVals(&ids)
 	}); err != nil {

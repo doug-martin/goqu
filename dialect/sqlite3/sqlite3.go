@@ -1,8 +1,8 @@
 package sqlite3
 
 import (
-	"github.com/doug-martin/goqu/v7"
-	"github.com/doug-martin/goqu/v7/exp"
+	"github.com/doug-martin/goqu/v8"
+	"github.com/doug-martin/goqu/v8/exp"
 )
 
 func DialectOptions() *goqu.SQLDialectOptions {

@@ -21,17 +21,17 @@ func (tse testSQLExpression) ToSQL() (sql string, args []interface{}, err error)
 	return "", nil, nil
 }
 
-type clausesTest struct {
+type selectClausesTest struct {
 	suite.Suite
 }
 
-func TestClausesSuite(t *testing.T) {
-	suite.Run(t, new(clausesTest))
+func TestSelectClausesSuite(t *testing.T) {
+	suite.Run(t, new(selectClausesTest))
 }
 
-func (ct *clausesTest) TestHasSources() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestHasSources() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetFrom(NewColumnListExpression("test"))
 
 	assert.False(t, c.HasSources())
@@ -39,9 +39,9 @@ func (ct *clausesTest) TestHasSources() {
 	assert.True(t, c2.HasSources())
 }
 
-func (ct *clausesTest) TestIsDefaultSelect() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestIsDefaultSelect() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SelectAppend(NewColumnListExpression("a"))
 
 	assert.True(t, c.IsDefaultSelect())
@@ -49,9 +49,9 @@ func (ct *clausesTest) TestIsDefaultSelect() {
 	assert.False(t, c2.IsDefaultSelect())
 }
 
-func (ct *clausesTest) TestSelect() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSelect() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetSelect(NewColumnListExpression("a"))
 
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
@@ -59,9 +59,9 @@ func (ct *clausesTest) TestSelect() {
 	assert.Equal(t, NewColumnListExpression("a"), c2.Select())
 }
 
-func (ct *clausesTest) TestSelectAppend() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSelectAppend() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SelectAppend(NewColumnListExpression("a"))
 
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
@@ -71,9 +71,9 @@ func (ct *clausesTest) TestSelectAppend() {
 	assert.Nil(t, c2.SelectDistinct())
 }
 
-func (ct *clausesTest) TestSetSelect() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSetSelect() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetSelect(NewColumnListExpression("a"))
 
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
@@ -84,9 +84,9 @@ func (ct *clausesTest) TestSetSelect() {
 
 }
 
-func (ct *clausesTest) TestSelectDistinct() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSelectDistinct() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetSelectDistinct(NewColumnListExpression("a"))
 
 	assert.Nil(t, c.SelectDistinct())
@@ -96,9 +96,9 @@ func (ct *clausesTest) TestSelectDistinct() {
 	assert.Nil(t, c2.Select())
 }
 
-func (ct *clausesTest) TestSetSelectDistinct() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSetSelectDistinct() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetSelectDistinct(NewColumnListExpression("a"))
 
 	assert.Nil(t, c.SelectDistinct())
@@ -108,9 +108,9 @@ func (ct *clausesTest) TestSetSelectDistinct() {
 	assert.Nil(t, c2.Select())
 }
 
-func (ct *clausesTest) TestFrom() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestFrom() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetFrom(NewColumnListExpression("a"))
 
 	assert.Nil(t, c.From())
@@ -118,18 +118,18 @@ func (ct *clausesTest) TestFrom() {
 	assert.Equal(t, NewColumnListExpression("a"), c2.From())
 }
 
-func (ct *clausesTest) TestSetFrom() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSetFrom() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetFrom(NewColumnListExpression("a"))
 
 	assert.Nil(t, c.From())
 
 	assert.Equal(t, NewColumnListExpression("a"), c2.From())
 }
-func (ct *clausesTest) TestHasAlias() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestHasAlias() {
+	t := sct.T()
+	c := NewSelectClauses()
 	c2 := c.SetAlias(NewIdentifierExpression("", "", "a"))
 
 	assert.False(t, c.HasAlias())
@@ -137,9 +137,9 @@ func (ct *clausesTest) TestHasAlias() {
 	assert.True(t, c2.HasAlias())
 }
 
-func (ct *clausesTest) TestAlias() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestAlias() {
+	t := sct.T()
+	c := NewSelectClauses()
 	a := NewIdentifierExpression("", "a", "")
 	c2 := c.SetAlias(a)
 
@@ -148,9 +148,9 @@ func (ct *clausesTest) TestAlias() {
 	assert.Equal(t, a, c2.Alias())
 }
 
-func (ct *clausesTest) TestSetAlias() {
-	t := ct.T()
-	c := NewClauses()
+func (sct *selectClausesTest) TestSetAlias() {
+	t := sct.T()
+	c := NewSelectClauses()
 	a := NewIdentifierExpression("", "a", "")
 	c2 := c.SetAlias(a)
 
@@ -159,15 +159,15 @@ func (ct *clausesTest) TestSetAlias() {
 	assert.Equal(t, a, c2.Alias())
 }
 
-func (ct *clausesTest) TestJoins() {
-	t := ct.T()
+func (sct *selectClausesTest) TestJoins() {
+	t := sct.T()
 
 	jc := NewConditionedJoinExpression(
 		LeftJoinType,
 		NewIdentifierExpression("", "test", ""),
 		nil,
 	)
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.JoinsAppend(jc)
 
 	assert.Nil(t, c.Joins())
@@ -175,8 +175,8 @@ func (ct *clausesTest) TestJoins() {
 	assert.Equal(t, JoinExpressions{jc}, c2.Joins())
 }
 
-func (ct *clausesTest) TestJoinsAppend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestJoinsAppend() {
+	t := sct.T()
 	jc := NewConditionedJoinExpression(
 		LeftJoinType,
 		NewIdentifierExpression("", "test", ""),
@@ -186,7 +186,7 @@ func (ct *clausesTest) TestJoinsAppend() {
 		LeftJoinType,
 		NewIdentifierExpression("", "test", ""),
 	)
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.JoinsAppend(jc)
 	c3 := c2.JoinsAppend(jc2)
 
@@ -196,11 +196,11 @@ func (ct *clausesTest) TestJoinsAppend() {
 	assert.Equal(t, JoinExpressions{jc, jc2}, c3.Joins())
 }
 
-func (ct *clausesTest) TestWhere() {
-	t := ct.T()
+func (sct *selectClausesTest) TestWhere() {
+	t := sct.T()
 	w := Ex{"a": 1}
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.WhereAppend(w)
 
 	assert.Nil(t, c.Where())
@@ -208,11 +208,11 @@ func (ct *clausesTest) TestWhere() {
 	assert.Equal(t, NewExpressionList(AndType, w), c2.Where())
 }
 
-func (ct *clausesTest) TestClearWhere() {
-	t := ct.T()
+func (sct *selectClausesTest) TestClearWhere() {
+	t := sct.T()
 	w := Ex{"a": 1}
 
-	c := NewClauses().WhereAppend(w)
+	c := NewSelectClauses().WhereAppend(w)
 	c2 := c.ClearWhere()
 
 	assert.Equal(t, NewExpressionList(AndType, w), c.Where())
@@ -220,12 +220,12 @@ func (ct *clausesTest) TestClearWhere() {
 	assert.Nil(t, c2.Where())
 }
 
-func (ct *clausesTest) TestWhereAppend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestWhereAppend() {
+	t := sct.T()
 	w := Ex{"a": 1}
 	w2 := Ex{"b": 2}
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.WhereAppend(w)
 
 	c3 := c.WhereAppend(w).WhereAppend(w2)
@@ -239,11 +239,11 @@ func (ct *clausesTest) TestWhereAppend() {
 	assert.Equal(t, NewExpressionList(AndType, w, w2), c4.Where())
 }
 
-func (ct *clausesTest) TestHaving() {
-	t := ct.T()
+func (sct *selectClausesTest) TestHaving() {
+	t := sct.T()
 	w := Ex{"a": 1}
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.HavingAppend(w)
 
 	assert.Nil(t, c.Having())
@@ -251,11 +251,11 @@ func (ct *clausesTest) TestHaving() {
 	assert.Equal(t, NewExpressionList(AndType, w), c2.Having())
 }
 
-func (ct *clausesTest) TestClearHaving() {
-	t := ct.T()
+func (sct *selectClausesTest) TestClearHaving() {
+	t := sct.T()
 	w := Ex{"a": 1}
 
-	c := NewClauses().HavingAppend(w)
+	c := NewSelectClauses().HavingAppend(w)
 	c2 := c.ClearHaving()
 
 	assert.Equal(t, NewExpressionList(AndType, w), c.Having())
@@ -263,12 +263,12 @@ func (ct *clausesTest) TestClearHaving() {
 	assert.Nil(t, c2.Having())
 }
 
-func (ct *clausesTest) TestHavingAppend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestHavingAppend() {
+	t := sct.T()
 	w := Ex{"a": 1}
 	w2 := Ex{"b": 2}
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.HavingAppend(w)
 
 	c3 := c.HavingAppend(w).HavingAppend(w2)
@@ -282,11 +282,11 @@ func (ct *clausesTest) TestHavingAppend() {
 	assert.Equal(t, NewExpressionList(AndType, w, w2), c4.Having())
 }
 
-func (ct *clausesTest) TestOrder() {
-	t := ct.T()
+func (sct *selectClausesTest) TestOrder() {
+	t := sct.T()
 	oe := NewIdentifierExpression("", "", "a").Desc()
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetOrder(oe)
 
 	assert.Nil(t, c.Order())
@@ -294,11 +294,11 @@ func (ct *clausesTest) TestOrder() {
 	assert.Equal(t, NewColumnListExpression(oe), c2.Order())
 }
 
-func (ct *clausesTest) TestHasOrder() {
-	t := ct.T()
+func (sct *selectClausesTest) TestHasOrder() {
+	t := sct.T()
 	oe := NewIdentifierExpression("", "", "a").Desc()
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetOrder(oe)
 
 	assert.False(t, c.HasOrder())
@@ -306,11 +306,11 @@ func (ct *clausesTest) TestHasOrder() {
 	assert.True(t, c2.HasOrder())
 }
 
-func (ct *clausesTest) TestClearOrder() {
-	t := ct.T()
+func (sct *selectClausesTest) TestClearOrder() {
+	t := sct.T()
 	oe := NewIdentifierExpression("", "", "a").Desc()
 
-	c := NewClauses().SetOrder(oe)
+	c := NewSelectClauses().SetOrder(oe)
 	c2 := c.ClearOrder()
 
 	assert.Equal(t, NewColumnListExpression(oe), c.Order())
@@ -318,12 +318,12 @@ func (ct *clausesTest) TestClearOrder() {
 	assert.Nil(t, c2.Order())
 }
 
-func (ct *clausesTest) TestSetOrder() {
-	t := ct.T()
+func (sct *selectClausesTest) TestSetOrder() {
+	t := sct.T()
 	oe := NewIdentifierExpression("", "", "a").Desc()
 	oe2 := NewIdentifierExpression("", "", "b").Desc()
 
-	c := NewClauses().SetOrder(oe)
+	c := NewSelectClauses().SetOrder(oe)
 	c2 := c.SetOrder(oe2)
 
 	assert.Equal(t, NewColumnListExpression(oe), c.Order())
@@ -331,12 +331,12 @@ func (ct *clausesTest) TestSetOrder() {
 	assert.Equal(t, NewColumnListExpression(oe2), c2.Order())
 }
 
-func (ct *clausesTest) TestOrderAppend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestOrderAppend() {
+	t := sct.T()
 	oe := NewIdentifierExpression("", "", "a").Desc()
 	oe2 := NewIdentifierExpression("", "", "b").Desc()
 
-	c := NewClauses().SetOrder(oe)
+	c := NewSelectClauses().SetOrder(oe)
 	c2 := c.OrderAppend(oe2)
 
 	assert.Equal(t, NewColumnListExpression(oe), c.Order())
@@ -344,12 +344,12 @@ func (ct *clausesTest) TestOrderAppend() {
 	assert.Equal(t, NewColumnListExpression(oe, oe2), c2.Order())
 }
 
-func (ct *clausesTest) TestOrderPrepend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestOrderPrepend() {
+	t := sct.T()
 	oe := NewIdentifierExpression("", "", "a").Desc()
 	oe2 := NewIdentifierExpression("", "", "b").Desc()
 
-	c := NewClauses().SetOrder(oe)
+	c := NewSelectClauses().SetOrder(oe)
 	c2 := c.OrderPrepend(oe2)
 
 	assert.Equal(t, NewColumnListExpression(oe), c.Order())
@@ -357,11 +357,11 @@ func (ct *clausesTest) TestOrderPrepend() {
 	assert.Equal(t, NewColumnListExpression(oe2, oe), c2.Order())
 }
 
-func (ct *clausesTest) TestGroupBy() {
-	t := ct.T()
+func (sct *selectClausesTest) TestGroupBy() {
+	t := sct.T()
 	g := NewColumnListExpression(NewIdentifierExpression("", "", "a"))
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetGroupBy(g)
 
 	assert.Nil(t, c.GroupBy())
@@ -369,12 +369,12 @@ func (ct *clausesTest) TestGroupBy() {
 	assert.Equal(t, g, c2.GroupBy())
 }
 
-func (ct *clausesTest) TestSetGroupBy() {
-	t := ct.T()
+func (sct *selectClausesTest) TestSetGroupBy() {
+	t := sct.T()
 	g := NewColumnListExpression(NewIdentifierExpression("", "", "a"))
 	g2 := NewColumnListExpression(NewIdentifierExpression("", "", "b"))
 
-	c := NewClauses().SetGroupBy(g)
+	c := NewSelectClauses().SetGroupBy(g)
 	c2 := c.SetGroupBy(g2)
 
 	assert.Equal(t, g, c.GroupBy())
@@ -382,11 +382,11 @@ func (ct *clausesTest) TestSetGroupBy() {
 	assert.Equal(t, g2, c2.GroupBy())
 }
 
-func (ct *clausesTest) TestLimit() {
-	t := ct.T()
+func (sct *selectClausesTest) TestLimit() {
+	t := sct.T()
 	l := 1
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetLimit(l)
 
 	assert.Nil(t, c.Limit())
@@ -394,11 +394,11 @@ func (ct *clausesTest) TestLimit() {
 	assert.Equal(t, l, c2.Limit())
 }
 
-func (ct *clausesTest) TestHasLimit() {
-	t := ct.T()
+func (sct *selectClausesTest) TestHasLimit() {
+	t := sct.T()
 	l := 1
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetLimit(l)
 
 	assert.False(t, c.HasLimit())
@@ -406,11 +406,11 @@ func (ct *clausesTest) TestHasLimit() {
 	assert.True(t, c2.HasLimit())
 }
 
-func (ct *clausesTest) TestCLearLimit() {
-	t := ct.T()
+func (sct *selectClausesTest) TestCLearLimit() {
+	t := sct.T()
 	l := 1
 
-	c := NewClauses().SetLimit(l)
+	c := NewSelectClauses().SetLimit(l)
 	c2 := c.ClearLimit()
 
 	assert.True(t, c.HasLimit())
@@ -418,12 +418,12 @@ func (ct *clausesTest) TestCLearLimit() {
 	assert.False(t, c2.HasLimit())
 }
 
-func (ct *clausesTest) TestSetLimit() {
-	t := ct.T()
+func (sct *selectClausesTest) TestSetLimit() {
+	t := sct.T()
 	l := 1
 	l2 := 2
 
-	c := NewClauses().SetLimit(l)
+	c := NewSelectClauses().SetLimit(l)
 	c2 := c.SetLimit(2)
 
 	assert.Equal(t, l, c.Limit())
@@ -431,11 +431,11 @@ func (ct *clausesTest) TestSetLimit() {
 	assert.Equal(t, l2, c2.Limit())
 }
 
-func (ct *clausesTest) TestOffset() {
-	t := ct.T()
+func (sct *selectClausesTest) TestOffset() {
+	t := sct.T()
 	o := uint(1)
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetOffset(o)
 
 	assert.Equal(t, uint(0), c.Offset())
@@ -443,11 +443,11 @@ func (ct *clausesTest) TestOffset() {
 	assert.Equal(t, o, c2.Offset())
 }
 
-func (ct *clausesTest) TestClearOffset() {
-	t := ct.T()
+func (sct *selectClausesTest) TestClearOffset() {
+	t := sct.T()
 	o := uint(1)
 
-	c := NewClauses().SetOffset(o)
+	c := NewSelectClauses().SetOffset(o)
 	c2 := c.ClearOffset()
 
 	assert.Equal(t, o, c.Offset())
@@ -455,12 +455,12 @@ func (ct *clausesTest) TestClearOffset() {
 	assert.Equal(t, uint(0), c2.Offset())
 }
 
-func (ct *clausesTest) TestSetOffset() {
-	t := ct.T()
+func (sct *selectClausesTest) TestSetOffset() {
+	t := sct.T()
 	o := uint(1)
 	o2 := uint(2)
 
-	c := NewClauses().SetOffset(o)
+	c := NewSelectClauses().SetOffset(o)
 	c2 := c.SetOffset(2)
 
 	assert.Equal(t, o, c.Offset())
@@ -468,25 +468,25 @@ func (ct *clausesTest) TestSetOffset() {
 	assert.Equal(t, o2, c2.Offset())
 }
 
-func (ct *clausesTest) TestCompounds() {
-	t := ct.T()
+func (sct *selectClausesTest) TestCompounds() {
+	t := sct.T()
 
 	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo", []interface{}{}))
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.CompoundsAppend(ce)
 
 	assert.Nil(t, c.Compounds())
 
 	assert.Equal(t, []CompoundExpression{ce}, c2.Compounds())
 }
-func (ct *clausesTest) TestCompoundsAppend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestCompoundsAppend() {
+	t := sct.T()
 
 	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo1", []interface{}{}))
 	ce2 := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo2", []interface{}{}))
 
-	c := NewClauses().CompoundsAppend(ce)
+	c := NewSelectClauses().CompoundsAppend(ce)
 	c2 := c.CompoundsAppend(ce2)
 
 	assert.Equal(t, []CompoundExpression{ce}, c.Compounds())
@@ -494,12 +494,12 @@ func (ct *clausesTest) TestCompoundsAppend() {
 	assert.Equal(t, []CompoundExpression{ce, ce2}, c2.Compounds())
 }
 
-func (ct *clausesTest) TestLock() {
-	t := ct.T()
+func (sct *selectClausesTest) TestLock() {
+	t := sct.T()
 
 	l := NewLock(ForUpdate, Wait)
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.SetLock(l)
 
 	assert.Nil(t, c.Lock())
@@ -507,13 +507,13 @@ func (ct *clausesTest) TestLock() {
 	assert.Equal(t, l, c2.Lock())
 }
 
-func (ct *clausesTest) TestSetLock() {
-	t := ct.T()
+func (sct *selectClausesTest) TestSetLock() {
+	t := sct.T()
 
 	l := NewLock(ForUpdate, Wait)
 	l2 := NewLock(ForUpdate, NoWait)
 
-	c := NewClauses().SetLock(l)
+	c := NewSelectClauses().SetLock(l)
 	c2 := c.SetLock(l2)
 
 	assert.Equal(t, l, c.Lock())
@@ -521,12 +521,12 @@ func (ct *clausesTest) TestSetLock() {
 	assert.Equal(t, l2, c2.Lock())
 }
 
-func (ct *clausesTest) TestCommonTables() {
-	t := ct.T()
+func (sct *selectClausesTest) TestCommonTables() {
+	t := sct.T()
 
 	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
-	c := NewClauses()
+	c := NewSelectClauses()
 	c2 := c.CommonTablesAppend(cte)
 
 	assert.Nil(t, c.CommonTables())
@@ -534,13 +534,13 @@ func (ct *clausesTest) TestCommonTables() {
 	assert.Equal(t, []CommonTableExpression{cte}, c2.CommonTables())
 }
 
-func (ct *clausesTest) TestAddCommonTablesAppend() {
-	t := ct.T()
+func (sct *selectClausesTest) TestAddCommonTablesAppend() {
+	t := sct.T()
 
 	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
 	cte2 := NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
 
-	c := NewClauses().CommonTablesAppend(cte)
+	c := NewSelectClauses().CommonTablesAppend(cte)
 	c2 := c.CommonTablesAppend(cte2)
 
 	assert.Equal(t, []CommonTableExpression{cte}, c.CommonTables())
@@ -548,29 +548,29 @@ func (ct *clausesTest) TestAddCommonTablesAppend() {
 	assert.Equal(t, []CommonTableExpression{cte, cte2}, c2.CommonTables())
 }
 
-func (ct *clausesTest) TestReturning() {
-	t := ct.T()
-
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
-
-	c := NewClauses()
-	c2 := c.SetReturning(cl)
-
-	assert.Nil(t, c.Returning())
-
-	assert.Equal(t, cl, c2.Returning())
-}
-
-func (ct *clausesTest) TestSetReturning() {
-	t := ct.T()
-
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
-	cl2 := NewColumnListExpression(NewIdentifierExpression("", "", "col2"))
-
-	c := NewClauses().SetReturning(cl)
-	c2 := c.SetReturning(cl2)
-
-	assert.Equal(t, cl, c.Returning())
-
-	assert.Equal(t, cl2, c2.Returning())
-}
+// func (ct *selectClausesTest) TestReturning() {
+// 	t := ct.T()
+//
+// 	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
+//
+// 	c := NewSelectClauses()
+// 	c2 := c.SetReturning(cl)
+//
+// 	assert.Nil(t, c.Returning())
+//
+// 	assert.Equal(t, cl, c2.Returning())
+// }
+//
+// func (ct *selectClausesTest) TestSetReturning() {
+// 	t := ct.T()
+//
+// 	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
+// 	cl2 := NewColumnListExpression(NewIdentifierExpression("", "", "col2"))
+//
+// 	c := NewSelectClauses().SetReturning(cl)
+// 	c2 := c.SetReturning(cl2)
+//
+// 	assert.Equal(t, cl, c.Returning())
+//
+// 	assert.Equal(t, cl2, c2.Returning())
+// }

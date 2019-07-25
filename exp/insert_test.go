@@ -11,7 +11,7 @@ type testAppendableExpression struct {
 	AppendableExpression
 	sql     string
 	args    []interface{}
-	clauses Clauses
+	clauses SelectClauses
 }
 
 func newTestAppendableExpression(sql string, args []interface{}) AppendableExpression {
@@ -22,7 +22,7 @@ func (tae *testAppendableExpression) Expression() Expression {
 	return tae
 }
 
-func (tae *testAppendableExpression) GetClauses() Clauses {
+func (tae *testAppendableExpression) GetClauses() SelectClauses {
 	return tae.clauses
 }
 

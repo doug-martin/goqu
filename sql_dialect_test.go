@@ -7,12 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
-	"github.com/doug-martin/goqu/v7/exp"
-	"github.com/doug-martin/goqu/v7/internal/errors"
-	"github.com/doug-martin/goqu/v7/internal/sb"
+	"github.com/doug-martin/goqu/v8/exp"
+	"github.com/doug-martin/goqu/v8/internal/errors"
+	"github.com/doug-martin/goqu/v8/internal/sb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -23,12 +22,12 @@ type testAppendableExpression struct {
 	sql     string
 	args    []interface{}
 	err     error
-	clauses exp.Clauses
+	clauses exp.SelectClauses
 }
 
-func newTestAppendableExpression(sql string, args []interface{}, err error, clauses exp.Clauses) exp.AppendableExpression {
+func newTestAppendableExpression(sql string, args []interface{}, err error, clauses exp.SelectClauses) exp.AppendableExpression {
 	if clauses == nil {
-		clauses = exp.NewClauses()
+		clauses = exp.NewSelectClauses()
 	}
 	return &testAppendableExpression{sql: sql, args: args, err: err, clauses: clauses}
 }
@@ -37,7 +36,7 @@ func (tae *testAppendableExpression) Expression() exp.Expression {
 	return tae
 }
 
-func (tae *testAppendableExpression) GetClauses() exp.Clauses {
+func (tae *testAppendableExpression) GetClauses() exp.SelectClauses {
 	return tae.clauses
 }
 
@@ -90,11 +89,11 @@ func (dts *dialectTestSuite) TestSupportsReturn() {
 	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsReturn = true
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.SupportsReturn = false
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	assert.True(t, d.SupportsReturn())
 	assert.False(t, d2.SupportsReturn())
@@ -104,11 +103,11 @@ func (dts *dialectTestSuite) TestSupportsOrderByOnUpdate() {
 	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsOrderByOnUpdate = true
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.SupportsOrderByOnUpdate = false
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	assert.True(t, d.SupportsOrderByOnUpdate())
 	assert.False(t, d2.SupportsOrderByOnUpdate())
@@ -118,11 +117,11 @@ func (dts *dialectTestSuite) TestSupportsLimitOnUpdate() {
 	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsLimitOnUpdate = true
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.SupportsLimitOnUpdate = false
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	assert.True(t, d.SupportsLimitOnUpdate())
 	assert.False(t, d2.SupportsLimitOnUpdate())
@@ -132,11 +131,11 @@ func (dts *dialectTestSuite) TestSupportsOrderByOnDelete() {
 	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsOrderByOnDelete = true
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.SupportsOrderByOnDelete = false
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	assert.True(t, d.SupportsOrderByOnDelete())
 	assert.False(t, d2.SupportsOrderByOnDelete())
@@ -146,11 +145,11 @@ func (dts *dialectTestSuite) TestSupportsLimitOnDelete() {
 	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsLimitOnDelete = true
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.SupportsLimitOnDelete = false
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	assert.True(t, d.SupportsLimitOnDelete())
 	assert.False(t, d2.SupportsLimitOnDelete())
@@ -160,11 +159,11 @@ func (dts *dialectTestSuite) TestUpdateBeginSQL() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.UpdateClause = []byte("update")
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	b := sb.NewSQLBuilder(false)
 	d.UpdateBeginSQL(b)
@@ -185,11 +184,11 @@ func (dts *dialectTestSuite) TestInsertBeginSQL() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.InsertClause = []byte("insert into")
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	b := sb.NewSQLBuilder(false)
 	d.InsertBeginSQL(b, nil)
@@ -211,12 +210,12 @@ func (dts *dialectTestSuite) TestInsertBeginSQL_WithConflictExpression() {
 
 	opts := DefaultDialectOptions()
 	opts.SupportsInsertIgnoreSyntax = true
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.SupportsInsertIgnoreSyntax = true
 	opts2.InsertIgnoreClause = []byte("insert ignore into")
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 	ce := exp.NewDoNothingConflictExpression()
 
 	b := sb.NewSQLBuilder(false)
@@ -238,11 +237,11 @@ func (dts *dialectTestSuite) TestDeleteBeginSQL() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.DeleteClause = []byte("delete")
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	b := sb.NewSQLBuilder(false)
 	d.DeleteBeginSQL(b)
@@ -263,14 +262,14 @@ func (dts *dialectTestSuite) TestTruncateSQL() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.TruncateClause = []byte("truncate")
 	opts2.IdentityFragment = []byte(" identity")
 	opts2.CascadeFragment = []byte(" cascade")
 	opts2.RestrictFragment = []byte(" restrict")
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	cols := exp.NewColumnListExpression("a")
 	b := sb.NewSQLBuilder(false)
@@ -328,20 +327,18 @@ func (dts *dialectTestSuite) TestInsertSQL_empty() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
 	opts2.DefaultValuesFragment = []byte(" default values")
-	d2 := sqlDialect{opts2}
-
-	ie, err := exp.NewInsertExpression()
-	assert.NoError(t, err)
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
+	ic := exp.NewInsertClauses()
 
 	b := sb.NewSQLBuilder(false)
-	d.InsertSQL(b, ie)
+	d.InsertSQL(b, ic)
 	dts.assertNotPreparedSQL(t, b, " DEFAULT VALUES")
 
-	d2.InsertSQL(b.Clear(), ie)
+	d2.InsertSQL(b.Clear(), ic)
 	dts.assertNotPreparedSQL(t, b, " default values")
 }
 
@@ -349,23 +346,21 @@ func (dts *dialectTestSuite) TestInsertSQL_nilValues() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	opts2 := DefaultDialectOptions()
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
-	ie, err := exp.NewInsertExpression()
-	assert.NoError(t, err)
-	ie = ie.SetCols(exp.NewColumnListExpression("a")).
+	ic := exp.NewInsertClauses().SetCols(exp.NewColumnListExpression("a")).
 		SetVals([][]interface{}{
 			{nil},
 		})
 
 	b := sb.NewSQLBuilder(false)
-	d.InsertSQL(b, ie)
+	d.InsertSQL(b, ic)
 	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES (NULL)`)
 
-	d2.InsertSQL(b.Clear(), ie)
+	d2.InsertSQL(b.Clear(), ic)
 	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES (NULL)`)
 }
 
@@ -380,18 +375,17 @@ func (dts *dialectTestSuite) TestInsertSQL() {
 	opts.RightParenRune = '}'
 	opts.CommaRune = ';'
 	opts.PlaceHolderRune = '#'
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
-	ie, err := exp.NewInsertExpression()
-	assert.NoError(t, err)
-	ie = ie.SetCols(exp.NewColumnListExpression("a", "b")).
+	ic := exp.NewInsertClauses().
+		SetCols(exp.NewColumnListExpression("a", "b")).
 		SetVals([][]interface{}{
 			{"a1", "b1"},
 			{"a2", "b2"},
 			{"a3", "b3"},
 		})
 
-	bie := ie.SetCols(exp.NewColumnListExpression("a", "b")).
+	bic := ic.SetCols(exp.NewColumnListExpression("a", "b")).
 		SetVals([][]interface{}{
 			{"a1"},
 			{"a2", "b2"},
@@ -399,18 +393,109 @@ func (dts *dialectTestSuite) TestInsertSQL() {
 		})
 
 	b := sb.NewSQLBuilder(false)
-	d.InsertSQL(b, ie)
+	d.InsertSQL(b, ic)
 	dts.assertNotPreparedSQL(t, b, ` {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`)
 
 	b = sb.NewSQLBuilder(true)
-	d.InsertSQL(b, ie)
+	d.InsertSQL(b, ic)
 	dts.assertPreparedSQL(t, b, ` {"a"; "b"} values {#; #}; {#; #}; {#; #}`, []interface{}{
 		"a1", "b1", "a2", "b2", "a3", "b3",
 	})
 
-	d.InsertSQL(b.Clear(), bie)
+	d.InsertSQL(b.Clear(), bic)
 	dts.assertErrorSQL(t, b, "goqu: rows with different value length expected 1 got 2")
+}
 
+func (dts *dialectTestSuite) TestInsertSQL_withRows() {
+	t := dts.T()
+
+	opts := DefaultDialectOptions()
+	opts.LeftParenRune = '{'
+	opts.RightParenRune = '}'
+	opts.ValuesFragment = []byte(" values ")
+	opts.LeftParenRune = '{'
+	opts.RightParenRune = '}'
+	opts.CommaRune = ';'
+	opts.PlaceHolderRune = '#'
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+
+	ic := exp.NewInsertClauses().
+		SetRows([]interface{}{
+			exp.Record{"a": "a1", "b": "b1"},
+			exp.Record{"a": "a2", "b": "b2"},
+			exp.Record{"a": "a3", "b": "b3"},
+		})
+
+	bic := ic.
+		SetRows([]interface{}{
+			exp.Record{"a": "a1"},
+			exp.Record{"a": "a2", "b": "b2"},
+			exp.Record{"a": "a3", "b": "b3"},
+		})
+
+	b := sb.NewSQLBuilder(false)
+	d.InsertSQL(b, ic)
+	dts.assertNotPreparedSQL(t, b, ` {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`)
+
+	b = sb.NewSQLBuilder(true)
+	d.InsertSQL(b, ic)
+	dts.assertPreparedSQL(t, b, ` {"a"; "b"} values {#; #}; {#; #}; {#; #}`, []interface{}{
+		"a1", "b1", "a2", "b2", "a3", "b3",
+	})
+
+	d.InsertSQL(b.Clear(), bic)
+	dts.assertErrorSQL(t, b, "goqu: rows with different value length expected 1 got 2")
+}
+
+func (dts *dialectTestSuite) TestInsertSQL_colsWithFrom() {
+	t := dts.T()
+
+	opts := DefaultDialectOptions()
+	opts.LeftParenRune = '{'
+	opts.RightParenRune = '}'
+	opts.ValuesFragment = []byte(" values ")
+	opts.LeftParenRune = '{'
+	opts.RightParenRune = '}'
+	opts.CommaRune = ';'
+	opts.PlaceHolderRune = '#'
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+
+	ic := exp.NewInsertClauses().
+		SetCols(exp.NewColumnListExpression("a", "b")).
+		SetFrom(newTestAppendableExpression("select c, d from test where a = 'b'", nil, nil, nil))
+
+	b := sb.NewSQLBuilder(false)
+	d.InsertSQL(b, ic)
+	dts.assertNotPreparedSQL(t, b, ` {"a"; "b"} select c, d from test where a = 'b'`)
+
+	b = sb.NewSQLBuilder(true)
+	d.InsertSQL(b, ic)
+	dts.assertPreparedSQL(t, b, ` {"a"; "b"} select c, d from test where a = 'b'`, emptyArgs)
+}
+
+func (dts *dialectTestSuite) TestInsertSQL_withFrom() {
+	t := dts.T()
+
+	opts := DefaultDialectOptions()
+	opts.LeftParenRune = '{'
+	opts.RightParenRune = '}'
+	opts.ValuesFragment = []byte(" values ")
+	opts.LeftParenRune = '{'
+	opts.RightParenRune = '}'
+	opts.CommaRune = ';'
+	opts.PlaceHolderRune = '#'
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+
+	ic := exp.NewInsertClauses().
+		SetFrom(newTestAppendableExpression("select c, d from test where a = 'b'", nil, nil, nil))
+
+	b := sb.NewSQLBuilder(false)
+	d.InsertSQL(b, ic)
+	dts.assertNotPreparedSQL(t, b, ` select c, d from test where a = 'b'`)
+
+	b = sb.NewSQLBuilder(true)
+	d.InsertSQL(b, ic)
+	dts.assertPreparedSQL(t, b, ` select c, d from test where a = 'b'`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestInsertSQL_onConflict() {
@@ -421,51 +506,50 @@ func (dts *dialectTestSuite) TestInsertSQL_onConflict() {
 	opts.ConflictFragment = []byte(" on conflict")
 	opts.ConflictDoNothingFragment = []byte(" do nothing")
 	opts.ConflictDoUpdateFragment = []byte(" do update set ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
-	ienoc, err := exp.NewInsertExpression()
-	assert.NoError(t, err)
-	ienoc = ienoc.SetCols(exp.NewColumnListExpression("a")).
+	icnoc := exp.NewInsertClauses().
+		SetCols(exp.NewColumnListExpression("a")).
 		SetVals([][]interface{}{
 			{"a1"},
 			{"a2"},
 			{"a3"},
 		})
 
-	iedn := ienoc.DoNothing()
-	iedu := ienoc.DoUpdate("test", exp.Record{"a": "b"})
-	iedoc := ienoc.DoUpdate("on constraint test", exp.Record{"a": "b"})
-	ieduw := ienoc.SetOnConflict(
+	icdn := icnoc.SetOnConflict(DoNothing())
+	icdu := icnoc.SetOnConflict(DoUpdate("test", exp.Record{"a": "b"}))
+	icdoc := icnoc.SetOnConflict(DoUpdate("on constraint test", exp.Record{"a": "b"}))
+	icduw := icnoc.SetOnConflict(
 		exp.NewDoUpdateConflictExpression("test", exp.Record{"a": "b"}).Where(exp.Ex{"foo": true}),
 	)
 
 	b := sb.NewSQLBuilder(false)
-	d.InsertSQL(b, ienoc)
+	d.InsertSQL(b, icnoc)
 	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3')`)
 
-	d.InsertSQL(b.Clear(), iedn)
+	d.InsertSQL(b.Clear(), icdn)
 	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict do nothing`)
 
-	d.InsertSQL(b.Clear(), iedu)
+	d.InsertSQL(b.Clear(), icdu)
 	dts.assertNotPreparedSQL(
 		t,
 		b,
 		` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict (test) do update set "a"='b'`,
 	)
 
-	d.InsertSQL(b.Clear(), iedoc)
+	d.InsertSQL(b.Clear(), icdoc)
 	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict on constraint test do update set "a"='b'`)
 
-	d.InsertSQL(b.Clear(), ieduw)
+	d.InsertSQL(b.Clear(), icduw)
 	dts.assertNotPreparedSQL(t, b, ` ("a") VALUES ('a1'), ('a2'), ('a3') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`)
 
 	b = sb.NewSQLBuilder(true)
-	d.InsertSQL(b, iedn)
+	d.InsertSQL(b, icdn)
 	dts.assertPreparedSQL(t, b, ` ("a") VALUES (?), (?), (?) on conflict do nothing`, []interface{}{
 		"a1", "a2", "a3",
 	})
 
-	d.InsertSQL(b.Clear(), iedu)
+	d.InsertSQL(b.Clear(), icdu)
 	dts.assertPreparedSQL(
 		t,
 		b,
@@ -473,7 +557,7 @@ func (dts *dialectTestSuite) TestInsertSQL_onConflict() {
 		[]interface{}{"a1", "a2", "a3", "b"},
 	)
 
-	d.InsertSQL(b.Clear(), ieduw)
+	d.InsertSQL(b.Clear(), icduw)
 	dts.assertPreparedSQL(
 		t,
 		b,
@@ -488,7 +572,7 @@ func (dts *dialectTestSuite) TestUpdateExpressionsSQL() {
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SetFragment = []byte(" set ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	u, err := exp.NewUpdateExpressions(exp.Record{"a": "b"})
 	assert.NoError(t, err)
 
@@ -508,7 +592,7 @@ func (dts *dialectTestSuite) TestSelectSQL() {
 	// make sure the fragments are used
 	opts.SelectClause = []byte("select")
 	opts.StarRune = '#'
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ec := exp.NewColumnListExpression()
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
@@ -533,7 +617,7 @@ func (dts *dialectTestSuite) TestSelectDistinctSQL() {
 	// make sure the fragments are used
 	opts.SelectClause = []byte("select")
 	opts.DistinctFragment = []byte(" distinct ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ec := exp.NewColumnListExpression()
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
@@ -557,7 +641,7 @@ func (dts *dialectTestSuite) TestReturningSQL() {
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.ReturningFragment = []byte(" returning ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ec := exp.NewColumnListExpression()
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
@@ -581,7 +665,7 @@ func (dts *dialectTestSuite) TestFromSQL() {
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.FromFragment = []byte(" from")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ec := exp.NewColumnListExpression()
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
@@ -603,7 +687,7 @@ func (dts *dialectTestSuite) TestSourcesSQL() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ec := exp.NewColumnListExpression()
 	cs := exp.NewColumnListExpression("a", "b")
 	b := sb.NewSQLBuilder(false)
@@ -625,7 +709,7 @@ func (dts *dialectTestSuite) TestJoinSQL() {
 	t := dts.T()
 
 	opts := DefaultDialectOptions()
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	ti := exp.NewIdentifierExpression("", "test", "")
 	uj := exp.NewUnConditionedJoinExpression(exp.NaturalJoinType, ti)
 	cjo := exp.NewConditionedJoinExpression(exp.LeftJoinType, ti, exp.NewJoinOnCondition(exp.Ex{"a": "foo"}))
@@ -673,7 +757,7 @@ func (dts *dialectTestSuite) TestJoinSQL() {
 		exp.LeftJoinType:    []byte(" left join "),
 		exp.NaturalJoinType: []byte(" natural join "),
 	}
-	d2 := sqlDialect{opts2}
+	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
 	b = sb.NewSQLBuilder(false)
 	d2.JoinSQL(b.Clear(), exp.JoinExpressions{uj})
@@ -702,7 +786,7 @@ func (dts *dialectTestSuite) TestWhereSQL() {
 
 	opts := DefaultDialectOptions()
 	opts.WhereFragment = []byte(" where ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	w := exp.Ex{"a": "b"}
 	w2 := exp.Ex{"b": "c"}
 
@@ -729,7 +813,7 @@ func (dts *dialectTestSuite) TestGroupBySQL() {
 
 	opts := DefaultDialectOptions()
 	opts.GroupByFragment = []byte(" group by ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	c1 := exp.NewIdentifierExpression("", "", "a")
 	c2 := exp.NewIdentifierExpression("", "", "b")
 
@@ -755,7 +839,7 @@ func (dts *dialectTestSuite) TestHavingSQL() {
 
 	opts := DefaultDialectOptions()
 	opts.HavingFragment = []byte(" having ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	w := exp.Ex{"a": "b"}
 	w2 := exp.Ex{"b": "c"}
 
@@ -787,7 +871,7 @@ func (dts *dialectTestSuite) TestOrderSQL() {
 	opts.DescFragment = []byte(" desc")
 	opts.NullsFirstFragment = []byte(" nulls first")
 	opts.NullsLastFragment = []byte(" nulls last")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	oa := exp.NewIdentifierExpression("", "", "a").Asc()
 	oanf := exp.NewIdentifierExpression("", "", "a").Asc().NullsFirst()
@@ -846,7 +930,7 @@ func (dts *dialectTestSuite) TestLimitSQL() {
 
 	opts := DefaultDialectOptions()
 	opts.LimitFragment = []byte(" limit ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	b := sb.NewSQLBuilder(false)
 	d.LimitSQL(b, 10)
@@ -879,7 +963,7 @@ func (dts *dialectTestSuite) TestOffsetSQL() {
 
 	opts := DefaultDialectOptions()
 	opts.OffsetFragment = []byte(" offset ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	o := uint(10)
 
 	b := sb.NewSQLBuilder(false)
@@ -903,7 +987,7 @@ func (dts *dialectTestSuite) TestCommonTablesSQL() {
 	opts := DefaultDialectOptions()
 	opts.WithFragment = []byte("with ")
 	opts.RecursiveFragment = []byte("recursive ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
 	cte1 := exp.NewCommonTableExpression(false, "test_cte", tse)
 	cte2 := exp.NewCommonTableExpression(true, "test_cte", tse)
@@ -927,14 +1011,14 @@ func (dts *dialectTestSuite) TestCommonTablesSQL() {
 
 	opts = DefaultDialectOptions()
 	opts.SupportsWithCTE = false
-	d = sqlDialect{opts}
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1})
 	dts.assertErrorSQL(t, b, "goqu: adapter does not support CTE with clause")
 
 	opts = DefaultDialectOptions()
 	opts.SupportsWithCTERecursive = false
-	d = sqlDialect{opts}
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte2})
 	dts.assertErrorSQL(t, b, "goqu: adapter does not support CTE with recursive clause")
@@ -952,7 +1036,7 @@ func (dts *dialectTestSuite) TestCompoundsSQL() {
 	opts.UnionAllFragment = []byte(" union all ")
 	opts.IntersectFragment = []byte(" intersect ")
 	opts.IntersectAllFragment = []byte(" intersect all ")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
 	u := exp.NewCompoundExpression(exp.UnionCompoundType, tse)
 	ua := exp.NewCompoundExpression(exp.UnionAllCompoundType, tse)
@@ -994,7 +1078,7 @@ func (dts *dialectTestSuite) TestForSQL() {
 	opts.ForKeyShareFragment = []byte(" for key share ")
 	opts.NowaitFragment = []byte("nowait")
 	opts.SkipLockedFragment = []byte("skip locked")
-	d := sqlDialect{opts}
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
 
 	b := sb.NewSQLBuilder(false)
 	d.ForSQL(b.Clear(), exp.NewLock(exp.ForNolock, exp.Wait))
@@ -1043,7 +1127,7 @@ func (dts *dialectTestSuite) TestForSQL() {
 
 func (dts *dialectTestSuite) TestLiteral_FloatTypes() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	var float float64
 
 	b := sb.NewSQLBuilder(false)
@@ -1069,7 +1153,7 @@ func (dts *dialectTestSuite) TestLiteral_FloatTypes() {
 
 func (dts *dialectTestSuite) TestLiteral_IntTypes() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	var i int64
 	b := sb.NewSQLBuilder(false)
 	ints := []interface{}{
@@ -1100,7 +1184,7 @@ func (dts *dialectTestSuite) TestLiteral_IntTypes() {
 
 func (dts *dialectTestSuite) TestLiteral_StringTypes() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	var str string
 
 	b := sb.NewSQLBuilder(false)
@@ -1128,7 +1212,7 @@ func (dts *dialectTestSuite) TestLiteral_StringTypes() {
 
 func (dts *dialectTestSuite) TestLiteral_BytesTypes() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), []byte("Hello"))
@@ -1151,7 +1235,7 @@ func (dts *dialectTestSuite) TestLiteral_BoolTypes() {
 	t := dts.T()
 	var bl bool
 
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), true)
@@ -1176,7 +1260,7 @@ func (dts *dialectTestSuite) TestLiteral_BoolTypes() {
 
 func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "default", dialectOptions: DefaultDialectOptions()}
 	var nt *time.Time
 	asiaShanghai, err := time.LoadLocation("Asia/Shanghai")
 	require.NoError(t, err)
@@ -1211,7 +1295,7 @@ func (dts *dialectTestSuite) TestLiteral_TimeTypes() {
 
 func (dts *dialectTestSuite) TestLiteral_NilTypes() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), nil)
 	dts.assertNotPreparedSQL(t, b, "NULL")
@@ -1230,7 +1314,7 @@ func (j datasetValuerType) Value() (driver.Value, error) {
 func (dts *dialectTestSuite) TestLiteral_Valuer() {
 	t := dts.T()
 	b := sb.NewSQLBuilder(false)
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	d.Literal(b.Clear(), datasetValuerType(10))
 	dts.assertNotPreparedSQL(t, b, "'Hello World 10'")
@@ -1243,7 +1327,7 @@ func (dts *dialectTestSuite) TestLiteral_Valuer() {
 func (dts *dialectTestSuite) TestLiteral_Slice() {
 	t := dts.T()
 	b := sb.NewSQLBuilder(false)
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	d.Literal(b.Clear(), []string{"a", "b", "c"})
 	dts.assertNotPreparedSQL(t, b, `('a', 'b', 'c')`)
 
@@ -1263,7 +1347,7 @@ func (ue unknownExpression) Clone() exp.Expression {
 }
 func (dts *dialectTestSuite) TestLiteralUnsupportedExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), unknownExpression{})
 	dts.assertErrorSQL(t, b, "goqu: unsupported expression type goqu.unknownExpression")
@@ -1271,11 +1355,11 @@ func (dts *dialectTestSuite) TestLiteralUnsupportedExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_AppendableExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	ti := exp.NewIdentifierExpression("", "b", "")
 	a := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, nil)
-	aliasedA := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, exp.NewClauses().SetAlias(ti))
-	argsA := newTestAppendableExpression(`select * from "a" where x=?`, []interface{}{true}, nil, exp.NewClauses().SetAlias(ti))
+	aliasedA := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, exp.NewSelectClauses().SetAlias(ti))
+	argsA := newTestAppendableExpression(`select * from "a" where x=?`, []interface{}{true}, nil, exp.NewSelectClauses().SetAlias(ti))
 	ae := newTestAppendableExpression(`select * from "a"`, emptyArgs, errors.New("expected error"), nil)
 
 	b := sb.NewSQLBuilder(false)
@@ -1301,7 +1385,7 @@ func (dts *dialectTestSuite) TestLiteral_AppendableExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_ColumnList() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewColumnListExpression("a", exp.NewLiteralExpression("true")))
@@ -1314,7 +1398,7 @@ func (dts *dialectTestSuite) TestLiteral_ColumnList() {
 
 func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewExpressionList(
@@ -1369,7 +1453,7 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionList() {
 
 func (dts *dialectTestSuite) TestLiteral_LiteralExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewLiteralExpression(`"b"::DATE = '2010-09-02'`))
@@ -1401,7 +1485,7 @@ func (dts *dialectTestSuite) TestLiteral_LiteralExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_AliasedExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").As("b"))
@@ -1424,7 +1508,7 @@ func (dts *dialectTestSuite) TestLiteral_AliasedExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_BooleanExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	ae := newTestAppendableExpression(`SELECT "id" FROM "test2"`, emptyArgs, nil, nil)
 
@@ -1627,7 +1711,7 @@ func (dts *dialectTestSuite) TestLiteral_BooleanExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_RangeExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").
@@ -1658,7 +1742,7 @@ func (dts *dialectTestSuite) TestLiteral_RangeExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_OrderedExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Asc())
@@ -1701,7 +1785,7 @@ func (dts *dialectTestSuite) TestLiteral_OrderedExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_UpdateExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Set(1))
@@ -1714,7 +1798,7 @@ func (dts *dialectTestSuite) TestLiteral_UpdateExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_SQLFunctionExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a")))
@@ -1734,7 +1818,7 @@ func (dts *dialectTestSuite) TestLiteral_SQLFunctionExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_CastExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "a").Cast("DATE"))
 	dts.assertNotPreparedSQL(t, b, `CAST("a" AS DATE)`)
@@ -1746,7 +1830,7 @@ func (dts *dialectTestSuite) TestLiteral_CastExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_CommonTableExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewCommonTableExpression(false, "a", ae))
@@ -1780,7 +1864,7 @@ func (dts *dialectTestSuite) TestLiteral_CompoundExpression() {
 	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 
 	b := sb.NewSQLBuilder(false)
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	d.Literal(b.Clear(), exp.NewCompoundExpression(exp.UnionCompoundType, ae))
 	dts.assertNotPreparedSQL(t, b, ` UNION (SELECT * FROM "b")`)
@@ -1810,7 +1894,7 @@ func (dts *dialectTestSuite) TestLiteral_CompoundExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_IdentifierExpression() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "col"))
@@ -1865,7 +1949,7 @@ func (dts *dialectTestSuite) TestLiteral_IdentifierExpression() {
 
 func (dts *dialectTestSuite) TestLiteral_ExpressionMap() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.Ex{"a": 1})
@@ -1986,7 +2070,7 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionMap() {
 
 func (dts *dialectTestSuite) TestLiteral_ExpressionOrMap() {
 	t := dts.T()
-	d := sqlDialect{DefaultDialectOptions()}
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
 	d.Literal(b.Clear(), exp.ExOr{"a": 1, "b": true})

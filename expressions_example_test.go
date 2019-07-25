@@ -1,11 +1,12 @@
+// nolint:lll
 package goqu_test
 
 import (
 	"fmt"
 	"regexp"
 
-	"github.com/doug-martin/goqu/v7"
-	"github.com/doug-martin/goqu/v7/exp"
+	"github.com/doug-martin/goqu/v8"
+	"github.com/doug-martin/goqu/v8/exp"
 )
 
 func ExampleAVG() {
@@ -476,18 +477,18 @@ func ExampleDISTINCT_as() {
 }
 
 func ExampleDefault() {
-	ds := goqu.From("items")
+	ds := goqu.Insert("items")
 
-	sql, args, _ := ds.ToInsertSQL(goqu.Record{
+	sql, args, _ := ds.Rows(goqu.Record{
 		"name":    goqu.Default(),
 		"address": goqu.Default(),
-	})
+	}).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = ds.Prepared(true).ToInsertSQL(goqu.Record{
+	sql, args, _ = ds.Prepared(true).Rows(goqu.Record{
 		"name":    goqu.Default(),
 		"address": goqu.Default(),
-	})
+	}).ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
@@ -497,18 +498,18 @@ func ExampleDefault() {
 }
 
 func ExampleDoNothing() {
-	ds := goqu.From("items")
+	ds := goqu.Insert("items")
 
-	sql, args, _ := ds.ToInsertConflictSQL(goqu.DoNothing(), goqu.Record{
+	sql, args, _ := ds.Rows(goqu.Record{
 		"address": "111 Address",
 		"name":    "bob",
-	})
+	}).OnConflict(goqu.DoNothing()).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = ds.Prepared(true).ToInsertConflictSQL(goqu.DoNothing(), goqu.Record{
+	sql, args, _ = ds.Prepared(true).Rows(goqu.Record{
 		"address": "111 Address",
 		"name":    "bob",
-	})
+	}).OnConflict(goqu.DoNothing()).ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
@@ -518,18 +519,18 @@ func ExampleDoNothing() {
 }
 
 func ExampleDoUpdate() {
-	ds := goqu.From("items")
+	ds := goqu.Insert("items")
 
-	sql, args, _ := ds.ToInsertConflictSQL(
-		goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address"))),
-		goqu.Record{"address": "111 Address"},
-	)
+	sql, args, _ := ds.
+		Rows(goqu.Record{"address": "111 Address"}).
+		OnConflict(goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address")))).
+		ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = ds.Prepared(true).ToInsertConflictSQL(
-		goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address"))),
-		goqu.Record{"address": "111 Address"},
-	)
+	sql, args, _ = ds.Prepared(true).
+		Rows(goqu.Record{"address": "111 Address"}).
+		OnConflict(goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address")))).
+		ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
@@ -538,21 +539,26 @@ func ExampleDoUpdate() {
 }
 
 func ExampleDoUpdate_where() {
-	ds := goqu.From("items")
+	ds := goqu.Insert("items")
 
-	sql, args, _ := ds.ToInsertConflictSQL(
-		goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address"))).Where(goqu.I("items.updated").IsNull()),
-		goqu.Record{"address": "111 Address"},
-	)
+	sql, args, _ := ds.
+		Rows(goqu.Record{"address": "111 Address"}).
+		OnConflict(goqu.DoUpdate(
+			"address",
+			goqu.C("address").Set(goqu.I("EXCLUDED.address"))).Where(goqu.I("items.updated").IsNull()),
+		).
+		ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = ds.Prepared(true).ToInsertConflictSQL(
-		goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address"))).Where(goqu.I("items.updated").IsNull()),
-		goqu.Record{"address": "111 Address"},
-	)
+	sql, args, _ = ds.Prepared(true).
+		Rows(goqu.Record{"address": "111 Address"}).
+		OnConflict(goqu.DoUpdate(
+			"address",
+			goqu.C("address").Set(goqu.I("EXCLUDED.address"))).Where(goqu.I("items.updated").IsNull()),
+		).
+		ToSQL()
 	fmt.Println(sql, args)
 
-	// nolint:lll
 	// Output:
 	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" IS NULL) []
 	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" IS NULL) [111 Address]
@@ -1225,6 +1231,7 @@ func ExampleUsing_withIdentifier() {
 }
 
 func ExampleEx() {
+
 	ds := goqu.From("items").Where(
 		goqu.Ex{
 			"col1": "a",
@@ -1242,7 +1249,6 @@ func ExampleEx() {
 	sql, args, _ = ds.Prepared(true).ToSQL()
 	fmt.Println(sql, args)
 
-	// nolint:lll
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c'))) []
 	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN (?, ?, ?))) [a 1 a b c]
@@ -1618,17 +1624,17 @@ func ExampleOp_withMultipleKeys() {
 }
 
 func ExampleRecord_insert() {
-	ds := goqu.From("test")
+	ds := goqu.Insert("test")
 
 	records := []goqu.Record{
 		{"col1": 1, "col2": "foo"},
 		{"col1": 2, "col2": "bar"},
 	}
 
-	sql, args, _ := ds.ToInsertSQL(records)
+	sql, args, _ := ds.Rows(records).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = ds.Prepared(true).ToInsertSQL(records)
+	sql, args, _ = ds.Prepared(true).Rows(records).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
 	// INSERT INTO "test" ("col1", "col2") VALUES (1, 'foo'), (2, 'bar') []
@@ -1636,15 +1642,30 @@ func ExampleRecord_insert() {
 }
 
 func ExampleRecord_update() {
-	ds := goqu.From("test")
+	ds := goqu.Update("test")
 	update := goqu.Record{"col1": 1, "col2": "foo"}
 
-	sql, args, _ := ds.ToUpdateSQL(update)
+	sql, args, _ := ds.Set(update).ToSQL()
 	fmt.Println(sql, args)
 
-	sql, args, _ = ds.Prepared(true).ToUpdateSQL(update)
+	sql, args, _ = ds.Prepared(true).Set(update).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
 	// UPDATE "test" SET "col1"=1,"col2"='foo' []
 	// UPDATE "test" SET "col1"=?,"col2"=? [1 foo]
+}
+
+func ExampleVals() {
+	ds := goqu.Insert("user").
+		Cols("first_name", "last_name", "is_verified").
+		Vals(
+			goqu.Vals{"Greg", "Farley", true},
+			goqu.Vals{"Jimmy", "Stewart", true},
+			goqu.Vals{"Jeff", "Jeffers", false},
+		)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "user" ("first_name", "last_name", "is_verified") VALUES ('Greg', 'Farley', TRUE), ('Jimmy', 'Stewart', TRUE), ('Jeff', 'Jeffers', FALSE) []
 }
