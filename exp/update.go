@@ -50,7 +50,11 @@ func getUpdateExpressionsStruct(value reflect.Value) (updates []UpdateExpression
 		f := cm[col]
 		if f.ShouldUpdate {
 			v := value.FieldByIndex(f.FieldIndex)
-			updates = append(updates, ParseIdentifier(col).Set(v.Interface()))
+			setV := v.Interface()
+			if f.DefaultIfEmpty && util.IsEmptyValue(v) {
+				setV = Default()
+			}
+			updates = append(updates, ParseIdentifier(col).Set(setV))
 		}
 	}
 	return updates, nil

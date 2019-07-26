@@ -600,6 +600,40 @@ func (ids *insertDatasetSuite) TestRows_ToSQLWithGoquSkipInsertTagSQL() {
 	assert.Equal(t, `INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?), (?, ?), (?, ?)`, insertSQL)
 }
 
+func (ids *insertDatasetSuite) TestRows_ToSQLWithGoquDefaultIfEmptyTag() {
+	type item struct {
+		ID      uint32 `db:"id" goqu:"skipinsert"`
+		Address string `db:"address" goqu:"defaultifempty"`
+		Name    string `db:"name" goqu:"defaultifempty"`
+		Bool    bool   `db:"bool" goqu:"skipinsert,defaultifempty"`
+	}
+	ds := Insert("items")
+
+	ds1 := ds.Rows(item{Name: "Test", Address: "111 Test Addr"})
+
+	insertSQL, args, err := ds1.ToSQL()
+	ids.NoError(err)
+	ids.Empty(args)
+	ids.Equal(insertSQL, `INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test')`)
+
+	insertSQL, args, err = ds1.Prepared(true).ToSQL()
+	ids.NoError(err)
+	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
+	ids.Equal(insertSQL, `INSERT INTO "items" ("address", "name") VALUES (?, ?)`)
+
+	ds1 = ds.Rows(item{})
+
+	insertSQL, args, err = ds1.ToSQL()
+	ids.NoError(err)
+	ids.Empty(args)
+	ids.Equal(insertSQL, `INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`)
+
+	insertSQL, args, err = ds1.Prepared(true).ToSQL()
+	ids.NoError(err)
+	ids.Empty(args)
+	ids.Equal(insertSQL, `INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`)
+}
+
 func (ids *insertDatasetSuite) TestRows_ToSQLWithDefaultValues() {
 	t := ids.T()
 	ds := Insert("items")

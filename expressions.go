@@ -209,5 +209,5 @@ func Star() exp.LiteralExpression { return exp.Star() }
 
 // Returns a literal for DEFAULT sql keyword
 func Default() exp.LiteralExpression {
-	return L("DEFAULT")
+	return exp.Default()
 }

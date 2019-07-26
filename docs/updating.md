@@ -153,6 +153,24 @@ Output:
 UPDATE "items" SET "address"='111 Test Addr' []
 ```
 
+If you want to use the database `DEFAULT` when the struct field is a zero value you can use the `defaultifempty` tag.
+
+```go
+type item struct {
+	Address string `db:"address"`
+	Name    string `db:"name" goqu:"defaultifempty"`
+}
+sql, args, _ := goqu.Update("items").Set(
+	item{Address: "111 Test Addr"},
+).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```
+UPDATE "items" SET "address"='111 Test Addr',"name"=DEFAULT []
+```
+
 <a name="set-map"></a>
 **[Set with Map](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Set)**
 

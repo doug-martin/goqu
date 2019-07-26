@@ -500,6 +500,26 @@ func ExampleUpdateDataset_Set_withSkipUpdateTag() {
 	// UPDATE "items" SET "address"='111 Test Addr' []
 }
 
+func ExampleUpdateDataset_Set_withDefaultIfEmptyTag() {
+	type item struct {
+		Address string `db:"address"`
+		Name    string `db:"name" goqu:"defaultifempty"`
+	}
+	sql, args, _ := goqu.Update("items").Set(
+		item{Address: "111 Test Addr"},
+	).ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = goqu.Update("items").Set(
+		item{Name: "Bob Yukon", Address: "111 Test Addr"},
+	).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "address"='111 Test Addr',"name"=DEFAULT []
+	// UPDATE "items" SET "address"='111 Test Addr',"name"='Bob Yukon' []
+}
+
 func ExampleUpdateDataset_Set_withNoTags() {
 	type item struct {
 		Address string

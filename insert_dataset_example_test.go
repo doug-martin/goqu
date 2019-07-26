@@ -367,14 +367,6 @@ func ExampleInsertDataset_Rows_withGoquSkipInsertTag() {
 	fmt.Println(insertSQL, args)
 
 	insertSQL, args, _ = goqu.Insert("items").
-		Rows(
-			item{Name: "Test1", Address: "111 Test Addr"},
-			item{Name: "Test2", Address: "112 Test Addr"},
-		).
-		ToSQL()
-	fmt.Println(insertSQL, args)
-
-	insertSQL, args, _ = goqu.Insert("items").
 		Rows([]item{
 			{Name: "Test1", Address: "111 Test Addr"},
 			{Name: "Test2", Address: "112 Test Addr"},
@@ -385,7 +377,33 @@ func ExampleInsertDataset_Rows_withGoquSkipInsertTag() {
 	// Output:
 	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') []
 	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') []
-	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') []
+}
+
+func ExampleInsertDataset_Rows_withGoquDefaultIfEmptyTag() {
+	type item struct {
+		ID      uint32 `goqu:"skipinsert"`
+		Address string
+		Name    string `goqu:"defaultifempty"`
+	}
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(
+			item{Name: "Test1", Address: "111 Test Addr"},
+			item{Address: "112 Test Addr"},
+		).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	insertSQL, args, _ = goqu.Insert("items").
+		Rows([]item{
+			{Address: "111 Test Addr"},
+			{Name: "Test2", Address: "112 Test Addr"},
+		}).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', DEFAULT) []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', DEFAULT), ('112 Test Addr', 'Test2') []
 }
 
 func ExampleInsertDataset_ClearOnConflict() {

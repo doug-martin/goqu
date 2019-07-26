@@ -49,6 +49,40 @@ var (
 	}
 )
 
+type (
+	TestInterface interface {
+		A() string
+	}
+	TestInterfaceImpl struct {
+		str string
+	}
+	TestStruct struct {
+		arr  [0]string
+		slc  []string
+		mp   map[string]interface{}
+		str  string
+		bl   bool
+		i    int
+		i8   int8
+		i16  int16
+		i32  int32
+		i64  int64
+		ui   uint
+		ui8  uint8
+		ui16 uint16
+		ui32 uint32
+		ui64 uint64
+		f32  float32
+		f64  float64
+		intr TestInterface
+		ptr  *sql.NullString
+	}
+)
+
+func (t TestInterfaceImpl) A() string {
+	return t.str
+}
+
 type reflectTest struct {
 	suite.Suite
 }
@@ -294,6 +328,52 @@ func (rt *reflectTest) TestIsPointer() {
 	for _, v := range invalids {
 		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
 	}
+}
+
+func (rt *reflectTest) TestIsEmptyValue_emptyValues() {
+	ts := TestStruct{}
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.arr)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.slc)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.mp)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.str)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.bl)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.i)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.i8)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.i16)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.i32)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.i64)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui8)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui16)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui32)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui64)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.f32)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.f64)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.intr)))
+	rt.True(IsEmptyValue(reflect.ValueOf(ts.ptr)))
+}
+
+func (rt *reflectTest) TestIsEmptyValue_validValues() {
+	ts := TestStruct{intr: TestInterfaceImpl{"hello"}}
+	rt.False(IsEmptyValue(reflect.ValueOf([1]string{"a"})))
+	rt.False(IsEmptyValue(reflect.ValueOf([]string{"a"})))
+	rt.False(IsEmptyValue(reflect.ValueOf(map[string]interface{}{"a": true})))
+	rt.False(IsEmptyValue(reflect.ValueOf("str")))
+	rt.False(IsEmptyValue(reflect.ValueOf(true)))
+	rt.False(IsEmptyValue(reflect.ValueOf(int(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(int8(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(int16(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(int32(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(int64(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(uint(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(uint8(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(uint16(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(uint32(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(uint64(1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(float32(0.1))))
+	rt.False(IsEmptyValue(reflect.ValueOf(float64(0.2))))
+	rt.False(IsEmptyValue(reflect.ValueOf(ts.intr)))
+	rt.False(IsEmptyValue(reflect.ValueOf(&TestStruct{str: "a"})))
 }
 
 func (rt *reflectTest) TestColumnRename() {
@@ -736,16 +816,25 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 		Str    string `goqu:"skipinsert,skipupdate"`
 		Int    int64  `goqu:"skipinsert"`
 		Bool   bool   `goqu:"skipupdate"`
+		Empty  bool   `goqu:"defaultifempty"`
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	assert.NoError(t, err)
 	assert.Equal(t, ColumnMap{
-		"str":    {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
-		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
-		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
-		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+		"str":  {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
+		"int":  {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool": {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
+		"empty": {
+			ColumnName:     "empty",
+			FieldIndex:     []int{3},
+			ShouldInsert:   true,
+			ShouldUpdate:   true,
+			DefaultIfEmpty: true,
+			GoType:         reflect.TypeOf(true),
+		},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{4}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
