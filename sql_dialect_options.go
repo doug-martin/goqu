@@ -30,8 +30,13 @@ type (
 		SupportsWithCTE bool
 		// Set to true if the dialect supports recursive Common Table Expressions (DEFAULT=true)
 		SupportsWithCTERecursive bool
+		// Set to true if multiple tables are supported in UPDATE statement. (DEFAULT=true)
+		SupportsMultipleUpdateTables bool
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
+
+		// Set to true if the dialect requires join tables in UPDATE to be in a FROM clause (DEFAULT=true).
+		UseFromClauseForMultipleUpdateTables bool
 
 		// The UPDATE fragment to use when generating sql. (DEFAULT=[]byte("UPDATE"))
 		UpdateClause []byte
@@ -291,6 +296,7 @@ const (
 	SourcesSQLFragment
 	IntoSQLFragment
 	UpdateSQLFragment
+	UpdateFromSQLFragment
 	ReturningSQLFragment
 	InsertBeingSQLFragment
 	InsertSQLFragment
@@ -333,6 +339,8 @@ func (sf SQLFragmentType) String() string {
 		return "IntoSQLFragment"
 	case UpdateSQLFragment:
 		return "UpdateSQLFragment"
+	case UpdateFromSQLFragment:
+		return "UpdateFromSQLFragment"
 	case ReturningSQLFragment:
 		return "ReturningSQLFragment"
 	case InsertBeingSQLFragment:
@@ -358,6 +366,9 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		SupportsWithCTE:             true,
 		SupportsWithCTERecursive:    true,
 		WrapCompoundsInParens:       true,
+
+		SupportsMultipleUpdateTables:         true,
+		UseFromClauseForMultipleUpdateTables: true,
 
 		UpdateClause:              []byte("UPDATE"),
 		InsertClause:              []byte("INSERT INTO"),
@@ -486,6 +497,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			UpdateBeginSQLFragment,
 			SourcesSQLFragment,
 			UpdateSQLFragment,
+			UpdateFromSQLFragment,
 			WhereSQLFragment,
 			OrderSQLFragment,
 			LimitSQLFragment,

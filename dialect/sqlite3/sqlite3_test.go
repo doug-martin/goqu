@@ -212,6 +212,24 @@ func (st *sqlite3Suite) TestQuery() {
 	assert.Len(t, entries, 0)
 }
 
+func (st *sqlite3Suite) TestQuery_ValueExpressions() {
+	type wrappedEntry struct {
+		entry
+		BoolValue bool `db:"bool_value"`
+	}
+	expectedDate, err := time.Parse("2006-01-02 15:04:05", "2015-02-22 19:19:55")
+	st.NoError(err)
+	ds := st.db.From("entry").Select(goqu.Star(), goqu.V(true).As("bool_value")).Where(goqu.Ex{"int": 1})
+	var we wrappedEntry
+	found, err := ds.ScanStruct(&we)
+	st.NoError(err)
+	st.True(found)
+	st.Equal(we, wrappedEntry{
+		entry{2, 1, 0.100000, "0.100000", expectedDate, false, []byte("0.100000")},
+		true,
+	})
+}
+
 func (st *sqlite3Suite) TestCount() {
 	t := st.T()
 	ds := st.db.From("entry")

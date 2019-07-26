@@ -1655,6 +1655,47 @@ func ExampleRecord_update() {
 	// UPDATE "test" SET "col1"=?,"col2"=? [1 foo]
 }
 
+func ExampleV() {
+	ds := goqu.From("user").Select(
+		goqu.V(true).As("is_verified"),
+		goqu.V(1.2).As("version"),
+		"first_name",
+		"last_name",
+	)
+
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	ds = goqu.From("user").Where(goqu.V(1).Neq(1))
+	sql, args, _ = ds.ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT TRUE AS "is_verified", 1.2 AS "version", "first_name", "last_name" FROM "user" []
+	// SELECT * FROM "user" WHERE (1 != 1) []
+}
+
+func ExampleV_prepared() {
+	ds := goqu.From("user").Select(
+		goqu.V(true).As("is_verified"),
+		goqu.V(1.2).As("version"),
+		"first_name",
+		"last_name",
+	)
+
+	sql, args, _ := ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+
+	ds = goqu.From("user").Where(goqu.V(1).Neq(1))
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT ? AS "is_verified", ? AS "version", "first_name", "last_name" FROM "user" [true 1.2]
+	// SELECT * FROM "user" WHERE (? != ?) [1 1]
+}
+
 func ExampleVals() {
 	ds := goqu.Insert("user").
 		Cols("first_name", "last_name", "is_verified").

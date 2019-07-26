@@ -214,6 +214,46 @@ func ExampleUpdateDataset_ClearOrder() {
 	// UPDATE `test` SET `foo`='bar'
 }
 
+func ExampleUpdateDataset_From() {
+	ds := goqu.Update("table_one").
+		Set(goqu.Record{"foo": goqu.I("table_two.bar")}).
+		From("table_two").
+		Where(goqu.Ex{"table_one.id": goqu.I("table_two.id")})
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// UPDATE "table_one" SET "foo"="table_two"."bar" FROM "table_two" WHERE ("table_one"."id" = "table_two"."id")
+}
+
+func ExampleUpdateDataset_From_postgres() {
+	dialect := goqu.Dialect("postgres")
+
+	ds := dialect.Update("table_one").
+		Set(goqu.Record{"foo": goqu.I("table_two.bar")}).
+		From("table_two").
+		Where(goqu.Ex{"table_one.id": goqu.I("table_two.id")})
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// UPDATE "table_one" SET "foo"="table_two"."bar" FROM "table_two" WHERE ("table_one"."id" = "table_two"."id")
+}
+
+func ExampleUpdateDataset_From_mysql() {
+	dialect := goqu.Dialect("mysql")
+
+	ds := dialect.Update("table_one").
+		Set(goqu.Record{"foo": goqu.I("table_two.bar")}).
+		From("table_two").
+		Where(goqu.Ex{"table_one.id": goqu.I("table_two.id")})
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// UPDATE `table_one`,`table_two` SET `foo`=`table_two`.`bar` WHERE (`table_one`.`id` = `table_two`.`id`)
+}
+
 func ExampleUpdateDataset_Where() {
 	// By default everything is anded together
 	sql, _, _ := goqu.Update("test").

@@ -193,6 +193,27 @@ func (pt *postgresTest) TestQuery() {
 	assert.Len(t, entries, 0)
 }
 
+func (pt *postgresTest) TestQuery_ValueExpressions() {
+	type wrappedEntry struct {
+		entry
+		BoolValue bool `db:"bool_value"`
+	}
+	expectedDate, err := time.Parse(time.RFC3339Nano, "2015-02-22T19:19:55.000000000-00:00")
+	pt.NoError(err)
+	ds := pt.db.From("entry").Select(goqu.Star(), goqu.V(true).As("bool_value")).Where(goqu.Ex{"int": 1})
+	var we wrappedEntry
+	found, err := ds.ScanStruct(&we)
+	pt.NoError(err)
+	pt.True(found)
+	pt.Equal(1, we.Int)
+	pt.Equal(0.100000, we.Float)
+	pt.Equal("0.100000", we.String)
+	pt.Equal(expectedDate.Unix(), we.Time.Unix())
+	pt.Equal(false, we.Bool)
+	pt.Equal([]byte("0.100000"), we.Bytes)
+	pt.True(we.BoolValue)
+}
+
 func (pt *postgresTest) TestCount() {
 	t := pt.T()
 	ds := pt.db.From("entry")
@@ -309,6 +330,17 @@ func (pt *postgresTest) TestUpdate() {
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, id, e.ID)
+}
+
+func (pt *postgresTest) TestUpdateSQL_multipleTables() {
+	ds := pt.db.Update("test")
+	updateSQL, _, err := ds.
+		Set(goqu.Record{"foo": "bar"}).
+		From("test_2").
+		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))).
+		ToSQL()
+	pt.NoError(err)
+	pt.Equal(`UPDATE "test" SET "foo"='bar' FROM "test_2" WHERE ("test"."id" = "test_2"."test_id")`, updateSQL)
 }
 
 func (pt *postgresTest) TestDelete() {

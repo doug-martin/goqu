@@ -1,3 +1,8 @@
+## v8.0.1
+
+* [ADDED] Multi table update support for `mysql` and `postgres` [#60](https://github.com/doug-martin/goqu/issues/60)
+* [ADDED] `goqu.V` so values can be used on the LHS of expressions [#104](https://github.com/doug-martin/goqu/issues/104)
+
 ## v8.0.0
 
 A major change the the API was made in `v8` to seperate concerns between the different SQL statement types. 

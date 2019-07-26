@@ -50,6 +50,7 @@ var (
 	errNoSourceForDelete            = errors.New("no source found when generating delete sql")
 	errNoSourceForTruncate          = errors.New("no source found when generating truncate sql")
 	errReturnNotSupported           = errors.New("adapter does not support RETURNING clause")
+	errNoSetValuesForUpdate         = errors.New("no set values found when generating UPDATE sql")
 )
 
 func notSupportedFragmentErr(sqlType string, f SQLFragmentType) error {
@@ -172,13 +173,20 @@ func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 }
 
 func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.UpdateClauses) {
+	if !clauses.HasTable() {
+		b.SetError(errNoSourceForUpdate)
+		return
+	}
+	if !clauses.HasSetValues() {
+		b.SetError(errNoSetValuesForUpdate)
+		return
+	}
+	if !d.dialectOptions.SupportsMultipleUpdateTables && clauses.HasFrom() {
+		b.SetError(errors.New("%s dialect does not support multiple tables in UPDATE", d.dialect))
+	}
 	updates, err := exp.NewUpdateExpressions(clauses.SetValues())
 	if err != nil {
 		b.SetError(err)
-		return
-	}
-	if !clauses.HasTable() {
-		b.SetError(errNoSourceForUpdate)
 		return
 	}
 	for _, f := range d.dialectOptions.UpdateSQLOrder {
@@ -191,10 +199,11 @@ func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.UpdateClauses) {
 		case UpdateBeginSQLFragment:
 			d.UpdateBeginSQL(b)
 		case SourcesSQLFragment:
-			b.WriteRunes(d.dialectOptions.SpaceRune)
-			d.Literal(b, clauses.Table())
+			d.updateTableSQL(b, clauses)
 		case UpdateSQLFragment:
 			d.UpdateExpressionsSQL(b, updates...)
+		case UpdateFromSQLFragment:
+			d.updateFromSQL(b, clauses.From())
 		case WhereSQLFragment:
 			d.WhereSQL(b, clauses.Where())
 		case OrderSQLFragment:
@@ -716,6 +725,20 @@ func (d *sqlDialect) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
 	}
 }
 
+func (d *sqlDialect) updateTableSQL(b sb.SQLBuilder, uc exp.UpdateClauses) {
+	b.WriteRunes(d.dialectOptions.SpaceRune)
+	d.Literal(b, uc.Table())
+	if b.Error() != nil {
+		return
+	}
+	if uc.HasFrom() {
+		if !d.dialectOptions.UseFromClauseForMultipleUpdateTables {
+			b.WriteRunes(d.dialectOptions.CommaRune)
+			d.Literal(b, uc.From())
+		}
+	}
+}
+
 // Adds column setters in an update SET clause
 func (d *sqlDialect) updateValuesSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression) {
 	if len(updates) == 0 {
@@ -728,6 +751,15 @@ func (d *sqlDialect) updateValuesSQL(b sb.SQLBuilder, updates ...exp.UpdateExpre
 		if i < updateLen-1 {
 			b.WriteRunes(d.dialectOptions.CommaRune)
 		}
+	}
+}
+
+func (d *sqlDialect) updateFromSQL(b sb.SQLBuilder, ce exp.ColumnListExpression) {
+	if ce == nil || ce.IsEmpty() {
+		return
+	}
+	if d.dialectOptions.UseFromClauseForMultipleUpdateTables {
+		d.FromSQL(b, ce)
 	}
 }
 

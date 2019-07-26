@@ -70,6 +70,29 @@ func (ucs *updateClausesSuite) TestSetSetValues() {
 	assert.Equal(t, r2, c2.SetValues())
 }
 
+func (ucs *updateClausesSuite) TestFrom() {
+	t := ucs.T()
+	c := NewUpdateClauses()
+	ce := NewColumnListExpression("a", "b")
+	c2 := c.SetFrom(ce)
+
+	assert.Nil(t, c.From())
+
+	assert.Equal(t, ce, c2.From())
+}
+
+func (ucs *updateClausesSuite) TestSetFrom() {
+	t := ucs.T()
+	ce1 := NewColumnListExpression("a", "b")
+	c := NewUpdateClauses().SetFrom(ce1)
+	ce2 := NewColumnListExpression("a", "b")
+	c2 := c.SetFrom(ce2)
+
+	assert.Equal(t, ce1, c.From())
+
+	assert.Equal(t, ce2, c2.From())
+}
+
 func (ucs *updateClausesSuite) TestWhere() {
 	t := ucs.T()
 	w := Ex{"a": 1}
