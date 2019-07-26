@@ -361,6 +361,38 @@ func (uds *updateDatasetSuite) TestSet_ToSQLWithSkipupdateTag() {
 	assert.Equal(t, `UPDATE "items" SET "name"=?`, updateSQL)
 }
 
+func (uds *updateDatasetSuite) TestSet_ToSQLWithDefaultIfEmptyTag() {
+	type item struct {
+		Address string  `db:"address" goqu:"skipupdate, defaultifempty"`
+		Name    string  `db:"name" goqu:"defaultifempty"`
+		Alias   *string `db:"alias" goqu:"defaultifempty"`
+	}
+	ds := Update("items").Set(item{Name: "Test", Address: "111 Test Addr"})
+
+	updateSQL, args, err := ds.ToSQL()
+	uds.NoError(err)
+	uds.Empty(args)
+	uds.Equal(`UPDATE "items" SET "alias"=DEFAULT,"name"='Test'`, updateSQL)
+
+	updateSQL, args, err = ds.Prepared(true).ToSQL()
+	uds.NoError(err)
+	uds.Equal([]interface{}{"Test"}, args)
+	uds.Equal(`UPDATE "items" SET "alias"=DEFAULT,"name"=?`, updateSQL)
+
+	var alias = ""
+	ds = ds.Set(item{Alias: &alias})
+
+	updateSQL, args, err = ds.ToSQL()
+	uds.NoError(err)
+	uds.Empty(args)
+	uds.Equal(`UPDATE "items" SET "alias"='',"name"=DEFAULT`, updateSQL)
+
+	updateSQL, args, err = ds.Prepared(true).ToSQL()
+	uds.NoError(err)
+	uds.Equal([]interface{}{""}, args)
+	uds.Equal(`UPDATE "items" SET "alias"=?,"name"=DEFAULT`, updateSQL)
+}
+
 func (uds *updateDatasetSuite) TestFrom() {
 	ds := Update("test")
 	dsc := ds.GetClauses()

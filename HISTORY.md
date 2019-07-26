@@ -1,3 +1,7 @@
+## v8.1.0
+
+* [ADDED] Support column DEFAULT when inserting/updating via struct [#27](https://github.com/doug-martin/goqu/issues/27)
+
 ## v8.0.1
 
 * [ADDED] Multi table update support for `mysql` and `postgres` [#60](https://github.com/doug-martin/goqu/issues/60)

@@ -154,6 +154,48 @@ Output:
 INSERT INTO "user" ("first_name", "last_name") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
 ```
 
+You can skip fields in a struct by using the `skipinsert` tag
+
+```go
+type User struct {
+	FirstName string `db:"first_name" goqu:"skipinsert"`
+	LastName  string `db:"last_name"`
+}
+ds := goqu.Insert("user").Rows(
+	User{FirstName: "Greg", LastName: "Farley"},
+	User{FirstName: "Jimmy", LastName: "Stewart"},
+	User{FirstName: "Jeff", LastName: "Jeffers"},
+)
+insertSQL, args, _ := ds.ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "user" ("last_name") VALUES ('Farley'), ('Stewart'), ('Jeffers') []
+```
+
+If you want to use the database `DEFAULT` when the struct field is a zero value you can use the `defaultifempty` tag.
+
+```go
+type User struct {
+	FirstName string `db:"first_name" goqu:"defaultifempty"`
+	LastName  string `db:"last_name"`
+}
+ds := goqu.Insert("user").Rows(
+	User{LastName: "Farley"},
+	User{FirstName: "Jimmy", LastName: "Stewart"},
+	User{LastName: "Jeffers"},
+)
+insertSQL, args, _ := ds.ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "user" ("first_name", "last_name") VALUES (DEFAULT, 'Farley'), ('Jimmy', 'Stewart'), (DEFAULT, 'Jeffers') []
+```
+
 <a name="insert-map"></a>
 **Insert `map[string]interface{}`**
 

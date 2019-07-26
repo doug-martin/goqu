@@ -12,18 +12,20 @@ import (
 
 type (
 	ColumnData struct {
-		ColumnName   string
-		FieldIndex   []int
-		ShouldInsert bool
-		ShouldUpdate bool
-		GoType       reflect.Type
+		ColumnName     string
+		FieldIndex     []int
+		ShouldInsert   bool
+		ShouldUpdate   bool
+		DefaultIfEmpty bool
+		GoType         reflect.Type
 	}
 	ColumnMap map[string]ColumnData
 )
 
 const (
-	skipUpdateTagName = "skipupdate"
-	skipInsertTagName = "skipinsert"
+	skipUpdateTagName     = "skipupdate"
+	skipInsertTagName     = "skipinsert"
+	defaultIfEmptyTagName = "defaultifempty"
 )
 
 func IsUint(k reflect.Kind) bool {
@@ -69,6 +71,26 @@ func IsInvalid(k reflect.Kind) bool {
 
 func IsPointer(k reflect.Kind) bool {
 	return k == reflect.Ptr
+}
+
+func IsEmptyValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	case reflect.Invalid:
+		return true
+	}
+	return false
 }
 
 var structMapCache = make(map[interface{}]ColumnMap)
@@ -189,11 +211,12 @@ func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
 			goquTag := tag.New("goqu", f.Tag)
 			if !dbTag.Equals("-") {
 				cm[columnName] = ColumnData{
-					ColumnName:   columnName,
-					ShouldInsert: !goquTag.Contains(skipInsertTagName),
-					ShouldUpdate: !goquTag.Contains(skipUpdateTagName),
-					FieldIndex:   append(fieldIndex, f.Index...),
-					GoType:       f.Type,
+					ColumnName:     columnName,
+					ShouldInsert:   !goquTag.Contains(skipInsertTagName),
+					ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
+					DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
+					FieldIndex:     append(fieldIndex, f.Index...),
+					GoType:         f.Type,
 				}
 			}
 		}

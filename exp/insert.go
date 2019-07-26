@@ -150,7 +150,11 @@ func getFieldsValues(value reflect.Value) (rowCols, rowVals []interface{}, err e
 			if f.ShouldInsert {
 				v := value.FieldByIndex(f.FieldIndex)
 				rowCols = append(rowCols, col)
-				rowVals = append(rowVals, v.Interface())
+				if f.DefaultIfEmpty && util.IsEmptyValue(v) {
+					rowVals = append(rowVals, Default())
+				} else {
+					rowVals = append(rowVals, v.Interface())
+				}
 			}
 		}
 	}
