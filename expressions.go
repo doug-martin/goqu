@@ -192,6 +192,12 @@ func Literal(sql string, args ...interface{}) exp.LiteralExpression {
 	return L(sql, args...)
 }
 
+// Create a new SQL value ( alias for goqu.L("?", val) ). The prrimary use case for this would be in selects.
+// See examples.
+func V(val interface{}) exp.LiteralExpression {
+	return exp.NewLiteralExpression("?", val)
+}
+
 // Creates a new Range to be used with a Between expression
 //    exp.C("col").Between(exp.Range(1, 10))
 func Range(start, end interface{}) exp.RangeVal {

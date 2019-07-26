@@ -8,7 +8,8 @@
 * [`T`](#T) - An Identifier that represents a Table. With a Table identifier you can fully qualify columns.
 * [`C`](#C) - An Identifier that represents a Column. See the docs for more examples
 * [`I`](#I) - An Identifier represents a schema, table, or column or any combination. I parses identifiers seperated by a . character.
-* [`L`](#L) - An SQL literal. 
+* [`L`](#L) - An SQL literal.
+* [`V`](#V) - An Value to be used in SQL. 
 * [`And`](#and) - AND multiple expressions together.
 * [`Or`](#or) - OR multiple expressions together.
 * [Complex Example] - Complex Example using most of the Expression DSL.
@@ -201,6 +202,61 @@ SELECT * FROM "test" WHERE ("json"::TEXT = "other_json"::TEXT) AND col IN ('a', 
 SELECT * FROM "test" WHERE ("json"::TEXT = "other_json"::TEXT) AND col IN ($1, $2, $3) [a, b, c]
 ```
 
+<a name="V"></a>
+**[`V()`](https://godoc.org/github.com/doug-martin/goqu#V)**
+
+Sometimes you may have a value that you want to use directly in SQL. 
+
+**NOTE** This is a shorter version of `goqu.L("?", val)`
+
+For example you may want to select a value as a column.
+
+```go
+ds := goqu.From("user").Select(
+	goqu.V(true).As("is_verified"),
+	goqu.V(1.2).As("version"),
+	"first_name",
+	"last_name",
+)
+
+sql, args, _ := ds.ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```
+SELECT TRUE AS "is_verified", 1.2 AS "version", "first_name", "last_name" FROM "user" []
+```
+
+You can also use `goqu.V` in where clauses.
+
+```
+ds := goqu.From("user").Where(goqu.V(1).Neq(1))
+sql, args, _ := ds.ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+
+```
+SELECT * FROM "user" WHERE (1 != 1) []
+```
+
+You can also use them in prepared statements.
+
+```
+ds := goqu.From("user").Where(goqu.V(1).Neq(1))
+sql, args, _ := ds.Prepared(true).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+
+```
+SELECT * FROM "user" WHERE (? != ?) [1, 1]
+```
+
+
 <a name="and"></a>
 **[`And()`](https://godoc.org/github.com/doug-martin/goqu#And)** 
 
@@ -387,4 +443,5 @@ GROUP BY "test"."user_id"
 HAVING (AVG("test3"."age") > ?)
 ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]
 ```
+
 

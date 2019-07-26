@@ -193,6 +193,27 @@ func (pt *postgresTest) TestQuery() {
 	assert.Len(t, entries, 0)
 }
 
+func (pt *postgresTest) TestQuery_ValueExpressions() {
+	type wrappedEntry struct {
+		entry
+		BoolValue bool `db:"bool_value"`
+	}
+	expectedDate, err := time.Parse(time.RFC3339Nano, "2015-02-22T19:19:55.000000000-00:00")
+	pt.NoError(err)
+	ds := pt.db.From("entry").Select(goqu.Star(), goqu.V(true).As("bool_value")).Where(goqu.Ex{"int": 1})
+	var we wrappedEntry
+	found, err := ds.ScanStruct(&we)
+	pt.NoError(err)
+	pt.True(found)
+	pt.Equal(1, we.Int)
+	pt.Equal(0.100000, we.Float)
+	pt.Equal("0.100000", we.String)
+	pt.Equal(expectedDate.Unix(), we.Time.Unix())
+	pt.Equal(false, we.Bool)
+	pt.Equal([]byte("0.100000"), we.Bytes)
+	pt.True(we.BoolValue)
+}
+
 func (pt *postgresTest) TestCount() {
 	t := pt.T()
 	ds := pt.db.From("entry")

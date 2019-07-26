@@ -726,9 +726,6 @@ func (d *sqlDialect) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
 }
 
 func (d *sqlDialect) updateTableSQL(b sb.SQLBuilder, uc exp.UpdateClauses) {
-	if b.Error() != nil {
-		return
-	}
 	b.WriteRunes(d.dialectOptions.SpaceRune)
 	d.Literal(b, uc.Table())
 	if b.Error() != nil {
@@ -758,9 +755,6 @@ func (d *sqlDialect) updateValuesSQL(b sb.SQLBuilder, updates ...exp.UpdateExpre
 }
 
 func (d *sqlDialect) updateFromSQL(b sb.SQLBuilder, ce exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
 	if ce == nil || ce.IsEmpty() {
 		return
 	}
