@@ -406,6 +406,72 @@ func ExampleInsertDataset_Rows_withGoquDefaultIfEmptyTag() {
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', DEFAULT), ('112 Test Addr', 'Test2') []
 }
 
+func ExampleInsertDataset_Rows_withEmbeddedStruct() {
+	type Address struct {
+		Street string `db:"address_street"`
+		State  string `db:"address_state"`
+	}
+	type User struct {
+		Address
+		FirstName string
+		LastName  string
+	}
+	ds := goqu.Insert("user").Rows(
+		User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+		User{Address: Address{Street: "211 Street", State: "NY"}, FirstName: "Jimmy", LastName: "Stewart"},
+		User{Address: Address{Street: "311 Street", State: "NY"}, FirstName: "Jeff", LastName: "Jeffers"},
+	)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "user" ("address_state", "address_street", "firstname", "lastname") VALUES ('NY', '111 Street', 'Greg', 'Farley'), ('NY', '211 Street', 'Jimmy', 'Stewart'), ('NY', '311 Street', 'Jeff', 'Jeffers') []
+}
+
+func ExampleInsertDataset_Rows_withIgnoredEmbedded() {
+	type Address struct {
+		Street string
+		State  string
+	}
+	type User struct {
+		Address   `db:"-"`
+		FirstName string
+		LastName  string
+	}
+	ds := goqu.Insert("user").Rows(
+		User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+		User{Address: Address{Street: "211 Street", State: "NY"}, FirstName: "Jimmy", LastName: "Stewart"},
+		User{Address: Address{Street: "311 Street", State: "NY"}, FirstName: "Jeff", LastName: "Jeffers"},
+	)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "user" ("firstname", "lastname") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
+}
+
+func ExampleInsertDataset_Rows_withNilEmbeddedPointer() {
+	type Address struct {
+		Street string
+		State  string
+	}
+	type User struct {
+		*Address
+		FirstName string
+		LastName  string
+	}
+	ds := goqu.Insert("user").Rows(
+		User{FirstName: "Greg", LastName: "Farley"},
+		User{FirstName: "Jimmy", LastName: "Stewart"},
+		User{FirstName: "Jeff", LastName: "Jeffers"},
+	)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "user" ("firstname", "lastname") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
+}
+
 func ExampleInsertDataset_ClearOnConflict() {
 	type item struct {
 		ID      uint32 `db:"id" goqu:"skipinsert"`

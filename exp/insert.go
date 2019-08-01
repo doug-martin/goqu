@@ -85,6 +85,9 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 	rowValue := reflect.Indirect(reflect.ValueOf(rows[0]))
 	rowType := rowValue.Type()
 	rowKind := rowValue.Kind()
+	if rowKind == reflect.Struct {
+		return createStructSliceInsert(rows...)
+	}
 	vals := make([][]interface{}, len(rows))
 	var columns ColumnListExpression
 	for i, row := range rows {
@@ -119,15 +122,6 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 				rowVals[j] = newRowValue.MapIndex(key).Interface()
 			}
 			vals[i] = rowVals
-		case reflect.Struct:
-			rowCols, rowVals, err := getFieldsValues(newRowValue)
-			if err != nil {
-				return nil, err
-			}
-			if columns == nil {
-				columns = NewColumnListExpression(rowCols...)
-			}
-			vals[i] = rowVals
 		default:
 			return nil, errors.New(
 				"unsupported insert must be map, goqu.Record, or struct type got: %T",
@@ -138,25 +132,31 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 	return &insert{cols: columns, vals: vals}, nil
 }
 
-func getFieldsValues(value reflect.Value) (rowCols, rowVals []interface{}, err error) {
-	if value.IsValid() {
-		cm, err := util.GetColumnMap(value.Interface())
+func createStructSliceInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
+	rowValue := reflect.Indirect(reflect.ValueOf(rows[0]))
+	rowType := rowValue.Type()
+	recordRows := make([]interface{}, 0, len(rows))
+	for _, row := range rows {
+		if rowType != reflect.Indirect(reflect.ValueOf(row)).Type() {
+			return nil, errors.New(
+				"rows must be all the same type expected %+v got %+v",
+				rowType,
+				reflect.Indirect(reflect.ValueOf(row)).Type(),
+			)
+		}
+		newRowValue := reflect.Indirect(reflect.ValueOf(row))
+		record, err := getFieldsValuesFromStruct(newRowValue)
 		if err != nil {
-			return rowCols, rowVals, err
+			return nil, err
 		}
-		cols := cm.Cols()
-		for _, col := range cols {
-			f := cm[col]
-			if f.ShouldInsert {
-				v := value.FieldByIndex(f.FieldIndex)
-				rowCols = append(rowCols, col)
-				if f.DefaultIfEmpty && util.IsEmptyValue(v) {
-					rowVals = append(rowVals, Default())
-				} else {
-					rowVals = append(rowVals, v.Interface())
-				}
-			}
-		}
+		recordRows = append(recordRows, record)
 	}
-	return rowCols, rowVals, nil
+	return newInsert(recordRows...)
+}
+
+func getFieldsValuesFromStruct(value reflect.Value) (row Record, err error) {
+	if value.IsValid() {
+		return NewRecordFromStruct(value.Interface(), true, false)
+	}
+	return
 }

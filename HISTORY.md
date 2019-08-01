@@ -1,3 +1,11 @@
+## v8.2.0
+
+* [FIX] Fix reflection errors related to nil pointers and unexported fields [#118](https://github.com/doug-martin/goqu/issues/118)
+    * Unexported fields are ignored when creating a columnMap
+    * Nil embedded pointers will no longer cause a panic
+    * Fields on nil embedded pointers will be ignored when creating update or insert statements.
+* [ADDED] You can now ingore embedded structs and their fields by using `db:"-"` tag on the embedded struct.
+
 ## v8.1.0
 
 * [ADDED] Support column DEFAULT when inserting/updating via struct [#27](https://github.com/doug-martin/goqu/issues/27)

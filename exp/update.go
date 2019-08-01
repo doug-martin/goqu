@@ -41,21 +41,13 @@ func NewUpdateExpressions(update interface{}) (updates []UpdateExpression, err e
 }
 
 func getUpdateExpressionsStruct(value reflect.Value) (updates []UpdateExpression, err error) {
-	cm, err := util.GetColumnMap(value.Interface())
+	r, err := NewRecordFromStruct(value.Interface(), false, true)
 	if err != nil {
 		return updates, err
 	}
-	cols := cm.Cols()
+	cols := r.Cols()
 	for _, col := range cols {
-		f := cm[col]
-		if f.ShouldUpdate {
-			v := value.FieldByIndex(f.FieldIndex)
-			setV := v.Interface()
-			if f.DefaultIfEmpty && util.IsEmptyValue(v) {
-				setV = Default()
-			}
-			updates = append(updates, ParseIdentifier(col).Set(setV))
-		}
+		updates = append(updates, ParseIdentifier(col).Set(r[col]))
 	}
 	return updates, nil
 }

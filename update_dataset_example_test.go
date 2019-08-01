@@ -534,6 +534,66 @@ func ExampleUpdateDataset_Set_withNoTags() {
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 }
 
+func ExampleUpdateDataset_Set_withEmbeddedStruct() {
+	type Address struct {
+		Street string `db:"address_street"`
+		State  string `db:"address_state"`
+	}
+	type User struct {
+		Address
+		FirstName string
+		LastName  string
+	}
+	ds := goqu.Update("user").Set(
+		User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+	)
+	updateSQL, args, _ := ds.ToSQL()
+	fmt.Println(updateSQL, args)
+
+	// Output:
+	// UPDATE "user" SET "address_state"='NY',"address_street"='111 Street',"firstname"='Greg',"lastname"='Farley' []
+}
+
+func ExampleUpdateDataset_Set_withIgnoredEmbedded() {
+	type Address struct {
+		Street string
+		State  string
+	}
+	type User struct {
+		Address   `db:"-"`
+		FirstName string
+		LastName  string
+	}
+	ds := goqu.Update("user").Set(
+		User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+	)
+	updateSQL, args, _ := ds.ToSQL()
+	fmt.Println(updateSQL, args)
+
+	// Output:
+	// UPDATE "user" SET "firstname"='Greg',"lastname"='Farley' []
+}
+
+func ExampleUpdateDataset_Set_withNilEmbeddedPointer() {
+	type Address struct {
+		Street string
+		State  string
+	}
+	type User struct {
+		*Address
+		FirstName string
+		LastName  string
+	}
+	ds := goqu.Update("user").Set(
+		User{FirstName: "Greg", LastName: "Farley"},
+	)
+	updateSQL, args, _ := ds.ToSQL()
+	fmt.Println(updateSQL, args)
+
+	// Output:
+	// UPDATE "user" SET "firstname"='Greg',"lastname"='Farley' []
+}
+
 func ExampleUpdateDataset_ToSQL_prepared() {
 	type item struct {
 		Address string `db:"address"`

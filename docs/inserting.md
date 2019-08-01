@@ -196,6 +196,87 @@ Output:
 INSERT INTO "user" ("first_name", "last_name") VALUES (DEFAULT, 'Farley'), ('Jimmy', 'Stewart'), (DEFAULT, 'Jeffers') []
 ```
 
+`goqu` will also use fields in embedded structs when creating an insert.
+
+**NOTE** unexported fields will be ignored!
+
+```go
+type Address struct {
+	Street string `db:"address_street"`
+	State  string `db:"address_state"`
+}
+type User struct {
+	Address
+	FirstName string
+	LastName  string
+}
+ds := goqu.Insert("user").Rows(
+	User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+	User{Address: Address{Street: "211 Street", State: "NY"}, FirstName: "Jimmy", LastName: "Stewart"},
+	User{Address: Address{Street: "311 Street", State: "NY"}, FirstName: "Jeff", LastName: "Jeffers"},
+)
+insertSQL, args, _ := ds.ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "user" ("address_state", "address_street", "firstname", "lastname") VALUES ('NY', '111 Street', 'Greg', 'Farley'), ('NY', '211 Street', 'Jimmy', 'Stewart'), ('NY', '311 Street', 'Jeff', 'Jeffers') []
+```
+
+**NOTE** When working with embedded pointers if the embedded struct is nil then the fields will be ignored.
+
+```go
+type Address struct {
+	Street string
+	State  string
+}
+type User struct {
+	*Address
+	FirstName string
+	LastName  string
+}
+ds := goqu.Insert("user").Rows(
+	User{FirstName: "Greg", LastName: "Farley"},
+	User{FirstName: "Jimmy", LastName: "Stewart"},
+	User{FirstName: "Jeff", LastName: "Jeffers"},
+)
+insertSQL, args, _ := ds.ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "user" ("firstname", "lastname") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
+```
+
+You can ignore an embedded struct or struct pointer by using `db:"-"`
+
+```go
+type Address struct {
+	Street string
+	State  string
+}
+type User struct {
+	Address   `db:"-"`
+	FirstName string
+	LastName  string
+}
+
+ds := goqu.Insert("user").Rows(
+	User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+	User{Address: Address{Street: "211 Street", State: "NY"}, FirstName: "Jimmy", LastName: "Stewart"},
+	User{Address: Address{Street: "311 Street", State: "NY"}, FirstName: "Jeff", LastName: "Jeffers"},
+)
+insertSQL, args, _ := ds.ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "user" ("firstname", "lastname") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
+```
+
 <a name="insert-map"></a>
 **Insert `map[string]interface{}`**
 

@@ -128,9 +128,7 @@ type (
 )
 
 type (
-	// Alternative to writing map[string]interface{}. Can be used for Inserts, Updates or Deletes
-	Record map[string]interface{}
-	Vals   []interface{}
+	Vals []interface{}
 	// Parent of all expression types
 	Expression interface {
 		Clone() Expression
