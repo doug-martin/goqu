@@ -124,6 +124,20 @@ func GetTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind, 
 	return t, valKind, isSliceOfPointers
 }
 
+func SafeGetFieldByIndex(v reflect.Value, fieldIndex []int) (result reflect.Value, isAvailable bool) {
+	switch len(fieldIndex) {
+	case 0:
+		return v, true
+	case 1:
+		return v.FieldByIndex(fieldIndex), true
+	default:
+		if f := reflect.Indirect(v.Field(fieldIndex[0])); f.IsValid() {
+			return SafeGetFieldByIndex(f, fieldIndex[1:])
+		}
+	}
+	return reflect.ValueOf(nil), false
+}
+
 type rowData = map[string]interface{}
 
 func AssignStructVals(i interface{}, results []rowData, cm ColumnMap) {
@@ -195,12 +209,16 @@ func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
 		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
-			if f.Type.Kind() == reflect.Ptr {
-				subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), append(fieldIndex, f.Index...)))
-			} else {
-				subColMaps = append(subColMaps, createColumnMap(f.Type, append(fieldIndex, f.Index...)))
+			goquTag := tag.New("db", f.Tag)
+			if !goquTag.Contains("-") {
+				if f.Type.Kind() == reflect.Ptr {
+					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), append(fieldIndex, f.Index...)))
+				} else {
+					subColMaps = append(subColMaps, createColumnMap(f.Type, append(fieldIndex, f.Index...)))
+				}
 			}
-		} else {
+		} else if f.PkgPath == "" {
+			// if PkgPath is empty then it is an exported field
 			dbTag := tag.New("db", f.Tag)
 			var columnName string
 			if dbTag.IsEmpty() {

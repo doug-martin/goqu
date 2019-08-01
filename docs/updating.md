@@ -171,6 +171,81 @@ Output:
 UPDATE "items" SET "address"='111 Test Addr',"name"=DEFAULT []
 ```
 
+`goqu` will also use fields in embedded structs when creating an update.
+
+**NOTE** unexported fields will be ignored!
+
+```go
+type Address struct {
+	Street string `db:"address_street"`
+	State  string `db:"address_state"`
+}
+type User struct {
+	Address
+	FirstName string
+	LastName  string
+}
+ds := goqu.Update("user").Set(
+	User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+)
+updateSQL, args, _ := ds.ToSQL()
+fmt.Println(updateSQL, args)
+```
+
+Output:
+```
+UPDATE "user" SET "address_state"='NY',"address_street"='111 Street',"firstname"='Greg',"lastname"='Farley' []
+```
+
+**NOTE** When working with embedded pointers if the embedded struct is nil then the fields will be ignored.
+
+```go
+type Address struct {
+	Street string
+	State  string
+}
+type User struct {
+	*Address
+	FirstName string
+	LastName  string
+}
+ds := goqu.Update("user").Set(
+	User{FirstName: "Greg", LastName: "Farley"},
+)
+updateSQL, args, _ := ds.ToSQL()
+fmt.Println(updateSQL, args)
+```
+
+Output:
+```
+UPDATE "user" SET "firstname"='Greg',"lastname"='Farley' []
+```
+
+You can ignore an embedded struct or struct pointer by using `db:"-"`
+
+```go
+type Address struct {
+	Street string
+	State  string
+}
+type User struct {
+	Address   `db:"-"`
+	FirstName string
+	LastName  string
+}
+ds := goqu.Update("user").Set(
+	User{Address: Address{Street: "111 Street", State: "NY"}, FirstName: "Greg", LastName: "Farley"},
+)
+updateSQL, args, _ := ds.ToSQL()
+fmt.Println(updateSQL, args)
+```
+
+Output:
+```
+UPDATE "user" SET "firstname"='Greg',"lastname"='Farley' []
+```
+
+
 <a name="set-map"></a>
 **[Set with Map](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Set)**
 

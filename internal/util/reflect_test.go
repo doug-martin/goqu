@@ -972,6 +972,155 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
 	}, cm)
 }
 
+func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
+	t := rt.T()
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		EmbeddedStruct `db:"-"`
+		Int            int64
+		Bool           bool
+		Valuer         *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	assert.NoError(t, err)
+	assert.Equal(t, ColumnMap{
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
+	t := rt.T()
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		*EmbeddedStruct `db:"-"`
+		Int             int64
+		Bool            bool
+		Valuer          *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	assert.NoError(t, err)
+	assert.Equal(t, ColumnMap{
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
+	t := rt.T()
+
+	type TestStruct struct {
+		str    string // nolint:structcheck,unused
+		Int    int64
+		Bool   bool
+		Valuer *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	assert.NoError(t, err)
+	assert.Equal(t, ColumnMap{
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
+	t := rt.T()
+
+	type TestEmbedded struct {
+		str string // nolint:structcheck,unused
+		Int int64
+	}
+
+	type TestStruct struct {
+		TestEmbedded
+		Bool   bool
+		Valuer *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	assert.NoError(t, err)
+	assert.Equal(t, ColumnMap{
+		"int":    {ColumnName: "int", FieldIndex: []int{0, 1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+	}, cm)
+}
+
+func (rt *reflectTest) TestSafeGetFieldByIndex() {
+	type TestEmbedded struct {
+		FieldA int
+	}
+	type TestEmbeddedPointerStruct struct {
+		*TestEmbedded
+		FieldB string
+	}
+	type TestEmbeddedStruct struct {
+		TestEmbedded
+		FieldB string
+	}
+	v := reflect.ValueOf(TestEmbeddedPointerStruct{})
+	f, isAvailable := SafeGetFieldByIndex(v, []int{0, 0})
+	rt.False(isAvailable)
+	rt.False(f.IsValid())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	rt.Equal(reflect.String, f.Type().Kind())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	rt.True(isAvailable)
+	rt.Equal(v, f)
+
+	v = reflect.ValueOf(TestEmbeddedPointerStruct{TestEmbedded: &TestEmbedded{}})
+	f, isAvailable = SafeGetFieldByIndex(v, []int{0, 0})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	rt.Equal(reflect.Int, f.Type().Kind())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	rt.Equal(reflect.String, f.Type().Kind())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	rt.True(isAvailable)
+	rt.Equal(v, f)
+
+	v = reflect.ValueOf(TestEmbeddedStruct{})
+	f, isAvailable = SafeGetFieldByIndex(v, []int{0, 0})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	rt.Equal(reflect.Int, f.Type().Kind())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	rt.Equal(reflect.String, f.Type().Kind())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	rt.True(isAvailable)
+	rt.Equal(v, f)
+
+	v = reflect.ValueOf(TestEmbeddedStruct{TestEmbedded: TestEmbedded{}})
+	f, isAvailable = SafeGetFieldByIndex(v, []int{0, 0})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	rt.True(isAvailable)
+	rt.True(f.IsValid())
+	rt.Equal(reflect.String, f.Type().Kind())
+	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	rt.True(isAvailable)
+	rt.Equal(v, f)
+}
+
 func TestReflectSuite(t *testing.T) {
 	suite.Run(t, new(reflectTest))
 }
