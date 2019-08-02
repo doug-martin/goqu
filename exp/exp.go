@@ -262,6 +262,9 @@ type (
 		// Returns a new IdentifierExpression with the column set to *
 		//   I("my_table").All() //"my_table".*
 		All() IdentifierExpression
+
+		// Returns true if schema table and identifier are all zero values.
+		IsEmpty() bool
 	}
 	InsertExpression interface {
 		Expression

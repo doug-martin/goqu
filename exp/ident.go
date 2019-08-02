@@ -21,7 +21,7 @@ func ParseIdentifier(ident string) IdentifierExpression {
 	return NewIdentifierExpression("", "", ident)
 }
 
-func NewIdentifierExpression(schema, table, col string) IdentifierExpression {
+func NewIdentifierExpression(schema, table string, col interface{}) IdentifierExpression {
 	return identifier{}.Schema(schema).Table(table).Col(col)
 }
 
@@ -76,6 +76,21 @@ func (i identifier) Expression() Expression { return i }
 
 // Qualifies the epression with a * literal (e.g. "table".*)
 func (i identifier) All() IdentifierExpression { return i.Col("*") }
+
+func (i identifier) IsEmpty() bool {
+	isEmpty := i.schema == "" && i.table == ""
+	if isEmpty {
+		switch t := i.col.(type) {
+		case nil:
+			return true
+		case string:
+			return t == ""
+		default:
+			return false
+		}
+	}
+	return isEmpty
+}
 
 // Gets the column identifier
 func (i identifier) GetCol() interface{} { return i.col }

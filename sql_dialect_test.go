@@ -1867,6 +1867,12 @@ func (dts *dialectTestSuite) TestLiteral_IdentifierExpression() {
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 
 	b := sb.NewSQLBuilder(false)
+	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", ""))
+	dts.assertErrorSQL(b, `goqu: a empty identifier was encountered, please specify a "schema", "table" or "column"`)
+
+	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", nil))
+	dts.assertErrorSQL(b, `goqu: a empty identifier was encountered, please specify a "schema", "table" or "column"`)
+
 	d.Literal(b.Clear(), exp.NewIdentifierExpression("", "", "col"))
 	dts.assertNotPreparedSQL(b, `"col"`)
 
