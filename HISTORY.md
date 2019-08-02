@@ -1,3 +1,7 @@
+## v8.2.1
+
+* [FIX] Return an error when an empty identifier is encountered [#115](https://github.com/doug-martin/goqu/issues/118)
+
 ## v8.2.0
 
 * [FIX] Fix reflection errors related to nil pointers and unexported fields [#118](https://github.com/doug-martin/goqu/issues/118)

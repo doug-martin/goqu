@@ -1,6 +1,7 @@
 package goqu_test
 
 import (
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -12,6 +13,10 @@ import (
 
 type githubIssuesSuite struct {
 	suite.Suite
+}
+
+func (gis *githubIssuesSuite) AfterTest(suiteName, testName string) {
+	goqu.SetColumnRenameFunction(strings.ToLower)
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/49
@@ -34,6 +39,20 @@ func (gis *githubIssuesSuite) TestIssue49() {
 	assert.NoError(t, err)
 	assert.Empty(t, args)
 	assert.Equal(t, `SELECT * FROM "table"`, sql)
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/115
+func (gis *githubIssuesSuite) TestIssue115() {
+
+	type TestStruct struct {
+		Field string
+	}
+	goqu.SetColumnRenameFunction(func(col string) string {
+		return ""
+	})
+
+	_, _, err := goqu.Insert("test").Rows(TestStruct{Field: "hello"}).ToSQL()
+	gis.EqualError(err, `goqu: a empty identifier was encountered, please specify a "schema", "table" or "column"`)
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/118

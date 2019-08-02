@@ -51,6 +51,7 @@ var (
 	errNoSourceForTruncate          = errors.New("no source found when generating truncate sql")
 	errReturnNotSupported           = errors.New("adapter does not support RETURNING clause")
 	errNoSetValuesForUpdate         = errors.New("no set values found when generating UPDATE sql")
+	errEmptyIdentifier              = errors.New(`a empty identifier was encountered, please specify a "schema", "table" or "column"`)
 )
 
 func notSupportedFragmentErr(sqlType string, f SQLFragmentType) error {
@@ -898,6 +899,10 @@ func (d *sqlDialect) appendableExpressionSQL(b sb.SQLBuilder, a exp.AppendableEx
 
 // Quotes an identifier (e.g. "col", "table"."col"
 func (d *sqlDialect) quoteIdentifier(b sb.SQLBuilder, ident exp.IdentifierExpression) {
+	if ident.IsEmpty() {
+		b.SetError(errEmptyIdentifier)
+		return
+	}
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
 	if schema != d.dialectOptions.EmptyString {
 		b.WriteRunes(d.dialectOptions.QuoteRune).
