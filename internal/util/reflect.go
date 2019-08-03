@@ -165,13 +165,9 @@ func assignRowData(row reflect.Value, rd rowData, cm ColumnMap) {
 	for name, data := range cm {
 		src, ok := rd[name]
 		if ok {
-			srcVal := reflect.ValueOf(src)
 			f := row.FieldByIndex(data.FieldIndex)
-			if f.Kind() == reflect.Ptr {
-				f.Set(srcVal)
-			} else {
-				f.Set(reflect.Indirect(srcVal))
-			}
+			srcVal := reflect.ValueOf(src)
+			f.Set(reflect.Indirect(srcVal))
 		}
 	}
 }
