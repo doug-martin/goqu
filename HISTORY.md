@@ -1,6 +1,10 @@
+## v8.2.2
+
+* [FIX] Scanner errors on pointers to primitive values [#122](https://github.com/doug-martin/goqu/issues/122)
+
 ## v8.2.1
 
-* [FIX] Return an error when an empty identifier is encountered [#115](https://github.com/doug-martin/goqu/issues/118)
+* [FIX] Return an error when an empty identifier is encountered [#115](https://github.com/doug-martin/goqu/issues/115)
 
 ## v8.2.0
 

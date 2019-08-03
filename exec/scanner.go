@@ -117,8 +117,6 @@ func (q *scanner) scanIntoRecord(columns []string, cm util.ColumnMap) (record ex
 		switch {
 		case !ok:
 			return record, unableToFindFieldError(col)
-		case util.IsPointer(data.GoType.Kind()):
-			scans[i] = reflect.New(data.GoType.Elem()).Interface()
 		default:
 			scans[i] = reflect.New(data.GoType).Interface()
 		}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/suite"
@@ -103,24 +104,35 @@ func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
 
 func (cet *crudExecTest) TestScanStructs_withPointerFields() {
 	type StructWithPointerFields struct {
-		Address *string
-		Name    *string
+		Str   *string
+		Time  *time.Time
+		Bool  *bool
+		Int   *int64
+		Float *float64
 	}
 	db, mock, err := sqlmock.New()
 	cet.NoError(err)
-
+	now := time.Now()
+	str1, str2 := "str1", "str2"
+	t := true
+	var i1, i2 int64 = 1, 2
+	var f1, f2 float64 = 1.1, 2.1
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
-			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+		WillReturnRows(sqlmock.NewRows([]string{"str", "time", "bool", "int", "float"}).
+			AddRow(str1, now, true, i1, f1).
+			AddRow(str2, now, true, i2, f2).
+			AddRow(nil, nil, nil, nil, nil),
+		)
 
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithPointerFields
 	cet.NoError(e.ScanStructs(&items))
 	cet.Equal([]StructWithPointerFields{
-		{Address: &testAddr1, Name: &testName1},
-		{Address: &testAddr2, Name: &testName2},
+		{Str: &str1, Time: &now, Bool: &t, Int: &i1, Float: &f1},
+		{Str: &str2, Time: &now, Bool: &t, Int: &i2, Float: &f2},
+		{},
 	}, items)
 }
 
