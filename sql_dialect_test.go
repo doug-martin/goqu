@@ -618,44 +618,46 @@ func (dts *dialectTestSuite) TestSelectSQL() {
 	opts.SelectClause = []byte("select")
 	opts.StarRune = '#'
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
-	ec := exp.NewColumnListExpression()
-	cs := exp.NewColumnListExpression("a", "b")
+	sc := exp.NewSelectClauses()
+	scWithCols := sc.SetSelect(exp.NewColumnListExpression("a", "b"))
 	b := sb.NewSQLBuilder(false)
-	d.SelectSQL(b, ec)
+	d.SelectSQL(b, sc)
 	dts.assertNotPreparedSQL(b, `select #`)
 
-	d.SelectSQL(b.Clear(), cs)
+	d.SelectSQL(b.Clear(), scWithCols)
 	dts.assertNotPreparedSQL(b, `select "a", "b"`)
 
 	b = sb.NewSQLBuilder(true)
-	d.SelectSQL(b, ec)
+	d.SelectSQL(b, sc)
 	dts.assertPreparedSQL(b, `select #`, emptyArgs)
 
-	d.SelectSQL(b.Clear(), cs)
+	d.SelectSQL(b.Clear(), scWithCols)
 	dts.assertPreparedSQL(b, `select "a", "b"`, emptyArgs)
 }
 
-func (dts *dialectTestSuite) TestSelectDistinctSQL() {
+func (dts *dialectTestSuite) TestSelectSQL_WithDistinct() {
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SelectClause = []byte("select")
-	opts.DistinctFragment = []byte(" distinct ")
+	opts.StarRune = '#'
+	opts.DistinctFragment = []byte("distinct")
+	opts.OnFragment = []byte(" on ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
-	ec := exp.NewColumnListExpression()
-	cs := exp.NewColumnListExpression("a", "b")
+	sc := exp.NewSelectClauses().SetDistinct(exp.NewColumnListExpression())
+	scDistinctOn := sc.SetDistinct(exp.NewColumnListExpression("a", "b"))
 	b := sb.NewSQLBuilder(false)
-	d.SelectDistinctSQL(b, ec)
-	dts.assertNotPreparedSQL(b, `select distinct `)
+	d.SelectSQL(b, sc)
+	dts.assertNotPreparedSQL(b, `select distinct #`)
 
-	d.SelectDistinctSQL(b.Clear(), cs)
-	dts.assertNotPreparedSQL(b, `select distinct "a", "b"`)
+	d.SelectSQL(b.Clear(), scDistinctOn)
+	dts.assertNotPreparedSQL(b, `select distinct on ("a", "b") #`)
 
 	b = sb.NewSQLBuilder(true)
-	d.SelectDistinctSQL(b.Clear(), ec)
-	dts.assertPreparedSQL(b, `select distinct `, emptyArgs)
+	d.SelectSQL(b.Clear(), sc)
+	dts.assertPreparedSQL(b, `select distinct #`, emptyArgs)
 
-	d.SelectDistinctSQL(b.Clear(), cs)
-	dts.assertPreparedSQL(b, `select distinct "a", "b"`, emptyArgs)
+	d.SelectSQL(b.Clear(), scDistinctOn)
+	dts.assertPreparedSQL(b, `select distinct on ("a", "b") #`, emptyArgs)
 }
 
 func (dts *dialectTestSuite) TestReturningSQL() {

@@ -32,6 +32,8 @@ type (
 		SupportsWithCTERecursive bool
 		// Set to true if multiple tables are supported in UPDATE statement. (DEFAULT=true)
 		SupportsMultipleUpdateTables bool
+		// Set to true if DISTINCT ON is supported (DEFAULT=true)
+		SupportsDistinctOn bool
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
 
@@ -365,6 +367,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		SupportsConflictTarget:      true,
 		SupportsWithCTE:             true,
 		SupportsWithCTERecursive:    true,
+		SupportsDistinctOn:          true,
 		WrapCompoundsInParens:       true,
 
 		SupportsMultipleUpdateTables:         true,
@@ -384,7 +387,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		ValuesFragment:            []byte(" VALUES "),
 		IdentityFragment:          []byte(" IDENTITY"),
 		SetFragment:               []byte(" SET "),
-		DistinctFragment:          []byte(" DISTINCT "),
+		DistinctFragment:          []byte("DISTINCT"),
 		ReturningFragment:         []byte(" RETURNING "),
 		FromFragment:              []byte(" FROM"),
 		UsingFragment:             []byte(" USING "),

@@ -1,3 +1,7 @@
+## 8.3.0
+
+* [Added] Support for `DISTINCT ON` clauses [#119](https://github.com/doug-martin/goqu/issues/119)
+
 ## v8.2.2
 
 * [FIX] Scanner errors on pointers to primitive values [#122](https://github.com/doug-martin/goqu/issues/122)

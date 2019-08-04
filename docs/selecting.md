@@ -3,7 +3,7 @@
 * [Creating a SelectDataset](#create)
 * Building SQL
   * [`Select`](#select)
-  * [`SelectDistinct`](#select_distinct)
+  * [`Distinct`](#distinct)
   * [`From`](#from)
   * [`Join`](#joins)
   * [`Where`](#where)
@@ -162,17 +162,53 @@ Output:
 SELECT "address", "email_address", "name" FROM "test"
 ```
 
-<a name="select_distinct"></a>
-**[`SelectDistinct`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.SelectDistinct)**
+<a name="distinct"></a>
+**[`Distinct`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Distinct)**
 
 ```go
-sql, _, _ := goqu.From("test").SelectDistinct("a", "b").ToSQL()
+sql, _, _ := goqu.From("test").Select("a", "b").Distinct().ToSQL()
 fmt.Println(sql)
 ```
 
 Output:
 ```
 SELECT DISTINCT "a", "b" FROM "test"
+```
+
+If you dialect supports `DISTINCT ON` you provide arguments to the `Distinct` method.
+
+**NOTE** currently only the `postgres` and the default dialects support `DISTINCT ON` clauses
+
+```go
+sql, _, _ := goqu.From("test").Distinct("a").ToSQL()
+fmt.Println(sql)
+```
+Output:
+
+```
+SELECT DISTINCT ON ("a") * FROM "test"
+```
+
+You can also provide other expression arguments
+
+With `goqu.L`
+
+```go
+sql, _, _ := goqu.From("test").Distinct(goqu.L("COALESCE(?, ?)", goqu.C("a"), "empty")).ToSQL()
+fmt.Println(sql)
+```
+Output:
+```
+SELECT DISTINCT ON (COALESCE("a", 'empty')) * FROM "test"
+```
+With `goqu.Coalesce`
+```go
+sql, _, _ := goqu.From("test").Distinct(goqu.COALESCE(goqu.C("a"), "empty")).ToSQL()
+fmt.Println(sql)
+```
+Output:
+```
+SELECT DISTINCT ON (COALESCE("a", 'empty')) * FROM "test"
 ```
 
 <a name="from"></a>

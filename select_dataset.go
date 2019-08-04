@@ -223,14 +223,15 @@ func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 //   SQLFunction: (See Func, MIN, MAX, COUNT....)
 //   Struct: If passing in an instance of a struct, we will parse the struct for the column names to select.
 //   See examples
+// Deprecated: Use Distinct() instead.
 func (sd *SelectDataset) SelectDistinct(selects ...interface{}) *SelectDataset {
-	return sd.copy(sd.clauses.SetSelectDistinct(exp.NewColumnListExpression(selects...)))
+	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)).SetDistinct(exp.NewColumnListExpression()))
 }
 
-// Resets to SELECT *. If the SelectDistinct was used the returned Dataset will have the the dataset set to SELECT *.
+// Resets to SELECT *. If the SelectDistinct or Distinct was used the returned Dataset will have the the dataset set to SELECT *.
 // See examples.
 func (sd *SelectDataset) ClearSelect() *SelectDataset {
-	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(exp.Star())))
+	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(exp.Star())).SetDistinct(nil))
 }
 
 // Adds columns to the SELECT clause. See examples
@@ -242,6 +243,10 @@ func (sd *SelectDataset) ClearSelect() *SelectDataset {
 //   SQLFunction: (See Func, MIN, MAX, COUNT....)
 func (sd *SelectDataset) SelectAppend(selects ...interface{}) *SelectDataset {
 	return sd.copy(sd.clauses.SelectAppend(exp.NewColumnListExpression(selects...)))
+}
+
+func (sd *SelectDataset) Distinct(on ...interface{}) *SelectDataset {
+	return sd.copy(sd.clauses.SetDistinct(exp.NewColumnListExpression(on...)))
 }
 
 // Adds a FROM clause. This return a new dataset with the original sources replaced. See examples.
