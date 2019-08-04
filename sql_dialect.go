@@ -86,6 +86,10 @@ func unsupportedRangeExpressionOperator(op exp.RangeOperation) error {
 	return errors.New("range operator %+v not supported", op)
 }
 
+func unsupportedDistinctOn(dialect string) error {
+	return errors.New("distinct on clause is not supported by %s dialect", dialect)
+}
+
 func init() {
 	RegisterDialect("default", DefaultDialectOptions())
 }
@@ -142,11 +146,7 @@ func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 		case CommonTableSQLFragment:
 			d.CommonTablesSQL(b, clauses.CommonTables())
 		case SelectSQLFragment:
-			if clauses.HasSelectDistinct() {
-				d.SelectDistinctSQL(b, clauses.SelectDistinct())
-			} else {
-				d.SelectSQL(b, clauses.Select())
-			}
+			d.SelectSQL(b, clauses)
 		case FromSQLFragment:
 			d.FromSQL(b, clauses.From())
 		case JoinSQLFragment:
@@ -398,26 +398,34 @@ func (d *sqlDialect) UpdateExpressionsSQL(b sb.SQLBuilder, updates ...exp.Update
 }
 
 // Adds the SELECT clause and columns to a sql statement
-func (d *sqlDialect) SelectSQL(b sb.SQLBuilder, cols exp.ColumnListExpression) {
+func (d *sqlDialect) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	if b.Error() != nil {
 		return
 	}
 	b.Write(d.dialectOptions.SelectClause).
 		WriteRunes(d.dialectOptions.SpaceRune)
-	if len(cols.Columns()) == 0 {
+	dc := clauses.Distinct()
+	if dc != nil {
+		b.Write(d.dialectOptions.DistinctFragment)
+		if !dc.IsEmpty() {
+			if d.dialectOptions.SupportsDistinctOn {
+				b.Write(d.dialectOptions.OnFragment).WriteRunes(d.dialectOptions.LeftParenRune)
+				d.Literal(b, dc)
+				b.WriteRunes(d.dialectOptions.RightParenRune, d.dialectOptions.SpaceRune)
+			} else {
+				b.SetError(unsupportedDistinctOn(d.dialect))
+				return
+			}
+		} else {
+			b.WriteRunes(d.dialectOptions.SpaceRune)
+		}
+	}
+	cols := clauses.Select()
+	if clauses.IsDefaultSelect() || len(cols.Columns()) == 0 {
 		b.WriteRunes(d.dialectOptions.StarRune)
 	} else {
 		d.Literal(b, cols)
 	}
-}
-
-// Adds the SELECT DISTINCT clause and columns to a sql statement
-func (d *sqlDialect) SelectDistinctSQL(b sb.SQLBuilder, cols exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
-	b.Write(d.dialectOptions.SelectClause).Write(d.dialectOptions.DistinctFragment)
-	d.Literal(b, cols)
 }
 
 func (d *sqlDialect) ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpression) {

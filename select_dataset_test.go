@@ -202,7 +202,7 @@ func (sds *selectDatasetSuite) TestSelectDistinct() {
 	t := sds.T()
 	ds := From("test")
 	dsc := ds.GetClauses()
-	ec := dsc.SetSelectDistinct(exp.NewColumnListExpression(C("a")))
+	ec := dsc.SetSelect(exp.NewColumnListExpression(C("a"))).SetDistinct(exp.NewColumnListExpression())
 	assert.Equal(t, ec, ds.SelectDistinct(C("a")).GetClauses())
 	assert.Equal(t, dsc, ds.GetClauses())
 }
@@ -266,6 +266,49 @@ func (sds *selectDatasetSuite) TestSelectDistinct_ToSQL() {
 	selectSQL, _, err = ds1.SelectDistinct(myStructs).ToSQL()
 	assert.NoError(t, err)
 	assert.Equal(t, selectSQL, `SELECT DISTINCT "address", "email_address", "name" FROM "test"`)
+	// should not change original
+	selectSQL, _, err = ds1.ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, selectSQL, `SELECT * FROM "test"`)
+	// should not change original
+	selectSQL, _, err = ds1.ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, selectSQL, `SELECT * FROM "test"`)
+}
+
+func (sds *selectDatasetSuite) TestDistinct() {
+	t := sds.T()
+	ds := From("test")
+	dsc := ds.GetClauses()
+	ec := dsc.SetDistinct(exp.NewColumnListExpression())
+	ecs := dsc.SetSelect(exp.NewColumnListExpression("a", "b")).SetDistinct(exp.NewColumnListExpression())
+	ecsd := dsc.SetSelect(exp.NewColumnListExpression("a", "b")).SetDistinct(exp.NewColumnListExpression("c"))
+	assert.Equal(t, ec, ds.Distinct().GetClauses())
+	assert.Equal(t, ecs, ds.Select("a", "b").Distinct().GetClauses())
+	assert.Equal(t, ecsd, ds.Select("a", "b").Distinct("c").GetClauses())
+	assert.Equal(t, dsc, ds.GetClauses())
+}
+
+func (sds *selectDatasetSuite) TestDistinct_ToSQL() {
+	t := sds.T()
+	ds1 := From("test")
+
+	selectSQL, _, err := ds1.Distinct().ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, selectSQL, `SELECT DISTINCT * FROM "test"`)
+
+	selectSQL, _, err = ds1.Distinct("id").ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, selectSQL, `SELECT DISTINCT ON ("id") * FROM "test"`)
+
+	selectSQL, _, err = ds1.Distinct("id").Select("name").ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, selectSQL, `SELECT DISTINCT ON ("id") "name" FROM "test"`)
+
+	selectSQL, _, err = ds1.Select(L("COUNT(*)").As("count")).Distinct(COALESCE(C("b"), "empty")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, selectSQL, `SELECT DISTINCT ON (COALESCE("b", 'empty')) COUNT(*) AS "count" FROM "test"`)
+
 	// should not change original
 	selectSQL, _, err = ds1.ToSQL()
 	assert.NoError(t, err)
@@ -2001,7 +2044,7 @@ func (sds *selectDatasetSuite) TestScanStructs() {
 	})
 
 	items = items[0:0]
-	assert.NoError(t, ds.From("items").SelectDistinct("name").ScanStructs(&items))
+	assert.NoError(t, ds.From("items").Select("name").Distinct().ScanStructs(&items))
 	assert.Equal(t, items, []dsTestActionItem{
 		{Address: "111 Test Addr", Name: "Test1"},
 		{Address: "211 Test Addr", Name: "Test2"},
@@ -2083,7 +2126,7 @@ func (sds *selectDatasetSuite) TestScanStruct() {
 	assert.Equal(t, item.Name, "Test1")
 
 	item = dsTestActionItem{}
-	found, err = ds.From("items").SelectDistinct("name").ScanStruct(&item)
+	found, err = ds.From("items").Select("name").Distinct().ScanStruct(&item)
 	assert.NoError(t, err)
 	assert.True(t, found)
 	assert.Equal(t, item.Address, "111 Test Addr")

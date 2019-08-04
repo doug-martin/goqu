@@ -18,6 +18,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsConflictTarget = false
 	opts.SupportsWithCTE = false
 	opts.SupportsWithCTERecursive = false
+	opts.SupportsDistinctOn = false
 
 	opts.UseFromClauseForMultipleUpdateTables = false
 

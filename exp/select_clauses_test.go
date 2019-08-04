@@ -65,10 +65,7 @@ func (sct *selectClausesTest) TestSelectAppend() {
 	c2 := c.SelectAppend(NewColumnListExpression("a"))
 
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
-	assert.Nil(t, c.SelectDistinct())
-
 	assert.Equal(t, NewColumnListExpression(Star(), "a"), c2.Select())
-	assert.Nil(t, c2.SelectDistinct())
 }
 
 func (sct *selectClausesTest) TestSetSelect() {
@@ -77,35 +74,32 @@ func (sct *selectClausesTest) TestSetSelect() {
 	c2 := c.SetSelect(NewColumnListExpression("a"))
 
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
-	assert.Nil(t, c.SelectDistinct())
-
 	assert.Equal(t, NewColumnListExpression("a"), c2.Select())
-	assert.Nil(t, c2.SelectDistinct())
 
 }
 
-func (sct *selectClausesTest) TestSelectDistinct() {
+func (sct *selectClausesTest) TestDistinct() {
 	t := sct.T()
 	c := NewSelectClauses()
-	c2 := c.SetSelectDistinct(NewColumnListExpression("a"))
+	c2 := c.SetDistinct(NewColumnListExpression("a"))
 
-	assert.Nil(t, c.SelectDistinct())
+	assert.Nil(t, c.Distinct())
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
 
-	assert.Equal(t, NewColumnListExpression("a"), c2.SelectDistinct())
-	assert.Nil(t, c2.Select())
+	assert.Equal(t, NewColumnListExpression("a"), c2.Distinct())
+	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
 }
 
 func (sct *selectClausesTest) TestSetSelectDistinct() {
 	t := sct.T()
 	c := NewSelectClauses()
-	c2 := c.SetSelectDistinct(NewColumnListExpression("a"))
+	c2 := c.SetDistinct(NewColumnListExpression("a"))
 
-	assert.Nil(t, c.SelectDistinct())
+	assert.Nil(t, c.Distinct())
 	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
 
-	assert.Equal(t, NewColumnListExpression("a"), c2.SelectDistinct())
-	assert.Nil(t, c2.Select())
+	assert.Equal(t, NewColumnListExpression("a"), c2.Distinct())
+	assert.Equal(t, NewColumnListExpression(Star()), c.Select())
 }
 
 func (sct *selectClausesTest) TestFrom() {

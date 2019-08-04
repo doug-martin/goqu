@@ -939,18 +939,39 @@ func ExampleSelectDataset_Select_withStruct() {
 	// SELECT "address", "email_address", "name" FROM "test"
 }
 
-func ExampleSelectDataset_SelectDistinct() {
-	sql, _, _ := goqu.From("test").SelectDistinct("a", "b").ToSQL()
+func ExampleSelectDataset_Distinct() {
+	sql, _, _ := goqu.From("test").Select("a", "b").Distinct().ToSQL()
 	fmt.Println(sql)
 	// Output:
 	// SELECT DISTINCT "a", "b" FROM "test"
+}
+
+func ExampleSelectDataset_Distinct_on() {
+	sql, _, _ := goqu.From("test").Distinct("a").ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT DISTINCT ON ("a") * FROM "test"
+}
+
+func ExampleSelectDataset_Distinct_onWithLiteral() {
+	sql, _, _ := goqu.From("test").Distinct(goqu.L("COALESCE(?, ?)", goqu.C("a"), "empty")).ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT DISTINCT ON (COALESCE("a", 'empty')) * FROM "test"
+}
+
+func ExampleSelectDataset_Distinct_onCoalesce() {
+	sql, _, _ := goqu.From("test").Distinct(goqu.COALESCE(goqu.C("a"), "empty")).ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT DISTINCT ON (COALESCE("a", 'empty')) * FROM "test"
 }
 
 func ExampleSelectDataset_SelectAppend() {
 	ds := goqu.From("test").Select("a", "b")
 	sql, _, _ := ds.SelectAppend("c").ToSQL()
 	fmt.Println(sql)
-	ds = goqu.From("test").SelectDistinct("a", "b")
+	ds = goqu.From("test").Select("a", "b").Distinct()
 	sql, _, _ = ds.SelectAppend("c").ToSQL()
 	fmt.Println(sql)
 	// Output:
@@ -962,7 +983,7 @@ func ExampleSelectDataset_ClearSelect() {
 	ds := goqu.From("test").Select("a", "b")
 	sql, _, _ := ds.ClearSelect().ToSQL()
 	fmt.Println(sql)
-	ds = goqu.From("test").SelectDistinct("a", "b")
+	ds = goqu.From("test").Select("a", "b").Distinct()
 	sql, _, _ = ds.ClearSelect().ToSQL()
 	fmt.Println(sql)
 	// Output:

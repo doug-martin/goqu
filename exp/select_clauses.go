@@ -10,9 +10,8 @@ type (
 		SelectAppend(cl ColumnListExpression) SelectClauses
 		SetSelect(cl ColumnListExpression) SelectClauses
 
-		SelectDistinct() ColumnListExpression
-		HasSelectDistinct() bool
-		SetSelectDistinct(cl ColumnListExpression) SelectClauses
+		Distinct() ColumnListExpression
+		SetDistinct(cle ColumnListExpression) SelectClauses
 
 		From() ColumnListExpression
 		SetFrom(cl ColumnListExpression) SelectClauses
@@ -61,20 +60,20 @@ type (
 		CommonTablesAppend(cte CommonTableExpression) SelectClauses
 	}
 	selectClauses struct {
-		commonTables   []CommonTableExpression
-		selectColumns  ColumnListExpression
-		selectDistinct ColumnListExpression
-		from           ColumnListExpression
-		joins          JoinExpressions
-		where          ExpressionList
-		alias          IdentifierExpression
-		groupBy        ColumnListExpression
-		having         ExpressionList
-		order          ColumnListExpression
-		limit          interface{}
-		offset         uint
-		compounds      []CompoundExpression
-		lock           Lock
+		commonTables  []CommonTableExpression
+		selectColumns ColumnListExpression
+		distinct      ColumnListExpression
+		from          ColumnListExpression
+		joins         JoinExpressions
+		where         ExpressionList
+		alias         IdentifierExpression
+		groupBy       ColumnListExpression
+		having        ExpressionList
+		order         ColumnListExpression
+		limit         interface{}
+		offset        uint
+		compounds     []CompoundExpression
+		lock          Lock
 	}
 )
 
@@ -103,20 +102,20 @@ func (c *selectClauses) IsDefaultSelect() bool {
 
 func (c *selectClauses) clone() *selectClauses {
 	return &selectClauses{
-		commonTables:   c.commonTables,
-		selectColumns:  c.selectColumns,
-		selectDistinct: c.selectDistinct,
-		from:           c.from,
-		joins:          c.joins,
-		where:          c.where,
-		alias:          c.alias,
-		groupBy:        c.groupBy,
-		having:         c.having,
-		order:          c.order,
-		limit:          c.limit,
-		offset:         c.offset,
-		compounds:      c.compounds,
-		lock:           c.lock,
+		commonTables:  c.commonTables,
+		selectColumns: c.selectColumns,
+		distinct:      c.distinct,
+		from:          c.from,
+		joins:         c.joins,
+		where:         c.where,
+		alias:         c.alias,
+		groupBy:       c.groupBy,
+		having:        c.having,
+		order:         c.order,
+		limit:         c.limit,
+		offset:        c.offset,
+		compounds:     c.compounds,
+		lock:          c.lock,
 	}
 }
 
@@ -134,31 +133,22 @@ func (c *selectClauses) Select() ColumnListExpression {
 }
 func (c *selectClauses) SelectAppend(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
-	if ret.selectDistinct != nil {
-		ret.selectDistinct = ret.selectDistinct.Append(cl.Columns()...)
-	} else {
-		ret.selectColumns = ret.selectColumns.Append(cl.Columns()...)
-	}
+	ret.selectColumns = ret.selectColumns.Append(cl.Columns()...)
 	return ret
 }
 
 func (c *selectClauses) SetSelect(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
-	ret.selectDistinct = nil
 	ret.selectColumns = cl
 	return ret
 }
 
-func (c *selectClauses) SelectDistinct() ColumnListExpression {
-	return c.selectDistinct
+func (c *selectClauses) Distinct() ColumnListExpression {
+	return c.distinct
 }
-func (c *selectClauses) HasSelectDistinct() bool {
-	return c.selectDistinct != nil
-}
-func (c *selectClauses) SetSelectDistinct(cl ColumnListExpression) SelectClauses {
+func (c *selectClauses) SetDistinct(cle ColumnListExpression) SelectClauses {
 	ret := c.clone()
-	ret.selectColumns = nil
-	ret.selectDistinct = cl
+	ret.distinct = cle
 	return ret
 }
 
