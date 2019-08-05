@@ -10,7 +10,6 @@ import (
 	"github.com/doug-martin/goqu/v8/exp"
 	"github.com/doug-martin/goqu/v8/internal/errors"
 	"github.com/doug-martin/goqu/v8/internal/sb"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -84,7 +83,6 @@ func (dts *dialectTestSuite) assertErrorSQL(b sb.SQLBuilder, errMsg string) {
 }
 
 func (dts *dialectTestSuite) TestSupportsReturn() {
-	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsReturn = true
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -93,12 +91,11 @@ func (dts *dialectTestSuite) TestSupportsReturn() {
 	opts2.SupportsReturn = false
 	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
-	assert.True(t, d.SupportsReturn())
-	assert.False(t, d2.SupportsReturn())
+	dts.True(d.SupportsReturn())
+	dts.False(d2.SupportsReturn())
 }
 
 func (dts *dialectTestSuite) TestSupportsOrderByOnUpdate() {
-	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsOrderByOnUpdate = true
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -107,12 +104,11 @@ func (dts *dialectTestSuite) TestSupportsOrderByOnUpdate() {
 	opts2.SupportsOrderByOnUpdate = false
 	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
-	assert.True(t, d.SupportsOrderByOnUpdate())
-	assert.False(t, d2.SupportsOrderByOnUpdate())
+	dts.True(d.SupportsOrderByOnUpdate())
+	dts.False(d2.SupportsOrderByOnUpdate())
 }
 
 func (dts *dialectTestSuite) TestSupportsLimitOnUpdate() {
-	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsLimitOnUpdate = true
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -121,12 +117,11 @@ func (dts *dialectTestSuite) TestSupportsLimitOnUpdate() {
 	opts2.SupportsLimitOnUpdate = false
 	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
-	assert.True(t, d.SupportsLimitOnUpdate())
-	assert.False(t, d2.SupportsLimitOnUpdate())
+	dts.True(d.SupportsLimitOnUpdate())
+	dts.False(d2.SupportsLimitOnUpdate())
 }
 
 func (dts *dialectTestSuite) TestSupportsOrderByOnDelete() {
-	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsOrderByOnDelete = true
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -135,12 +130,11 @@ func (dts *dialectTestSuite) TestSupportsOrderByOnDelete() {
 	opts2.SupportsOrderByOnDelete = false
 	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
-	assert.True(t, d.SupportsOrderByOnDelete())
-	assert.False(t, d2.SupportsOrderByOnDelete())
+	dts.True(d.SupportsOrderByOnDelete())
+	dts.False(d2.SupportsOrderByOnDelete())
 }
 
 func (dts *dialectTestSuite) TestSupportsLimitOnDelete() {
-	t := dts.T()
 	opts := DefaultDialectOptions()
 	opts.SupportsLimitOnDelete = true
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
@@ -149,8 +143,8 @@ func (dts *dialectTestSuite) TestSupportsLimitOnDelete() {
 	opts2.SupportsLimitOnDelete = false
 	d2 := sqlDialect{dialect: "test", dialectOptions: opts2}
 
-	assert.True(t, d.SupportsLimitOnDelete())
-	assert.False(t, d2.SupportsLimitOnDelete())
+	dts.True(d.SupportsLimitOnDelete())
+	dts.False(d2.SupportsLimitOnDelete())
 }
 
 func (dts *dialectTestSuite) TestUpdateBeginSQL() {
@@ -594,14 +588,13 @@ func (dts *dialectTestSuite) TestToUpdateSQL_withFrom() {
 }
 
 func (dts *dialectTestSuite) TestUpdateExpressionsSQL() {
-	t := dts.T()
 
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SetFragment = []byte(" set ")
 	d := sqlDialect{dialect: "test", dialectOptions: opts}
 	u, err := exp.NewUpdateExpressions(exp.Record{"a": "b"})
-	assert.NoError(t, err)
+	dts.NoError(err)
 
 	b := sb.NewSQLBuilder(false)
 	d.UpdateExpressionsSQL(b, u...)
@@ -1015,14 +1008,14 @@ func (dts *dialectTestSuite) TestCommonTablesSQL() {
 	d = sqlDialect{dialect: "test", dialectOptions: opts}
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1})
-	dts.assertErrorSQL(b, "goqu: adapter does not support CTE with clause")
+	dts.assertErrorSQL(b, "goqu: dialect does not support CTE WITH clause [dialect=test]")
 
 	opts = DefaultDialectOptions()
 	opts.SupportsWithCTERecursive = false
 	d = sqlDialect{dialect: "test", dialectOptions: opts}
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte2})
-	dts.assertErrorSQL(b, "goqu: adapter does not support CTE with recursive clause")
+	dts.assertErrorSQL(b, "goqu: dialect does not support CTE WITH RECURSIVE clause [dialect=test]")
 
 	d.CommonTablesSQL(b.Clear(), []exp.CommonTableExpression{cte1})
 	dts.assertNotPreparedSQL(b, `WITH test_cte AS (select * from foo) `)

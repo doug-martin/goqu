@@ -7,7 +7,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -88,245 +87,236 @@ type reflectTest struct {
 }
 
 func (rt *reflectTest) TestIsUint() {
-	t := rt.T()
 
 	for _, v := range uints {
-		assert.True(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.True(IsUint(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range ints {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(IsUint(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsInt() {
-	t := rt.T()
 	for _, v := range ints {
-		assert.True(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.True(IsInt(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(IsInt(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsFloat() {
-	t := rt.T()
 	for _, v := range floats {
-		assert.True(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.True(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsString() {
-	t := rt.T()
 	for _, v := range strs {
-		assert.True(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.True(IsString(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsString(reflect.ValueOf(v).Kind()))
+		rt.False(IsString(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsBool() {
-	t := rt.T()
 	for _, v := range bools {
-		assert.True(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.True(IsBool(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(IsBool(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsStruct() {
-	t := rt.T()
 	for _, v := range structs {
-		assert.True(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.True(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsSlice() {
-	t := rt.T()
-	assert.True(t, IsSlice(reflect.ValueOf(uints).Kind()))
-	assert.True(t, IsSlice(reflect.ValueOf(ints).Kind()))
-	assert.True(t, IsSlice(reflect.ValueOf(floats).Kind()))
-	assert.True(t, IsSlice(reflect.ValueOf(structs).Kind()))
+	rt.True(IsSlice(reflect.ValueOf(uints).Kind()))
+	rt.True(IsSlice(reflect.ValueOf(ints).Kind()))
+	rt.True(IsSlice(reflect.ValueOf(floats).Kind()))
+	rt.True(IsSlice(reflect.ValueOf(structs).Kind()))
 
-	assert.False(t, IsSlice(reflect.ValueOf(structs[0]).Kind()))
+	rt.False(IsSlice(reflect.ValueOf(structs[0]).Kind()))
 }
 
 func (rt *reflectTest) TestIsInvalid() {
-	t := rt.T()
 	for _, v := range invalids {
-		assert.True(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.True(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		assert.False(t, IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsPointer() {
-	t := rt.T()
 	for _, v := range pointers {
-		assert.True(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.True(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		assert.False(t, IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
 	}
 }
 
@@ -377,7 +367,6 @@ func (rt *reflectTest) TestIsEmptyValue_validValues() {
 }
 
 func (rt *reflectTest) TestColumnRename() {
-	t := rt.T()
 	// different key names are used each time to circumvent the caching that happens
 	// it seems like a solid assumption that when people use this feature,
 	// they would simply set a renaming function once at startup,
@@ -387,14 +376,14 @@ func (rt *reflectTest) TestColumnRename() {
 		LastLower  string
 	}{}
 	lowerColumnMap, lowerErr := GetColumnMap(&lowerAnon)
-	assert.NoError(t, lowerErr)
+	rt.NoError(lowerErr)
 
 	var lowerKeys []string
 	for key := range lowerColumnMap {
 		lowerKeys = append(lowerKeys, key)
 	}
-	assert.Contains(t, lowerKeys, "firstlower")
-	assert.Contains(t, lowerKeys, "lastlower")
+	rt.Contains(lowerKeys, "firstlower")
+	rt.Contains(lowerKeys, "lastlower")
 
 	// changing rename function
 	SetColumnRenameFunction(strings.ToUpper)
@@ -404,20 +393,19 @@ func (rt *reflectTest) TestColumnRename() {
 		LastUpper  string
 	}{}
 	upperColumnMap, upperErr := GetColumnMap(&upperAnon)
-	assert.NoError(t, upperErr)
+	rt.NoError(upperErr)
 
 	var upperKeys []string
 	for key := range upperColumnMap {
 		upperKeys = append(upperKeys, key)
 	}
-	assert.Contains(t, upperKeys, "FIRSTUPPER")
-	assert.Contains(t, upperKeys, "LASTUPPER")
+	rt.Contains(upperKeys, "FIRSTUPPER")
+	rt.Contains(upperKeys, "LASTUPPER")
 
 	SetColumnRenameFunction(defaultColumnRenameFunction)
 }
 
 func (rt *reflectTest) TestParallelGetColumnMap() {
-	t := rt.T()
 
 	type item struct {
 		id   uint
@@ -430,8 +418,8 @@ func (rt *reflectTest) TestParallelGetColumnMap() {
 	go func() {
 		i := item{id: 1, name: "bob"}
 		m, err := GetColumnMap(i)
-		assert.NoError(t, err)
-		assert.NotNil(t, m)
+		rt.NoError(err)
+		rt.NotNil(m)
 		wg.Done()
 	}()
 
@@ -439,8 +427,8 @@ func (rt *reflectTest) TestParallelGetColumnMap() {
 	go func() {
 		i := item{id: 2, name: "sally"}
 		m, err := GetColumnMap(i)
-		assert.NoError(t, err)
-		assert.NotNil(t, m)
+		rt.NoError(err)
+		rt.NotNil(m)
 		wg.Done()
 	}()
 
@@ -448,7 +436,6 @@ func (rt *reflectTest) TestParallelGetColumnMap() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStruct() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -458,7 +445,7 @@ func (rt *reflectTest) TestAssignStructVals_withStruct() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	data := []map[string]interface{}{
 		{
 			"str":    "string",
@@ -468,7 +455,7 @@ func (rt *reflectTest) TestAssignStructVals_withStruct() {
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, TestStruct{
+	rt.Equal(ts, TestStruct{
 		Str:    "string",
 		Int:    10,
 		Bool:   true,
@@ -477,7 +464,6 @@ func (rt *reflectTest) TestAssignStructVals_withStruct() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
-	t := rt.T()
 	type TestStruct struct {
 		Str    string
 		Int    int64
@@ -486,7 +472,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := []map[string]interface{}{
 		{
@@ -497,7 +483,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, TestStruct{
+	rt.Equal(ts, TestStruct{
 		Str:    "string",
 		Int:    10,
 		Bool:   true,
@@ -506,7 +492,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -519,7 +504,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := []map[string]interface{}{
 		{
@@ -530,7 +515,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, TestStruct{
+	rt.Equal(ts, TestStruct{
 		EmbeddedStruct: EmbeddedStruct{Str: "string"},
 		Int:            10,
 		Bool:           true,
@@ -539,7 +524,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -552,7 +536,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := []map[string]interface{}{
 		{
@@ -563,7 +547,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, TestStruct{
+	rt.Equal(ts, TestStruct{
 		EmbeddedStruct: &EmbeddedStruct{Str: "string"},
 		Int:            10,
 		Bool:           true,
@@ -572,7 +556,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 }
 
 func (rt *reflectTest) TestAssignStructVals_withSlice() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -582,7 +565,7 @@ func (rt *reflectTest) TestAssignStructVals_withSlice() {
 	}
 	var ts []TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	data := []map[string]interface{}{
 		{
 			"str":    "string1",
@@ -598,7 +581,7 @@ func (rt *reflectTest) TestAssignStructVals_withSlice() {
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, []TestStruct{
+	rt.Equal(ts, []TestStruct{
 		{
 			Str:    "string1",
 			Int:    10,
@@ -615,7 +598,6 @@ func (rt *reflectTest) TestAssignStructVals_withSlice() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withSliceOfPointers() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -625,7 +607,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceOfPointers() {
 	}
 	var ts []*TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	data := []map[string]interface{}{
 		{
 			"str":    "string1",
@@ -641,7 +623,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceOfPointers() {
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, []*TestStruct{
+	rt.Equal(ts, []*TestStruct{
 		{
 			Str:    "string1",
 			Int:    10,
@@ -658,7 +640,6 @@ func (rt *reflectTest) TestAssignStructVals_withSliceOfPointers() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withSliceOfStructsWithPointerVals() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -668,7 +649,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceOfStructsWithPointerVals() 
 	}
 	var ts []TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	ns1 := &sql.NullString{String: "null_str1", Valid: true}
 	ns2 := &sql.NullString{String: "null_str2", Valid: true}
 	data := []map[string]interface{}{
@@ -686,7 +667,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceOfStructsWithPointerVals() 
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, []TestStruct{
+	rt.Equal(ts, []TestStruct{
 		{
 			Str:    "string1",
 			Int:    10,
@@ -703,7 +684,6 @@ func (rt *reflectTest) TestAssignStructVals_withSliceOfStructsWithPointerVals() 
 }
 
 func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -716,7 +696,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct
 	}
 	var ts []TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	ns1 := &sql.NullString{String: "null_str1", Valid: true}
 	ns2 := &sql.NullString{String: "null_str2", Valid: true}
 	data := []map[string]interface{}{
@@ -734,7 +714,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, []TestStruct{
+	rt.Equal(ts, []TestStruct{
 		{
 			EmbeddedStruct: EmbeddedStruct{Str: "string1"},
 			Int:            10,
@@ -751,7 +731,6 @@ func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct
 }
 
 func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStructPointer() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -764,7 +743,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct
 	}
 	var ts []TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
+	rt.NoError(err)
 	ns1 := &sql.NullString{String: "null_str1", Valid: true}
 	ns2 := &sql.NullString{String: "null_str2", Valid: true}
 	data := []map[string]interface{}{
@@ -782,7 +761,7 @@ func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct
 		},
 	}
 	AssignStructVals(&ts, data, cm)
-	assert.Equal(t, ts, []TestStruct{
+	rt.Equal(ts, []TestStruct{
 		{
 			EmbeddedStruct: &EmbeddedStruct{Str: "string1"},
 			Int:            10,
@@ -799,7 +778,6 @@ func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStruct() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -809,8 +787,8 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -819,7 +797,6 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string `goqu:"skipinsert,skipupdate"`
@@ -830,8 +807,8 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"str":  {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
 		"int":  {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool": {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
@@ -848,7 +825,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string          `db:"s"`
@@ -858,8 +834,8 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"s": {ColumnName: "s", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"i": {ColumnName: "i", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"b": {ColumnName: "b", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -868,7 +844,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string          `db:"s" goqu:"skipinsert,skipupdate"`
@@ -878,8 +853,8 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"s": {ColumnName: "s", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
 		"i": {ColumnName: "i", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"b": {ColumnName: "b", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
@@ -888,7 +863,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -898,8 +872,8 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"str":  {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":  {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool": {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -907,7 +881,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
-	t := rt.T()
 
 	type TestStruct struct {
 		Str    string
@@ -917,8 +890,8 @@ func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
 	}
 	var ts []TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -927,16 +900,14 @@ func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withNonStruct() {
-	t := rt.T()
 
 	var v int64
 	_, err := GetColumnMap(&v)
-	assert.EqualError(t, err, "goqu: cannot scan into this type: int64")
+	rt.EqualError(err, "goqu: cannot scan into this type: int64")
 
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -949,8 +920,8 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0, 0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -959,7 +930,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -972,8 +942,8 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0, 0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -982,7 +952,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -995,8 +964,8 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -1004,7 +973,6 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
-	t := rt.T()
 
 	type EmbeddedStruct struct {
 		Str string
@@ -1017,8 +985,8 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -1026,7 +994,6 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
-	t := rt.T()
 
 	type TestStruct struct {
 		str    string // nolint:structcheck,unused
@@ -1036,8 +1003,8 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -1045,7 +1012,6 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
-	t := rt.T()
 
 	type TestEmbedded struct {
 		str string // nolint:structcheck,unused
@@ -1059,8 +1025,8 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 	}
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
-	assert.NoError(t, err)
-	assert.Equal(t, ColumnMap{
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{0, 1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
