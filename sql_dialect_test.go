@@ -1380,6 +1380,191 @@ func (dts *dialectTestSuite) TestToSelectSQL_withHaving() {
 	dts.assertPreparedSQL(b, `SELECT * FROM "test" having (("a" = ?) AND ("b" = ?))`, []interface{}{"b", "c"})
 }
 
+func (dts *dialectTestSuite) TestWindowsSQL() {
+	opts := DefaultDialectOptions()
+
+	we := W("w").PartitionBy("a", "b").OrderBy("c", "d")
+
+	opts.SupportsWindowFunction = false
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+	b := sb.NewSQLBuilder(false)
+	d.WindowsSQL(b, we)
+	dts.assertErrorSQL(b, errWindowFunctionNotSupported.Error())
+
+	opts.SupportsWindowFunction = true
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
+	b = sb.NewSQLBuilder(false)
+	d.WindowsSQL(b)
+	dts.assertNotPreparedSQL(b, "")
+
+	b = sb.NewSQLBuilder(false)
+	anErr := errors.New("something wrong")
+	b.SetError(anErr)
+	d.WindowsSQL(b, we)
+	dts.assertErrorSQL(b, anErr.Error())
+
+	b = sb.NewSQLBuilder(false)
+	d.WindowsSQL(b, we)
+	dts.assertNotPreparedSQL(b, ` WINDOW "w" AS (PARTITION BY "a", "b" ORDER BY "c", "d")`)
+
+	b = sb.NewSQLBuilder(false)
+	w1 := W("w1").PartitionBy("a").OrderBy("b")
+	w2 := W("w2").PartitionBy("c").OrderBy("d")
+	d.WindowsSQL(b, w1, w2)
+	dts.assertNotPreparedSQL(b, ` WINDOW "w1" AS (PARTITION BY "a" ORDER BY "b"), "w2" AS (PARTITION BY "c" ORDER BY "d")`)
+
+	w1 = W("w1").PartitionBy("a")
+	w2 = W("w2").Inherit("w1").OrderBy("b")
+	d.WindowsSQL(b.Clear(), w1, w2)
+	dts.assertNotPreparedSQL(b, ` WINDOW "w1" AS (PARTITION BY "a"), "w2" AS ("w1" ORDER BY "b")`)
+}
+
+func (dts *dialectTestSuite) TestWindowSQL() {
+	opts := DefaultDialectOptions()
+
+	opts.SupportsWindowFunction = false
+	d := sqlDialect{dialect: "test", dialectOptions: opts}
+	we := W("w").PartitionBy("a", "b").OrderBy("c", "d")
+	b := sb.NewSQLBuilder(false)
+	d.WindowSQL(b, we, true)
+	dts.assertErrorSQL(b, errWindowFunctionNotSupported.Error())
+
+	opts.SupportsWindowFunction = true
+	d = sqlDialect{dialect: "test", dialectOptions: opts}
+	b = sb.NewSQLBuilder(false)
+
+	b = sb.NewSQLBuilder(false)
+	anErr := errors.New("something wrong")
+	b.SetError(anErr)
+	d.WindowSQL(b, we, true)
+	dts.assertErrorSQL(b, anErr.Error())
+
+	we = W().PartitionBy("a", "b").OrderBy("c", "d")
+	b = sb.NewSQLBuilder(false)
+	d.WindowSQL(b, we, true)
+	dts.assertErrorSQL(b, errNoWindowName.Error())
+
+	for _, tt := range []struct {
+		we           exp.WindowExpression
+		prepared     bool
+		withName     bool
+		expectedSQL  string
+		expectedArgs []interface{}
+	}{
+		{
+			we:          W(),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `()`,
+		},
+		{
+			we:          W().Inherit("w"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `("w")`,
+		},
+		{
+			we:          W().PartitionBy("a"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `(PARTITION BY "a")`,
+		},
+		{
+			we:          W().PartitionBy("a", "b"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `(PARTITION BY "a", "b")`,
+		},
+		{
+			we:          W().OrderBy("c"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `(ORDER BY "c")`,
+		},
+		{
+			we:          W().OrderBy("c", "d"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `(ORDER BY "c", "d")`,
+		},
+		{
+			we:          W().PartitionBy("a", "b").OrderBy("c", "d"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `(PARTITION BY "a", "b" ORDER BY "c", "d")`,
+		},
+		{
+			we:          W().Inherit("w1").PartitionBy("a", "b").OrderBy("c", "d"),
+			prepared:    false,
+			withName:    false,
+			expectedSQL: `("w1" PARTITION BY "a", "b" ORDER BY "c", "d")`,
+		},
+		// withName
+		{
+			we:          W("w"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS ()`,
+		},
+		{
+			we:          W("w1").Inherit("w"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w1" AS ("w")`,
+		},
+		{
+			we:          W("w").PartitionBy("a"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS (PARTITION BY "a")`,
+		},
+		{
+			we:          W("w").PartitionBy("a", "b"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS (PARTITION BY "a", "b")`,
+		},
+		{
+			we:          W("w").OrderBy("c"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS (ORDER BY "c")`,
+		},
+		{
+			we:          W("w").OrderBy("c", "d"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS (ORDER BY "c", "d")`,
+		},
+		{
+			we:          W("w").PartitionBy("a", "b").OrderBy("c", "d"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS (PARTITION BY "a", "b" ORDER BY "c", "d")`,
+		},
+		{
+			we:          W("w").Inherit("w1").PartitionBy("a", "b").OrderBy("c", "d"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS ("w1" PARTITION BY "a", "b" ORDER BY "c", "d")`,
+		},
+		{
+			we:          W("w", "w1").PartitionBy("a", "b").OrderBy("c", "d"),
+			prepared:    false,
+			withName:    true,
+			expectedSQL: `"w" AS ("w1" PARTITION BY "a", "b" ORDER BY "c", "d")`,
+		},
+	} {
+		b := sb.NewSQLBuilder(tt.prepared)
+		d.WindowSQL(b, tt.we, tt.withName)
+		if tt.prepared {
+			dts.assertPreparedSQL(b, tt.expectedSQL, tt.expectedArgs)
+		} else {
+			dts.assertNotPreparedSQL(b, tt.expectedSQL)
+		}
+	}
+}
+
 func (dts *dialectTestSuite) TestToSelectSQL_withOrder() {
 	opts := DefaultDialectOptions()
 	// override fragments to ensure they are used
@@ -2344,6 +2529,21 @@ func (dts *dialectTestSuite) TestLiteral_SQLFunctionExpression() {
 
 }
 
+func (dts *dialectTestSuite) TestLiteral_SQLWindowFunctionExpression() {
+	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
+
+	b := sb.NewSQLBuilder(false)
+	d.Literal(b.Clear(), exp.NewSQLWindowFunctionExpression("RANK"))
+	dts.assertNotPreparedSQL(b, `RANK() OVER ()`)
+
+	d.Literal(b.Clear(), exp.NewSQLWindowFunctionExpression("RANK").OverName("w"))
+	dts.assertNotPreparedSQL(b, `RANK() OVER "w"`)
+
+	w := W().PartitionBy("a").OrderBy(I("b").Asc())
+	d.Literal(b.Clear(), exp.NewSQLWindowFunctionExpression("RANK").Over(w))
+	dts.assertNotPreparedSQL(b, `RANK() OVER (PARTITION BY "a" ORDER BY "b" ASC)`)
+}
+
 func (dts *dialectTestSuite) TestLiteral_CastExpression() {
 	d := sqlDialect{dialect: "test", dialectOptions: DefaultDialectOptions()}
 	b := sb.NewSQLBuilder(false)
@@ -2618,6 +2818,39 @@ func (dts *dialectTestSuite) TestLiteral_ExpressionOrMap() {
 	dts.assertPreparedSQL(b, `(("a" = ?) OR ("b" IN (?, ?, ?)))`, []interface{}{int64(1), "a", "b", "c"})
 
 }
+func (dts *dialectTestSuite) TestOptions_SQLFragmentType() {
+	for _, tt := range []struct {
+		typ         SQLFragmentType
+		expectedStr string
+	}{
+		{typ: CommonTableSQLFragment, expectedStr: "CommonTableSQLFragment"},
+		{typ: SelectSQLFragment, expectedStr: "SelectSQLFragment"},
+		{typ: FromSQLFragment, expectedStr: "FromSQLFragment"},
+		{typ: JoinSQLFragment, expectedStr: "JoinSQLFragment"},
+		{typ: WhereSQLFragment, expectedStr: "WhereSQLFragment"},
+		{typ: GroupBySQLFragment, expectedStr: "GroupBySQLFragment"},
+		{typ: HavingSQLFragment, expectedStr: "HavingSQLFragment"},
+		{typ: CompoundsSQLFragment, expectedStr: "CompoundsSQLFragment"},
+		{typ: OrderSQLFragment, expectedStr: "OrderSQLFragment"},
+		{typ: LimitSQLFragment, expectedStr: "LimitSQLFragment"},
+		{typ: OffsetSQLFragment, expectedStr: "OffsetSQLFragment"},
+		{typ: ForSQLFragment, expectedStr: "ForSQLFragment"},
+		{typ: UpdateBeginSQLFragment, expectedStr: "UpdateBeginSQLFragment"},
+		{typ: SourcesSQLFragment, expectedStr: "SourcesSQLFragment"},
+		{typ: IntoSQLFragment, expectedStr: "IntoSQLFragment"},
+		{typ: UpdateSQLFragment, expectedStr: "UpdateSQLFragment"},
+		{typ: UpdateFromSQLFragment, expectedStr: "UpdateFromSQLFragment"},
+		{typ: ReturningSQLFragment, expectedStr: "ReturningSQLFragment"},
+		{typ: InsertBeingSQLFragment, expectedStr: "InsertBeingSQLFragment"},
+		{typ: DeleteBeginSQLFragment, expectedStr: "DeleteBeginSQLFragment"},
+		{typ: TruncateSQLFragment, expectedStr: "TruncateSQLFragment"},
+		{typ: WindowSQLFragment, expectedStr: "WindowSQLFragment"},
+		{typ: SQLFragmentType(10000), expectedStr: "10000"},
+	} {
+		dts.Equal(tt.expectedStr, tt.typ.String())
+	}
+}
+
 func TestDialectSuite(t *testing.T) {
 	suite.Run(t, new(dialectTestSuite))
 }

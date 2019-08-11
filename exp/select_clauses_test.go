@@ -255,6 +255,54 @@ func (scs *selectClausesSuite) TestHavingAppend() {
 	scs.Equal(NewExpressionList(AndType, w, w2), c4.Having())
 }
 
+func (scs *selectClausesSuite) TestWindow() {
+	w := NewWindowExpression("w", "", nil, nil)
+
+	c := NewSelectClauses()
+	c2 := c.WindowsAppend([]WindowExpression{w})
+
+	scs.Nil(c.Windows())
+
+	scs.Equal([]WindowExpression{w}, c2.Windows())
+}
+
+func (scs *selectClausesSuite) TestSetWindows() {
+	w := NewWindowExpression("w", "", nil, nil)
+
+	c := NewSelectClauses()
+	c2 := c.SetWindows([]WindowExpression{w})
+
+	scs.Nil(c.Windows())
+
+	scs.Equal([]WindowExpression{w}, c2.Windows())
+}
+
+func (scs *selectClausesSuite) TestWindowsAppend() {
+	w1 := NewWindowExpression("w1", "", nil, nil)
+	w2 := NewWindowExpression("w2", "", nil, nil)
+
+	c := NewSelectClauses()
+	c2 := c.WindowsAppend([]WindowExpression{w1}).WindowsAppend([]WindowExpression{w2})
+
+	scs.Nil(c.Windows())
+
+	scs.Equal([]WindowExpression{w1, w2}, c2.Windows())
+}
+
+func (scs *selectClausesSuite) TestClearWindows() {
+	w := NewWindowExpression("w", "", nil, nil)
+
+	c := NewSelectClauses()
+	c2 := c.SetWindows([]WindowExpression{w})
+
+	scs.Nil(c.Windows())
+
+	scs.Equal([]WindowExpression{w}, c2.Windows())
+
+	c3 := c.ClearWindows()
+	scs.Nil(c3.Windows())
+}
+
 func (scs *selectClausesSuite) TestOrder() {
 	oe := NewIdentifierExpression("", "", "a").Desc()
 

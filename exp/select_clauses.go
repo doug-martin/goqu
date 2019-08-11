@@ -58,6 +58,11 @@ type (
 
 		CommonTables() []CommonTableExpression
 		CommonTablesAppend(cte CommonTableExpression) SelectClauses
+
+		Windows() []WindowExpression
+		SetWindows(ws []WindowExpression) SelectClauses
+		WindowsAppend(ws []WindowExpression) SelectClauses
+		ClearWindows() SelectClauses
 	}
 	selectClauses struct {
 		commonTables  []CommonTableExpression
@@ -74,6 +79,7 @@ type (
 		offset        uint
 		compounds     []CompoundExpression
 		lock          Lock
+		windows       []WindowExpression
 	}
 )
 
@@ -116,6 +122,7 @@ func (c *selectClauses) clone() *selectClauses {
 		offset:        c.offset,
 		compounds:     c.compounds,
 		lock:          c.lock,
+		windows:       c.windows,
 	}
 }
 
@@ -329,5 +336,27 @@ func (c *selectClauses) Compounds() []CompoundExpression {
 func (c *selectClauses) CompoundsAppend(ce CompoundExpression) SelectClauses {
 	ret := c.clone()
 	ret.compounds = append(ret.compounds, ce)
+	return ret
+}
+
+func (c *selectClauses) Windows() []WindowExpression {
+	return c.windows
+}
+
+func (c *selectClauses) SetWindows(ws []WindowExpression) SelectClauses {
+	ret := c.clone()
+	ret.windows = ws
+	return ret
+}
+
+func (c *selectClauses) WindowsAppend(ws []WindowExpression) SelectClauses {
+	ret := c.clone()
+	ret.windows = append(ret.windows, ws...)
+	return ret
+}
+
+func (c *selectClauses) ClearWindows() SelectClauses {
+	ret := c.clone()
+	ret.windows = nil
 	return ret
 }

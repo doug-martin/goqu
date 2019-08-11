@@ -1242,6 +1242,15 @@ func (sds *selectDatasetSuite) TestHaving() {
 	sds.Equal(dsc, ds.GetClauses())
 }
 
+func (sds *selectDatasetSuite) TestWindows() {
+	ds := From("test")
+	dsc := ds.GetClauses()
+	w := W("w").PartitionBy("a").OrderBy("b")
+	ec := dsc.SetWindows([]exp.WindowExpression{w})
+	sds.Equal(ec, ds.Windows(w).GetClauses())
+	sds.Equal(dsc, ds.GetClauses())
+}
+
 func (sds *selectDatasetSuite) TestHaving_ToSQL() {
 	ds1 := From("test")
 
@@ -2454,6 +2463,83 @@ func (sds *selectDatasetSuite) TestPluck_WithPreparedStatement() {
 		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		Pluck(&names, "name"))
 	sds.Equal([]string{"Bob", "Sally", "Billy"}, names)
+}
+
+func (sds *selectDatasetSuite) TestWindowFunction() {
+	for _, tt := range []struct {
+		expectQuery string
+		returnRows  *sqlmock.Rows
+		fn          exp.Expression
+		expectValue []int32
+	}{
+		{
+			expectQuery: `SELECT ROW_NUMBER\(\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("1\n2\n1"),
+			fn:          ROW_NUMBER().Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{1, 2, 1},
+		},
+		{
+			expectQuery: `SELECT RANK\(\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("1\n2\n1"),
+			fn:          RANK().Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{1, 2, 1},
+		},
+		{
+			expectQuery: `SELECT DENSE_RANK\(\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("1\n2\n1"),
+			fn:          DENSE_RANK().Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{1, 2, 1},
+		},
+		{
+			expectQuery: `SELECT PERCENT_RANK\(\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("1\n2\n1"),
+			fn:          PERCENT_RANK().Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{1, 2, 1},
+		},
+		{
+			expectQuery: `SELECT CUME_DIST\(\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("1\n2\n1"),
+			fn:          CUME_DIST().Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{1, 2, 1},
+		},
+		{
+			expectQuery: `SELECT NTILE\(2\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("100\n100\n99"),
+			fn:          NTILE(2).Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{100, 100, 99},
+		},
+		{
+			expectQuery: `SELECT FIRST_VALUE\("score"\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("100\n100\n99"),
+			fn:          FIRST_VALUE("score").Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{100, 100, 99},
+		},
+		{
+			expectQuery: `SELECT LAST_VALUE\("score"\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("100\n100\n99"),
+			fn:          LAST_VALUE("score").Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{100, 100, 99},
+		},
+		{
+			expectQuery: `SELECT NTH_VALUE\("score", 3\) OVER \(PARTITION BY "class" ORDER BY "score"\) AS "r" FROM "test"`,
+			returnRows:  sqlmock.NewRows([]string{"r"}).FromCSVString("100\n100\n99"),
+			fn:          NTH_VALUE("score", 3).Over(W().PartitionBy("class").OrderBy("score")).As("r"),
+			expectValue: []int32{100, 100, 99},
+		},
+	} {
+		mDb, sqlMock, err := sqlmock.New()
+		sds.NoError(err)
+		qf := exec.NewQueryFactory(mDb)
+		ds := newDataset("mock", qf)
+		sqlMock.ExpectQuery(tt.expectQuery).
+			WillReturnRows(tt.returnRows)
+		var actualValue []int32
+		sds.NoError(ds.Prepared(false).
+			Select(tt.fn).
+			From("test").
+			ScanVals(&actualValue))
+		sds.Equal(tt.expectValue, actualValue)
+	}
 }
 
 func TestSelectDataset(t *testing.T) {

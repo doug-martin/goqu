@@ -48,6 +48,8 @@ var (
 	errNoSourceForTruncate          = errors.New("no source found when generating truncate sql")
 	errNoSetValuesForUpdate         = errors.New("no set values found when generating UPDATE sql")
 	errEmptyIdentifier              = errors.New(`a empty identifier was encountered, please specify a "schema", "table" or "column"`)
+	errWindowFunctionNotSupported   = errors.New("adapter does not support window function clause")
+	errNoWindowName                 = errors.New("window expresion has no valid name")
 )
 
 func errNotSupportedFragment(sqlType string, f SQLFragmentType) error {
@@ -166,6 +168,8 @@ func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 			d.GroupBySQL(b, clauses.GroupBy())
 		case HavingSQLFragment:
 			d.HavingSQL(b, clauses.Having())
+		case WindowSQLFragment:
+			d.WindowsSQL(b, clauses.Windows()...)
 		case CompoundsSQLFragment:
 			d.CompoundsSQL(b, clauses.Compounds())
 		case OrderSQLFragment:
@@ -493,6 +497,72 @@ func (d *sqlDialect) HavingSQL(b sb.SQLBuilder, having exp.ExpressionList) {
 		b.Write(d.dialectOptions.HavingFragment)
 		d.Literal(b, having)
 	}
+}
+
+func (d *sqlDialect) WindowsSQL(b sb.SQLBuilder, windows ...exp.WindowExpression) {
+	if b.Error() != nil {
+		return
+	}
+	l := len(windows)
+	if l == 0 {
+		return
+	}
+	if !d.dialectOptions.SupportsWindowFunction {
+		b.SetError(errWindowFunctionNotSupported)
+		return
+	}
+	b.Write(d.dialectOptions.WindowFragment)
+	d.WindowSQL(b, windows[0], true)
+	for _, we := range windows[1:] {
+		b.WriteRunes(d.dialectOptions.CommaRune, d.dialectOptions.SpaceRune)
+		d.WindowSQL(b, we, true)
+	}
+}
+
+func (d *sqlDialect) WindowSQL(b sb.SQLBuilder, we exp.WindowExpression, withName bool) {
+	if b.Error() != nil {
+		return
+	}
+	if !d.dialectOptions.SupportsWindowFunction {
+		b.SetError(errWindowFunctionNotSupported)
+		return
+	}
+	if withName {
+		name := we.Name()
+		if len(name) == 0 {
+			b.SetError(errNoWindowName)
+			return
+		}
+		d.Literal(b, I(name))
+		b.Write(d.dialectOptions.AsFragment)
+	}
+	b.WriteRunes(d.dialectOptions.LeftParenRune)
+
+	parent, partitionCols, orderCols := we.Parent(), we.PartitionCols(), we.OrderCols()
+	hasParent := len(parent) > 0
+	hasPartition := partitionCols != nil && !partitionCols.IsEmpty()
+	hasOrder := orderCols != nil && !orderCols.IsEmpty()
+
+	if hasParent {
+		d.Literal(b, I(parent))
+		if hasPartition || hasOrder {
+			b.WriteRunes(d.dialectOptions.SpaceRune)
+		}
+	}
+
+	if hasPartition {
+		b.Write(d.dialectOptions.WindowPartitionByFragment)
+		d.Literal(b, partitionCols)
+		if hasOrder {
+			b.WriteRunes(d.dialectOptions.SpaceRune)
+		}
+	}
+	if hasOrder {
+		b.Write(d.dialectOptions.WindowOrderByFragment)
+		d.Literal(b, orderCols)
+	}
+
+	b.WriteRunes(d.dialectOptions.RightParenRune)
 }
 
 // Generates the ORDER BY clause for an SQL statement
@@ -1138,6 +1208,17 @@ func (d *sqlDialect) literalExpressionSQL(b sb.SQLBuilder, literal exp.LiteralEx
 func (d *sqlDialect) sqlFunctionExpressionSQL(b sb.SQLBuilder, sqlFunc exp.SQLFunctionExpression) {
 	b.WriteStrings(sqlFunc.Name())
 	d.Literal(b, sqlFunc.Args())
+
+	if sqlWinFunc, ok := sqlFunc.(exp.SQLWindowFunctionExpression); ok {
+		b.Write(d.dialectOptions.WindowOverFragment)
+		if sqlWinFunc.HasWindowName() {
+			d.Literal(b, I(sqlWinFunc.WindowName()))
+		} else if sqlWinFunc.HasWindow() {
+			d.WindowSQL(b, sqlWinFunc.Window(), false)
+		} else {
+			d.WindowSQL(b, emptyWindow, false)
+		}
+	}
 }
 
 // Generates SQL for a CastExpression

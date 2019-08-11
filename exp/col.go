@@ -12,7 +12,7 @@ type columnList struct {
 }
 
 func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
-	var cols []Expression
+	cols := []Expression{}
 	for _, val := range vals {
 		switch t := val.(type) {
 		case string:
