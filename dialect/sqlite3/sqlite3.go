@@ -19,6 +19,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsMultipleUpdateTables = false
 	opts.WrapCompoundsInParens = false
 	opts.SupportsDistinctOn = false
+	opts.SupportsWindowFunction = false
 
 	opts.PlaceHolderRune = '?'
 	opts.IncludePlaceholderNum = false

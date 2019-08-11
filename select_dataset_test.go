@@ -735,6 +735,15 @@ func (sds *selectDatasetSuite) TestGroupBy() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestWindows() {
+	ds := From("test")
+	dsc := ds.GetClauses()
+	w := W("w").PartitionBy("a").OrderBy("b")
+	ec := dsc.SetWindows([]exp.WindowExpression{w})
+	sds.Equal(ec, ds.Windows(w).GetClauses())
+	sds.Equal(dsc, ds.GetClauses())
+}
+
 func (sds *selectDatasetSuite) TestHaving() {
 	ds := From("test")
 	dsc := ds.GetClauses()

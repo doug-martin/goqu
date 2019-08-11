@@ -360,6 +360,33 @@ type (
 		Col() IdentifierExpression
 		Val() interface{}
 	}
+
+	SQLWindowFunctionExpression interface {
+		SQLFunctionExpression
+
+		Window() WindowExpression
+		WindowName() string
+
+		Over(WindowExpression) SQLWindowFunctionExpression
+		OverName(string) SQLWindowFunctionExpression
+
+		HasWindow() bool
+		HasWindowName() bool
+	}
+
+	WindowExpression interface {
+		Expression
+
+		Name() string
+
+		Parent() string
+		PartitionCols() ColumnListExpression
+		OrderCols() ColumnListExpression
+
+		Inherit(parent string) WindowExpression
+		PartitionBy(cols ...interface{}) WindowExpression
+		OrderBy(cols ...interface{}) WindowExpression
+	}
 )
 
 const (

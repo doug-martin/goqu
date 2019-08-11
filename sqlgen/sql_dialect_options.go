@@ -37,6 +37,9 @@ type (
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
 
+		// Set to true if window function are supported in SELECT statement. (DEFAULT=true)
+		SupportsWindowFunction bool
+
 		// Set to true if the dialect requires join tables in UPDATE to be in a FROM clause (DEFAULT=true).
 		UseFromClauseForMultipleUpdateTables bool
 
@@ -85,8 +88,16 @@ type (
 		WhereFragment []byte
 		// The SQL GROUP BY clause fragment(DEFAULT=[]byte(" GROUP BY "))
 		GroupByFragment []byte
-		// The SQL HAVING clause fragment(DELiFAULT=[]byte(" HAVING "))
+		// The SQL HAVING clause fragment(DEFAULT=[]byte(" HAVING "))
 		HavingFragment []byte
+		// The SQL WINDOW clause fragment(DEFAULT=[]byte(" WINDOW "))
+		WindowFragment []byte
+		// The SQL WINDOW clause PARTITION BY fragment(DEFAULT=[]byte("PARTITION BY "))
+		WindowPartitionByFragment []byte
+		// The SQL WINDOW clause ORDER BY fragment(DEFAULT=[]byte("ORDER BY "))
+		WindowOrderByFragment []byte
+		// The SQL WINDOW clause OVER fragment(DEFAULT=[]byte(" OVER "))
+		WindowOverFragment []byte
 		// The SQL ORDER BY clause fragment(DEFAULT=[]byte(" ORDER BY "))
 		OrderByFragment []byte
 		// The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
@@ -304,6 +315,7 @@ const (
 	InsertSQLFragment
 	DeleteBeginSQLFragment
 	TruncateSQLFragment
+	WindowSQLFragment
 )
 
 // nolint:gocyclo
@@ -351,6 +363,8 @@ func (sf SQLFragmentType) String() string {
 		return "DeleteBeginSQLFragment"
 	case TruncateSQLFragment:
 		return "TruncateSQLFragment"
+	case WindowSQLFragment:
+		return "WindowSQLFragment"
 	}
 	return fmt.Sprintf("%d", sf)
 }
@@ -369,6 +383,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		SupportsWithCTERecursive:    true,
 		SupportsDistinctOn:          true,
 		WrapCompoundsInParens:       true,
+		SupportsWindowFunction:      true,
 
 		SupportsMultipleUpdateTables:         true,
 		UseFromClauseForMultipleUpdateTables: true,
@@ -395,6 +410,10 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		WhereFragment:             []byte(" WHERE "),
 		GroupByFragment:           []byte(" GROUP BY "),
 		HavingFragment:            []byte(" HAVING "),
+		WindowFragment:            []byte(" WINDOW "),
+		WindowPartitionByFragment: []byte("PARTITION BY "),
+		WindowOrderByFragment:     []byte("ORDER BY "),
+		WindowOverFragment:        []byte(" OVER "),
 		OrderByFragment:           []byte(" ORDER BY "),
 		LimitFragment:             []byte(" LIMIT "),
 		OffsetFragment:            []byte(" OFFSET "),
@@ -489,6 +508,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			WhereSQLFragment,
 			GroupBySQLFragment,
 			HavingSQLFragment,
+			WindowSQLFragment,
 			CompoundsSQLFragment,
 			OrderSQLFragment,
 			LimitSQLFragment,

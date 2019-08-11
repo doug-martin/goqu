@@ -1710,3 +1710,46 @@ func ExampleVals() {
 	// Output:
 	// INSERT INTO "user" ("first_name", "last_name", "is_verified") VALUES ('Greg', 'Farley', TRUE), ('Jimmy', 'Stewart', TRUE), ('Jeff', 'Jeffers', FALSE) []
 }
+
+func ExampleW() {
+	ds := goqu.From("test").
+		Select(
+			goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())),
+		)
+	query, args, _ := ds.ToSQL()
+	fmt.Println(query, args)
+
+	ds = goqu.From("test").
+		Select(
+			goqu.ROW_NUMBER().OverName("w"),
+		).
+		Windows(
+			goqu.W("w").PartitionBy("a").OrderBy(goqu.I("b").Asc()),
+		)
+	query, args, _ = ds.ToSQL()
+	fmt.Println(query, args)
+
+	ds = goqu.From("test").
+		Select(
+			goqu.ROW_NUMBER().OverName("w1"),
+		).
+		Windows(
+			goqu.W("w1").PartitionBy("a"),
+			goqu.W("w").Inherit("w1").OrderBy(goqu.I("b").Asc()),
+		)
+	query, args, _ = ds.ToSQL()
+	fmt.Println(query, args)
+
+	ds = goqu.From("test").Select(
+		goqu.ROW_NUMBER().Over(goqu.W().Inherit("w").OrderBy("b")),
+	).Windows(
+		goqu.W("w").PartitionBy("a"),
+	)
+	query, args, _ = ds.ToSQL()
+	fmt.Println(query, args)
+	// Output
+	// SELECT ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) FROM "test" []
+	// SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b" ASC) []
+	// SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w1" AS (PARTITION BY "a"), "w" AS ("w1" ORDER BY "b" ASC) []
+	// SELECT ROW_NUMBER() OVER ("w" ORDER BY "b") FROM "test" WINDOW "w" AS (PARTITION BY "a") []
+}

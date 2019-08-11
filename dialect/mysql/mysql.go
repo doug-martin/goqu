@@ -19,6 +19,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsWithCTE = false
 	opts.SupportsWithCTERecursive = false
 	opts.SupportsDistinctOn = false
+	opts.SupportsWindowFunction = false
 
 	opts.UseFromClauseForMultipleUpdateTables = false
 
@@ -65,6 +66,13 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	return opts
 }
 
+func DialectOptionsV8() *goqu.SQLDialectOptions {
+	opts := DialectOptions()
+	opts.SupportsWindowFunction = true
+	return opts
+}
+
 func init() {
 	goqu.RegisterDialect("mysql", DialectOptions())
+	goqu.RegisterDialect("mysql8", DialectOptionsV8())
 }

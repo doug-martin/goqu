@@ -15,6 +15,9 @@ type (
 	TruncateOptions = exp.TruncateOptions
 )
 
+// emptyWindow is an empty WINDOW clause without name
+var emptyWindow = exp.NewWindowExpression("", "", nil, nil)
+
 const (
 	Wait       = exp.Wait
 	NoWait     = exp.NoWait
@@ -69,6 +72,19 @@ func newIdentifierFunc(name string, col interface{}) exp.SQLFunctionExpression {
 	return Func(name, col)
 }
 
+// Create a new SQLWindowFunctionExpression with the given name and arguments
+func WFunc(name string, args ...interface{}) exp.SQLWindowFunctionExpression {
+	return exp.NewSQLWindowFunctionExpression(name, args...)
+}
+
+// used internally to normalize the column name if passed in as a string it should be turned into an identifier
+func newIdentifierWinFunc(name string, col interface{}) exp.SQLWindowFunctionExpression {
+	if s, ok := col.(string); ok {
+		col = I(s)
+	}
+	return WFunc(name, col)
+}
+
 // Creates a new DISTINCT sql function
 //   DISTINCT("a") -> DISTINCT("a")
 //   DISTINCT(I("a")) -> DISTINCT("a")
@@ -117,6 +133,45 @@ func COALESCE(vals ...interface{}) exp.SQLFunctionExpression {
 	return exp.NewSQLFunctionExpression("COALESCE", vals...)
 }
 
+func ROW_NUMBER() exp.SQLWindowFunctionExpression {
+	return WFunc("ROW_NUMBER")
+}
+
+func RANK() exp.SQLWindowFunctionExpression {
+	return WFunc("RANK")
+}
+
+func DENSE_RANK() exp.SQLWindowFunctionExpression {
+	return WFunc("DENSE_RANK")
+}
+
+func PERCENT_RANK() exp.SQLWindowFunctionExpression {
+	return WFunc("PERCENT_RANK")
+}
+
+func CUME_DIST() exp.SQLWindowFunctionExpression {
+	return WFunc("CUME_DIST")
+}
+
+func NTILE(n int) exp.SQLWindowFunctionExpression {
+	return newIdentifierWinFunc("NTILE", n)
+}
+
+func FIRST_VALUE(val interface{}) exp.SQLWindowFunctionExpression {
+	return newIdentifierWinFunc("FIRST_VALUE", val)
+}
+
+func LAST_VALUE(val interface{}) exp.SQLWindowFunctionExpression {
+	return newIdentifierWinFunc("LAST_VALUE", val)
+}
+
+func NTH_VALUE(val interface{}, nth int) exp.SQLWindowFunctionExpression {
+	if s, ok := val.(string); ok {
+		val = I(s)
+	}
+	return WFunc("NTH_VALUE", val, nth)
+}
+
 // Creates a new Identifier, the generated sql will use adapter specific quoting or '"' by default, this ensures case
 // sensitivity and in certain databases allows for special characters, (e.g. "curr-table", "my table").
 //
@@ -163,6 +218,28 @@ func T(table string) exp.IdentifierExpression {
 	return exp.NewIdentifierExpression("", table, "")
 }
 
+// Create a new WINDOW clause
+// 	W() -> ()
+// 	W().PartitionBy("a") -> (PARTITION BY "a")
+// 	W().PartitionBy("a").OrderBy("b") -> (PARTITION BY "a" ORDER BY "b")
+// 	W().PartitionBy("a").OrderBy("b").Inherit("w1") -> ("w1" PARTITION BY "a" ORDER BY "b")
+// 	W().PartitionBy("a").OrderBy(I("b").Desc()).Inherit("w1") -> ("w1" PARTITION BY "a" ORDER BY "b" DESC)
+// 	W("w") -> "w" AS ()
+// 	W("w", "w1") -> "w" AS ("w1")
+// 	W("w").Inherit("w1") -> "w" AS ("w1")
+// 	W("w").PartitionBy("a") -> "w" AS (PARTITION BY "a")
+// 	W("w", "w1").PartitionBy("a") -> "w" AS ("w1" PARTITION BY "a")
+// 	W("w", "w1").PartitionBy("a").OrderBy("b") -> "w" AS ("w1" PARTITION BY "a" ORDER BY "b")
+func W(ws ...string) exp.WindowExpression {
+	if l := len(ws); l > 0 {
+		if l == 1 {
+			return exp.NewWindowExpression(ws[0], "", nil, nil)
+		}
+		return exp.NewWindowExpression(ws[0], ws[1], nil, nil)
+	}
+	return emptyWindow
+}
+
 // Creates a new ON clause to be used within a join
 //    ds.Join(goqu.T("my_table"), goqu.On(
 //       goqu.I("my_table.fkey").Eq(goqu.I("other_table.id")),
@@ -184,12 +261,12 @@ func Using(columns ...interface{}) exp.JoinCondition {
 // Literals can also contain placeholders for other expressions
 //   L("(? AND ?) OR (?)", I("a").Eq(1), I("b").Eq("b"), I("c").In([]string{"a", "b", "c"}))
 func L(sql string, args ...interface{}) exp.LiteralExpression {
-	return exp.NewLiteralExpression(sql, args...)
+	return Literal(sql, args...)
 }
 
 // Alias for goqu.L
 func Literal(sql string, args ...interface{}) exp.LiteralExpression {
-	return L(sql, args...)
+	return exp.NewLiteralExpression(sql, args...)
 }
 
 // Create a new SQL value ( alias for goqu.L("?", val) ). The prrimary use case for this would be in selects.
