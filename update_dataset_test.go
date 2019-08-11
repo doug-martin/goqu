@@ -63,8 +63,11 @@ func (uds *updateDatasetSuite) TestDialect() {
 func (uds *updateDatasetSuite) TestWithDialect() {
 	t := uds.T()
 	ds := Update("test")
+	md := new(mocks.SQLDialect)
+	ds = ds.SetDialect(md)
+
 	dialect := GetDialect("default")
-	ds.WithDialect("default")
+	ds = ds.WithDialect("default")
 	assert.Equal(t, ds.Dialect(), dialect)
 }
 

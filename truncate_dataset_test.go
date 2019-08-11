@@ -39,8 +39,11 @@ func (tds *truncateDatasetSuite) TestDialect() {
 func (tds *truncateDatasetSuite) TestWithDialect() {
 	t := tds.T()
 	ds := Truncate("test")
+	md := new(mocks.SQLDialect)
+	ds = ds.SetDialect(md)
+
 	dialect := GetDialect("default")
-	ds.WithDialect("default")
+	ds = ds.WithDialect("default")
 	assert.Equal(t, ds.Dialect(), dialect)
 }
 
