@@ -1431,7 +1431,6 @@ func (dts *dialectTestSuite) TestWindowSQL() {
 
 	opts.SupportsWindowFunction = true
 	d = sqlDialect{dialect: "test", dialectOptions: opts}
-	b = sb.NewSQLBuilder(false)
 
 	b = sb.NewSQLBuilder(false)
 	anErr := errors.New("something wrong")

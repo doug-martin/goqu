@@ -529,7 +529,7 @@ func (d *sqlDialect) WindowSQL(b sb.SQLBuilder, we exp.WindowExpression, withNam
 	}
 	if withName {
 		name := we.Name()
-		if len(name) == 0 {
+		if name == "" {
 			b.SetError(errNoWindowName)
 			return
 		}
@@ -1209,15 +1209,18 @@ func (d *sqlDialect) sqlFunctionExpressionSQL(b sb.SQLBuilder, sqlFunc exp.SQLFu
 	b.WriteStrings(sqlFunc.Name())
 	d.Literal(b, sqlFunc.Args())
 
-	if sqlWinFunc, ok := sqlFunc.(exp.SQLWindowFunctionExpression); ok {
-		b.Write(d.dialectOptions.WindowOverFragment)
-		if sqlWinFunc.HasWindowName() {
-			d.Literal(b, I(sqlWinFunc.WindowName()))
-		} else if sqlWinFunc.HasWindow() {
-			d.WindowSQL(b, sqlWinFunc.Window(), false)
-		} else {
-			d.WindowSQL(b, emptyWindow, false)
-		}
+	sqlWinFunc, ok := sqlFunc.(exp.SQLWindowFunctionExpression)
+	if !ok {
+		return
+	}
+	b.Write(d.dialectOptions.WindowOverFragment)
+	switch {
+	case sqlWinFunc.HasWindowName():
+		d.Literal(b, I(sqlWinFunc.WindowName()))
+	case sqlWinFunc.HasWindow():
+		d.WindowSQL(b, sqlWinFunc.Window(), false)
+	default:
+		d.WindowSQL(b, emptyWindow, false)
 	}
 }
 

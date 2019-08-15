@@ -7,7 +7,7 @@ type sqlWindowExpression struct {
 	orderCols     ColumnListExpression
 }
 
-func NewWindowExpression(window string, parent string, partitionCols, orderCols ColumnListExpression) WindowExpression {
+func NewWindowExpression(window, parent string, partitionCols, orderCols ColumnListExpression) WindowExpression {
 	if partitionCols == nil {
 		partitionCols = NewColumnListExpression()
 	}
