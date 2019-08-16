@@ -3,7 +3,6 @@ package exp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,59 +14,54 @@ func TestTruncateClausesSuite(t *testing.T) {
 	suite.Run(t, new(truncateClausesSuite))
 }
 
-func (ucs *truncateClausesSuite) TestHasTable() {
-	t := ucs.T()
+func (tcs *truncateClausesSuite) TestHasTable() {
 	c := NewTruncateClauses()
 	cle := NewColumnListExpression("test1", "test2")
 	c2 := c.SetTable(cle)
 
-	assert.False(t, c.HasTable())
+	tcs.False(c.HasTable())
 
-	assert.True(t, c2.HasTable())
+	tcs.True(c2.HasTable())
 }
 
-func (ucs *truncateClausesSuite) TestTable() {
-	t := ucs.T()
+func (tcs *truncateClausesSuite) TestTable() {
 	c := NewTruncateClauses()
 	cle := NewColumnListExpression("test1", "test2")
 	c2 := c.SetTable(cle)
 
-	assert.Nil(t, c.Table())
+	tcs.Nil(c.Table())
 
-	assert.Equal(t, cle, c2.Table())
+	tcs.Equal(cle, c2.Table())
 }
 
-func (ucs *truncateClausesSuite) TestSetTable() {
-	t := ucs.T()
+func (tcs *truncateClausesSuite) TestSetTable() {
 	cle := NewColumnListExpression("test1", "test2")
 	c := NewTruncateClauses().SetTable(cle)
 	cle2 := NewColumnListExpression("test3", "test4")
 	c2 := c.SetTable(cle2)
 
-	assert.Equal(t, cle, c.Table())
+	tcs.Equal(cle, c.Table())
 
-	assert.Equal(t, cle2, c2.Table())
+	tcs.Equal(cle2, c2.Table())
 }
 
-func (ucs *truncateClausesSuite) TestOptions() {
-	t := ucs.T()
+func (tcs *truncateClausesSuite) TestOptions() {
 	c := NewTruncateClauses()
 	opts := TruncateOptions{Restrict: true, Identity: "RESTART", Cascade: true}
 	c2 := c.SetOptions(opts)
 
-	assert.Equal(t, TruncateOptions{}, c.Options())
+	tcs.Equal(TruncateOptions{}, c.Options())
 
-	assert.Equal(t, opts, c2.Options())
+	tcs.Equal(opts, c2.Options())
 }
 
-func (ucs *truncateClausesSuite) TestSetOptions() {
-	t := ucs.T()
+func (tcs *truncateClausesSuite) TestSetOptions() {
 	opts := TruncateOptions{Restrict: true, Identity: "RESTART", Cascade: true}
 	c := NewTruncateClauses().SetOptions(opts)
 	opts2 := TruncateOptions{Restrict: false, Identity: "RESTART", Cascade: false}
 	c2 := c.SetOptions(opts2)
 
-	assert.Equal(t, opts, c.Options())
+	tcs.Equal(opts, c.Options())
 
-	assert.Equal(t, opts2, c2.Options())
+	tcs.Equal(opts2, c2.Options())
 }
