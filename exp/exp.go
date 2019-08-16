@@ -477,6 +477,48 @@ var (
 	}
 )
 
+func (bo BooleanOperation) String() string {
+	switch bo {
+	case EqOp:
+		return "eq"
+	case NeqOp:
+		return "neq"
+	case IsOp:
+		return "is"
+	case IsNotOp:
+		return "isnot"
+	case GtOp:
+		return "gt"
+	case GteOp:
+		return "gte"
+	case LtOp:
+		return "lt"
+	case LteOp:
+		return "lte"
+	case InOp:
+		return "in"
+	case NotInOp:
+		return "notin"
+	case LikeOp:
+		return "like"
+	case NotLikeOp:
+		return "notlike"
+	case ILikeOp:
+		return "ilike"
+	case NotILikeOp:
+		return "notilike"
+	case RegexpLikeOp:
+		return "regexp like"
+	case RegexpNotLikeOp:
+		return "regexp notlike"
+	case RegexpILikeOp:
+		return "regexp ilike"
+	case RegexpNotILikeOp:
+		return "regexp notilike"
+	}
+	return fmt.Sprintf("%d", bo)
+}
+
 func (jt JoinType) String() string {
 	switch jt {
 	case InnerJoinType:

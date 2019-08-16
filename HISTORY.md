@@ -1,3 +1,10 @@
+## 8.3.1
+
+* Test clean up and more testing pattern consistency
+    * Changed to use assertion methods off of suite
+    * Updated Equals assertions to have expected output first 
+* Increase overall test coverage.
+
 ## 8.3.0
 
 * [Added] Support for `DISTINCT ON` clauses [#119](https://github.com/doug-martin/goqu/issues/119)

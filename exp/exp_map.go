@@ -110,33 +110,33 @@ func createOredExpressionFromMap(lhs IdentifierExpression, op Op) ([]Expression,
 
 func createExpressionFromOp(lhs IdentifierExpression, opKey string, op Op) (exp Expression, err error) {
 	switch strings.ToLower(opKey) {
-	case "eq":
+	case EqOp.String():
 		exp = lhs.Eq(op[opKey])
-	case "neq":
+	case NeqOp.String():
 		exp = lhs.Neq(op[opKey])
-	case "is":
+	case IsOp.String():
 		exp = lhs.Is(op[opKey])
-	case "isnot":
+	case IsNotOp.String():
 		exp = lhs.IsNot(op[opKey])
-	case "gt":
+	case GtOp.String():
 		exp = lhs.Gt(op[opKey])
-	case "gte":
+	case GteOp.String():
 		exp = lhs.Gte(op[opKey])
-	case "lt":
+	case LtOp.String():
 		exp = lhs.Lt(op[opKey])
-	case "lte":
+	case LteOp.String():
 		exp = lhs.Lte(op[opKey])
-	case "in":
+	case InOp.String():
 		exp = lhs.In(op[opKey])
-	case "notin":
+	case NotInOp.String():
 		exp = lhs.NotIn(op[opKey])
-	case "like":
+	case LikeOp.String():
 		exp = lhs.Like(op[opKey])
-	case "notlike":
+	case NotLikeOp.String():
 		exp = lhs.NotLike(op[opKey])
-	case "ilike":
+	case ILikeOp.String():
 		exp = lhs.ILike(op[opKey])
-	case "notilike":
+	case NotILikeOp.String():
 		exp = lhs.NotILike(op[opKey])
 	case "between":
 		rangeVal, ok := op[opKey].(RangeVal)

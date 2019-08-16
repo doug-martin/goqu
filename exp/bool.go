@@ -11,8 +11,12 @@ type boolean struct {
 	op  BooleanOperation
 }
 
+func NewBooleanExpression(op BooleanOperation, lhs Expression, rhs interface{}) BooleanExpression {
+	return boolean{op: op, lhs: lhs, rhs: rhs}
+}
+
 func (b boolean) Clone() Expression {
-	return boolean{op: b.op, lhs: b.lhs.Clone(), rhs: b.rhs}
+	return NewBooleanExpression(b.op, b.lhs.Clone(), b.rhs)
 }
 
 func (b boolean) Expression() Expression {
@@ -43,38 +47,38 @@ func neq(lhs Expression, rhs interface{}) BooleanExpression {
 
 // used internally to create an gt comparison BooleanExpression
 func gt(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: GtOp, lhs: lhs, rhs: rhs}
+	return NewBooleanExpression(GtOp, lhs, rhs)
 }
 
 // used internally to create an gte comparison BooleanExpression
 func gte(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: GteOp, lhs: lhs, rhs: rhs}
+	return NewBooleanExpression(GteOp, lhs, rhs)
 }
 
 // used internally to create an lt comparison BooleanExpression
 func lt(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: LtOp, lhs: lhs, rhs: rhs}
+	return NewBooleanExpression(LtOp, lhs, rhs)
 }
 
 // used internally to create an lte comparison BooleanExpression
 func lte(lhs Expression, rhs interface{}) BooleanExpression {
-	return boolean{op: LteOp, lhs: lhs, rhs: rhs}
+	return NewBooleanExpression(LteOp, lhs, rhs)
 }
 
 // used internally to create an IN BooleanExpression
 func in(lhs Expression, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return boolean{op: InOp, lhs: lhs, rhs: vals[0]}
+		return NewBooleanExpression(InOp, lhs, vals[0])
 	}
-	return boolean{op: InOp, lhs: lhs, rhs: vals}
+	return NewBooleanExpression(InOp, lhs, vals)
 }
 
 // used internally to create a NOT IN BooleanExpression
 func notIn(lhs Expression, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return boolean{op: NotInOp, lhs: lhs, rhs: vals[0]}
+		return NewBooleanExpression(NotInOp, lhs, vals[0])
 	}
-	return boolean{op: NotInOp, lhs: lhs, rhs: vals}
+	return NewBooleanExpression(NotInOp, lhs, vals)
 }
 
 // used internally to create an IS BooleanExpression
@@ -122,7 +126,7 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	if invert {
 		op = operatorInversions[op]
 	}
-	return boolean{op: op, lhs: lhs, rhs: rhs}
+	return NewBooleanExpression(op, lhs, rhs)
 }
 
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
@@ -152,5 +156,5 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 	if invert {
 		op = operatorInversions[op]
 	}
-	return boolean{op: op, lhs: lhs, rhs: rhs}
+	return NewBooleanExpression(op, lhs, rhs)
 }

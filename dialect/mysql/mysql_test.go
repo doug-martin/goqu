@@ -11,7 +11,6 @@ import (
 	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -82,121 +81,119 @@ func (mt *mysqlTest) SetupTest() {
 }
 
 func (mt *mysqlTest) TestToSQL() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	s, _, err := ds.Select("id", "float", "string", "time", "bool").ToSQL()
-	assert.NoError(t, err)
-	assert.Equal(t, s, "SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`")
+	mt.NoError(err)
+	mt.Equal("SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`", s)
 
 	s, _, err = ds.Where(goqu.C("int").Eq(10)).ToSQL()
-	assert.NoError(t, err)
-	assert.Equal(t, s, "SELECT * FROM `entry` WHERE (`int` = 10)")
+	mt.NoError(err)
+	mt.Equal("SELECT * FROM `entry` WHERE (`int` = 10)", s)
 
 	s, args, err := ds.Prepared(true).Where(goqu.L("? = ?", goqu.C("int"), 10)).ToSQL()
-	assert.NoError(t, err)
-	assert.Equal(t, args, []interface{}{int64(10)})
-	assert.Equal(t, s, "SELECT * FROM `entry` WHERE `int` = ?")
+	mt.NoError(err)
+	mt.Equal([]interface{}{int64(10)}, args)
+	mt.Equal("SELECT * FROM `entry` WHERE `int` = ?", s)
 }
 
 func (mt *mysqlTest) TestQuery() {
-	t := mt.T()
 	var entries []entry
 	ds := mt.db.From("entry")
-	assert.NoError(t, ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 10)
+	mt.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 10)
 	floatVal := float64(0)
 	baseDate, err := time.Parse(
 		"2006-01-02 15:04:05",
 		"2015-02-22 18:19:55",
 	)
-	assert.NoError(t, err)
+	mt.NoError(err)
 	for i, entry := range entries {
 		f := fmt.Sprintf("%f", floatVal)
-		assert.Equal(t, entry.ID, uint32(i+1))
-		assert.Equal(t, entry.Int, i)
-		assert.Equal(t, fmt.Sprintf("%f", entry.Float), f)
-		assert.Equal(t, entry.String, f)
-		assert.Equal(t, entry.Bytes, []byte(f))
-		assert.Equal(t, entry.Bool, i%2 == 0)
-		assert.Equal(t, entry.Time, baseDate.Add(time.Duration(i)*time.Hour))
+		mt.Equal(uint32(i+1), entry.ID)
+		mt.Equal(i, entry.Int)
+		mt.Equal(f, fmt.Sprintf("%f", entry.Float))
+		mt.Equal(f, entry.String)
+		mt.Equal([]byte(f), entry.Bytes)
+		mt.Equal(i%2 == 0, entry.Bool)
+		mt.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
 		floatVal += float64(0.1)
 	}
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 5)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 5)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.True(t, entry.Bool)
+		mt.True(entry.Bool)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 5)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 5)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.True(t, entry.Int > 4)
+		mt.True(entry.Int > 4)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 5)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 5)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.True(t, entry.Int >= 5)
+		mt.True(entry.Int >= 5)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 5)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 5)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.True(t, entry.Int < 5)
+		mt.True(entry.Int < 5)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 5)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 5)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.True(t, entry.Int <= 4)
+		mt.True(entry.Int <= 4)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 4)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 4)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.True(t, entry.Int >= 3)
-		assert.True(t, entry.Int <= 6)
+		mt.True(entry.Int >= 3)
+		mt.True(entry.Int <= 6)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 1)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 1)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.Equal(t, entry.String, "0.100000")
+		mt.Equal("0.100000", entry.String)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 1)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 1)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.Equal(t, entry.String, "0.100000")
+		mt.Equal("0.100000", entry.String)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 9)
-	assert.NoError(t, err)
+	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 9)
+	mt.NoError(err)
 	for _, entry := range entries {
-		assert.NotEqual(t, entry.String, "0.100000")
+		mt.NotEqual("0.100000", entry.String)
 	}
 
 	entries = entries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	assert.Len(t, entries, 0)
+	mt.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Len(entries, 0)
 }
 
 func (mt *mysqlTest) TestQuery_ValueExpressions() {
@@ -211,45 +208,43 @@ func (mt *mysqlTest) TestQuery_ValueExpressions() {
 	found, err := ds.ScanStruct(&we)
 	mt.NoError(err)
 	mt.True(found)
-	mt.Equal(we, wrappedEntry{
+	mt.Equal(wrappedEntry{
 		entry{2, 1, 0.100000, "0.100000", expectedDate, false, []byte("0.100000")},
 		true,
-	})
+	}, we)
 }
 
 func (mt *mysqlTest) TestCount() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	count, err := ds.Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(10))
+	mt.NoError(err)
+	mt.Equal(int64(10), count)
 	count, err = ds.Where(goqu.C("int").Gt(4)).Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(5))
+	mt.NoError(err)
+	mt.Equal(int64(5), count)
 	count, err = ds.Where(goqu.C("int").Gte(4)).Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(6))
+	mt.NoError(err)
+	mt.Equal(int64(6), count)
 	count, err = ds.Where(goqu.C("string").Like("0.1%")).Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(1))
+	mt.NoError(err)
+	mt.Equal(int64(1), count)
 	count, err = ds.Where(goqu.C("string").IsNull()).Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(0))
+	mt.NoError(err)
+	mt.Equal(int64(0), count)
 }
 
 func (mt *mysqlTest) TestInsert() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
 	_, err := ds.Insert().Rows(e).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	var insertedEntry entry
 	found, err := ds.Where(goqu.C("int").Eq(10)).ScanStruct(&insertedEntry)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.True(t, insertedEntry.ID > 0)
+	mt.NoError(err)
+	mt.True(found)
+	mt.True(insertedEntry.ID > 0)
 
 	entries := []entry{
 		{Int: 11, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")},
@@ -258,11 +253,11 @@ func (mt *mysqlTest) TestInsert() {
 		{Int: 14, Float: 1.400000, String: "1.400000", Time: now, Bool: true, Bytes: []byte("1.400000")},
 	}
 	_, err = ds.Insert().Rows(entries).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	var newEntries []entry
-	assert.NoError(t, ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
-	assert.Len(t, newEntries, 4)
+	mt.NoError(ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
+	mt.Len(newEntries, 4)
 
 	_, err = ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},
@@ -270,41 +265,38 @@ func (mt *mysqlTest) TestInsert() {
 		entry{Int: 17, Float: 1.700000, String: "1.700000", Time: now, Bool: false, Bytes: []byte("1.700000")},
 		entry{Int: 18, Float: 1.800000, String: "1.800000", Time: now, Bool: true, Bytes: []byte("1.800000")},
 	).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	newEntries = newEntries[0:0]
-	assert.NoError(t, ds.Where(goqu.C("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
-	assert.Len(t, newEntries, 4)
+	mt.NoError(ds.Where(goqu.C("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
+	mt.Len(newEntries, 4)
 }
 
 func (mt *mysqlTest) TestInsertReturning() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
 	_, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
-	assert.Error(t, err)
+	mt.Error(err)
 
 }
 
 func (mt *mysqlTest) TestUpdate() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	var e entry
 	found, err := ds.Where(goqu.C("int").Eq(9)).Select("id").ScanStruct(&e)
-	assert.NoError(t, err)
-	assert.True(t, found)
+	mt.NoError(err)
+	mt.True(found)
 	e.Int = 11
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Update().Set(e).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	count, err := ds.Where(goqu.C("int").Eq(11)).Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(1))
+	mt.NoError(err)
+	mt.Equal(int64(1), count)
 }
 
 func (mt *mysqlTest) TestUpdateReturning() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	var id uint32
 	_, err := ds.Where(goqu.C("int").Eq(11)).
@@ -312,42 +304,40 @@ func (mt *mysqlTest) TestUpdateReturning() {
 		Set(goqu.Record{"int": 9}).
 		Returning("id").
 		Executor().ScanVal(&id)
-	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "goqu: adapter does not support RETURNING clause")
+	mt.Error(err)
+	mt.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=mysql]")
 }
 
 func (mt *mysqlTest) TestDelete() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	var e entry
 	found, err := ds.Where(goqu.C("int").Eq(9)).Select("id").ScanStruct(&e)
-	assert.NoError(t, err)
-	assert.True(t, found)
+	mt.NoError(err)
+	mt.True(found)
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	count, err := ds.Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(9))
+	mt.NoError(err)
+	mt.Equal(int64(9), count)
 
 	var id uint32
 	found, err = ds.Where(goqu.C("id").Eq(e.ID)).ScanVal(&id)
-	assert.NoError(t, err)
-	assert.False(t, found)
+	mt.NoError(err)
+	mt.False(found)
 
 	e = entry{}
 	found, err = ds.Where(goqu.C("int").Eq(8)).Select("id").ScanStruct(&e)
-	assert.NoError(t, err)
-	assert.True(t, found)
-	assert.NotEqual(t, e.ID, 0)
+	mt.NoError(err)
+	mt.True(found)
+	mt.NotEqual(0, e.ID)
 
 	id = 0
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Returning("id").Executor().ScanVal(&id)
-	assert.Equal(t, err.Error(), "goqu: adapter does not support RETURNING clause")
+	mt.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=mysql]")
 }
 
 func (mt *mysqlTest) TestInsertIgnore() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	now := time.Now()
 
@@ -358,27 +348,26 @@ func (mt *mysqlTest) TestInsertIgnore() {
 		{Int: 10, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
 	_, err := ds.Insert().Rows(entries).OnConflict(goqu.DoNothing()).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	count, err := ds.Count()
-	assert.NoError(t, err)
-	assert.Equal(t, count, int64(11))
+	mt.NoError(err)
+	mt.Equal(count, int64(11))
 }
 
 func (mt *mysqlTest) TestInsert_OnConflict() {
-	t := mt.T()
 	ds := mt.db.From("entry")
 	now := time.Now()
 
 	// insert
 	e := entry{Int: 10, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
 	_, err := ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	// duplicate
 	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
 	_, err = ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 
 	// update
 	var entryActual entry
@@ -387,10 +376,10 @@ func (mt *mysqlTest) TestInsert_OnConflict() {
 		Rows(e2).
 		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"})).
 		Executor().Exec()
-	assert.NoError(t, err)
+	mt.NoError(err)
 	_, err = ds.Where(goqu.C("int").Eq(10)).ScanStruct(&entryActual)
-	assert.NoError(t, err)
-	assert.Equal(t, "upsert", entryActual.String)
+	mt.NoError(err)
+	mt.Equal("upsert", entryActual.String)
 
 	// update where should error
 	entries := []entry{
@@ -401,7 +390,7 @@ func (mt *mysqlTest) TestInsert_OnConflict() {
 		Rows(entries).
 		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.C("int").Eq(9))).
 		Executor().Exec()
-	assert.Equal(t, err.Error(), "goqu: adapter does not support upsert with where clause")
+	mt.EqualError(err, "goqu: dialect does not support upsert with where clause [dialect=mysql]")
 }
 
 func TestMysqlSuite(t *testing.T) {

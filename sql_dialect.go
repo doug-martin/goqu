@@ -40,54 +40,63 @@ var (
 	TrueLiteral     = exp.NewLiteralExpression("TRUE")
 	FalseLiteral    = exp.NewLiteralExpression("FALSE")
 
-	errCTENotSupported              = errors.New("adapter does not support CTE with clause")
-	errRecursiveCTENotSupported     = errors.New("adapter does not support CTE with recursive clause")
 	errNoUpdatedValuesProvided      = errors.New("no update values provided")
 	errConflictUpdateValuesRequired = errors.New("values are required for on conflict update expression")
-	errUpsertWithWhereNotSupported  = errors.New("adapter does not support upsert with where clause")
 	errNoSourceForUpdate            = errors.New("no source found when generating update sql")
 	errNoSourceForInsert            = errors.New("no source found when generating insert sql")
 	errNoSourceForDelete            = errors.New("no source found when generating delete sql")
 	errNoSourceForTruncate          = errors.New("no source found when generating truncate sql")
-	errReturnNotSupported           = errors.New("adapter does not support RETURNING clause")
 	errNoSetValuesForUpdate         = errors.New("no set values found when generating UPDATE sql")
 	errEmptyIdentifier              = errors.New(`a empty identifier was encountered, please specify a "schema", "table" or "column"`)
 )
 
-func notSupportedFragmentErr(sqlType string, f SQLFragmentType) error {
+func errNotSupportedFragment(sqlType string, f SQLFragmentType) error {
 	return errors.New("unsupported %s SQL fragment %s", sqlType, f)
 }
 
-func notSupportedJoinTypeErr(j exp.JoinExpression) error {
+func errNotSupportedJoinType(j exp.JoinExpression) error {
 	return errors.New("dialect does not support %v", j.JoinType())
 }
 
-func joinConditionRequiredErr(j exp.JoinExpression) error {
+func errJoinConditionRequired(j exp.JoinExpression) error {
 	return errors.New("join condition required for conditioned join %v", j.JoinType())
 }
 
-func misMatchedRowLengthErr(expectedL, actualL int) error {
+func errMisMatchedRowLength(expectedL, actualL int) error {
 	return errors.New("rows with different value length expected %d got %d", expectedL, actualL)
 }
 
-func unsupportedExpressionTypeErr(e exp.Expression) error {
+func errUnsupportedExpressionType(e exp.Expression) error {
 	return errors.New("unsupported expression type %T", e)
 }
 
-func unsupportedIdentifierExpressionErr(t interface{}) error {
-	return errors.New("unexpected col type must be string or LiteralExpression %+v", t)
+func errUnsupportedIdentifierExpression(t interface{}) error {
+	return errors.New("unexpected col type must be string or LiteralExpression received %T", t)
 }
 
-func unsupportedBooleanExpressionOperator(op exp.BooleanOperation) error {
-	return errors.New("boolean operator %+v not supported", op)
+func errUnsupportedBooleanExpressionOperator(op exp.BooleanOperation) error {
+	return errors.New("boolean operator '%+v' not supported", op)
 }
 
-func unsupportedRangeExpressionOperator(op exp.RangeOperation) error {
+func errUnsupportedRangeExpressionOperator(op exp.RangeOperation) error {
 	return errors.New("range operator %+v not supported", op)
 }
 
-func unsupportedDistinctOn(dialect string) error {
-	return errors.New("distinct on clause is not supported by %s dialect", dialect)
+func errCTENotSupported(dialect string) error {
+	return errors.New("dialect does not support CTE WITH clause [dialect=%s]", dialect)
+}
+func errRecursiveCTENotSupported(dialect string) error {
+	return errors.New("dialect does not support CTE WITH RECURSIVE clause [dialect=%s]", dialect)
+}
+func errUpsertWithWhereNotSupported(dialect string) error {
+	return errors.New("dialect does not support upsert with where clause [dialect=%s]", dialect)
+}
+func errReturnNotSupported(dialect string) error {
+	return errors.New("dialect does not support RETURNING clause [dialect=%s]", dialect)
+}
+
+func errDistinctOnNotSupported(dialect string) error {
+	return errors.New("dialect does not support DISTINCT ON clause [dialect=%s]", dialect)
 }
 
 func init() {
@@ -168,7 +177,7 @@ func (d *sqlDialect) ToSelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 		case ForSQLFragment:
 			d.ForSQL(b, clauses.Lock())
 		default:
-			b.SetError(notSupportedFragmentErr("SELECT", f))
+			b.SetError(errNotSupportedFragment("SELECT", f))
 		}
 	}
 }
@@ -218,7 +227,7 @@ func (d *sqlDialect) ToUpdateSQL(b sb.SQLBuilder, clauses exp.UpdateClauses) {
 		case ReturningSQLFragment:
 			d.ReturningSQL(b, clauses.Returning())
 		default:
-			b.SetError(notSupportedFragmentErr("UPDATE", f))
+			b.SetError(errNotSupportedFragment("UPDATE", f))
 		}
 	}
 }
@@ -248,7 +257,7 @@ func (d *sqlDialect) ToInsertSQL(
 		case ReturningSQLFragment:
 			d.ReturningSQL(b, clauses.Returning())
 		default:
-			b.SetError(notSupportedFragmentErr("INSERT", f))
+			b.SetError(errNotSupportedFragment("INSERT", f))
 		}
 	}
 
@@ -283,7 +292,7 @@ func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.DeleteClauses) {
 		case ReturningSQLFragment:
 			d.ReturningSQL(b, clauses.Returning())
 		default:
-			b.SetError(notSupportedFragmentErr("DELETE", f))
+			b.SetError(errNotSupportedFragment("DELETE", f))
 		}
 	}
 }
@@ -301,7 +310,7 @@ func (d *sqlDialect) ToTruncateSQL(b sb.SQLBuilder, clauses exp.TruncateClauses)
 		case TruncateSQLFragment:
 			d.TruncateSQL(b, clauses.Table(), clauses.Options())
 		default:
-			b.SetError(notSupportedFragmentErr("TRUNCATE", f))
+			b.SetError(errNotSupportedFragment("TRUNCATE", f))
 		}
 	}
 }
@@ -327,9 +336,6 @@ func (d *sqlDialect) DeleteBeginSQL(b sb.SQLBuilder) {
 
 // Generates a TRUNCATE statement
 func (d *sqlDialect) TruncateSQL(b sb.SQLBuilder, from exp.ColumnListExpression, opts exp.TruncateOptions) {
-	if b.Error() != nil {
-		return
-	}
 	b.Write(d.dialectOptions.TruncateClause)
 	d.SourcesSQL(b, from)
 	if opts.Identity != d.dialectOptions.EmptyString {
@@ -346,9 +352,6 @@ func (d *sqlDialect) TruncateSQL(b sb.SQLBuilder, from exp.ColumnListExpression,
 
 // Adds the columns list to an insert statement
 func (d *sqlDialect) InsertSQL(b sb.SQLBuilder, ic exp.InsertClauses) {
-	if b.Error() != nil {
-		return
-	}
 	switch {
 	case ic.HasRows():
 		ie, err := exp.NewInsertExpression(ic.Rows()...)
@@ -375,8 +378,6 @@ func (d *sqlDialect) InsertSQL(b sb.SQLBuilder, ic exp.InsertClauses) {
 
 func (d *sqlDialect) InsertExpressionSQL(b sb.SQLBuilder, ie exp.InsertExpression) {
 	switch {
-	case b.Error() != nil:
-		return
 	case ie.IsInsertFrom():
 		d.insertFromSQL(b, ie.From())
 	case ie.IsEmpty():
@@ -389,9 +390,6 @@ func (d *sqlDialect) InsertExpressionSQL(b sb.SQLBuilder, ie exp.InsertExpressio
 
 // Adds column setters in an update SET clause
 func (d *sqlDialect) UpdateExpressionsSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression) {
-	if b.Error() != nil {
-		return
-	}
 	b.Write(d.dialectOptions.SetFragment)
 	d.updateValuesSQL(b, updates...)
 
@@ -399,9 +397,6 @@ func (d *sqlDialect) UpdateExpressionsSQL(b sb.SQLBuilder, updates ...exp.Update
 
 // Adds the SELECT clause and columns to a sql statement
 func (d *sqlDialect) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
-	if b.Error() != nil {
-		return
-	}
 	b.Write(d.dialectOptions.SelectClause).
 		WriteRunes(d.dialectOptions.SpaceRune)
 	dc := clauses.Distinct()
@@ -413,7 +408,7 @@ func (d *sqlDialect) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 				d.Literal(b, dc)
 				b.WriteRunes(d.dialectOptions.RightParenRune, d.dialectOptions.SpaceRune)
 			} else {
-				b.SetError(unsupportedDistinctOn(d.dialect))
+				b.SetError(errDistinctOnNotSupported(d.dialect))
 				return
 			}
 		} else {
@@ -429,15 +424,12 @@ func (d *sqlDialect) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 }
 
 func (d *sqlDialect) ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
 	if returns != nil && len(returns.Columns()) > 0 {
 		if d.SupportsReturn() {
 			b.Write(d.dialectOptions.ReturningFragment)
 			d.Literal(b, returns)
 		} else {
-			b.SetError(errReturnNotSupported)
+			b.SetError(errReturnNotSupported(d.dialect))
 		}
 	}
 
@@ -445,10 +437,7 @@ func (d *sqlDialect) ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpress
 
 // Adds the FROM clause and tables to an sql statement
 func (d *sqlDialect) FromSQL(b sb.SQLBuilder, from exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
-	if from != nil && len(from.Columns()) > 0 {
+	if from != nil && !from.IsEmpty() {
 		b.Write(d.dialectOptions.FromFragment)
 		d.SourcesSQL(b, from)
 	}
@@ -456,30 +445,24 @@ func (d *sqlDialect) FromSQL(b sb.SQLBuilder, from exp.ColumnListExpression) {
 
 // Adds the generates the SQL for a column list
 func (d *sqlDialect) SourcesSQL(b sb.SQLBuilder, from exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
 	b.WriteRunes(d.dialectOptions.SpaceRune)
 	d.Literal(b, from)
 }
 
 // Generates the JOIN clauses for an SQL statement
 func (d *sqlDialect) JoinSQL(b sb.SQLBuilder, joins exp.JoinExpressions) {
-	if b.Error() != nil {
-		return
-	}
 	if len(joins) > 0 {
 		for _, j := range joins {
 			joinType, ok := d.dialectOptions.JoinTypeLookup[j.JoinType()]
 			if !ok {
-				b.SetError(notSupportedJoinTypeErr(j))
+				b.SetError(errNotSupportedJoinType(j))
 				return
 			}
 			b.Write(joinType)
 			d.Literal(b, j.Table())
 			if t, ok := j.(exp.ConditionedJoinExpression); ok {
 				if t.IsConditionEmpty() {
-					b.SetError(joinConditionRequiredErr(j))
+					b.SetError(errJoinConditionRequired(j))
 					return
 				}
 				d.joinConditionSQL(b, t.Condition())
@@ -490,9 +473,6 @@ func (d *sqlDialect) JoinSQL(b sb.SQLBuilder, joins exp.JoinExpressions) {
 
 // Generates the WHERE clause for an SQL statement
 func (d *sqlDialect) WhereSQL(b sb.SQLBuilder, where exp.ExpressionList) {
-	if b.Error() != nil {
-		return
-	}
 	if where != nil && !where.IsEmpty() {
 		b.Write(d.dialectOptions.WhereFragment)
 		d.Literal(b, where)
@@ -501,9 +481,6 @@ func (d *sqlDialect) WhereSQL(b sb.SQLBuilder, where exp.ExpressionList) {
 
 // Generates the GROUP BY clause for an SQL statement
 func (d *sqlDialect) GroupBySQL(b sb.SQLBuilder, groupBy exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
 	if groupBy != nil && len(groupBy.Columns()) > 0 {
 		b.Write(d.dialectOptions.GroupByFragment)
 		d.Literal(b, groupBy)
@@ -512,9 +489,6 @@ func (d *sqlDialect) GroupBySQL(b sb.SQLBuilder, groupBy exp.ColumnListExpressio
 
 // Generates the HAVING clause for an SQL statement
 func (d *sqlDialect) HavingSQL(b sb.SQLBuilder, having exp.ExpressionList) {
-	if b.Error() != nil {
-		return
-	}
 	if having != nil && len(having.Expressions()) > 0 {
 		b.Write(d.dialectOptions.HavingFragment)
 		d.Literal(b, having)
@@ -523,9 +497,6 @@ func (d *sqlDialect) HavingSQL(b sb.SQLBuilder, having exp.ExpressionList) {
 
 // Generates the ORDER BY clause for an SQL statement
 func (d *sqlDialect) OrderSQL(b sb.SQLBuilder, order exp.ColumnListExpression) {
-	if b.Error() != nil {
-		return
-	}
 	if order != nil && len(order.Columns()) > 0 {
 		b.Write(d.dialectOptions.OrderByFragment)
 		d.Literal(b, order)
@@ -534,9 +505,6 @@ func (d *sqlDialect) OrderSQL(b sb.SQLBuilder, order exp.ColumnListExpression) {
 
 // Generates the LIMIT clause for an SQL statement
 func (d *sqlDialect) LimitSQL(b sb.SQLBuilder, limit interface{}) {
-	if b.Error() != nil {
-		return
-	}
 	if limit != nil {
 		b.Write(d.dialectOptions.LimitFragment)
 		d.Literal(b, limit)
@@ -545,9 +513,6 @@ func (d *sqlDialect) LimitSQL(b sb.SQLBuilder, limit interface{}) {
 
 // Generates the OFFSET clause for an SQL statement
 func (d *sqlDialect) OffsetSQL(b sb.SQLBuilder, offset uint) {
-	if b.Error() != nil {
-		return
-	}
 	if offset > 0 {
 		b.Write(d.dialectOptions.OffsetFragment)
 		d.Literal(b, offset)
@@ -556,12 +521,9 @@ func (d *sqlDialect) OffsetSQL(b sb.SQLBuilder, offset uint) {
 
 // Generates the sql for the WITH clauses for common table expressions (CTE)
 func (d *sqlDialect) CommonTablesSQL(b sb.SQLBuilder, ctes []exp.CommonTableExpression) {
-	if b.Error() != nil {
-		return
-	}
 	if l := len(ctes); l > 0 {
 		if !d.dialectOptions.SupportsWithCTE {
-			b.SetError(errCTENotSupported)
+			b.SetError(errCTENotSupported(d.dialect))
 			return
 		}
 		b.Write(d.dialectOptions.WithFragment)
@@ -571,7 +533,7 @@ func (d *sqlDialect) CommonTablesSQL(b sb.SQLBuilder, ctes []exp.CommonTableExpr
 		}
 		if anyRecursive {
 			if !d.dialectOptions.SupportsWithCTERecursive {
-				b.SetError(errRecursiveCTENotSupported)
+				b.SetError(errRecursiveCTENotSupported(d.dialect))
 				return
 			}
 			b.Write(d.dialectOptions.RecursiveFragment)
@@ -588,9 +550,6 @@ func (d *sqlDialect) CommonTablesSQL(b sb.SQLBuilder, ctes []exp.CommonTableExpr
 
 // Generates the compound sql clause for an SQL statement (e.g. UNION, INTERSECT)
 func (d *sqlDialect) CompoundsSQL(b sb.SQLBuilder, compounds []exp.CompoundExpression) {
-	if b.Error() != nil {
-		return
-	}
 	for _, compound := range compounds {
 		d.Literal(b, compound)
 	}
@@ -598,9 +557,6 @@ func (d *sqlDialect) CompoundsSQL(b sb.SQLBuilder, compounds []exp.CompoundExpre
 
 // Generates the FOR (aka "locking") clause for an SQL statement
 func (d *sqlDialect) ForSQL(b sb.SQLBuilder, lockingClause exp.Lock) {
-	if b.Error() != nil {
-		return
-	}
 	if lockingClause == nil {
 		return
 	}
@@ -697,7 +653,7 @@ func (d *sqlDialect) insertValuesSQL(b sb.SQLBuilder, values [][]interface{}) {
 	valueLen := len(values)
 	for i, row := range values {
 		if len(row) != rowLen {
-			b.SetError(misMatchedRowLengthErr(rowLen, len(row)))
+			b.SetError(errMisMatchedRowLength(rowLen, len(row)))
 			return
 		}
 		d.Literal(b, row)
@@ -737,9 +693,6 @@ func (d *sqlDialect) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
 func (d *sqlDialect) updateTableSQL(b sb.SQLBuilder, uc exp.UpdateClauses) {
 	b.WriteRunes(d.dialectOptions.SpaceRune)
 	d.Literal(b, uc.Table())
-	if b.Error() != nil {
-		return
-	}
 	if uc.HasFrom() {
 		if !d.dialectOptions.UseFromClauseForMultipleUpdateTables {
 			b.WriteRunes(d.dialectOptions.CommaRune)
@@ -785,9 +738,9 @@ func (d *sqlDialect) onConflictDoUpdateSQL(b sb.SQLBuilder, o exp.ConflictUpdate
 		return
 	}
 	d.updateValuesSQL(b, ue...)
-	if o.WhereClause() != nil {
+	if b.Error() == nil && o.WhereClause() != nil {
 		if !d.dialectOptions.SupportsConflictUpdateWhere {
-			b.SetError(errUpsertWithWhereNotSupported)
+			b.SetError(errUpsertWithWhereNotSupported(d.dialect))
 			return
 		}
 		d.WhereSQL(b, o.WhereClause())
@@ -877,7 +830,7 @@ func (d *sqlDialect) expressionSQL(b sb.SQLBuilder, expression exp.Expression) {
 	case exp.ExOr:
 		d.expressionOrMapSQL(b, e)
 	default:
-		b.SetError(unsupportedExpressionTypeErr(e))
+		b.SetError(errUnsupportedExpressionType(e))
 	}
 }
 
@@ -942,7 +895,7 @@ func (d *sqlDialect) quoteIdentifier(b sb.SQLBuilder, ident exp.IdentifierExpres
 		}
 		d.Literal(b, t)
 	default:
-		b.SetError(unsupportedIdentifierExpressionErr(col))
+		b.SetError(errUnsupportedIdentifierExpression(col))
 	}
 }
 
@@ -1055,18 +1008,10 @@ func (d *sqlDialect) booleanExpressionSQL(b sb.SQLBuilder, operator exp.BooleanE
 	d.Literal(b, operator.LHS())
 	b.WriteRunes(d.dialectOptions.SpaceRune)
 	operatorOp := operator.Op()
-	if operator.RHS() == nil {
-		switch operatorOp {
-		case exp.EqOp:
-			operatorOp = exp.IsOp
-		case exp.NeqOp:
-			operatorOp = exp.IsNotOp
-		}
-	}
 	if val, ok := d.dialectOptions.BooleanOperatorLookup[operatorOp]; ok {
 		b.Write(val)
 	} else {
-		b.SetError(unsupportedBooleanExpressionOperator(operatorOp))
+		b.SetError(errUnsupportedBooleanExpressionOperator(operatorOp))
 		return
 	}
 	rhs := operator.RHS()
@@ -1091,7 +1036,7 @@ func (d *sqlDialect) rangeExpressionSQL(b sb.SQLBuilder, operator exp.RangeExpre
 	if val, ok := d.dialectOptions.RangeOperatorLookup[operatorOp]; ok {
 		b.Write(val)
 	} else {
-		b.SetError(unsupportedRangeExpressionOperator(operatorOp))
+		b.SetError(errUnsupportedRangeExpressionOperator(operatorOp))
 		return
 	}
 	rhs := operator.RHS()
