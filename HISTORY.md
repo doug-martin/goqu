@@ -1,5 +1,6 @@
 ## 8.3.1
 
+* [FIXED] InsertDataset.WithDialect return old dataset [#126](https://github.com/doug-martin/goqu/issues/126) - [@chen56](https://github.com/chen56)
 * Test clean up and more testing pattern consistency
     * Changed to use assertion methods off of suite
     * Updated Equals assertions to have expected output first 
