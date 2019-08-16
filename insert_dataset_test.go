@@ -51,8 +51,11 @@ func (ids *insertDatasetSuite) TestDialect() {
 func (ids *insertDatasetSuite) TestWithDialect() {
 	t := ids.T()
 	ds := Insert("test")
+	md := new(mocks.SQLDialect)
+	ds = ds.SetDialect(md)
+
 	dialect := GetDialect("default")
-	ds.WithDialect("default")
+	ds = ds.WithDialect("default")
 	assert.Equal(t, ds.Dialect(), dialect)
 }
 

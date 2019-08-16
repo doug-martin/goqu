@@ -47,8 +47,11 @@ func (dds *deleteDatasetSuite) TestDialect() {
 func (dds *deleteDatasetSuite) TestWithDialect() {
 	t := dds.T()
 	ds := Delete("test")
+	md := new(mocks.SQLDialect)
+	ds = ds.SetDialect(md)
+
 	dialect := GetDialect("default")
-	ds.WithDialect("default")
+	ds = ds.WithDialect("default")
 	assert.Equal(t, ds.Dialect(), dialect)
 }
 

@@ -45,7 +45,7 @@ func (id *InsertDataset) IsPrepared() bool {
 func (id *InsertDataset) WithDialect(dl string) *InsertDataset {
 	ds := id.copy(id.GetClauses())
 	ds.dialect = GetDialect(dl)
-	return id
+	return ds
 }
 
 // Returns the current adapter on the dataset
