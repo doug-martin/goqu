@@ -3,6 +3,7 @@ package goqu
 import (
 	"context"
 	"database/sql"
+	"sync"
 
 	"github.com/doug-martin/goqu/v8/exec"
 )
@@ -28,6 +29,7 @@ type (
 		dialect string
 		Db      SQLDatabase
 		qf      exec.QueryFactory
+		qfOnce  sync.Once
 	}
 )
 
@@ -324,9 +326,9 @@ func (d *Database) QueryRowContext(ctx context.Context, query string, args ...in
 }
 
 func (d *Database) queryFactory() exec.QueryFactory {
-	if d.qf == nil {
+	d.qfOnce.Do(func() {
 		d.qf = exec.NewQueryFactory(d)
-	}
+	})
 	return d.qf
 }
 
@@ -443,6 +445,7 @@ type (
 		dialect string
 		Tx      SQLTx
 		qf      exec.QueryFactory
+		qfOnce  sync.Once
 	}
 )
 
@@ -545,9 +548,9 @@ func (td *TxDatabase) QueryRowContext(ctx context.Context, query string, args ..
 }
 
 func (td *TxDatabase) queryFactory() exec.QueryFactory {
-	if td.qf == nil {
+	td.qfOnce.Do(func() {
 		td.qf = exec.NewQueryFactory(td)
-	}
+	})
 	return td.qf
 }
 
