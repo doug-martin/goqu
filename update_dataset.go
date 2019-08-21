@@ -3,6 +3,7 @@ package goqu
 import (
 	"github.com/doug-martin/goqu/v8/exec"
 	"github.com/doug-martin/goqu/v8/exp"
+	"github.com/doug-martin/goqu/v8/internal/errors"
 	"github.com/doug-martin/goqu/v8/internal/sb"
 )
 
@@ -12,6 +13,8 @@ type UpdateDataset struct {
 	isPrepared   bool
 	queryFactory exec.QueryFactory
 }
+
+var errUnsupportedUpdateTableType = errors.New("unsupported table type, a string or identifier expression is required")
 
 // used internally by database to create a database with a specific adapter
 func newUpdateDataset(d string, queryFactory exec.QueryFactory) *UpdateDataset {
@@ -112,7 +115,7 @@ func (ud *UpdateDataset) Table(table interface{}) *UpdateDataset {
 	case string:
 		return ud.copy(ud.clauses.SetTable(exp.ParseIdentifier(t)))
 	default:
-		panic("unsupported table type, a string or identifier expression is required")
+		panic(errUnsupportedUpdateTableType)
 	}
 }
 

@@ -3,8 +3,11 @@ package goqu
 import (
 	"github.com/doug-martin/goqu/v8/exec"
 	"github.com/doug-martin/goqu/v8/exp"
+	"github.com/doug-martin/goqu/v8/internal/errors"
 	"github.com/doug-martin/goqu/v8/internal/sb"
 )
+
+var errBadFromArgument = errors.New("unsupported DeleteDataset#From argument, a string or identifier expression is required")
 
 type DeleteDataset struct {
 	dialect      SQLDialect
@@ -108,7 +111,7 @@ func (dd *DeleteDataset) From(table interface{}) *DeleteDataset {
 	case string:
 		return dd.copy(dd.clauses.SetFrom(exp.ParseIdentifier(t)))
 	default:
-		panic("unsupported table type, a string or identifier expression is required")
+		panic(errBadFromArgument)
 	}
 }
 

@@ -3,6 +3,7 @@ package goqu
 import (
 	"github.com/doug-martin/goqu/v8/exec"
 	"github.com/doug-martin/goqu/v8/exp"
+	"github.com/doug-martin/goqu/v8/internal/errors"
 	"github.com/doug-martin/goqu/v8/internal/sb"
 )
 
@@ -12,6 +13,8 @@ type InsertDataset struct {
 	isPrepared   bool
 	queryFactory exec.QueryFactory
 }
+
+var errUnsupportedIntoType = errors.New("unsupported table type, a string or identifier expression is required")
 
 // used internally by database to create a database with a specific adapter
 func newInsertDataset(d string, queryFactory exec.QueryFactory) *InsertDataset {
@@ -117,7 +120,7 @@ func (id *InsertDataset) Into(into interface{}) *InsertDataset {
 	case string:
 		return id.copy(id.clauses.SetInto(exp.ParseIdentifier(t)))
 	default:
-		panic("unsupported table type, a string or identifier expression is required")
+		panic(errUnsupportedIntoType)
 	}
 }
 
@@ -128,7 +131,7 @@ func (id *InsertDataset) Cols(cols ...interface{}) *InsertDataset {
 
 // Clears the Columns to insert into
 func (id *InsertDataset) ClearCols() *InsertDataset {
-	return id.copy(id.clauses.SetCols(exp.NewColumnListExpression(exp.Star())))
+	return id.copy(id.clauses.SetCols(nil))
 }
 
 // Adds columns to the current list of columns clause. See examples

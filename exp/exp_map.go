@@ -138,7 +138,7 @@ func createExpressionFromOp(lhs IdentifierExpression, opKey string, op Op) (exp 
 		exp = lhs.ILike(op[opKey])
 	case NotILikeOp.String():
 		exp = lhs.NotILike(op[opKey])
-	case "between":
+	case betweenStr:
 		rangeVal, ok := op[opKey].(RangeVal)
 		if ok {
 			exp = lhs.Between(rangeVal)
