@@ -346,6 +346,24 @@ func (ids *insertDatasetSuite) TestReturning() {
 				SetReturning(exp.NewColumnListExpression("a")),
 		},
 		insertTestCase{
+			ds: bd.Returning(),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetReturning(exp.NewColumnListExpression()),
+		},
+		insertTestCase{
+			ds: bd.Returning(nil),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetReturning(exp.NewColumnListExpression()),
+		},
+		insertTestCase{
+			ds: bd.Returning(),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetReturning(exp.NewColumnListExpression()),
+		},
+		insertTestCase{
 			ds: bd.Returning("a").Returning("b"),
 			clauses: exp.NewInsertClauses().
 				SetInto(C("items")).

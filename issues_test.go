@@ -201,6 +201,53 @@ func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFiel
 
 }
 
+// Test for https://github.com/doug-martin/goqu/issues/118
+func (gis *githubIssuesSuite) TestIssue140() {
+
+	sql, arg, err := goqu.Insert(`test`).Returning().ToSQL()
+	gis.NoError(err)
+	gis.Empty(arg)
+	gis.Equal(`INSERT INTO "test" DEFAULT VALUES`, sql)
+
+	sql, arg, err = goqu.Update(`test`).Set(goqu.Record{"a": "b"}).Returning().ToSQL()
+	gis.NoError(err)
+	gis.Empty(arg)
+	gis.Equal(
+		`UPDATE "test" SET "a"='b'`,
+		sql,
+	)
+
+	sql, arg, err = goqu.Delete(`test`).Returning().ToSQL()
+	gis.NoError(err)
+	gis.Empty(arg)
+	gis.Equal(
+		`DELETE FROM "test"`,
+		sql,
+	)
+
+	sql, arg, err = goqu.Insert(`test`).Returning(nil).ToSQL()
+	gis.NoError(err)
+	gis.Empty(arg)
+	gis.Equal(`INSERT INTO "test" DEFAULT VALUES`, sql)
+
+	sql, arg, err = goqu.Update(`test`).Set(goqu.Record{"a": "b"}).Returning(nil).ToSQL()
+	gis.NoError(err)
+	gis.Empty(arg)
+	gis.Equal(
+		`UPDATE "test" SET "a"='b'`,
+		sql,
+	)
+
+	sql, arg, err = goqu.Delete(`test`).Returning(nil).ToSQL()
+	gis.NoError(err)
+	gis.Empty(arg)
+	gis.Equal(
+		`DELETE FROM "test"`,
+		sql,
+	)
+
+}
+
 func TestGithubIssuesSuite(t *testing.T) {
 	suite.Run(t, new(githubIssuesSuite))
 }
