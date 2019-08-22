@@ -1,3 +1,7 @@
+## v8.3.2
+
+* [FIXED] Data race during query factory initialisation [#133](https://github.com/doug-martin/goqu/issues/133) and [#136](https://github.com/doug-martin/goqu/issues/136) - [@o1egl](https://github.com/o1egl)
+
 ## 8.3.1
 
 * [FIXED] InsertDataset.WithDialect return old dataset [#126](https://github.com/doug-martin/goqu/issues/126) - [@chen56](https://github.com/chen56)
