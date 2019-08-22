@@ -3,7 +3,10 @@ package goqu
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/doug-martin/goqu/v8/internal/errors"
@@ -311,6 +314,40 @@ func (ds *databaseSuite) TestWithTx() {
 			ds.NoError(err)
 		}
 	}
+}
+
+func (ds *databaseSuite) TestDataRace() {
+	t := ds.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	db := newDatabase("mock", mDb)
+
+	const concurrency = 10
+
+	for i := 0; i < concurrency; i++ {
+		mock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+			WithArgs().
+			WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+				FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+	}
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			sql := db.From("items").Limit(1)
+			var item testActionItem
+			found, err := sql.ScanStruct(&item)
+			assert.NoError(t, err)
+			assert.True(t, found)
+			assert.Equal(t, item.Address, "111 Test Addr")
+			assert.Equal(t, item.Name, "Test1")
+		}()
+	}
+
+	wg.Wait()
 }
 
 func TestDatabaseSuite(t *testing.T) {
@@ -621,6 +658,45 @@ func (tds *txdatabaseSuite) TestWrap() {
 	tds.EqualError(tx.Wrap(func() error {
 		return errors.New("tx error")
 	}), "goqu: tx error")
+}
+
+func (tds *txdatabaseSuite) TestDataRace() {
+	t := tds.T()
+	mDb, mock, err := sqlmock.New()
+	assert.NoError(t, err)
+	mock.ExpectBegin()
+	db := newDatabase("mock", mDb)
+	tx, err := db.Begin()
+	assert.NoError(t, err)
+
+	const concurrency = 10
+
+	for i := 0; i < concurrency; i++ {
+		mock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+			WithArgs().
+			WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+				FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+	}
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			sql := tx.From("items").Limit(1)
+			var item testActionItem
+			found, err := sql.ScanStruct(&item)
+			assert.NoError(t, err)
+			assert.True(t, found)
+			assert.Equal(t, item.Address, "111 Test Addr")
+			assert.Equal(t, item.Name, "Test1")
+		}()
+	}
+
+	wg.Wait()
+	mock.ExpectCommit()
+	assert.NoError(t, tx.Commit())
 }
 
 func TestTxDatabaseSuite(t *testing.T) {
