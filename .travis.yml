@@ -17,5 +17,5 @@ before_install:
 
 script: docker-compose run goqu-coverage
 
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+#after_success:
+#  - bash <(curl -s https://codecov.io/bash)

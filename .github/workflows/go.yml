@@ -1,0 +1,27 @@
+name: Go
+on:
+  push:
+    branches:    # Array of patterns that match refs/heads
+      - master     # Push events on master branch
+      - releases/* # Push events to branches matching refs/heads/releases/*
+  pull_request:  # Specify a second event with pattern matching
+jobs:
+  test:
+    name: Test go ${{ matrix.go_version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go_version: ["1.10", "1.11", "latest"]
+    steps:
+    - name: checkout
+      uses: actions/checkout@v1
+    - name: Test
+      env:
+        GO_VERSION: ${{ matrix.go_version }}
+      run: docker-compose run goqu-coverage
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1.0.0
+      with:
+        token: ${{secrets.CODECOV_TOKEN}}
+        file: ./coverage.txt
+        name: Go ${{ matrix.go_version }}
