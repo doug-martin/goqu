@@ -1,3 +1,7 @@
+## 8.4.1
+
+* [FIXED] Returning func be able to handle nil [#140](https://github.com/doug-martin/goqu/issues/140)
+
 ## 8.4.0
 
 * Created new `sqlgen` module to encapsulate sql generation

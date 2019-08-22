@@ -15,6 +15,7 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 	var cols []Expression
 	for _, val := range vals {
 		switch t := val.(type) {
+		case nil: // do nothing
 		case string:
 			cols = append(cols, ParseIdentifier(t))
 		case ColumnListExpression:

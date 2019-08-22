@@ -347,6 +347,18 @@ func (uds *updateDatasetSuite) TestReturning() {
 				SetReturning(exp.NewColumnListExpression("a", "b")),
 		},
 		updateTestCase{
+			ds: bd.Returning(),
+			clauses: exp.NewUpdateClauses().
+				SetTable(C("items")).
+				SetReturning(exp.NewColumnListExpression()),
+		},
+		updateTestCase{
+			ds: bd.Returning(nil),
+			clauses: exp.NewUpdateClauses().
+				SetTable(C("items")).
+				SetReturning(exp.NewColumnListExpression()),
+		},
+		updateTestCase{
 			ds: bd.Returning("a", "b").Returning("c"),
 			clauses: exp.NewUpdateClauses().
 				SetTable(C("items")).
