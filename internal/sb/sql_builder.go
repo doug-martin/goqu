@@ -9,7 +9,6 @@ type (
 	SQLBuilder interface {
 		Error() error
 		SetError(err error) SQLBuilder
-		Clear() SQLBuilder
 		WriteArg(i ...interface{}) SQLBuilder
 		Write(p []byte) SQLBuilder
 		WriteStrings(ss ...string) SQLBuilder
@@ -46,13 +45,6 @@ func (b *sqlBuilder) SetError(err error) SQLBuilder {
 	if b.err == nil {
 		b.err = err
 	}
-	return b
-}
-
-func (b *sqlBuilder) Clear() SQLBuilder {
-	b.buf.Truncate(0)
-	b.args = make([]interface{}, 0)
-	b.err = nil
 	return b
 }
 

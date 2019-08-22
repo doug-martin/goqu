@@ -112,7 +112,7 @@ func (sd *SelectDataset) Update() *UpdateDataset {
 	if sd.clauses.Where() != nil {
 		c = c.WhereAppend(sd.clauses.Where())
 	}
-	if c.HasLimit() {
+	if sd.clauses.HasLimit() {
 		c = c.SetLimit(sd.clauses.Limit())
 	}
 	if sd.clauses.HasOrder() {
@@ -225,6 +225,10 @@ func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 //   See examples
 // Deprecated: Use Distinct() instead.
 func (sd *SelectDataset) SelectDistinct(selects ...interface{}) *SelectDataset {
+	if len(selects) == 0 {
+		cleared := sd.ClearSelect()
+		return cleared.copy(cleared.clauses.SetDistinct(nil))
+	}
 	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)).SetDistinct(exp.NewColumnListExpression()))
 }
 
@@ -533,6 +537,9 @@ func (sd *SelectDataset) ScanStructs(i interface{}) error {
 //
 // i: A pointer to a slice of structs
 func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) error {
+	if sd.queryFactory == nil {
+		return errQueryFactoryNotFoundError
+	}
 	ds := sd
 	if sd.GetClauses().IsDefaultSelect() {
 		ds = sd.Select(i)
@@ -596,6 +603,9 @@ func (sd *SelectDataset) ScanVal(i interface{}) (bool, error) {
 //
 // i: A pointer to a primitive value
 func (sd *SelectDataset) ScanValContext(ctx context.Context, i interface{}) (bool, error) {
+	if sd.queryFactory == nil {
+		return false, errQueryFactoryNotFoundError
+	}
 	return sd.Limit(1).Executor().ScanValContext(ctx, i)
 }
 

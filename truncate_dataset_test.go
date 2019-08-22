@@ -13,8 +13,20 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type truncateDatasetSuite struct {
-	suite.Suite
+type (
+	truncateTestCase struct {
+		ds      *TruncateDataset
+		clauses exp.TruncateClauses
+	}
+	truncateDatasetSuite struct {
+		suite.Suite
+	}
+)
+
+func (tds *truncateDatasetSuite) assertCases(cases ...truncateTestCase) {
+	for _, s := range cases {
+		tds.Equal(s.clauses, s.ds.GetClauses())
+	}
 }
 
 func (tds *truncateDatasetSuite) TestClone() {
@@ -58,78 +70,148 @@ func (tds *truncateDatasetSuite) TestGetClauses() {
 	tds.Equal(ce, ds.GetClauses())
 }
 
-func (tds *truncateDatasetSuite) TestTable(from ...interface{}) {
-	ds := Truncate("test")
-	dsc := ds.GetClauses()
-	ec := dsc.SetTable(exp.NewColumnListExpression(T("t")))
-	tds.Equal(ec, ds.Table(T("t")).GetClauses())
-	tds.Equal(dsc, ds.GetClauses())
+func (tds *truncateDatasetSuite) TestTable() {
+	bd := Truncate("test")
+	tds.assertCases(
+		truncateTestCase{
+			ds: bd.Table("test2"),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test2")),
+		},
+		truncateTestCase{
+			ds: bd.Table("test1", "test2"),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test1", "test2")),
+		},
+		truncateTestCase{
+			ds: bd,
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")),
+		},
+	)
 }
 
 func (tds *truncateDatasetSuite) TestCascade() {
-	ds := Truncate("test")
-	dsc := ds.GetClauses()
-	ec := dsc.SetOptions(exp.TruncateOptions{Cascade: true})
-	tds.Equal(ec, ds.Cascade().GetClauses())
-	tds.Equal(dsc, ds.GetClauses())
-}
-
-func (tds *truncateDatasetSuite) TestCascade_ToSQL() {
-	ds1 := Truncate("items")
-	tsql, _, err := ds1.Cascade().ToSQL()
-	tds.NoError(err)
-	tds.Equal(`TRUNCATE "items" CASCADE`, tsql)
+	bd := Truncate("test")
+	tds.assertCases(
+		truncateTestCase{
+			ds: bd.Cascade(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: true}),
+		},
+		truncateTestCase{
+			ds: bd.Restrict().Cascade(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: true}),
+		},
+		truncateTestCase{
+			ds: bd,
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")),
+		},
+	)
 }
 
 func (tds *truncateDatasetSuite) TestNoCascade() {
-	ds := Truncate("test").Cascade()
-	dsc := ds.GetClauses()
-	ec := dsc.SetOptions(exp.TruncateOptions{Cascade: false})
-	tds.Equal(ec, ds.NoCascade().GetClauses())
-	tds.Equal(dsc, ds.GetClauses())
+	bd := Truncate("test").Cascade()
+	tds.assertCases(
+		truncateTestCase{
+			ds: bd.NoCascade(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{}),
+		},
+		truncateTestCase{
+			ds: bd.Restrict().NoCascade(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: false, Restrict: true}),
+		},
+		truncateTestCase{
+			ds: bd,
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: true}),
+		},
+	)
 }
 
 func (tds *truncateDatasetSuite) TestRestrict() {
-	ds := Truncate("test")
-	dsc := ds.GetClauses()
-	ec := dsc.SetOptions(exp.TruncateOptions{Restrict: true})
-	tds.Equal(ec, ds.Restrict().GetClauses())
-	tds.Equal(dsc, ds.GetClauses())
-}
-
-func (tds *truncateDatasetSuite) TestRestrict_ToSQL() {
-	ds1 := Truncate("items")
-	tsql, _, err := ds1.Restrict().ToSQL()
-	tds.NoError(err)
-	tds.Equal(`TRUNCATE "items" RESTRICT`, tsql)
+	bd := Truncate("test")
+	tds.assertCases(
+		truncateTestCase{
+			ds: bd.Restrict(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Restrict: true}),
+		},
+		truncateTestCase{
+			ds: bd.Cascade().Restrict(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: true}),
+		},
+		truncateTestCase{
+			ds: bd,
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")),
+		},
+	)
 }
 
 func (tds *truncateDatasetSuite) TestNoRestrict() {
-	ds := Truncate("test").Restrict()
-	dsc := ds.GetClauses()
-	ec := dsc.SetOptions(exp.TruncateOptions{Restrict: false})
-	tds.Equal(ec, ds.NoRestrict().GetClauses())
-	tds.Equal(dsc, ds.GetClauses())
+	bd := Truncate("test").Restrict()
+	tds.assertCases(
+		truncateTestCase{
+			ds: bd.NoRestrict(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{}),
+		},
+		truncateTestCase{
+			ds: bd.Cascade().NoRestrict(),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: false}),
+		},
+		truncateTestCase{
+			ds: bd,
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Restrict: true}),
+		},
+	)
 }
 
 func (tds *truncateDatasetSuite) TestIdentity() {
-	ds := Truncate("test")
-	dsc := ds.GetClauses()
-	ec := dsc.SetOptions(exp.TruncateOptions{Identity: "RESTART"})
-	tds.Equal(ec, ds.Identity("RESTART").GetClauses())
-	tds.Equal(dsc, ds.GetClauses())
-}
-
-func (tds *truncateDatasetSuite) TestIdentity_ToSQL() {
-	ds1 := Truncate("items")
-
-	tsql, _, err := ds1.Identity("restart").ToSQL()
-	tds.NoError(err)
-	tds.Equal(`TRUNCATE "items" RESTART IDENTITY`, tsql)
-
-	tsql, _, err = ds1.Identity("continue").ToSQL()
-	tds.NoError(err)
-	tds.Equal(`TRUNCATE "items" CONTINUE IDENTITY`, tsql)
+	bd := Truncate("test")
+	tds.assertCases(
+		truncateTestCase{
+			ds: bd.Identity("RESTART"),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Identity: "RESTART"}),
+		},
+		truncateTestCase{
+			ds: bd.Identity("CONTINUE"),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Identity: "CONTINUE"}),
+		},
+		truncateTestCase{
+			ds: bd.Cascade().Restrict().Identity("CONTINUE"),
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")).
+				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: true, Identity: "CONTINUE"}),
+		},
+		truncateTestCase{
+			ds: bd,
+			clauses: exp.NewTruncateClauses().
+				SetTable(exp.NewColumnListExpression("test")),
+		},
+	)
 }
 
 func (tds *truncateDatasetSuite) TestToSQL() {

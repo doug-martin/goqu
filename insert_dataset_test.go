@@ -1,7 +1,6 @@
 package goqu
 
 import (
-	"database/sql"
 	"testing"
 	"time"
 
@@ -15,18 +14,20 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type insertDatasetSuite struct {
-	suite.Suite
-}
+type (
+	insertTestCase struct {
+		ds      *InsertDataset
+		clauses exp.InsertClauses
+	}
+	insertDatasetSuite struct {
+		suite.Suite
+	}
+)
 
-func (ids *insertDatasetSuite) SetupSuite() {
-	noReturn := DefaultDialectOptions()
-	noReturn.SupportsReturn = false
-	RegisterDialect("no-return", noReturn)
-}
-
-func (ids *insertDatasetSuite) TearDownSuite() {
-	DeregisterDialect("no-return")
+func (ids *insertDatasetSuite) assertCases(cases ...insertTestCase) {
+	for _, s := range cases {
+		ids.Equal(s.clauses, s.ds.GetClauses())
+	}
 }
 
 func (ids *insertDatasetSuite) TestClone() {
@@ -71,819 +72,290 @@ func (ids *insertDatasetSuite) TestGetClauses() {
 }
 
 func (ids *insertDatasetSuite) TestWith() {
-	from := Insert("cte")
-	ds := Insert("test")
-	dsc := ds.GetClauses()
-	ec := dsc.CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from))
-	ids.Equal(ec, ds.With("test-cte", from).GetClauses())
-	ids.Equal(dsc, ds.GetClauses())
+	from := From("cte")
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.With("test-cte", from),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+	)
 }
 
 func (ids *insertDatasetSuite) TestWithRecursive() {
-	from := Insert("cte")
-	ds := Insert("test")
-	dsc := ds.GetClauses()
-	ec := dsc.CommonTablesAppend(exp.NewCommonTableExpression(true, "test-cte", from))
-	ids.Equal(ec, ds.WithRecursive("test-cte", from).GetClauses())
-	ids.Equal(dsc, ds.GetClauses())
+	from := From("cte")
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.WithRecursive("test-cte", from),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				CommonTablesAppend(exp.NewCommonTableExpression(true, "test-cte", from)),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+	)
 }
 
-func (ids *insertDatasetSuite) TestRows_ToSQLWithNullTimeField() {
+func (ids *insertDatasetSuite) TestInto() {
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.Into("items2"),
+			clauses: exp.NewInsertClauses().SetInto(C("items2")),
+		},
+		insertTestCase{
+			ds:      bd.Into(L("items2")),
+			clauses: exp.NewInsertClauses().SetInto(L("items2")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+	)
+
+	ids.PanicsWithValue(errUnsupportedIntoType, func() {
+		bd.Into(true)
+	})
+}
+
+func (ids *insertDatasetSuite) TestCols() {
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.Cols("a", "b"),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetCols(exp.NewColumnListExpression("a", "b")),
+		},
+		insertTestCase{
+			ds: bd.Cols("a", "b").Cols("c", "d"),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetCols(exp.NewColumnListExpression("c", "d")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+	)
+}
+
+func (ids *insertDatasetSuite) TestClearCols() {
+	bd := Insert("items").Cols("a", "b")
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.ClearCols(),
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetCols(exp.NewColumnListExpression("a", "b")),
+		},
+	)
+}
+
+func (ids *insertDatasetSuite) TestColsAppend() {
+	bd := Insert("items").Cols("a")
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.ColsAppend("b"),
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetCols(exp.NewColumnListExpression("a", "b")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetCols(exp.NewColumnListExpression("a")),
+		},
+	)
+}
+
+func (ids *insertDatasetSuite) TestFromQuery() {
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.FromQuery(From("other_items").Where(C("b").Gt(10))),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetFrom(From("other_items").Where(C("b").Gt(10))),
+		},
+		insertTestCase{
+			ds: bd.FromQuery(From("other_items").Where(C("b").Gt(10))).Cols("a", "b"),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetCols(exp.NewColumnListExpression("a", "b")).
+				SetFrom(From("other_items").Where(C("b").Gt(10))),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+	)
+}
+
+func (ids *insertDatasetSuite) TestVals() {
+
+	val1 := []interface{}{
+		"a", "b",
+	}
+	val2 := []interface{}{
+		"c", "d",
+	}
+
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.Vals(val1),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetVals([][]interface{}{val1}),
+		},
+		insertTestCase{
+			ds: bd.Vals(val1, val2),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetVals([][]interface{}{val1, val2}),
+		},
+		insertTestCase{
+			ds: bd.Vals(val1).Vals(val2),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetVals([][]interface{}{val1, val2}),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+	)
+}
+
+func (ids *insertDatasetSuite) TestClearVals() {
+	val := []interface{}{
+		"a", "b",
+	}
+	bd := Insert("items").Vals(val)
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.ClearVals(),
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetVals([][]interface{}{val}),
+		},
+	)
+}
+
+func (ids *insertDatasetSuite) TestRows() {
 	type item struct {
 		CreatedAt *time.Time `db:"created_at"`
 	}
-	ds := Insert("items").Rows(item{CreatedAt: nil})
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("created_at") VALUES (NULL)`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("created_at") VALUES (NULL)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithInvalidValue() {
-	ds := Insert("test").Rows(true)
-	_, _, err := ds.ToSQL()
-	ids.EqualError(err, "goqu: unsupported insert must be map, goqu.Record, or struct type got: bool")
-
-	_, _, err = ds.Prepared(true).ToSQL()
-	ids.EqualError(err, "goqu: unsupported insert must be map, goqu.Record, or struct type got: bool")
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithStructs() {
-	type item struct {
-		Address string    `db:"address"`
-		Name    string    `db:"name"`
-		Created time.Time `db:"created"`
-	}
-	ds := Insert("items")
-	created, _ := time.Parse("2006-01-02", "2015-01-01")
-	ds1 := ds.Rows(item{Name: "Test", Address: "111 Test Addr", Created: created})
-
-	insertSQL, args, err := ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "created", "name") VALUES ('111 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test')`,
-		insertSQL,
-	) // #nosec
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", created, "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "created", "name") VALUES (?, ?, ?)`, insertSQL)
-
-	ds2 := ds1.Rows(
-		item{Address: "111 Test Addr", Name: "Test1", Created: created},
-		item{Address: "211 Test Addr", Name: "Test2", Created: created},
-		item{Address: "311 Test Addr", Name: "Test3", Created: created},
-		item{Address: "411 Test Addr", Name: "Test4", Created: created},
-	)
-
-	insertSQL, args, err = ds2.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "created", "name") VALUES `+
-			`('111 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test1'), `+
-			`('211 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test2'), `+
-			`('311 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test3'), `+
-			`('411 Test Addr', '`+created.Format(time.RFC3339Nano)+`', 'Test4')`,
-		insertSQL,
-	)
-
-	insertSQL, args, err = ds2.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", created, "Test1",
-		"211 Test Addr", created, "Test2",
-		"311 Test Addr", created, "Test3",
-		"411 Test Addr", created, "Test4",
-	}, args)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "created", "name") VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), (?, ?, ?)`,
-		insertSQL,
-	)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithEmbeddedStruct() {
-	type Phone struct {
-		Primary string `db:"primary_phone"`
-		Home    string `db:"home_phone"`
-	}
-	type item struct {
-		Phone
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
+	n := time.Now()
+	r := item{CreatedAt: nil}
+	r2 := item{CreatedAt: &n}
 	bd := Insert("items")
-	ds := bd.Rows(item{
-		Name:    "Test",
-		Address: "111 Test Addr",
-		Phone: Phone{
-			Home:    "123123",
-			Primary: "456456",
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.Rows(r),
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetRows([]interface{}{r}),
 		},
-	})
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
-		`('111 Test Addr', '123123', 'Test', '456456')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "123123", "Test", "456456"}, args)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES (?, ?, ?, ?)`,
-		insertSQL,
-	)
-
-	ds = bd.Rows(
-		item{Address: "111 Test Addr", Name: "Test1", Phone: Phone{Home: "123123", Primary: "456456"}},
-		item{Address: "211 Test Addr", Name: "Test2", Phone: Phone{Home: "123123", Primary: "456456"}},
-		item{Address: "311 Test Addr", Name: "Test3", Phone: Phone{Home: "123123", Primary: "456456"}},
-		item{Address: "411 Test Addr", Name: "Test4", Phone: Phone{Home: "123123", Primary: "456456"}},
-	)
-	insertSQL, args, err = ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
-		`('111 Test Addr', '123123', 'Test1', '456456'), `+
-		`('211 Test Addr', '123123', 'Test2', '456456'), `+
-		`('311 Test Addr', '123123', 'Test3', '456456'), `+
-		`('411 Test Addr', '123123', 'Test4', '456456')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", "123123", "Test1", "456456",
-		"211 Test Addr", "123123", "Test2", "456456",
-		"311 Test Addr", "123123", "Test3", "456456",
-		"411 Test Addr", "123123", "Test4", "456456",
-	}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
-		`(?, ?, ?, ?), `+
-		`(?, ?, ?, ?), `+
-		`(?, ?, ?, ?), `+
-		`(?, ?, ?, ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithEmbeddedStructPtr() {
-	type Phone struct {
-		Primary string `db:"primary_phone"`
-		Home    string `db:"home_phone"`
-	}
-	type item struct {
-		*Phone
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	bd := Insert("items")
-	ds := bd.Rows(item{
-		Name:    "Test",
-		Address: "111 Test Addr",
-		Phone: &Phone{
-			Home:    "123123",
-			Primary: "456456",
+		insertTestCase{
+			ds:      bd.Rows(r).Rows(r2),
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetRows([]interface{}{r2}),
 		},
-	})
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
-		`('111 Test Addr', '123123', 'Test', '456456')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "123123", "Test", "456456"}, args)
-	ids.Equal(
-		insertSQL,
-		`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES (?, ?, ?, ?)`,
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
 	)
-
-	ds = bd.Rows(
-		item{Address: "111 Test Addr", Name: "Test1", Phone: &Phone{Home: "123123", Primary: "456456"}},
-		item{Address: "211 Test Addr", Name: "Test2", Phone: &Phone{Home: "123123", Primary: "456456"}},
-		item{Address: "311 Test Addr", Name: "Test3", Phone: &Phone{Home: "123123", Primary: "456456"}},
-		item{Address: "411 Test Addr", Name: "Test4", Phone: &Phone{Home: "123123", Primary: "456456"}},
-	)
-	insertSQL, args, err = ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
-		`('111 Test Addr', '123123', 'Test1', '456456'), `+
-		`('211 Test Addr', '123123', 'Test2', '456456'), `+
-		`('311 Test Addr', '123123', 'Test3', '456456'), `+
-		`('411 Test Addr', '123123', 'Test4', '456456')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", "123123", "Test1", "456456",
-		"211 Test Addr", "123123", "Test2", "456456",
-		"311 Test Addr", "123123", "Test3", "456456",
-		"411 Test Addr", "123123", "Test4", "456456",
-	}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "home_phone", "name", "primary_phone") VALUES `+
-		`(?, ?, ?, ?), `+
-		`(?, ?, ?, ?), `+
-		`(?, ?, ?, ?), `+
-		`(?, ?, ?, ?)`, insertSQL)
 }
 
-func (ids *insertDatasetSuite) TestRows_ToSQLWithValuer() {
+func (ids *insertDatasetSuite) TestClearRows() {
 	type item struct {
-		Address string        `db:"address"`
-		Name    string        `db:"name"`
-		Valuer  sql.NullInt64 `db:"valuer"`
+		CreatedAt *time.Time `db:"created_at"`
 	}
+	r := item{CreatedAt: nil}
+	bd := Insert("items").Rows(r)
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.ClearRows(),
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetRows([]interface{}{r}),
+		},
+	)
+
+}
+
+func (ids *insertDatasetSuite) TestOnConflict() {
+	du := DoUpdate("other_items", Record{"a": 1})
 
 	bd := Insert("items")
-	ds := bd.Rows(item{Name: "Test", Address: "111 Test Addr", Valuer: sql.NullInt64{Int64: 10, Valid: true}})
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test', 10)`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test", int64(10)}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, ?)`, insertSQL)
-
-	ds = bd.Rows(
-		item{Address: "111 Test Addr", Name: "Test1", Valuer: sql.NullInt64{Int64: 10, Valid: true}},
-		item{Address: "211 Test Addr", Name: "Test2", Valuer: sql.NullInt64{Int64: 20, Valid: true}},
-		item{Address: "311 Test Addr", Name: "Test3", Valuer: sql.NullInt64{Int64: 30, Valid: true}},
-		item{Address: "411 Test Addr", Name: "Test4", Valuer: sql.NullInt64{Int64: 40, Valid: true}},
-	)
-	insertSQL, args, err = ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES `+
-		`('111 Test Addr', 'Test1', 10), `+
-		`('211 Test Addr', 'Test2', 20), `+
-		`('311 Test Addr', 'Test3', 30), `+
-		`('411 Test Addr', 'Test4', 40)`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", "Test1", int64(10),
-		"211 Test Addr", "Test2", int64(20),
-		"311 Test Addr", "Test3", int64(30),
-		"411 Test Addr", "Test4", int64(40),
-	}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES `+
-		`(?, ?, ?), `+
-		`(?, ?, ?), `+
-		`(?, ?, ?), `+
-		`(?, ?, ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithValuerNull() {
-	type item struct {
-		Address string        `db:"address"`
-		Name    string        `db:"name"`
-		Valuer  sql.NullInt64 `db:"valuer"`
-	}
-
-	bd := Insert("items")
-	ds := bd.Rows(item{Name: "Test", Address: "111 Test Addr"})
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES ('111 Test Addr', 'Test', NULL)`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES (?, ?, NULL)`, insertSQL)
-
-	ds = bd.Rows(
-		item{Address: "111 Test Addr", Name: "Test1"},
-		item{Address: "211 Test Addr", Name: "Test2"},
-		item{Address: "311 Test Addr", Name: "Test3"},
-		item{Address: "411 Test Addr", Name: "Test4"},
-	)
-	insertSQL, args, err = ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES `+
-		`('111 Test Addr', 'Test1', NULL), `+
-		`('211 Test Addr', 'Test2', NULL), `+
-		`('311 Test Addr', 'Test3', NULL), `+
-		`('411 Test Addr', 'Test4', NULL)`,
-		insertSQL,
-	)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", "Test1",
-		"211 Test Addr", "Test2",
-		"311 Test Addr", "Test3",
-		"411 Test Addr", "Test4",
-	}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name", "valuer") VALUES `+
-		`(?, ?, NULL), `+
-		`(?, ?, NULL), `+
-		`(?, ?, NULL), `+
-		`(?, ?, NULL)`,
-		insertSQL,
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.OnConflict(nil),
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+		insertTestCase{
+			ds:      bd.OnConflict(DoNothing()),
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetOnConflict(DoNothing()),
+		},
+		insertTestCase{
+			ds:      bd.OnConflict(du),
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetOnConflict(du),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
 	)
 }
 
-func (ids *insertDatasetSuite) TestRows_ToSQLWithMaps() {
-	ds := Insert("items")
+func (ids *insertDatasetSuite) TestClearOnConflict() {
+	du := DoUpdate("other_items", Record{"a": 1})
 
-	ds1 := ds.Rows(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
-	insertSQL, args, err := ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test')`, insertSQL)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, insertSQL)
-
-	ds1 = ds.Rows(
-		map[string]interface{}{"address": "111 Test Addr", "name": "Test1"},
-		map[string]interface{}{"address": "211 Test Addr", "name": "Test2"},
-		map[string]interface{}{"address": "311 Test Addr", "name": "Test3"},
-		map[string]interface{}{"address": "411 Test Addr", "name": "Test4"},
+	bd := Insert("items").OnConflict(du)
+	ids.assertCases(
+		insertTestCase{
+			ds:      bd.ClearOnConflict(),
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")).SetOnConflict(du),
+		},
 	)
-	insertSQL, _, err = ds1.ToSQL()
-	ids.NoError(err)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES `+
-		`('111 Test Addr', 'Test1'), `+
-		`('211 Test Addr', 'Test2'), `+
-		`('311 Test Addr', 'Test3'), `+
-		`('411 Test Addr', 'Test4')`,
-		insertSQL,
-	)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", "Test1",
-		"211 Test Addr", "Test2",
-		"311 Test Addr", "Test3",
-		"411 Test Addr", "Test4",
-	}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?), (?, ?), (?, ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithSQLBuilder() {
-	ds := Insert("items")
-
-	ds1 := ds.Rows(From("other_items").Where(C("b").Gt(10)))
-
-	insertSQL, args, err := ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > 10)`, insertSQL)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{int64(10)}, args)
-	ids.Equal(`INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithMapsWithDifferentLengths() {
-	ds1 := Insert("items").Rows(
-		map[string]interface{}{"address": "111 Test Addr", "name": "Test1"},
-		map[string]interface{}{"address": "211 Test Addr"},
-		map[string]interface{}{"address": "311 Test Addr", "name": "Test3"},
-		map[string]interface{}{"address": "411 Test Addr", "name": "Test4"},
-	)
-	_, _, err := ds1.ToSQL()
-	ids.EqualError(err, "goqu: rows with different value length expected 2 got 1")
-	_, _, err = ds1.Prepared(true).ToSQL()
-	ids.EqualError(err, "goqu: rows with different value length expected 2 got 1")
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWitDifferentKeys() {
-	ds := Insert("items").Rows(
-		map[string]interface{}{"address": "111 Test Addr", "name": "test"},
-		map[string]interface{}{"phoneNumber": 10, "address": "111 Test Addr"},
-	)
-	_, _, err := ds.ToSQL()
-	ids.EqualError(err, `goqu: rows with different keys expected ["address","name"] got ["address","phoneNumber"]`)
-
-	_, _, err = ds.Prepared(true).ToSQL()
-	ids.EqualError(err, `goqu: rows with different keys expected ["address","name"] got ["address","phoneNumber"]`)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLDifferentTypes() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	type item2 struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	bd := Insert("items")
-	ds := bd.Rows(
-		item{Address: "111 Test Addr", Name: "Test1"},
-		item2{Address: "211 Test Addr", Name: "Test2"},
-		item{Address: "311 Test Addr", Name: "Test3"},
-		item2{Address: "411 Test Addr", Name: "Test4"},
-	)
-	_, _, err := ds.ToSQL()
-	ids.EqualError(err, "goqu: rows must be all the same type expected goqu.item got goqu.item2")
-	_, _, err = ds.Prepared(true).ToSQL()
-	ids.EqualError(err, "goqu: rows must be all the same type expected goqu.item got goqu.item2")
-
-	ds = bd.Rows(
-		item{Address: "111 Test Addr", Name: "Test1"},
-		map[string]interface{}{"address": "211 Test Addr", "name": "Test2"},
-		item{Address: "311 Test Addr", Name: "Test3"},
-		map[string]interface{}{"address": "411 Test Addr", "name": "Test4"},
-	)
-	_, _, err = ds.ToSQL()
-	ids.EqualError(err, "goqu: rows must be all the same type expected goqu.item got map[string]interface {}")
-
-	_, _, err = ds.Prepared(true).ToSQL()
-	ids.EqualError(err, "goqu: rows must be all the same type expected goqu.item got map[string]interface {}")
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithGoquSkipInsertTagSQL() {
-	type item struct {
-		ID      uint32 `db:"id" goqu:"skipinsert"`
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	ds := Insert("items")
-
-	ds1 := ds.Rows(item{Name: "Test", Address: "111 Test Addr"})
-
-	insertSQL, args, err := ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test')`, insertSQL)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, insertSQL)
-
-	ds1 = ds.Rows(
-		item{Name: "Test1", Address: "111 Test Addr"},
-		item{Name: "Test2", Address: "211 Test Addr"},
-		item{Name: "Test3", Address: "311 Test Addr"},
-		item{Name: "Test4", Address: "411 Test Addr"},
-	)
-
-	insertSQL, args, err = ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES `+
-		`('111 Test Addr', 'Test1'), `+
-		`('211 Test Addr', 'Test2'), `+
-		`('311 Test Addr', 'Test3'), `+
-		`('411 Test Addr', 'Test4')`,
-		insertSQL,
-	)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{
-		"111 Test Addr", "Test1",
-		"211 Test Addr", "Test2",
-		"311 Test Addr", "Test3",
-		"411 Test Addr", "Test4",
-	}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?), (?, ?), (?, ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithGoquDefaultIfEmptyTag() {
-	type item struct {
-		ID      uint32 `db:"id" goqu:"skipinsert"`
-		Address string `db:"address" goqu:"defaultifempty"`
-		Name    string `db:"name" goqu:"defaultifempty"`
-		Bool    bool   `db:"bool" goqu:"skipinsert,defaultifempty"`
-	}
-	ds := Insert("items")
-
-	ds1 := ds.Rows(item{Name: "Test", Address: "111 Test Addr"})
-
-	insertSQL, args, err := ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test')`, insertSQL)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, insertSQL)
-
-	ds1 = ds.Rows(item{})
-
-	insertSQL, args, err = ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`, insertSQL)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestRows_ToSQLWithDefaultValues() {
-	ds := Insert("items")
-	ds1 := ds.Rows()
-
-	insertSQL, args, err := ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" DEFAULT VALUES`, insertSQL)
-
-	insertSQL, args, err = ds1.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" DEFAULT VALUES`, insertSQL)
-
-	ds1 = ds.Rows(map[string]interface{}{"name": Default(), "address": Default()})
-	insertSQL, args, err = ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`, insertSQL)
-
-	insertSQL, _, err = ds1.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestToSQL() {
-	md := new(mocks.SQLDialect)
-	ds := Insert("test").SetDialect(md)
-	c := ds.GetClauses()
-	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToInsertSQL", sqlB, c).Return(nil).Once()
-	insertSQL, args, err := ds.ToSQL()
-	ids.Empty(insertSQL)
-	ids.Empty(args)
-	ids.Nil(err)
-	md.AssertExpectations(ids.T())
-}
-
-func (ids *insertDatasetSuite) TestToSQL_WithNoInto() {
-	ds1 := newInsertDataset("test", nil).Rows(map[string]interface{}{
-		"address": "111 Test Addr", "name": "Test1",
-	})
-	_, _, err := ds1.ToSQL()
-	ids.EqualError(err, "goqu: no source found when generating insert sql")
-	_, _, err = ds1.Prepared(true).ToSQL()
-	ids.EqualError(err, "goqu: no source found when generating insert sql")
-}
-
-func (ids *insertDatasetSuite) TestToSQL_ReturnedError() {
-	md := new(mocks.SQLDialect)
-	ds := Insert("test").SetDialect(md)
-	c := ds.GetClauses()
-	sqlB := sb.NewSQLBuilder(false)
-	ee := errors.New("expected error")
-	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
-		args.Get(0).(sb.SQLBuilder).SetError(ee)
-	}).Once()
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.Empty(insertSQL)
-	ids.Empty(args)
-	ids.Equal(ee, err)
-	md.AssertExpectations(ids.T())
-}
-
-func (ids *insertDatasetSuite) TestFromQuery_ToSQL() {
-	bd := Insert("items")
-
-	ds := bd.FromQuery(From("other_items").Where(C("b").Gt(10)))
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > 10)`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{int64(10)}, args)
-	ids.Equal(`INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestFromQuery_ToSQLWithCols() {
-	bd := Insert("items")
-
-	ds := bd.Cols("a", "b").FromQuery(From("other_items").Select("c", "d").Where(C("b").Gt(10)))
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("a", "b") SELECT "c", "d" FROM "other_items" WHERE ("b" > 10)`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{int64(10)}, args)
-	ids.Equal(`INSERT INTO "items" ("a", "b") SELECT "c", "d" FROM "other_items" WHERE ("b" > ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestOnConflict__ToSQLNilConflictExpression() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	ds := Insert("items").Rows(item{Name: "Test", Address: "111 Test Addr"}).OnConflict(nil)
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestOnConflict__ToSQLDoUpdate() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	i := item{Name: "Test", Address: "111 Test Addr"}
-	ds := Insert("items").Rows(i).OnConflict(
-		DoUpdate("name", Record{"address": L("excluded.address")}),
-	)
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES `+
-		`('111 Test Addr', 'Test') `+
-		`ON CONFLICT (name) `+
-		`DO UPDATE `+
-		`SET "address"=excluded.address`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "name") VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET "address"=excluded.address`,
-		insertSQL,
-	)
-}
-
-func (ids *insertDatasetSuite) TestOnConflict__ToSQLDoUpdateWhere() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	i := item{Name: "Test", Address: "111 Test Addr"}
-	ds := Insert("items").Rows(i).OnConflict(
-		DoUpdate("name", Record{"address": L("excluded.address")}).
-			Where(C("name").Eq("Test")),
-	)
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES `+
-		`('111 Test Addr', 'Test') `+
-		`ON CONFLICT (name) `+
-		`DO UPDATE `+
-		`SET "address"=excluded.address WHERE ("name" = 'Test')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES `+
-		`(?, ?) `+
-		`ON CONFLICT (name) `+
-		`DO UPDATE `+
-		`SET "address"=excluded.address WHERE ("name" = ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestOnConflict__ToSQLWithDatasetDoUpdateWhere() {
-	fromDs := From("ds2")
-	ds := Insert("items").
-		FromQuery(fromDs).
-		OnConflict(
-			DoUpdate("name", Record{"address": L("excluded.address")}).Where(C("name").Eq("Test")),
-		)
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" `+
-		`SELECT * FROM "ds2" `+
-		`ON CONFLICT (name) `+
-		`DO UPDATE `+
-		`SET "address"=excluded.address WHERE ("name" = 'Test')`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"Test"}, args)
-	ids.Equal(`INSERT INTO "items" `+
-		`SELECT * FROM "ds2" `+
-		`ON CONFLICT (name) `+
-		`DO UPDATE `+
-		`SET "address"=excluded.address WHERE ("name" = ?)`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestOnConflict_ToSQLDoNothing() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	ds := Insert("items").Rows(item{Name: "Test", Address: "111 Test Addr"}).OnConflict(DoNothing())
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES `+
-		`('111 Test Addr', 'Test') `+
-		`ON CONFLICT DO NOTHING`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?) ON CONFLICT DO NOTHING`, insertSQL)
 }
 
 func (ids *insertDatasetSuite) TestReturning() {
-	ds := Insert("test")
-	dsc := ds.GetClauses()
-	ec := dsc.SetReturning(exp.NewColumnListExpression(C("a")))
-	ids.Equal(ec, ds.Returning("a").GetClauses())
-	ids.Equal(dsc, ds.GetClauses())
-}
-
-func (ids *insertDatasetSuite) TestReturning_ToSQL() {
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	bd := Insert("items").Returning("id")
-
-	ds := bd.FromQuery(From("other_items").Where(C("b").Gt(10)))
-
-	insertSQL, args, err := ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(`INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > 10) RETURNING "id"`, insertSQL)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{int64(10)}, args)
-	ids.Equal(`INSERT INTO "items" SELECT * FROM "other_items" WHERE ("b" > ?) RETURNING "id"`, insertSQL)
-
-	ds = bd.Rows(map[string]interface{}{"name": "Test", "address": "111 Test Addr"})
-
-	insertSQL, args, err = ds.ToSQL()
-	ids.NoError(err)
-	ids.Empty(args)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') RETURNING "id"`,
-		insertSQL,
+	bd := Insert("items")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.Returning("a"),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetReturning(exp.NewColumnListExpression("a")),
+		},
+		insertTestCase{
+			ds: bd.Returning("a").Returning("b"),
+			clauses: exp.NewInsertClauses().
+				SetInto(C("items")).
+				SetReturning(exp.NewColumnListExpression("b")),
+		},
+		insertTestCase{
+			ds:      bd,
+			clauses: exp.NewInsertClauses().SetInto(C("items")),
+		},
 	)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?) RETURNING "id"`, insertSQL)
-
-	ds = bd.Rows(item{Name: "Test", Address: "111 Test Addr"})
-
-	insertSQL, _, err = ds.ToSQL()
-	ids.NoError(err)
-	ids.Equal(
-		`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test') RETURNING "id"`,
-		insertSQL,
-	)
-
-	insertSQL, args, err = ds.Prepared(true).ToSQL()
-	ids.NoError(err)
-	ids.Equal([]interface{}{"111 Test Addr", "Test"}, args)
-	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?) RETURNING "id"`, insertSQL)
-}
-
-func (ids *insertDatasetSuite) TestReturning_ToSQLReturnNotSupported() {
-	ds1 := New("no-return", nil).Insert("items")
-	type item struct {
-		Address string `db:"address"`
-		Name    string `db:"name"`
-	}
-	_, _, err := ds1.Returning("id").Rows(item{Name: "Test", Address: "111 Test Addr"}).ToSQL()
-	ids.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=no-return]")
-
-	_, _, err = ds1.Returning("id").Rows(From("test2")).ToSQL()
-	ids.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=no-return]")
 }
 
 func (ids *insertDatasetSuite) TestExecutor() {
@@ -903,6 +375,49 @@ func (ids *insertDatasetSuite) TestExecutor() {
 	ids.NoError(err)
 	ids.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
 	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, isql)
+}
+
+func (ids *insertDatasetSuite) TestToSQL() {
+	md := new(mocks.SQLDialect)
+	ds := Insert("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToInsertSQL", sqlB, c).Return(nil).Once()
+	insertSQL, args, err := ds.ToSQL()
+	ids.Empty(insertSQL)
+	ids.Empty(args)
+	ids.Nil(err)
+	md.AssertExpectations(ids.T())
+}
+
+func (ids *insertDatasetSuite) TestToSQL_Prepared() {
+	md := new(mocks.SQLDialect)
+	ds := Insert("test").SetDialect(md).Prepared(true)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(true)
+	md.On("ToInsertSQL", sqlB, c).Return(nil).Once()
+	insertSQL, args, err := ds.ToSQL()
+	ids.Empty(insertSQL)
+	ids.Empty(args)
+	ids.Nil(err)
+	md.AssertExpectations(ids.T())
+}
+
+func (ids *insertDatasetSuite) TestToSQL_ReturnedError() {
+	md := new(mocks.SQLDialect)
+	ds := Insert("test").SetDialect(md)
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	ee := errors.New("expected error")
+	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(ee)
+	}).Once()
+
+	insertSQL, args, err := ds.ToSQL()
+	ids.Empty(insertSQL)
+	ids.Empty(args)
+	ids.Equal(ee, err)
+	md.AssertExpectations(ids.T())
 }
 
 func TestInsertDataset(t *testing.T) {

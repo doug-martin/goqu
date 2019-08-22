@@ -442,6 +442,8 @@ const (
 	RegexpILikeOp
 	// !~*, NOT REGEXP
 	RegexpNotILikeOp
+
+	betweenStr = "between"
 )
 
 var (
@@ -517,6 +519,16 @@ func (bo BooleanOperation) String() string {
 		return "regexp notilike"
 	}
 	return fmt.Sprintf("%d", bo)
+}
+
+func (ro RangeOperation) String() string {
+	switch ro {
+	case BetweenOp:
+		return betweenStr
+	case NotBetweenOp:
+		return "not between"
+	}
+	return fmt.Sprintf("%d", ro)
 }
 
 func (jt JoinType) String() string {
