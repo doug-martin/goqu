@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -391,6 +393,44 @@ func (mt *mysqlTest) TestInsert_OnConflict() {
 		OnConflict(goqu.DoUpdate("int", goqu.Record{"string": "upsert"}).Where(goqu.C("int").Eq(9))).
 		Executor().Exec()
 	mt.EqualError(err, "goqu: dialect does not support upsert with where clause [dialect=mysql]")
+}
+
+func (mt *mysqlTest) TestWindowFunction() {
+	var version string
+	ok, err := mt.db.Select(goqu.Func("version")).ScanVal(&version)
+	mt.NoError(err)
+	mt.True(ok)
+
+	fields := strings.Split(version, ".")
+	mt.True(len(fields) > 0)
+	major, err := strconv.Atoi(fields[0])
+	mt.NoError(err)
+	if major < 8 {
+		fmt.Printf("SKIPPING MYSQL WINDOW FUNCTION TEST BECAUSE VERSION IS < 8 [mysql_version:=%d]\n", major)
+		return
+	}
+
+	ds := mt.db.From("entry").
+		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).
+		Window(goqu.W("w").OrderBy(goqu.I("int").Desc()))
+
+	var entries []entry
+	mt.NoError(ds.WithDialect("mysql8").ScanStructs(&entries))
+
+	mt.Equal([]entry{
+		{Int: 9, ID: 1},
+		{Int: 8, ID: 2},
+		{Int: 7, ID: 3},
+		{Int: 6, ID: 4},
+		{Int: 5, ID: 5},
+		{Int: 4, ID: 6},
+		{Int: 3, ID: 7},
+		{Int: 2, ID: 8},
+		{Int: 1, ID: 9},
+		{Int: 0, ID: 10},
+	}, entries)
+
+	mt.Error(ds.WithDialect("mysql").ScanStructs(&entries), "goqu: adapter does not support window function clause")
 }
 
 func TestMysqlSuite(t *testing.T) {

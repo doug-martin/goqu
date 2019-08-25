@@ -11,6 +11,7 @@
   * [`Offset`](#offset)
   * [`GroupBy`](#group_by)
   * [`Having`](#having)
+  * [`Window`](#window)
 * Executing Queries
   * [`ScanStructs`](#scan-structs) - Scans rows into a slice of structs
   * [`ScanStruct`](#scan-struct) - Scans a row into a slice a struct, returns false if a row wasnt found
@@ -610,6 +611,42 @@ Output:
 SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 ```
 
+
+<a name="window"></a>
+**[`Window Function`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Window)**
+
+**NOTE** currently only the `postgres`, `mysql8` (NOT `mysql`) and the default dialect support `Window Function`
+
+To use windowing in select you can use the `Over` method on an `SQLFunction`
+
+```go
+sql, _, _ := goqu.From("test").Select(
+	goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())),
+)
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b") FROM "test"
+```
+
+`goqu` also supports the `WINDOW` clause.
+
+```go
+sql, _, _ := goqu.From("test").
+	Select(goqu.ROW_NUMBER().OverName(goqu.I("w"))).
+	Window(goqu.W("w").PartitionBy("a").OrderBy(goqu.I("b").Asc()))
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b")
+```
+
 ## Executing Queries
 
 To execute your query use [`goqu.Database#From`](https://godoc.org/github.com/doug-martin/goqu/#Database.From) to create your dataset
@@ -749,3 +786,4 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
+

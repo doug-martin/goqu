@@ -6,8 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/doug-martin/goqu/v8/internal/errors"
 	"github.com/stretchr/testify/suite"
@@ -317,9 +315,8 @@ func (ds *databaseSuite) TestWithTx() {
 }
 
 func (ds *databaseSuite) TestDataRace() {
-	t := ds.T()
 	mDb, mock, err := sqlmock.New()
-	assert.NoError(t, err)
+	ds.NoError(err)
 	db := newDatabase("mock", mDb)
 
 	const concurrency = 10
@@ -340,10 +337,10 @@ func (ds *databaseSuite) TestDataRace() {
 			sql := db.From("items").Limit(1)
 			var item testActionItem
 			found, err := sql.ScanStruct(&item)
-			assert.NoError(t, err)
-			assert.True(t, found)
-			assert.Equal(t, item.Address, "111 Test Addr")
-			assert.Equal(t, item.Name, "Test1")
+			ds.NoError(err)
+			ds.True(found)
+			ds.Equal(item.Address, "111 Test Addr")
+			ds.Equal(item.Name, "Test1")
 		}()
 	}
 
@@ -661,13 +658,12 @@ func (tds *txdatabaseSuite) TestWrap() {
 }
 
 func (tds *txdatabaseSuite) TestDataRace() {
-	t := tds.T()
 	mDb, mock, err := sqlmock.New()
-	assert.NoError(t, err)
+	tds.NoError(err)
 	mock.ExpectBegin()
 	db := newDatabase("mock", mDb)
 	tx, err := db.Begin()
-	assert.NoError(t, err)
+	tds.NoError(err)
 
 	const concurrency = 10
 
@@ -687,16 +683,16 @@ func (tds *txdatabaseSuite) TestDataRace() {
 			sql := tx.From("items").Limit(1)
 			var item testActionItem
 			found, err := sql.ScanStruct(&item)
-			assert.NoError(t, err)
-			assert.True(t, found)
-			assert.Equal(t, item.Address, "111 Test Addr")
-			assert.Equal(t, item.Name, "Test1")
+			tds.NoError(err)
+			tds.True(found)
+			tds.Equal(item.Address, "111 Test Addr")
+			tds.Equal(item.Name, "Test1")
 		}()
 	}
 
 	wg.Wait()
 	mock.ExpectCommit()
-	assert.NoError(t, tx.Commit())
+	tds.NoError(tx.Commit())
 }
 
 func TestTxDatabaseSuite(t *testing.T) {

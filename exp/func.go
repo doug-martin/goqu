@@ -46,3 +46,11 @@ func (sfe sqlFunctionExpression) IsTrue() BooleanExpression               { retu
 func (sfe sqlFunctionExpression) IsNotTrue() BooleanExpression            { return isNot(sfe, true) }
 func (sfe sqlFunctionExpression) IsFalse() BooleanExpression              { return is(sfe, false) }
 func (sfe sqlFunctionExpression) IsNotFalse() BooleanExpression           { return isNot(sfe, false) }
+
+func (sfe sqlFunctionExpression) Over(we WindowExpression) SQLWindowFunctionExpression {
+	return NewSQLWindowFunctionExpression(sfe, nil, we)
+}
+
+func (sfe sqlFunctionExpression) OverName(windowName IdentifierExpression) SQLWindowFunctionExpression {
+	return NewSQLWindowFunctionExpression(sfe, windowName, nil)
+}

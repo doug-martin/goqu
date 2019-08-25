@@ -15,6 +15,9 @@ type (
 	TruncateOptions = exp.TruncateOptions
 )
 
+// emptyWindow is an empty WINDOW clause without name
+var emptyWindow = exp.NewWindowExpression(nil, nil, nil, nil)
+
 const (
 	Wait       = exp.Wait
 	NoWait     = exp.NoWait
@@ -114,7 +117,53 @@ func SUM(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("
 //   COALESCE(I("a"), "a") -> COALESCE("a", 'a')
 //   COALESCE(I("a"), I("b"), nil) -> COALESCE("a", "b", NULL)
 func COALESCE(vals ...interface{}) exp.SQLFunctionExpression {
-	return exp.NewSQLFunctionExpression("COALESCE", vals...)
+	return Func("COALESCE", vals...)
+}
+
+// nolint: golint
+func ROW_NUMBER() exp.SQLFunctionExpression {
+	return Func("ROW_NUMBER")
+}
+
+func RANK() exp.SQLFunctionExpression {
+	return Func("RANK")
+}
+
+// nolint: golint
+func DENSE_RANK() exp.SQLFunctionExpression {
+	return Func("DENSE_RANK")
+}
+
+// nolint: golint
+func PERCENT_RANK() exp.SQLFunctionExpression {
+	return Func("PERCENT_RANK")
+}
+
+// nolint: golint
+func CUME_DIST() exp.SQLFunctionExpression {
+	return Func("CUME_DIST")
+}
+
+func NTILE(n int) exp.SQLFunctionExpression {
+	return Func("NTILE", n)
+}
+
+// nolint: golint
+func FIRST_VALUE(val interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc("FIRST_VALUE", val)
+}
+
+// nolint: golint
+func LAST_VALUE(val interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc("LAST_VALUE", val)
+}
+
+// nolint: golint
+func NTH_VALUE(val interface{}, nth int) exp.SQLFunctionExpression {
+	if s, ok := val.(string); ok {
+		val = I(s)
+	}
+	return Func("NTH_VALUE", val, nth)
 }
 
 // Creates a new Identifier, the generated sql will use adapter specific quoting or '"' by default, this ensures case
@@ -163,6 +212,29 @@ func T(table string) exp.IdentifierExpression {
 	return exp.NewIdentifierExpression("", table, "")
 }
 
+// Create a new WINDOW clause
+// 	W() -> ()
+// 	W().PartitionBy("a") -> (PARTITION BY "a")
+// 	W().PartitionBy("a").OrderBy("b") -> (PARTITION BY "a" ORDER BY "b")
+// 	W().PartitionBy("a").OrderBy("b").Inherit("w1") -> ("w1" PARTITION BY "a" ORDER BY "b")
+// 	W().PartitionBy("a").OrderBy(I("b").Desc()).Inherit("w1") -> ("w1" PARTITION BY "a" ORDER BY "b" DESC)
+// 	W("w") -> "w" AS ()
+// 	W("w", "w1") -> "w" AS ("w1")
+// 	W("w").Inherit("w1") -> "w" AS ("w1")
+// 	W("w").PartitionBy("a") -> "w" AS (PARTITION BY "a")
+// 	W("w", "w1").PartitionBy("a") -> "w" AS ("w1" PARTITION BY "a")
+// 	W("w", "w1").PartitionBy("a").OrderBy("b") -> "w" AS ("w1" PARTITION BY "a" ORDER BY "b")
+func W(ws ...string) exp.WindowExpression {
+	switch len(ws) {
+	case 0:
+		return emptyWindow
+	case 1:
+		return exp.NewWindowExpression(I(ws[0]), nil, nil, nil)
+	default:
+		return exp.NewWindowExpression(I(ws[0]), I(ws[1]), nil, nil)
+	}
+}
+
 // Creates a new ON clause to be used within a join
 //    ds.Join(goqu.T("my_table"), goqu.On(
 //       goqu.I("my_table.fkey").Eq(goqu.I("other_table.id")),
@@ -184,12 +256,12 @@ func Using(columns ...interface{}) exp.JoinCondition {
 // Literals can also contain placeholders for other expressions
 //   L("(? AND ?) OR (?)", I("a").Eq(1), I("b").Eq("b"), I("c").In([]string{"a", "b", "c"}))
 func L(sql string, args ...interface{}) exp.LiteralExpression {
-	return exp.NewLiteralExpression(sql, args...)
+	return Literal(sql, args...)
 }
 
 // Alias for goqu.L
 func Literal(sql string, args ...interface{}) exp.LiteralExpression {
-	return L(sql, args...)
+	return exp.NewLiteralExpression(sql, args...)
 }
 
 // Create a new SQL value ( alias for goqu.L("?", val) ). The prrimary use case for this would be in selects.

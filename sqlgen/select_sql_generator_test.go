@@ -89,6 +89,54 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_WithErroredBuilder() {
 	ssgs.assertErrorSQL(b, `goqu: test error`)
 }
 
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withSelectedColumns() {
+	opts := DefaultDialectOptions()
+	// make sure the fragments are used
+	opts.SelectClause = []byte("select")
+	opts.StarRune = '#'
+	opts.SupportsDistinctOn = true
+
+	sc := exp.NewSelectClauses()
+	scCols := sc.SetSelect(exp.NewColumnListExpression("a", "b"))
+	scFuncs := sc.SetSelect(exp.NewColumnListExpression(
+		exp.NewSQLFunctionExpression("COUNT", exp.Star()),
+		exp.NewSQLFunctionExpression("RANK"),
+	))
+
+	we := exp.NewWindowExpression(
+		nil,
+		nil,
+		exp.NewColumnListExpression("a", "b"),
+		exp.NewOrderedColumnList(exp.ParseIdentifier("c").Asc()),
+	)
+	scFuncsPartition := sc.SetSelect(exp.NewColumnListExpression(
+		exp.NewSQLFunctionExpression("COUNT", exp.Star()).Over(we),
+		exp.NewSQLFunctionExpression("RANK").Over(we.Inherit("w")),
+	))
+
+	ssgs.assertCases(
+		NewSelectSQLGenerator("test", opts),
+		selectTestCase{clause: sc, sql: `select #`},
+		selectTestCase{clause: sc, sql: `select #`, isPrepared: true},
+
+		selectTestCase{clause: scCols, sql: `select "a", "b"`},
+		selectTestCase{clause: scCols, sql: `select "a", "b"`, isPrepared: true},
+
+		selectTestCase{clause: scFuncs, sql: `select COUNT(*), RANK()`},
+		selectTestCase{clause: scFuncs, sql: `select COUNT(*), RANK()`, isPrepared: true},
+
+		selectTestCase{
+			clause: scFuncsPartition,
+			sql:    `select COUNT(*) OVER (PARTITION BY "a", "b" ORDER BY "c" ASC), RANK() OVER ("w" PARTITION BY "a", "b" ORDER BY "c" ASC)`,
+		},
+		selectTestCase{
+			clause:     scFuncsPartition,
+			sql:        `select COUNT(*) OVER (PARTITION BY "a", "b" ORDER BY "c" ASC), RANK() OVER ("w" PARTITION BY "a", "b" ORDER BY "c" ASC)`,
+			isPrepared: true,
+		},
+	)
+}
+
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withDistinct() {
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
@@ -260,6 +308,131 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withHaving() {
 			isPrepared: true,
 			args:       []interface{}{"b", "c"},
 		},
+	)
+}
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withWindow() {
+	opts := DefaultDialectOptions()
+	opts.WindowFragment = []byte(" window ")
+	opts.WindowPartitionByFragment = []byte("partition by ")
+	opts.WindowOrderByFragment = []byte("order by ")
+
+	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test"))
+	we1 := exp.NewWindowExpression(
+		exp.NewIdentifierExpression("", "", "w"),
+		nil,
+		nil,
+		nil,
+	)
+	wePartitionBy := we1.PartitionBy("a", "b")
+	weOrderBy := we1.OrderBy("a", "b")
+
+	weOrderAndPartitionBy := we1.PartitionBy("a", "b").OrderBy("a", "b")
+
+	weInherits := exp.NewWindowExpression(
+		exp.NewIdentifierExpression("", "", "w2"),
+		exp.NewIdentifierExpression("", "", "w"),
+		nil,
+		nil,
+	)
+	weInheritsPartitionBy := weInherits.PartitionBy("c", "d")
+	weInheritsOrderBy := weInherits.OrderBy("c", "d")
+
+	weInheritsOrderAndPartitionBy := weInherits.PartitionBy("c", "d").OrderBy("c", "d")
+
+	scNoName := sc.WindowsAppend(exp.NewWindowExpression(nil, nil, nil, nil))
+
+	scWindow1 := sc.WindowsAppend(we1)
+	scWindow2 := sc.WindowsAppend(wePartitionBy)
+	scWindow3 := sc.WindowsAppend(weOrderBy)
+	scWindow4 := sc.WindowsAppend(weOrderAndPartitionBy)
+
+	scWindow5 := sc.WindowsAppend(we1, weInherits)
+	scWindow6 := sc.WindowsAppend(we1, weInheritsPartitionBy)
+	scWindow7 := sc.WindowsAppend(we1, weInheritsOrderBy)
+	scWindow8 := sc.WindowsAppend(we1, weInheritsOrderAndPartitionBy)
+
+	ssgs.assertCases(
+		NewSelectSQLGenerator("test", opts),
+
+		selectTestCase{clause: scNoName, err: errNoWindowName.Error()},
+		selectTestCase{clause: scNoName, err: errNoWindowName.Error(), isPrepared: true},
+
+		selectTestCase{clause: scWindow1, sql: `SELECT * FROM "test" window "w" AS ()`},
+		selectTestCase{clause: scWindow1, sql: `SELECT * FROM "test" window "w" AS ()`, isPrepared: true},
+
+		selectTestCase{clause: scWindow2, sql: `SELECT * FROM "test" window "w" AS (partition by "a", "b")`},
+		selectTestCase{
+			clause:     scWindow2,
+			sql:        `SELECT * FROM "test" window "w" AS (partition by "a", "b")`,
+			isPrepared: true,
+		},
+
+		selectTestCase{clause: scWindow3, sql: `SELECT * FROM "test" window "w" AS (order by "a", "b")`},
+		selectTestCase{
+			clause:     scWindow3,
+			sql:        `SELECT * FROM "test" window "w" AS (order by "a", "b")`,
+			isPrepared: true,
+		},
+
+		selectTestCase{
+			clause: scWindow4,
+			sql:    `SELECT * FROM "test" window "w" AS (partition by "a", "b" order by "a", "b")`,
+		},
+		selectTestCase{
+			clause:     scWindow4,
+			sql:        `SELECT * FROM "test" window "w" AS (partition by "a", "b" order by "a", "b")`,
+			isPrepared: true,
+		},
+
+		selectTestCase{
+			clause: scWindow5,
+			sql:    `SELECT * FROM "test" window "w" AS (), "w2" AS ("w")`,
+		},
+		selectTestCase{
+			clause:     scWindow5,
+			sql:        `SELECT * FROM "test" window "w" AS (), "w2" AS ("w")`,
+			isPrepared: true,
+		},
+
+		selectTestCase{
+			clause: scWindow6,
+			sql:    `SELECT * FROM "test" window "w" AS (), "w2" AS ("w" partition by "c", "d")`,
+		},
+		selectTestCase{
+			clause:     scWindow6,
+			sql:        `SELECT * FROM "test" window "w" AS (), "w2" AS ("w" partition by "c", "d")`,
+			isPrepared: true,
+		},
+
+		selectTestCase{
+			clause: scWindow7,
+			sql:    `SELECT * FROM "test" window "w" AS (), "w2" AS ("w" order by "c", "d")`,
+		},
+		selectTestCase{
+			clause:     scWindow7,
+			sql:        `SELECT * FROM "test" window "w" AS (), "w2" AS ("w" order by "c", "d")`,
+			isPrepared: true,
+		},
+
+		selectTestCase{
+			clause: scWindow8,
+			sql:    `SELECT * FROM "test" window "w" AS (), "w2" AS ("w" partition by "c", "d" order by "c", "d")`,
+		},
+		selectTestCase{
+			clause:     scWindow8,
+			sql:        `SELECT * FROM "test" window "w" AS (), "w2" AS ("w" partition by "c", "d" order by "c", "d")`,
+			isPrepared: true,
+		},
+	)
+
+	opts = DefaultDialectOptions()
+	opts.SupportsWindowFunction = false
+	ssgs.assertCases(
+		NewSelectSQLGenerator("test", opts),
+
+		selectTestCase{clause: scWindow1, err: errWindowNotSupported("test").Error()},
+		selectTestCase{clause: scWindow1, err: errWindowNotSupported("test").Error(), isPrepared: true},
 	)
 }
 
