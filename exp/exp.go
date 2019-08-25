@@ -341,6 +341,11 @@ type (
 		End() interface{}
 	}
 
+	Windowable interface {
+		Over(WindowExpression) SQLWindowFunctionExpression
+		OverName(IdentifierExpression) SQLWindowFunctionExpression
+	}
+
 	// Expression for representing a SQLFunction(e.g. COUNT, SUM, MIN, MAX...)
 	SQLFunctionExpression interface {
 		Expression
@@ -350,6 +355,7 @@ type (
 		Isable
 		Inable
 		Likeable
+		Windowable
 		// The function name
 		Name() string
 		// Arguments to be passed to the function
@@ -362,13 +368,17 @@ type (
 	}
 
 	SQLWindowFunctionExpression interface {
-		SQLFunctionExpression
+		Expression
+		Aliaseable
+		Rangeable
+		Comparable
+		Isable
+		Inable
+		Likeable
+		Func() SQLFunctionExpression
 
 		Window() WindowExpression
-		WindowName() string
-
-		Over(WindowExpression) SQLWindowFunctionExpression
-		OverName(string) SQLWindowFunctionExpression
+		WindowName() IdentifierExpression
 
 		HasWindow() bool
 		HasWindowName() bool
@@ -377,11 +387,15 @@ type (
 	WindowExpression interface {
 		Expression
 
-		Name() string
+		Name() IdentifierExpression
+		HasName() bool
 
-		Parent() string
+		Parent() IdentifierExpression
+		HasParent() bool
 		PartitionCols() ColumnListExpression
+		HasPartitionBy() bool
 		OrderCols() ColumnListExpression
+		HasOrder() bool
 
 		Inherit(parent string) WindowExpression
 		PartitionBy(cols ...interface{}) WindowExpression

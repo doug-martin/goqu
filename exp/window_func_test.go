@@ -3,184 +3,179 @@ package exp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
 type sqlWindowFunctionExpressionTest struct {
 	suite.Suite
+	fn SQLFunctionExpression
 }
 
 func TestSQLWindowFunctionExpressionSuite(t *testing.T) {
-	suite.Run(t, new(sqlWindowFunctionExpressionTest))
+	suite.Run(t, &sqlWindowFunctionExpressionTest{
+		fn: NewSQLFunctionExpression("COUNT", Star()),
+	})
 }
 
 func (swfet *sqlWindowFunctionExpressionTest) TestClone() {
-	t := swfet.T()
-	wf := NewSQLWindowFunctionExpression("f1", "a")
+	wf := NewSQLWindowFunctionExpression(swfet.fn, NewIdentifierExpression("", "", "a"), nil)
 	wf2 := wf.Clone()
-	assert.Equal(t, wf, wf2)
+	swfet.Equal(wf, wf2)
 }
 
 func (swfet *sqlWindowFunctionExpressionTest) TestExpression() {
-	t := swfet.T()
-	wf := NewSQLWindowFunctionExpression("f1", "a")
+	wf := NewSQLWindowFunctionExpression(swfet.fn, NewIdentifierExpression("", "", "a"), nil)
 	wf2 := wf.Expression()
-	assert.Equal(t, wf, wf2)
+	swfet.Equal(wf, wf2)
 }
 
-func (swfet *sqlWindowFunctionExpressionTest) TestName() {
-	t := swfet.T()
-	wf := NewSQLWindowFunctionExpression("f1", "a")
-	assert.Equal(t, wf.Name(), "f1")
-}
-
-func (swfet *sqlWindowFunctionExpressionTest) TestArgs() {
-	t := swfet.T()
-	wf := NewSQLWindowFunctionExpression("f1", "a")
-	assert.Equal(t, wf.Args(), []interface{}{"a"})
+func (swfet *sqlWindowFunctionExpressionTest) TestFunc() {
+	wf := NewSQLWindowFunctionExpression(swfet.fn, NewIdentifierExpression("", "", "a"), nil)
+	swfet.Equal(swfet.fn, wf.Func())
 }
 
 func (swfet *sqlWindowFunctionExpressionTest) TestWindow() {
-	t := swfet.T()
-	w := NewWindowExpression("w", "", nil, nil)
-	wf := NewSQLWindowFunctionExpression("f1", "a")
-	assert.False(t, wf.HasWindow())
+	w := NewWindowExpression(
+		NewIdentifierExpression("", "", "w"),
+		nil,
+		nil,
+		nil,
+	)
+	wf := NewSQLWindowFunctionExpression(swfet.fn, NewIdentifierExpression("", "", "a"), nil)
+	swfet.False(wf.HasWindow())
 
-	wf = wf.Over(w)
-	assert.True(t, wf.HasWindow())
-	assert.Equal(t, wf.Window(), w)
+	wf = swfet.fn.Over(w)
+	swfet.True(wf.HasWindow())
+	swfet.Equal(wf.Window(), w)
 }
 
 func (swfet *sqlWindowFunctionExpressionTest) TestWindowName() {
-	t := swfet.T()
-	windowName := "w"
-	wf := NewSQLWindowFunctionExpression("f1", "a")
-	assert.False(t, wf.HasWindowName())
+	windowName := NewIdentifierExpression("", "", "a")
+	wf := NewSQLWindowFunctionExpression(swfet.fn, nil, nil)
+	swfet.False(wf.HasWindowName())
 
-	wf = wf.OverName(windowName)
-	assert.True(t, wf.HasWindowName())
-	assert.Equal(t, wf.WindowName(), windowName)
+	wf = swfet.fn.OverName(windowName)
+	swfet.True(wf.HasWindowName())
+	swfet.Equal(wf.WindowName(), windowName)
 }
 
 func (swfet *sqlWindowFunctionExpressionTest) TestAllOthers() {
-	t := swfet.T()
-	wf := NewSQLWindowFunctionExpression("f1", "a")
+	wf := NewSQLWindowFunctionExpression(swfet.fn, nil, nil)
 
 	expAs := wf.As("a")
-	assert.Equal(t, expAs.Aliased(), wf)
+	swfet.Equal(expAs.Aliased(), wf)
 
 	expEq := wf.Eq(1)
-	assert.Equal(t, expEq.LHS(), wf)
-	assert.Equal(t, expEq.Op(), EqOp)
-	assert.Equal(t, expEq.RHS(), 1)
+	swfet.Equal(expEq.LHS(), wf)
+	swfet.Equal(expEq.Op(), EqOp)
+	swfet.Equal(expEq.RHS(), 1)
 
 	expNeq := wf.Neq(1)
-	assert.Equal(t, expNeq.LHS(), wf)
-	assert.Equal(t, expNeq.Op(), NeqOp)
-	assert.Equal(t, expNeq.RHS(), 1)
+	swfet.Equal(expNeq.LHS(), wf)
+	swfet.Equal(expNeq.Op(), NeqOp)
+	swfet.Equal(expNeq.RHS(), 1)
 
 	expGt := wf.Gt(1)
-	assert.Equal(t, expGt.LHS(), wf)
-	assert.Equal(t, expGt.Op(), GtOp)
-	assert.Equal(t, expGt.RHS(), 1)
+	swfet.Equal(expGt.LHS(), wf)
+	swfet.Equal(expGt.Op(), GtOp)
+	swfet.Equal(expGt.RHS(), 1)
 
 	expGte := wf.Gte(1)
-	assert.Equal(t, expGte.LHS(), wf)
-	assert.Equal(t, expGte.Op(), GteOp)
-	assert.Equal(t, expGte.RHS(), 1)
+	swfet.Equal(expGte.LHS(), wf)
+	swfet.Equal(expGte.Op(), GteOp)
+	swfet.Equal(expGte.RHS(), 1)
 
 	expLt := wf.Lt(1)
-	assert.Equal(t, expLt.LHS(), wf)
-	assert.Equal(t, expLt.Op(), LtOp)
-	assert.Equal(t, expLt.RHS(), 1)
+	swfet.Equal(expLt.LHS(), wf)
+	swfet.Equal(expLt.Op(), LtOp)
+	swfet.Equal(expLt.RHS(), 1)
 
 	expLte := wf.Lte(1)
-	assert.Equal(t, expLte.LHS(), wf)
-	assert.Equal(t, expLte.Op(), LteOp)
-	assert.Equal(t, expLte.RHS(), 1)
+	swfet.Equal(expLte.LHS(), wf)
+	swfet.Equal(expLte.Op(), LteOp)
+	swfet.Equal(expLte.RHS(), 1)
 
 	rv := NewRangeVal(1, 2)
 	expBetween := wf.Between(rv)
-	assert.Equal(t, expBetween.LHS(), wf)
-	assert.Equal(t, expBetween.Op(), BetweenOp)
-	assert.Equal(t, expBetween.RHS(), rv)
+	swfet.Equal(expBetween.LHS(), wf)
+	swfet.Equal(expBetween.Op(), BetweenOp)
+	swfet.Equal(expBetween.RHS(), rv)
 
 	expNotBetween := wf.NotBetween(rv)
-	assert.Equal(t, expNotBetween.LHS(), wf)
-	assert.Equal(t, expNotBetween.Op(), NotBetweenOp)
-	assert.Equal(t, expNotBetween.RHS(), rv)
+	swfet.Equal(expNotBetween.LHS(), wf)
+	swfet.Equal(expNotBetween.Op(), NotBetweenOp)
+	swfet.Equal(expNotBetween.RHS(), rv)
 
 	pattern := "a%"
 	expLike := wf.Like(pattern)
-	assert.Equal(t, expLike.LHS(), wf)
-	assert.Equal(t, expLike.Op(), LikeOp)
-	assert.Equal(t, expLike.RHS(), pattern)
+	swfet.Equal(expLike.LHS(), wf)
+	swfet.Equal(expLike.Op(), LikeOp)
+	swfet.Equal(expLike.RHS(), pattern)
 
 	expNotLike := wf.NotLike(pattern)
-	assert.Equal(t, expNotLike.LHS(), wf)
-	assert.Equal(t, expNotLike.Op(), NotLikeOp)
-	assert.Equal(t, expNotLike.RHS(), pattern)
+	swfet.Equal(expNotLike.LHS(), wf)
+	swfet.Equal(expNotLike.Op(), NotLikeOp)
+	swfet.Equal(expNotLike.RHS(), pattern)
 
 	expILike := wf.ILike(pattern)
-	assert.Equal(t, expILike.LHS(), wf)
-	assert.Equal(t, expILike.Op(), ILikeOp)
-	assert.Equal(t, expILike.RHS(), pattern)
+	swfet.Equal(expILike.LHS(), wf)
+	swfet.Equal(expILike.Op(), ILikeOp)
+	swfet.Equal(expILike.RHS(), pattern)
 
 	expNotILike := wf.NotILike(pattern)
-	assert.Equal(t, expNotILike.LHS(), wf)
-	assert.Equal(t, expNotILike.Op(), NotILikeOp)
-	assert.Equal(t, expNotILike.RHS(), pattern)
+	swfet.Equal(expNotILike.LHS(), wf)
+	swfet.Equal(expNotILike.Op(), NotILikeOp)
+	swfet.Equal(expNotILike.RHS(), pattern)
 
 	vals := []interface{}{1, 2}
 	expIn := wf.In(vals)
-	assert.Equal(t, expIn.LHS(), wf)
-	assert.Equal(t, expIn.Op(), InOp)
-	assert.Equal(t, expIn.RHS(), vals)
+	swfet.Equal(expIn.LHS(), wf)
+	swfet.Equal(expIn.Op(), InOp)
+	swfet.Equal(expIn.RHS(), vals)
 
 	expNotIn := wf.NotIn(vals)
-	assert.Equal(t, expNotIn.LHS(), wf)
-	assert.Equal(t, expNotIn.Op(), NotInOp)
-	assert.Equal(t, expNotIn.RHS(), vals)
+	swfet.Equal(expNotIn.LHS(), wf)
+	swfet.Equal(expNotIn.Op(), NotInOp)
+	swfet.Equal(expNotIn.RHS(), vals)
 
 	obj := 1
 	expIs := wf.Is(obj)
-	assert.Equal(t, expIs.LHS(), wf)
-	assert.Equal(t, expIs.Op(), IsOp)
-	assert.Equal(t, expIs.RHS(), obj)
+	swfet.Equal(expIs.LHS(), wf)
+	swfet.Equal(expIs.Op(), IsOp)
+	swfet.Equal(expIs.RHS(), obj)
 
 	expIsNot := wf.IsNot(obj)
-	assert.Equal(t, expIsNot.LHS(), wf)
-	assert.Equal(t, expIsNot.Op(), IsNotOp)
-	assert.Equal(t, expIsNot.RHS(), obj)
+	swfet.Equal(expIsNot.LHS(), wf)
+	swfet.Equal(expIsNot.Op(), IsNotOp)
+	swfet.Equal(expIsNot.RHS(), obj)
 
 	expIsNull := wf.IsNull()
-	assert.Equal(t, expIsNull.LHS(), wf)
-	assert.Equal(t, expIsNull.Op(), IsOp)
-	assert.Nil(t, expIsNull.RHS())
+	swfet.Equal(expIsNull.LHS(), wf)
+	swfet.Equal(expIsNull.Op(), IsOp)
+	swfet.Nil(expIsNull.RHS())
 
 	expIsNotNull := wf.IsNotNull()
-	assert.Equal(t, expIsNotNull.LHS(), wf)
-	assert.Equal(t, expIsNotNull.Op(), IsNotOp)
-	assert.Nil(t, expIsNotNull.RHS())
+	swfet.Equal(expIsNotNull.LHS(), wf)
+	swfet.Equal(expIsNotNull.Op(), IsNotOp)
+	swfet.Nil(expIsNotNull.RHS())
 
 	expIsTrue := wf.IsTrue()
-	assert.Equal(t, expIsTrue.LHS(), wf)
-	assert.Equal(t, expIsTrue.Op(), IsOp)
-	assert.Equal(t, expIsTrue.RHS(), true)
+	swfet.Equal(expIsTrue.LHS(), wf)
+	swfet.Equal(expIsTrue.Op(), IsOp)
+	swfet.Equal(expIsTrue.RHS(), true)
 
 	expIsNotTrue := wf.IsNotTrue()
-	assert.Equal(t, expIsNotTrue.LHS(), wf)
-	assert.Equal(t, expIsNotTrue.Op(), IsNotOp)
-	assert.Equal(t, expIsNotTrue.RHS(), true)
+	swfet.Equal(expIsNotTrue.LHS(), wf)
+	swfet.Equal(expIsNotTrue.Op(), IsNotOp)
+	swfet.Equal(expIsNotTrue.RHS(), true)
 
 	expIsFalse := wf.IsFalse()
-	assert.Equal(t, expIsFalse.LHS(), wf)
-	assert.Equal(t, expIsFalse.Op(), IsOp)
-	assert.Equal(t, expIsFalse.RHS(), false)
+	swfet.Equal(expIsFalse.LHS(), wf)
+	swfet.Equal(expIsFalse.Op(), IsOp)
+	swfet.Equal(expIsFalse.RHS(), false)
 
 	expIsNotFalse := wf.IsNotFalse()
-	assert.Equal(t, expIsNotFalse.LHS(), wf)
-	assert.Equal(t, expIsNotFalse.Op(), IsNotOp)
-	assert.Equal(t, expIsNotFalse.RHS(), false)
+	swfet.Equal(expIsNotFalse.LHS(), wf)
+	swfet.Equal(expIsNotFalse.Op(), IsNotOp)
+	swfet.Equal(expIsNotFalse.RHS(), false)
 }

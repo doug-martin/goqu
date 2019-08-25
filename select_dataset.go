@@ -497,8 +497,18 @@ func (sd *SelectDataset) As(alias string) *SelectDataset {
 }
 
 // Sets the WINDOW clauses
-func (sd *SelectDataset) Windows(ws ...exp.WindowExpression) *SelectDataset {
+func (sd *SelectDataset) Window(ws ...exp.WindowExpression) *SelectDataset {
 	return sd.copy(sd.clauses.SetWindows(ws))
+}
+
+// Sets the WINDOW clauses
+func (sd *SelectDataset) WindowAppend(ws ...exp.WindowExpression) *SelectDataset {
+	return sd.copy(sd.clauses.WindowsAppend(ws...))
+}
+
+// Sets the WINDOW clauses
+func (sd *SelectDataset) ClearWindow() *SelectDataset {
+	return sd.copy(sd.clauses.ClearWindows())
 }
 
 // Generates a SELECT sql statement, if Prepared has been called with true then the parameters will not be interpolated.

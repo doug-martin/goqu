@@ -1713,38 +1713,28 @@ func ExampleVals() {
 
 func ExampleW() {
 	ds := goqu.From("test").
-		Select(
-			goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())),
-		)
+		Select(goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())))
 	query, args, _ := ds.ToSQL()
 	fmt.Println(query, args)
 
 	ds = goqu.From("test").
-		Select(
-			goqu.ROW_NUMBER().OverName("w"),
-		).
-		Windows(
-			goqu.W("w").PartitionBy("a").OrderBy(goqu.I("b").Asc()),
-		)
+		Select(goqu.ROW_NUMBER().OverName(goqu.I("w"))).
+		Window(goqu.W("w").PartitionBy("a").OrderBy(goqu.I("b").Asc()))
 	query, args, _ = ds.ToSQL()
 	fmt.Println(query, args)
 
 	ds = goqu.From("test").
-		Select(
-			goqu.ROW_NUMBER().OverName("w1"),
-		).
-		Windows(
+		Select(goqu.ROW_NUMBER().OverName(goqu.I("w1"))).
+		Window(
 			goqu.W("w1").PartitionBy("a"),
 			goqu.W("w").Inherit("w1").OrderBy(goqu.I("b").Asc()),
 		)
 	query, args, _ = ds.ToSQL()
 	fmt.Println(query, args)
 
-	ds = goqu.From("test").Select(
-		goqu.ROW_NUMBER().Over(goqu.W().Inherit("w").OrderBy("b")),
-	).Windows(
-		goqu.W("w").PartitionBy("a"),
-	)
+	ds = goqu.From("test").
+		Select(goqu.ROW_NUMBER().Over(goqu.W().Inherit("w").OrderBy("b"))).
+		Window(goqu.W("w").PartitionBy("a"))
 	query, args, _ = ds.ToSQL()
 	fmt.Println(query, args)
 	// Output

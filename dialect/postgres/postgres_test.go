@@ -414,6 +414,28 @@ func (pt *postgresTest) TestInsert_OnConflict() {
 	pt.Equal("upsert", entry9.String)
 }
 
+func (pt *postgresTest) TestWindowFunction() {
+	ds := pt.db.From("entry").
+		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).
+		Window(goqu.W("w").OrderBy(goqu.I("int").Desc()))
+
+	var entries []entry
+	pt.NoError(ds.ScanStructs(&entries))
+
+	pt.Equal([]entry{
+		{Int: 9, ID: 1},
+		{Int: 8, ID: 2},
+		{Int: 7, ID: 3},
+		{Int: 6, ID: 4},
+		{Int: 5, ID: 5},
+		{Int: 4, ID: 6},
+		{Int: 3, ID: 7},
+		{Int: 2, ID: 8},
+		{Int: 1, ID: 9},
+		{Int: 0, ID: 10},
+	}, entries)
+}
+
 func TestPostgresSuite(t *testing.T) {
 	suite.Run(t, new(postgresTest))
 }

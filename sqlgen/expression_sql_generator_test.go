@@ -706,6 +706,130 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLFunctionExpression() {
 	)
 }
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLWindowFunctionExpression() {
+	sqlWinFunc := exp.NewSQLWindowFunctionExpression(
+		exp.NewSQLFunctionExpression("some_func"),
+		nil,
+		exp.NewWindowExpression(
+			nil,
+			exp.NewIdentifierExpression("", "", "win"),
+			nil,
+			nil,
+		),
+	)
+	sqlWinFuncFromWindow := exp.NewSQLWindowFunctionExpression(
+		exp.NewSQLFunctionExpression("some_func"),
+		exp.NewIdentifierExpression("", "", "win"),
+		nil,
+	)
+
+	emptyWinFunc := exp.NewSQLWindowFunctionExpression(
+		exp.NewSQLFunctionExpression("some_func"),
+		nil,
+		nil,
+	)
+	badNamedSQLWinFuncInherit := exp.NewSQLWindowFunctionExpression(
+		exp.NewSQLFunctionExpression("some_func"),
+		nil,
+		exp.NewWindowExpression(
+			exp.NewIdentifierExpression("", "", "w"),
+			nil,
+			nil,
+			nil,
+		),
+	)
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		expressionTestCase{val: sqlWinFunc, sql: `some_func() OVER ("win")`},
+		expressionTestCase{val: sqlWinFunc, sql: `some_func() OVER ("win")`, isPrepared: true},
+
+		expressionTestCase{val: sqlWinFuncFromWindow, sql: `some_func() OVER "win"`},
+		expressionTestCase{val: sqlWinFuncFromWindow, sql: `some_func() OVER "win"`, isPrepared: true},
+
+		expressionTestCase{val: emptyWinFunc, sql: `some_func() OVER ()`},
+		expressionTestCase{val: emptyWinFunc, sql: `some_func() OVER ()`, isPrepared: true},
+
+		expressionTestCase{val: badNamedSQLWinFuncInherit, err: errUnexpectedNamedWindow.Error()},
+		expressionTestCase{val: badNamedSQLWinFuncInherit, err: errUnexpectedNamedWindow.Error(), isPrepared: true},
+	)
+	opts := DefaultDialectOptions()
+	opts.SupportsWindowFunction = false
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: sqlWinFunc, err: errWindowNotSupported("test").Error()},
+		expressionTestCase{val: sqlWinFunc, err: errWindowNotSupported("test").Error(), isPrepared: true},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_WindowExpression() {
+	opts := DefaultDialectOptions()
+	opts.WindowPartitionByFragment = []byte("partition by ")
+	opts.WindowOrderByFragment = []byte("order by ")
+
+	emptySQLWinFunc := exp.NewWindowExpression(nil, nil, nil, nil)
+	namedSQLWinFunc := exp.NewWindowExpression(
+		exp.NewIdentifierExpression("", "", "w"), nil, nil, nil,
+	)
+	inheritSQLWinFunc := exp.NewWindowExpression(
+		nil, exp.NewIdentifierExpression("", "", "w"), nil, nil,
+	)
+	partitionBySQLWinFunc := exp.NewWindowExpression(
+		nil, nil, exp.NewColumnListExpression("a", "b"), nil,
+	)
+	orderBySQLWinFunc := exp.NewWindowExpression(
+		nil, nil, nil, exp.NewOrderedColumnList(
+			exp.NewIdentifierExpression("", "", "a").Asc(),
+			exp.NewIdentifierExpression("", "", "b").Desc(),
+		),
+	)
+
+	namedInheritPartitionOrderSQLWinFunc := exp.NewWindowExpression(
+		exp.NewIdentifierExpression("", "", "w1"),
+		exp.NewIdentifierExpression("", "", "w2"),
+		exp.NewColumnListExpression("a", "b"),
+		exp.NewOrderedColumnList(
+			exp.NewIdentifierExpression("", "", "a").Asc(),
+			exp.NewIdentifierExpression("", "", "b").Desc(),
+		),
+	)
+
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: emptySQLWinFunc, sql: `()`},
+		expressionTestCase{val: emptySQLWinFunc, sql: `()`, isPrepared: true},
+
+		expressionTestCase{val: namedSQLWinFunc, sql: `"w" AS ()`},
+		expressionTestCase{val: namedSQLWinFunc, sql: `"w" AS ()`, isPrepared: true},
+
+		expressionTestCase{val: inheritSQLWinFunc, sql: `("w")`},
+		expressionTestCase{val: inheritSQLWinFunc, sql: `("w")`, isPrepared: true},
+
+		expressionTestCase{val: partitionBySQLWinFunc, sql: `(partition by "a", "b")`},
+		expressionTestCase{val: partitionBySQLWinFunc, sql: `(partition by "a", "b")`, isPrepared: true},
+
+		expressionTestCase{val: orderBySQLWinFunc, sql: `(order by "a" ASC, "b" DESC)`},
+		expressionTestCase{val: orderBySQLWinFunc, sql: `(order by "a" ASC, "b" DESC)`, isPrepared: true},
+
+		expressionTestCase{
+			val: namedInheritPartitionOrderSQLWinFunc,
+			sql: `"w1" AS ("w2" partition by "a", "b" order by "a" ASC, "b" DESC)`,
+		},
+		expressionTestCase{
+			val:        namedInheritPartitionOrderSQLWinFunc,
+			sql:        `"w1" AS ("w2" partition by "a", "b" order by "a" ASC, "b" DESC)`,
+			isPrepared: true,
+		},
+	)
+
+	opts = DefaultDialectOptions()
+	opts.SupportsWindowFunction = false
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: emptySQLWinFunc, err: errWindowNotSupported("test").Error()},
+		expressionTestCase{val: emptySQLWinFunc, err: errWindowNotSupported("test").Error(), isPrepared: true},
+	)
+}
+
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_CastExpression() {
 	cast := exp.NewIdentifierExpression("", "", "a").Cast("DATE")
 	esgs.assertCases(

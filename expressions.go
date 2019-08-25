@@ -16,7 +16,7 @@ type (
 )
 
 // emptyWindow is an empty WINDOW clause without name
-var emptyWindow = exp.NewWindowExpression("", "", nil, nil)
+var emptyWindow = exp.NewWindowExpression(nil, nil, nil, nil)
 
 const (
 	Wait       = exp.Wait
@@ -72,19 +72,6 @@ func newIdentifierFunc(name string, col interface{}) exp.SQLFunctionExpression {
 	return Func(name, col)
 }
 
-// Create a new SQLWindowFunctionExpression with the given name and arguments
-func WFunc(name string, args ...interface{}) exp.SQLWindowFunctionExpression {
-	return exp.NewSQLWindowFunctionExpression(name, args...)
-}
-
-// used internally to normalize the column name if passed in as a string it should be turned into an identifier
-func newIdentifierWinFunc(name string, col interface{}) exp.SQLWindowFunctionExpression {
-	if s, ok := col.(string); ok {
-		col = I(s)
-	}
-	return WFunc(name, col)
-}
-
 // Creates a new DISTINCT sql function
 //   DISTINCT("a") -> DISTINCT("a")
 //   DISTINCT(I("a")) -> DISTINCT("a")
@@ -130,46 +117,53 @@ func SUM(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("
 //   COALESCE(I("a"), "a") -> COALESCE("a", 'a')
 //   COALESCE(I("a"), I("b"), nil) -> COALESCE("a", "b", NULL)
 func COALESCE(vals ...interface{}) exp.SQLFunctionExpression {
-	return exp.NewSQLFunctionExpression("COALESCE", vals...)
+	return Func("COALESCE", vals...)
 }
 
-func ROW_NUMBER() exp.SQLWindowFunctionExpression {
-	return WFunc("ROW_NUMBER")
+// nolint: golint
+func ROW_NUMBER() exp.SQLFunctionExpression {
+	return Func("ROW_NUMBER")
 }
 
-func RANK() exp.SQLWindowFunctionExpression {
-	return WFunc("RANK")
+func RANK() exp.SQLFunctionExpression {
+	return Func("RANK")
 }
 
-func DENSE_RANK() exp.SQLWindowFunctionExpression {
-	return WFunc("DENSE_RANK")
+// nolint: golint
+func DENSE_RANK() exp.SQLFunctionExpression {
+	return Func("DENSE_RANK")
 }
 
-func PERCENT_RANK() exp.SQLWindowFunctionExpression {
-	return WFunc("PERCENT_RANK")
+// nolint: golint
+func PERCENT_RANK() exp.SQLFunctionExpression {
+	return Func("PERCENT_RANK")
 }
 
-func CUME_DIST() exp.SQLWindowFunctionExpression {
-	return WFunc("CUME_DIST")
+// nolint: golint
+func CUME_DIST() exp.SQLFunctionExpression {
+	return Func("CUME_DIST")
 }
 
-func NTILE(n int) exp.SQLWindowFunctionExpression {
-	return newIdentifierWinFunc("NTILE", n)
+func NTILE(n int) exp.SQLFunctionExpression {
+	return Func("NTILE", n)
 }
 
-func FIRST_VALUE(val interface{}) exp.SQLWindowFunctionExpression {
-	return newIdentifierWinFunc("FIRST_VALUE", val)
+// nolint: golint
+func FIRST_VALUE(val interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc("FIRST_VALUE", val)
 }
 
-func LAST_VALUE(val interface{}) exp.SQLWindowFunctionExpression {
-	return newIdentifierWinFunc("LAST_VALUE", val)
+// nolint: golint
+func LAST_VALUE(val interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc("LAST_VALUE", val)
 }
 
-func NTH_VALUE(val interface{}, nth int) exp.SQLWindowFunctionExpression {
+// nolint: golint
+func NTH_VALUE(val interface{}, nth int) exp.SQLFunctionExpression {
 	if s, ok := val.(string); ok {
 		val = I(s)
 	}
-	return WFunc("NTH_VALUE", val, nth)
+	return Func("NTH_VALUE", val, nth)
 }
 
 // Creates a new Identifier, the generated sql will use adapter specific quoting or '"' by default, this ensures case
@@ -231,13 +225,14 @@ func T(table string) exp.IdentifierExpression {
 // 	W("w", "w1").PartitionBy("a") -> "w" AS ("w1" PARTITION BY "a")
 // 	W("w", "w1").PartitionBy("a").OrderBy("b") -> "w" AS ("w1" PARTITION BY "a" ORDER BY "b")
 func W(ws ...string) exp.WindowExpression {
-	if l := len(ws); l > 0 {
-		if l == 1 {
-			return exp.NewWindowExpression(ws[0], "", nil, nil)
-		}
-		return exp.NewWindowExpression(ws[0], ws[1], nil, nil)
+	switch len(ws) {
+	case 0:
+		return emptyWindow
+	case 1:
+		return exp.NewWindowExpression(I(ws[0]), nil, nil, nil)
+	default:
+		return exp.NewWindowExpression(I(ws[0]), I(ws[1]), nil, nil)
 	}
-	return emptyWindow
 }
 
 // Creates a new ON clause to be used within a join

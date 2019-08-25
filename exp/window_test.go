@@ -3,7 +3,6 @@ package exp
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -16,75 +15,69 @@ func TestWindowExpressionSuite(t *testing.T) {
 }
 
 func (wet *windowExpressionTest) TestClone() {
-	t := wet.T()
-	w := NewWindowExpression("w", "", nil, nil)
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, nil, nil)
 	w2 := w.Clone()
 
-	assert.Equal(t, w, w2)
+	wet.Equal(w, w2)
 }
 
 func (wet *windowExpressionTest) TestExpression() {
-	t := wet.T()
-	w := NewWindowExpression("w", "", nil, nil)
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, nil, nil)
 	w2 := w.Expression()
 
-	assert.Equal(t, w, w2)
+	wet.Equal(w, w2)
 }
 
 func (wet *windowExpressionTest) TestName() {
-	t := wet.T()
-	w := NewWindowExpression("w", "", nil, nil)
+	name := NewIdentifierExpression("", "", "w")
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, nil, nil)
 
-	assert.Equal(t, "w", w.Name())
+	wet.Equal(name, w.Name())
 }
 
 func (wet *windowExpressionTest) TestPartitionCols() {
-	t := wet.T()
 	cols := NewColumnListExpression("a", "b")
-	w := NewWindowExpression("w", "", cols, nil)
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, cols, nil)
 
-	assert.Equal(t, cols, w.PartitionCols())
-	assert.Equal(t, cols, w.Clone().(WindowExpression).PartitionCols())
+	wet.Equal(cols, w.PartitionCols())
+	wet.Equal(cols, w.Clone().(WindowExpression).PartitionCols())
 }
 
 func (wet *windowExpressionTest) TestOrderCols() {
-	t := wet.T()
 	cols := NewColumnListExpression("a", "b")
-	w := NewWindowExpression("w", "", nil, cols)
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, nil, cols)
 
-	assert.Equal(t, cols, w.OrderCols())
-	assert.Equal(t, cols, w.Clone().(WindowExpression).OrderCols())
+	wet.Equal(cols, w.OrderCols())
+	wet.Equal(cols, w.Clone().(WindowExpression).OrderCols())
 }
 
-func (wet *windowExpressionTest) TestPartitonBy() {
-	t := wet.T()
+func (wet *windowExpressionTest) TestPartitionBy() {
 	cols := NewColumnListExpression("a", "b")
-	w := NewWindowExpression("w", "", nil, nil).PartitionBy("a", "b")
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, nil, nil).PartitionBy("a", "b")
 
-	assert.Equal(t, cols, w.PartitionCols())
+	wet.Equal(cols, w.PartitionCols())
 }
 
 func (wet *windowExpressionTest) TestOrderBy() {
-	t := wet.T()
 	cols := NewColumnListExpression("a", "b")
-	w := NewWindowExpression("w", "", nil, nil).OrderBy("a", "b")
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), nil, nil, nil).OrderBy("a", "b")
 
-	assert.Equal(t, cols, w.OrderCols())
+	wet.Equal(cols, w.OrderCols())
 }
 
 func (wet *windowExpressionTest) TestParent() {
-	t := wet.T()
-	w := NewWindowExpression("w", "w1", nil, nil)
+	parent := NewIdentifierExpression("", "", "w1")
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), parent, nil, nil)
 
-	assert.Equal(t, "w1", w.Parent())
+	wet.Equal(parent, w.Parent())
 }
 
 func (wet *windowExpressionTest) TestInherit() {
-	t := wet.T()
-	w := NewWindowExpression("w", "w1", nil, nil)
+	parent := NewIdentifierExpression("", "", "w1")
+	w := NewWindowExpression(NewIdentifierExpression("", "", "w"), parent, nil, nil)
 
-	assert.Equal(t, "w1", w.Parent())
+	wet.Equal(parent, w.Parent())
 
 	w = w.Inherit("w2")
-	assert.Equal(t, "w2", w.Parent())
+	wet.Equal(NewIdentifierExpression("", "", "w2"), w.Parent())
 }

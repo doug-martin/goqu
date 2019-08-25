@@ -1,13 +1,13 @@
 package exp
 
 type sqlWindowExpression struct {
-	name          string
-	parent        string
+	name          IdentifierExpression
+	parent        IdentifierExpression
 	partitionCols ColumnListExpression
 	orderCols     ColumnListExpression
 }
 
-func NewWindowExpression(window, parent string, partitionCols, orderCols ColumnListExpression) WindowExpression {
+func NewWindowExpression(window, parent IdentifierExpression, partitionCols, orderCols ColumnListExpression) WindowExpression {
 	if partitionCols == nil {
 		partitionCols = NewColumnListExpression()
 	}
@@ -39,20 +39,36 @@ func (we sqlWindowExpression) Expression() Expression {
 	return we
 }
 
-func (we sqlWindowExpression) Name() string {
+func (we sqlWindowExpression) Name() IdentifierExpression {
 	return we.name
 }
 
-func (we sqlWindowExpression) Parent() string {
+func (we sqlWindowExpression) HasName() bool {
+	return we.name != nil
+}
+
+func (we sqlWindowExpression) Parent() IdentifierExpression {
 	return we.parent
+}
+
+func (we sqlWindowExpression) HasParent() bool {
+	return we.parent != nil
 }
 
 func (we sqlWindowExpression) PartitionCols() ColumnListExpression {
 	return we.partitionCols
 }
 
+func (we sqlWindowExpression) HasPartitionBy() bool {
+	return we.partitionCols != nil && !we.partitionCols.IsEmpty()
+}
+
 func (we sqlWindowExpression) OrderCols() ColumnListExpression {
 	return we.orderCols
+}
+
+func (we sqlWindowExpression) HasOrder() bool {
+	return we.orderCols != nil && !we.orderCols.IsEmpty()
 }
 
 func (we sqlWindowExpression) PartitionBy(cols ...interface{}) WindowExpression {
@@ -69,6 +85,6 @@ func (we sqlWindowExpression) OrderBy(cols ...interface{}) WindowExpression {
 
 func (we sqlWindowExpression) Inherit(parent string) WindowExpression {
 	ret := we.clone()
-	ret.parent = parent
+	ret.parent = ParseIdentifier(parent)
 	return ret
 }

@@ -32,6 +32,12 @@ func errDistinctOnNotSupported(dialect string) error {
 	return errors.New("dialect does not support DISTINCT ON clause [dialect=%s]", dialect)
 }
 
+func errWindowNotSupported(dialect string) error {
+	return errors.New("dialect does not support WINDOW clause [dialect=%s]", dialect)
+}
+
+var errNoWindowName = errors.New("window expresion has no valid name")
+
 func NewSelectSQLGenerator(dialect string, do *SQLDialectOptions) SelectSQLGenerator {
 	return &selectSQLGenerator{newCommonSQLGenerator(dialect, do)}
 }
@@ -60,6 +66,8 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 			ssg.GroupBySQL(b, clauses.GroupBy())
 		case HavingSQLFragment:
 			ssg.HavingSQL(b, clauses.Having())
+		case WindowSQLFragment:
+			ssg.WindowSQL(b, clauses.Windows())
 		case CompoundsSQLFragment:
 			ssg.CompoundsSQL(b, clauses.Compounds())
 		case OrderSQLFragment:
@@ -181,6 +189,27 @@ func (ssg *selectSQLGenerator) ForSQL(b sb.SQLBuilder, lockingClause exp.Lock) {
 		b.Write(ssg.dialectOptions.NowaitFragment)
 	case exp.SkipLocked:
 		b.Write(ssg.dialectOptions.SkipLockedFragment)
+	}
+}
+
+func (ssg *selectSQLGenerator) WindowSQL(b sb.SQLBuilder, windows []exp.WindowExpression) {
+	weLen := len(windows)
+	if weLen == 0 {
+		return
+	}
+	if !ssg.dialectOptions.SupportsWindowFunction {
+		b.SetError(errWindowNotSupported(ssg.dialect))
+		return
+	}
+	b.Write(ssg.dialectOptions.WindowFragment)
+	for i, we := range windows {
+		if !we.HasName() {
+			b.SetError(errNoWindowName)
+		}
+		ssg.esg.Generate(b, we)
+		if i < weLen-1 {
+			b.WriteRunes(ssg.dialectOptions.CommaRune, ssg.dialectOptions.SpaceRune)
+		}
 	}
 }
 

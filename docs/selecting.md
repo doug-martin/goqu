@@ -613,13 +613,16 @@ SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 
 
 <a name="window"></a>
-**[`Window Function`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Windows)**
+**[`Window Function`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Window)**
+
+**NOTE** currently only the `postgres`, `mysql8` (NOT `mysql`) and the default dialect support `Window Function`
+
+To use windowing in select you can use the `Over` method on an `SQLFunction`
 
 ```go
-sql, _, _ = goqu.From("test").Select(goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy("b")))
-fmt.Println(sql)
-
-sql, _, _ = goqu.From("test").Select(goqu.ROW_NUMBER().OverName("w")).Windows(goqu.W("w").PartitionBy("a").OrderBy("b"))
+sql, _, _ := goqu.From("test").Select(
+	goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())),
+)
 fmt.Println(sql)
 ```
 
@@ -627,10 +630,22 @@ Output:
 
 ```
 SELECT ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b") FROM "test"
-SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b")
 ```
 
-**NOTE** currently only the `postgres`, `mysql8`(NOT `mysql`) and the default dialect support `Window Function`
+`goqu` also supports the `WINDOW` clause.
+
+```go
+sql, _, _ := goqu.From("test").
+	Select(goqu.ROW_NUMBER().OverName(goqu.I("w"))).
+	Window(goqu.W("w").PartitionBy("a").OrderBy(goqu.I("b").Asc()))
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b")
+```
 
 ## Executing Queries
 
@@ -771,3 +786,4 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
+

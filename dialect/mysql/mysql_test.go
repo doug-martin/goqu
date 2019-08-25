@@ -406,10 +406,13 @@ func (mt *mysqlTest) TestWindowFunction() {
 	major, err := strconv.Atoi(fields[0])
 	mt.NoError(err)
 	if major < 8 {
+		fmt.Printf("SKIPPING MYSQL WINDOW FUNCTION TEST BECAUSE VERSION IS < 8 [mysql_version:=%d]\n", major)
 		return
 	}
 
-	ds := mt.db.From("entry").Select("int", goqu.ROW_NUMBER().OverName("w").As("id")).Windows(goqu.W("w").OrderBy(goqu.I("int").Desc()))
+	ds := mt.db.From("entry").
+		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).
+		Window(goqu.W("w").OrderBy(goqu.I("int").Desc()))
 
 	var entries []entry
 	mt.NoError(ds.WithDialect("mysql8").ScanStructs(&entries))

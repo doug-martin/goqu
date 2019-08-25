@@ -329,6 +329,39 @@ func ExampleSelectDataset_Having() {
 	// SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 }
 
+func ExampleSelectDataset_Window() {
+	ds := goqu.From("test").
+		Select(goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())))
+	query, args, _ := ds.ToSQL()
+	fmt.Println(query, args)
+
+	ds = goqu.From("test").
+		Select(goqu.ROW_NUMBER().OverName(goqu.I("w"))).
+		Window(goqu.W("w").PartitionBy("a").OrderBy(goqu.I("b").Asc()))
+	query, args, _ = ds.ToSQL()
+	fmt.Println(query, args)
+
+	ds = goqu.From("test").
+		Select(goqu.ROW_NUMBER().OverName(goqu.I("w1"))).
+		Window(
+			goqu.W("w1").PartitionBy("a"),
+			goqu.W("w").Inherit("w1").OrderBy(goqu.I("b").Asc()),
+		)
+	query, args, _ = ds.ToSQL()
+	fmt.Println(query, args)
+
+	ds = goqu.From("test").
+		Select(goqu.ROW_NUMBER().Over(goqu.W().Inherit("w").OrderBy("b"))).
+		Window(goqu.W("w").PartitionBy("a"))
+	query, args, _ = ds.ToSQL()
+	fmt.Println(query, args)
+	// Output
+	// SELECT ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) FROM "test" []
+	// SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b" ASC) []
+	// SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w1" AS (PARTITION BY "a"), "w" AS ("w1" ORDER BY "b" ASC) []
+	// SELECT ROW_NUMBER() OVER ("w" ORDER BY "b") FROM "test" WINDOW "w" AS (PARTITION BY "a") []
+}
+
 func ExampleSelectDataset_Where() {
 	// By default everything is anded together
 	sql, _, _ := goqu.From("test").Where(goqu.Ex{

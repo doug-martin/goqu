@@ -735,23 +735,77 @@ func (sds *selectDatasetSuite) TestGroupBy() {
 	)
 }
 
-func (sds *selectDatasetSuite) TestWindows() {
-	ds := From("test")
-	dsc := ds.GetClauses()
-	w := W("w").PartitionBy("a").OrderBy("b")
-	ec := dsc.SetWindows([]exp.WindowExpression{w})
-	sds.Equal(ec, ds.Windows(w).GetClauses())
-	sds.Equal(dsc, ds.GetClauses())
+func (sds *selectDatasetSuite) TestWindow() {
+	w1 := W("w1").PartitionBy("a").OrderBy("b")
+	w2 := W("w2").PartitionBy("a").OrderBy("b")
+
+	bd := From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.Window(w1),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				WindowsAppend(w1),
+		},
+		selectTestCase{
+			ds: bd.Window(w1).Window(w2),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				WindowsAppend(w2),
+		},
+		selectTestCase{
+			ds: bd.Window(w1, w2),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				WindowsAppend(w1, w2),
+		},
+		selectTestCase{
+			ds:      bd,
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+	)
+}
+
+func (sds *selectDatasetSuite) TestWindowAppend() {
+	w1 := W("w1").PartitionBy("a").OrderBy("b")
+	w2 := W("w2").PartitionBy("a").OrderBy("b")
+
+	bd := From("test").Window(w1)
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.WindowAppend(w2),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				WindowsAppend(w1, w2),
+		},
+		selectTestCase{
+			ds: bd,
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				WindowsAppend(w1),
+		},
+	)
+}
+
+func (sds *selectDatasetSuite) TestClearWindow() {
+	w1 := W("w1").PartitionBy("a").OrderBy("b")
+
+	bd := From("test").Window(w1)
+	sds.assertCases(
+		selectTestCase{
+			ds:      bd.ClearWindow(),
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+		selectTestCase{
+			ds: bd,
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				WindowsAppend(w1),
+		},
+	)
 }
 
 func (sds *selectDatasetSuite) TestHaving() {
-	ds := From("test")
-	dsc := ds.GetClauses()
-	h := C("a").Gt(1)
-	ec := dsc.HavingAppend(h)
-	sds.Equal(ec, ds.Having(h).GetClauses())
-	sds.Equal(dsc, ds.GetClauses())
-
 	bd := From("test")
 	sds.assertCases(
 		selectTestCase{

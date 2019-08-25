@@ -61,7 +61,7 @@ type (
 
 		Windows() []WindowExpression
 		SetWindows(ws []WindowExpression) SelectClauses
-		WindowsAppend(ws []WindowExpression) SelectClauses
+		WindowsAppend(ws ...WindowExpression) SelectClauses
 		ClearWindows() SelectClauses
 	}
 	selectClauses struct {
@@ -349,7 +349,7 @@ func (c *selectClauses) SetWindows(ws []WindowExpression) SelectClauses {
 	return ret
 }
 
-func (c *selectClauses) WindowsAppend(ws []WindowExpression) SelectClauses {
+func (c *selectClauses) WindowsAppend(ws ...WindowExpression) SelectClauses {
 	ret := c.clone()
 	ret.windows = append(ret.windows, ws...)
 	return ret

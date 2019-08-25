@@ -2,7 +2,7 @@ version: "2"
 
 services:
   postgres:
-    image: postgres:9.6
+    image: "postgres:${POSTGRES_VERSION}"
     environment:
       - "POSTGRES_USER=postgres"
       - "POSTGRES_DB=goqupostgres"
@@ -10,7 +10,7 @@ services:
       - "5432"
 
   mysql:
-    image: mysql:5
+    image: "mysql:${MYSQL_VERSION}"
     environment:
       - "MYSQL_DATABASE=goqumysql"
       - "MYSQL_ALLOW_EMPTY_PASSWORD=yes"

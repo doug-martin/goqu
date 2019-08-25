@@ -1,23 +1,25 @@
 package exp
 
 type sqlWindowFunctionExpression struct {
-	name       string
-	args       []interface{}
-	windowName string
+	fn         SQLFunctionExpression
+	windowName IdentifierExpression
 	window     WindowExpression
 }
 
-func NewSQLWindowFunctionExpression(name string, args ...interface{}) SQLWindowFunctionExpression {
+func NewSQLWindowFunctionExpression(
+	fn SQLFunctionExpression,
+	windowName IdentifierExpression,
+	window WindowExpression) SQLWindowFunctionExpression {
 	return sqlWindowFunctionExpression{
-		name: name,
-		args: args,
+		fn:         fn,
+		windowName: windowName,
+		window:     window,
 	}
 }
 
 func (swfe sqlWindowFunctionExpression) clone() sqlWindowFunctionExpression {
 	return sqlWindowFunctionExpression{
-		name:       swfe.name,
-		args:       swfe.args,
+		fn:         swfe.fn.Clone().(SQLFunctionExpression),
 		windowName: swfe.windowName,
 		window:     swfe.window,
 	}
@@ -73,28 +75,16 @@ func (swfe sqlWindowFunctionExpression) IsNotTrue() BooleanExpression  { return 
 func (swfe sqlWindowFunctionExpression) IsFalse() BooleanExpression    { return is(swfe, false) }
 func (swfe sqlWindowFunctionExpression) IsNotFalse() BooleanExpression { return isNot(swfe, false) }
 
-func (swfe sqlWindowFunctionExpression) Name() string { return swfe.name }
-
-func (swfe sqlWindowFunctionExpression) Args() []interface{} { return swfe.args }
+func (swfe sqlWindowFunctionExpression) Func() SQLFunctionExpression {
+	return swfe.fn
+}
 
 func (swfe sqlWindowFunctionExpression) Window() WindowExpression {
 	return swfe.window
 }
 
-func (swfe sqlWindowFunctionExpression) WindowName() string {
+func (swfe sqlWindowFunctionExpression) WindowName() IdentifierExpression {
 	return swfe.windowName
-}
-
-func (swfe sqlWindowFunctionExpression) Over(we WindowExpression) SQLWindowFunctionExpression {
-	ret := swfe.clone()
-	ret.window = we
-	return ret
-}
-
-func (swfe sqlWindowFunctionExpression) OverName(name string) SQLWindowFunctionExpression {
-	ret := swfe.clone()
-	ret.windowName = name
-	return ret
 }
 
 func (swfe sqlWindowFunctionExpression) HasWindow() bool {
@@ -102,5 +92,5 @@ func (swfe sqlWindowFunctionExpression) HasWindow() bool {
 }
 
 func (swfe sqlWindowFunctionExpression) HasWindowName() bool {
-	return swfe.windowName != ""
+	return swfe.windowName != nil
 }

@@ -1,3 +1,7 @@
+## 8.5.0
+
+* [ADDED] Window Function support [#128](https://github.com/doug-martin/goqu/issues/128) - [@Xuyuanp](https://github.com/Xuyuanp)
+
 ## 8.4.1
 
 * [FIXED] Returning func be able to handle nil [#140](https://github.com/doug-martin/goqu/issues/140)

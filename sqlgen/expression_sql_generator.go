@@ -34,7 +34,8 @@ var (
 	TrueLiteral     = exp.NewLiteralExpression("TRUE")
 	FalseLiteral    = exp.NewLiteralExpression("FALSE")
 
-	errEmptyIdentifier = errors.New(`a empty identifier was encountered, please specify a "schema", "table" or "column"`)
+	errEmptyIdentifier       = errors.New(`a empty identifier was encountered, please specify a "schema", "table" or "column"`)
+	errUnexpectedNamedWindow = errors.New(`unexpected named window function`)
 )
 
 func errUnsupportedExpressionType(e exp.Expression) error {
@@ -158,6 +159,10 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 		esg.updateExpressionSQL(b, e)
 	case exp.SQLFunctionExpression:
 		esg.sqlFunctionExpressionSQL(b, e)
+	case exp.SQLWindowFunctionExpression:
+		esg.sqlWindowFunctionExpression(b, e)
+	case exp.WindowExpression:
+		esg.windowExpressionSQL(b, e)
 	case exp.CastExpression:
 		esg.castExpressionSQL(b, e)
 	case exp.AppendableExpression:
@@ -479,6 +484,63 @@ func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal
 func (esg *expressionSQLGenerator) sqlFunctionExpressionSQL(b sb.SQLBuilder, sqlFunc exp.SQLFunctionExpression) {
 	b.WriteStrings(sqlFunc.Name())
 	esg.Generate(b, sqlFunc.Args())
+}
+
+func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, sqlWinFunc exp.SQLWindowFunctionExpression) {
+	if !esg.dialectOptions.SupportsWindowFunction {
+		b.SetError(errWindowNotSupported(esg.dialect))
+		return
+	}
+	esg.Generate(b, sqlWinFunc.Func())
+	b.Write(esg.dialectOptions.WindowOverFragment)
+	switch {
+	case sqlWinFunc.HasWindowName():
+		esg.Generate(b, sqlWinFunc.WindowName())
+	case sqlWinFunc.HasWindow():
+		if sqlWinFunc.Window().HasName() {
+			b.SetError(errUnexpectedNamedWindow)
+			return
+		}
+		esg.Generate(b, sqlWinFunc.Window())
+	default:
+		esg.Generate(b, exp.NewWindowExpression(nil, nil, nil, nil))
+	}
+}
+
+func (esg *expressionSQLGenerator) windowExpressionSQL(b sb.SQLBuilder, we exp.WindowExpression) {
+	if !esg.dialectOptions.SupportsWindowFunction {
+		b.SetError(errWindowNotSupported(esg.dialect))
+		return
+	}
+	if we.HasName() {
+		esg.Generate(b, we.Name())
+		b.Write(esg.dialectOptions.AsFragment)
+	}
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+
+	hasPartition := we.HasPartitionBy()
+	hasOrder := we.HasOrder()
+
+	if we.HasParent() {
+		esg.Generate(b, we.Parent())
+		if hasPartition || hasOrder {
+			b.WriteRunes(esg.dialectOptions.SpaceRune)
+		}
+	}
+
+	if hasPartition {
+		b.Write(esg.dialectOptions.WindowPartitionByFragment)
+		esg.Generate(b, we.PartitionCols())
+		if hasOrder {
+			b.WriteRunes(esg.dialectOptions.SpaceRune)
+		}
+	}
+	if hasOrder {
+		b.Write(esg.dialectOptions.WindowOrderByFragment)
+		esg.Generate(b, we.OrderCols())
+	}
+
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
 }
 
 // Generates SQL for a CastExpression
