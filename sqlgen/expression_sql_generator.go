@@ -67,7 +67,7 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		return
 	}
 	if val == nil {
-		esg.literalNil(b)
+		esg.literalNil(b, val)
 		return
 	}
 	switch v := val.(type) {
@@ -91,7 +91,7 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		esg.literalTime(b, v)
 	case *time.Time:
 		if v == nil {
-			esg.literalNil(b)
+			esg.literalNil(b, v)
 			return
 		}
 		esg.literalTime(b, *v)
@@ -112,7 +112,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	valKind := v.Kind()
 	switch {
 	case util.IsInvalid(valKind):
-		esg.literalNil(b)
+		esg.literalNil(b, v)
 	case util.IsSlice(valKind):
 		switch t := val.(type) {
 		case []byte:
@@ -246,7 +246,11 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 }
 
 // Generates SQL NULL value
-func (esg *expressionSQLGenerator) literalNil(b sb.SQLBuilder) {
+func (esg *expressionSQLGenerator) literalNil(b sb.SQLBuilder, v interface{}) {
+	if b.IsPrepared() {
+		esg.placeHolderSQL(b, v)
+		return
+	}
 	b.Write(esg.dialectOptions.Null)
 }
 

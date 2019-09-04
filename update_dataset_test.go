@@ -428,12 +428,12 @@ func (uds *updateDatasetSuite) TestExecutor() {
 	updateSQL, args, err := ds.Executor().ToSQL()
 	uds.NoError(err)
 	uds.Empty(args)
-	uds.Equal(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`, updateSQL)
+	uds.Equal(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" = NULL)`, updateSQL)
 
 	updateSQL, args, err = ds.Prepared(true).Executor().ToSQL()
 	uds.NoError(err)
-	uds.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
-	uds.Equal(`UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`, updateSQL)
+	uds.Equal([]interface{}{"111 Test Addr", "Test1", nil}, args)
+	uds.Equal(`UPDATE "items" SET "address"=?,"name"=? WHERE ("name" = ?)`, updateSQL)
 }
 
 func TestUpdateDataset(t *testing.T) {

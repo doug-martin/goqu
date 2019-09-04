@@ -151,31 +151,31 @@ func (swfet *sqlWindowFunctionExpressionTest) TestAllOthers() {
 
 	expIsNull := wf.IsNull()
 	swfet.Equal(expIsNull.LHS(), wf)
-	swfet.Equal(expIsNull.Op(), IsOp)
+	swfet.Equal(expIsNull.Op(), EqOp)
 	swfet.Nil(expIsNull.RHS())
 
 	expIsNotNull := wf.IsNotNull()
 	swfet.Equal(expIsNotNull.LHS(), wf)
-	swfet.Equal(expIsNotNull.Op(), IsNotOp)
+	swfet.Equal(expIsNotNull.Op(), NeqOp)
 	swfet.Nil(expIsNotNull.RHS())
 
 	expIsTrue := wf.IsTrue()
 	swfet.Equal(expIsTrue.LHS(), wf)
-	swfet.Equal(expIsTrue.Op(), IsOp)
+	swfet.Equal(expIsTrue.Op(), EqOp)
 	swfet.Equal(expIsTrue.RHS(), true)
 
 	expIsNotTrue := wf.IsNotTrue()
 	swfet.Equal(expIsNotTrue.LHS(), wf)
-	swfet.Equal(expIsNotTrue.Op(), IsNotOp)
+	swfet.Equal(expIsNotTrue.Op(), NeqOp)
 	swfet.Equal(expIsNotTrue.RHS(), true)
 
 	expIsFalse := wf.IsFalse()
 	swfet.Equal(expIsFalse.LHS(), wf)
-	swfet.Equal(expIsFalse.Op(), IsOp)
+	swfet.Equal(expIsFalse.Op(), EqOp)
 	swfet.Equal(expIsFalse.RHS(), false)
 
 	expIsNotFalse := wf.IsNotFalse()
 	swfet.Equal(expIsNotFalse.LHS(), wf)
-	swfet.Equal(expIsNotFalse.Op(), IsNotOp)
+	swfet.Equal(expIsNotFalse.Op(), NeqOp)
 	swfet.Equal(expIsNotFalse.RHS(), false)
 }

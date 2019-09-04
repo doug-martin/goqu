@@ -97,10 +97,10 @@ func ExampleAnd_withOr() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE (("col1" IS TRUE) AND (("col2" > 10) OR ("col2" < 20))) []
-	// SELECT * FROM "test" WHERE (("col1" IS TRUE) AND (("col2" > ?) OR ("col2" < ?))) [10 20]
-	// SELECT * FROM "test" WHERE (("col1" IS TRUE) AND (("col2" > 10) OR ("col2" < 20))) []
-	// SELECT * FROM "test" WHERE (("col1" IS TRUE) AND (("col2" > ?) OR ("col2" < ?))) [10 20]
+	// SELECT * FROM "test" WHERE (("col1" = TRUE) AND (("col2" > 10) OR ("col2" < 20))) []
+	// SELECT * FROM "test" WHERE (("col1" = ?) AND (("col2" > ?) OR ("col2" < ?))) [true 10 20]
+	// SELECT * FROM "test" WHERE (("col1" = TRUE) AND (("col2" > 10) OR ("col2" < 20))) []
+	// SELECT * FROM "test" WHERE (("col1" = ?) AND (("col2" > ?) OR ("col2" < ?))) [true 10 20]
 }
 
 // You can use ExOr inside of And expression lists.
@@ -120,8 +120,8 @@ func ExampleAnd_withExOr() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE (("col1" IS TRUE) AND (("col2" > 10) OR ("col3" < 20))) []
-	// SELECT * FROM "test" WHERE (("col1" IS TRUE) AND (("col2" > ?) OR ("col3" < ?))) [10 20]
+	// SELECT * FROM "test" WHERE (("col1" = TRUE) AND (("col2" > 10) OR ("col3" < 20))) []
+	// SELECT * FROM "test" WHERE (("col1" = ?) AND (("col2" > ?) OR ("col3" < ?))) [true 10 20]
 }
 
 func ExampleC() {
@@ -152,8 +152,8 @@ func ExampleC() {
 	// Output:
 	// SELECT * FROM "test" []
 	// SELECT "col1" FROM "test" []
-	// SELECT * FROM "test" WHERE (("col1" = 10) AND ("col2" IN (1, 2, 3, 4)) AND ("col3" ~ '^(a|b)') AND ("col4" IS NULL)) []
-	// SELECT * FROM "test" WHERE (("col1" = ?) AND ("col2" IN (?, ?, ?, ?)) AND ("col3" ~ ?) AND ("col4" IS NULL)) [10 1 2 3 4 ^(a|b)]
+	// SELECT * FROM "test" WHERE (("col1" = 10) AND ("col2" IN (1, 2, 3, 4)) AND ("col3" ~ '^(a|b)') AND ("col4" = NULL)) []
+	// SELECT * FROM "test" WHERE (("col1" = ?) AND ("col2" IN (?, ?, ?, ?)) AND ("col3" ~ ?) AND ("col4" = ?)) [10 1 2 3 4 ^(a|b) <nil>]
 }
 
 func ExampleC_as() {
@@ -338,18 +338,18 @@ func ExampleC_isComparisons() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE ("a" IS NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT FALSE) []
+	// SELECT * FROM "test" WHERE ("a" = NULL) []
+	// SELECT * FROM "test" WHERE ("a" = TRUE) []
+	// SELECT * FROM "test" WHERE ("a" = FALSE) []
+	// SELECT * FROM "test" WHERE ("a" = NULL) []
+	// SELECT * FROM "test" WHERE ("a" = TRUE) []
+	// SELECT * FROM "test" WHERE ("a" = FALSE) []
+	// SELECT * FROM "test" WHERE ("a" != NULL) []
+	// SELECT * FROM "test" WHERE ("a" != TRUE) []
+	// SELECT * FROM "test" WHERE ("a" != FALSE) []
+	// SELECT * FROM "test" WHERE ("a" != NULL) []
+	// SELECT * FROM "test" WHERE ("a" != TRUE) []
+	// SELECT * FROM "test" WHERE ("a" != FALSE) []
 }
 
 func ExampleC_betweenComparisons() {
@@ -390,7 +390,7 @@ func ExampleCOALESCE() {
 	fmt.Println(sql, args)
 	// Output:
 	// SELECT COALESCE("a", 'a'), COALESCE("a", "b", NULL) FROM "test" []
-	// SELECT COALESCE("a", ?), COALESCE("a", "b", NULL) FROM "test" [a]
+	// SELECT COALESCE("a", ?), COALESCE("a", "b", ?) FROM "test" [a <nil>]
 }
 
 func ExampleCOALESCE_as() {
@@ -560,8 +560,8 @@ func ExampleDoUpdate_where() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" IS NULL) []
-	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" IS NULL) [111 Address]
+	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" = NULL) []
+	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" = ?) [111 Address <nil>]
 }
 
 func ExampleFIRST() {
@@ -804,18 +804,18 @@ func ExampleL_isComparisons() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE (a IS NULL) []
-	// SELECT * FROM "test" WHERE (a IS TRUE) []
-	// SELECT * FROM "test" WHERE (a IS FALSE) []
-	// SELECT * FROM "test" WHERE (a IS NULL) []
-	// SELECT * FROM "test" WHERE (a IS TRUE) []
-	// SELECT * FROM "test" WHERE (a IS FALSE) []
-	// SELECT * FROM "test" WHERE (a IS NOT NULL) []
-	// SELECT * FROM "test" WHERE (a IS NOT TRUE) []
-	// SELECT * FROM "test" WHERE (a IS NOT FALSE) []
-	// SELECT * FROM "test" WHERE (a IS NOT NULL) []
-	// SELECT * FROM "test" WHERE (a IS NOT TRUE) []
-	// SELECT * FROM "test" WHERE (a IS NOT FALSE) []
+	// SELECT * FROM "test" WHERE (a = NULL) []
+	// SELECT * FROM "test" WHERE (a = TRUE) []
+	// SELECT * FROM "test" WHERE (a = FALSE) []
+	// SELECT * FROM "test" WHERE (a = NULL) []
+	// SELECT * FROM "test" WHERE (a = TRUE) []
+	// SELECT * FROM "test" WHERE (a = FALSE) []
+	// SELECT * FROM "test" WHERE (a != NULL) []
+	// SELECT * FROM "test" WHERE (a != TRUE) []
+	// SELECT * FROM "test" WHERE (a != FALSE) []
+	// SELECT * FROM "test" WHERE (a != NULL) []
+	// SELECT * FROM "test" WHERE (a != TRUE) []
+	// SELECT * FROM "test" WHERE (a != FALSE) []
 }
 
 func ExampleL_betweenComparisons() {
@@ -1031,8 +1031,8 @@ func ExampleOr_withExMap() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo'))) []
-	// SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?))) [1 foo]
+	// SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" = TRUE)) OR (("col3" = NULL) AND ("col4" = 'foo'))) []
+	// SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" = ?)) OR (("col3" = ?) AND ("col4" = ?))) [1 true <nil> foo]
 }
 
 func ExampleRange_numbers() {
@@ -1250,8 +1250,8 @@ func ExampleEx() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c'))) []
-	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN (?, ?, ?))) [a 1 a b c]
+	// SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" = TRUE) AND ("col4" = FALSE) AND ("col5" = NULL) AND ("col6" IN ('a', 'b', 'c'))) []
+	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" = ?) AND ("col4" = ?) AND ("col5" = ?) AND ("col6" IN (?, ?, ?))) [a 1 true false <nil> a b c]
 }
 
 func ExampleEx_withOp() {
@@ -1264,7 +1264,7 @@ func ExampleEx_withOp() {
 	).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c'))) []
+	// SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" != TRUE) AND ("col6" NOT IN ('a', 'b', 'c'))) []
 }
 
 func ExampleEx_in() {
@@ -1293,7 +1293,7 @@ func ExampleExOr() {
 
 	// nolint:lll
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c'))) []
+	// SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" = TRUE) OR ("col4" = FALSE) OR ("col5" = NULL) OR ("col6" IN ('a', 'b', 'c'))) []
 }
 
 func ExampleExOr_withOp() {
@@ -1329,7 +1329,7 @@ func ExampleExOr_withOp() {
 	fmt.Println(sql)
 
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
+	// SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" != TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
 	// SELECT * FROM "items" WHERE (("col1" > 1) OR ("col2" >= 1) OR ("col3" < 1) OR ("col4" <= 1))
 	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') OR ("col2" NOT LIKE 'a%') OR ("col3" ILIKE 'a%') OR ("col4" NOT ILIKE 'a%'))
 	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') OR ("col2" !~ '^(a|b)') OR ("col3" ~* '^(a|b)') OR ("col4" !~* '^(a|b)'))
@@ -1560,24 +1560,24 @@ func ExampleOp_isComparisons() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE ("a" IS TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT TRUE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT FALSE) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT NULL) []
-	// SELECT * FROM "test" WHERE ("a" IS NOT NULL) []
+	// SELECT * FROM "test" WHERE ("a" = TRUE) []
+	// SELECT * FROM "test" WHERE ("a" = ?) [true]
+	// SELECT * FROM "test" WHERE ("a" = TRUE) []
+	// SELECT * FROM "test" WHERE ("a" = ?) [true]
+	// SELECT * FROM "test" WHERE ("a" = FALSE) []
+	// SELECT * FROM "test" WHERE ("a" = ?) [false]
+	// SELECT * FROM "test" WHERE ("a" = FALSE) []
+	// SELECT * FROM "test" WHERE ("a" = ?) [false]
+	// SELECT * FROM "test" WHERE ("a" = NULL) []
+	// SELECT * FROM "test" WHERE ("a" = ?) [<nil>]
+	// SELECT * FROM "test" WHERE ("a" = NULL) []
+	// SELECT * FROM "test" WHERE ("a" = ?) [<nil>]
+	// SELECT * FROM "test" WHERE ("a" != TRUE) []
+	// SELECT * FROM "test" WHERE ("a" != ?) [true]
+	// SELECT * FROM "test" WHERE ("a" != FALSE) []
+	// SELECT * FROM "test" WHERE ("a" != ?) [false]
+	// SELECT * FROM "test" WHERE ("a" != NULL) []
+	// SELECT * FROM "test" WHERE ("a" != ?) [<nil>]
 }
 
 func ExampleOp_betweenComparisons() {
@@ -1619,8 +1619,8 @@ func ExampleOp_withMultipleKeys() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" = 10) OR ("col1" IS NULL)) []
-	// SELECT * FROM "items" WHERE (("col1" = ?) OR ("col1" IS NULL)) [10]
+	// SELECT * FROM "items" WHERE (("col1" = 10) OR ("col1" = NULL)) []
+	// SELECT * FROM "items" WHERE (("col1" = ?) OR ("col1" = ?)) [10 <nil>]
 }
 
 func ExampleRecord_insert() {

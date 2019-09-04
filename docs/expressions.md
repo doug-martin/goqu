@@ -9,7 +9,7 @@
 * [`C`](#C) - An Identifier that represents a Column. See the docs for more examples
 * [`I`](#I) - An Identifier represents a schema, table, or column or any combination. I parses identifiers seperated by a . character.
 * [`L`](#L) - An SQL literal.
-* [`V`](#V) - An Value to be used in SQL. 
+* [`V`](#V) - An Value to be used in SQL.
 * [`And`](#and) - AND multiple expressions together.
 * [`Or`](#or) - OR multiple expressions together.
 * [Complex Example] - Complex Example using most of the Expression DSL.
@@ -17,7 +17,7 @@
 The entry points for expressions are:
 
 <a name="ex"></a>
-**[`Ex{}`](https://godoc.org/github.com/doug-martin/goqu#Ex)** 
+**[`Ex{}`](https://godoc.org/github.com/doug-martin/goqu#Ex)**
 
 A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `Ex` will use the equality operator except in cases where the equality operator will not work, see the example below.
 
@@ -35,7 +35,7 @@ fmt.Println(sql)
 
 Output:
 ```sql
-SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c')))
+SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" = TRUE) AND ("col4" = FALSE) AND ("col5" = NULL) AND ("col6" IN ('a', 'b', 'c')))
 ```
 
 You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
@@ -51,12 +51,12 @@ fmt.Println(sql)
 
 Output:
 ```sql
-SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
+SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" != TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
 ```
 For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`Ex`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
 
 <a name="ex-or"></a>
-**[`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu#ExOr)** 
+**[`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu#ExOr)**
 
 A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `ExOr` will use the equality operator except in cases where the equality operator will not work, see the example below.
 
@@ -71,14 +71,14 @@ sql, _, _ := db.From("items").Where(goqu.ExOr{
 }).ToSQL()
 fmt.Println(sql)
 ```
-  
+
 Output:
 ```sql
-SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c')))
+SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" = TRUE) OR ("col4" = FALSE) OR ("col5" = NULL) OR ("col6" IN ('a', 'b', 'c')))
 ```
-  
+
 You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
-  
+
 ```go
 sql, _, _ := db.From("items").Where(goqu.ExOr{
   "col1": goqu.Op{"neq": "a"},
@@ -87,10 +87,10 @@ sql, _, _ := db.From("items").Where(goqu.ExOr{
 }).ToSQL()
 fmt.Println(sql)
 ```
-  
+
 Output:
 ```sql
-SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
+SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" != TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
 ```
 For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`ExOr`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
 
@@ -113,7 +113,7 @@ fmt.Println(sql)
 ```
 
 <a name="T"></a>
-**[`T()`](https://godoc.org/github.com/doug-martin/goqu#T)** 
+**[`T()`](https://godoc.org/github.com/doug-martin/goqu#T)**
 
 An Identifier that represents a Table. With a Table identifier you can fully qualify columns.
 ```go
@@ -130,7 +130,7 @@ fmt.Println(sql)
 ```
 
 <a name="C"></a>
-**[`C()`](https://godoc.org/github.com/doug-martin/goqu#C)** 
+**[`C()`](https://godoc.org/github.com/doug-martin/goqu#C)**
 
 An Identifier that represents a Column. See the [docs]((https://godoc.org/github.com/doug-martin/goqu#C)) for more examples
 
@@ -141,7 +141,7 @@ fmt.Println(sql)
 ```
 
 <a name="I"></a>
-**[`I()`](https://godoc.org/github.com/doug-martin/goqu#I)** 
+**[`I()`](https://godoc.org/github.com/doug-martin/goqu#I)**
 
 An Identifier represents a schema, table, or column or any combination. `I` parses identifiers seperated by a `.` character.
 
@@ -157,7 +157,7 @@ goqu.I("col") == goqu.C("col")
 ```
 
 <a name="L"></a>
-**[`L()`](https://godoc.org/github.com/doug-martin/goqu#L)** 
+**[`L()`](https://godoc.org/github.com/doug-martin/goqu#L)**
 
 An SQL literal. You may find yourself in a situation where an IdentifierExpression cannot expression an SQL fragment that your database supports. In that case you can use a LiteralExpression
 
@@ -171,17 +171,17 @@ goqu.L(`custom_func("a")`)
 // postgres JSON access
 goqu.L(`"json_col"->>'someField'`).As("some_field")
 ```
-  
-You can also use placeholders in your literal with a `?` character. `goqu` will handle changing it to what the dialect needs (e.g. `?` mysql, `$1` postgres, `?` sqlite3). 
+
+You can also use placeholders in your literal with a `?` character. `goqu` will handle changing it to what the dialect needs (e.g. `?` mysql, `$1` postgres, `?` sqlite3).
 
 **NOTE** If your query is not prepared the placeholders will be properly interpolated.
 
 ```go
-goqu.L("col IN (?, ?, ?)", "a", "b", "c") 
+goqu.L("col IN (?, ?, ?)", "a", "b", "c")
 ```
 
 Putting it together
-  
+
 ```go
 ds := db.From("test").Where(
   goqu.L(`("json"::TEXT = "other_json"::TEXT)`),
@@ -205,7 +205,7 @@ SELECT * FROM "test" WHERE ("json"::TEXT = "other_json"::TEXT) AND col IN ($1, $
 <a name="V"></a>
 **[`V()`](https://godoc.org/github.com/doug-martin/goqu#V)**
 
-Sometimes you may have a value that you want to use directly in SQL. 
+Sometimes you may have a value that you want to use directly in SQL.
 
 **NOTE** This is a shorter version of `goqu.L("?", val)`
 
@@ -258,7 +258,7 @@ SELECT * FROM "user" WHERE (? != ?) [1, 1]
 
 
 <a name="and"></a>
-**[`And()`](https://godoc.org/github.com/doug-martin/goqu#And)** 
+**[`And()`](https://godoc.org/github.com/doug-martin/goqu#And)**
 
 You can use the `And` function to AND multiple expressions together.
 
@@ -285,7 +285,7 @@ SELECT * FROM "test" WHERE (("col" > ?) AND ("col" < ?)) [10 20]
 ```
 
 <a name="or"></a>
-**[`Or()`](https://godoc.org/github.com/doug-martin/goqu#Or)** 
+**[`Or()`](https://godoc.org/github.com/doug-martin/goqu#Or)**
 
 You can use the `Or` function to OR multiple expressions together.
 
@@ -310,7 +310,7 @@ SELECT * FROM "test" WHERE (("col" = ?) OR ("col" = ?)) [10 20]
 ```
 
 You can also use `Or` and `And` functions in tandem which will give you control not only over how the Expressions are joined together, but also how they are grouped
- 
+
 ```go
 ds := goqu.From("items").Where(
   goqu.Or(
@@ -358,8 +358,8 @@ fmt.Println(sql, args)
 
 Output:
 ```sql
-SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo'))) []
-SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?))) [1 foo]
+SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" = TRUE)) OR (("col3" = NULL) AND ("col4" = 'foo'))) []
+SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" = TRUE)) OR (("col3" = NULL) AND ("col4" = ?))) [1 foo]
 ```
 
 <a name="complex"></a>
@@ -426,8 +426,8 @@ SELECT COUNT(*)
 FROM "test"
          INNER JOIN "test2" ON ("test"."fkey" = "test2"."id")
          LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id")
-WHERE ((("test"."name" ~ '^(a|b)') AND ("test2"."amount" IS NOT NULL)) AND
-       (("test3"."id" IS NULL) OR ("test3"."status" IN ('passed', 'active', 'registered'))))
+WHERE ((("test"."name" ~ '^(a|b)') AND ("test2"."amount" != NULL)) AND
+       (("test3"."id" = NULL) OR ("test3"."status" IN ('passed', 'active', 'registered'))))
 GROUP BY "test"."user_id"
 HAVING (AVG("test3"."age") > 10)
 ORDER BY "test"."created" DESC NULLS LAST []
@@ -437,8 +437,8 @@ SELECT COUNT(*)
 FROM "test"
          INNER JOIN "test2" ON ("test"."fkey" = "test2"."id")
          LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id")
-WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND
-       (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?))))
+WHERE ((("test"."name" ~ ?) AND ("test2"."amount" != NULL)) AND
+       (("test3"."id" = NULL) OR ("test3"."status" IN (?, ?, ?))))
 GROUP BY "test"."user_id"
 HAVING (AVG("test3"."age") > ?)
 ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]

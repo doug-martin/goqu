@@ -250,7 +250,7 @@ fmt.Println(sql)
 
 Output:
 ```
-DELETE FROM "test" WHERE ("c" IS NULL)
+DELETE FROM "test" WHERE ("c" = NULL)
 ```
 
 <a name="contributions"></a>

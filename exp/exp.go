@@ -35,14 +35,14 @@ type (
 
 	Isable interface {
 		// Creates an Boolean expression IS clauses
-		//   ds.Where(I("a").Is(nil)) //("a" IS NULL)
-		//   ds.Where(I("a").Is(true)) //("a" IS TRUE)
-		//   ds.Where(I("a").Is(false)) //("a" IS FALSE)
+		//   ds.Where(I("a").Is(nil)) //("a" = NULL)
+		//   ds.Where(I("a").Is(true)) //("a" = TRUE)
+		//   ds.Where(I("a").Is(false)) //("a" = FALSE)
 		Is(interface{}) BooleanExpression
 		// Creates an Boolean expression IS NOT clauses
-		//   ds.Where(I("a").IsNot(nil)) //("a" IS NOT NULL)
-		//   ds.Where(I("a").IsNot(true)) //("a" IS NOT TRUE)
-		//   ds.Where(I("a").IsNot(false)) //("a" IS NOT FALSE)
+		//   ds.Where(I("a").IsNot(nil)) //("a" != NULL)
+		//   ds.Where(I("a").IsNot(true)) //("a" != TRUE)
+		//   ds.Where(I("a").IsNot(false)) //("a" != FALSE)
 		IsNot(interface{}) BooleanExpression
 		// Shortcut for Is(nil)
 		IsNull() BooleanExpression

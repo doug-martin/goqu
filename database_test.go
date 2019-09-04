@@ -160,18 +160,18 @@ func (ds *databaseSuite) TestScanVal() {
 func (ds *databaseSuite) TestExec() {
 	mDb, mock, err := sqlmock.New()
 	ds.NoError(err)
-	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" = NULL\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" = NULL\)`).
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 
 	db := New("mock", mDb)
-	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
+	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" = NULL)`)
 	ds.NoError(err)
-	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
+	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" = NULL)`)
 	ds.EqualError(err, "goqu: mock error")
 }
 
@@ -569,20 +569,20 @@ func (tds *txdatabaseSuite) TestExec() {
 	mDb, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
-	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" = NULL\)`).
 		WithArgs().
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
+	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" = NULL\)`).
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
 	db := newDatabase("mock", mDb)
 	tx, err := db.Begin()
 	tds.NoError(err)
-	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
+	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" = NULL)`)
 	tds.NoError(err)
-	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
+	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" = NULL)`)
 	tds.EqualError(err, "goqu: mock error")
 	tds.NoError(tx.Commit())
 }

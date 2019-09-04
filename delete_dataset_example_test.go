@@ -128,11 +128,11 @@ func ExampleDeleteDataset_Where() {
 	).ToSQL()
 	fmt.Println(sql)
 	// Output:
-	// DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
-	// DELETE FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" IS NULL) OR ("d" IN ('a', 'b', 'c')))
-	// DELETE FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" IS NULL) AND ("d" IN ('a', 'b', 'c'))))
-	// DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
-	// DELETE FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
+	// DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" = NULL) AND ("d" IN ('a', 'b', 'c')))
+	// DELETE FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" = NULL) OR ("d" IN ('a', 'b', 'c')))
+	// DELETE FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" = NULL) AND ("d" IN ('a', 'b', 'c'))))
+	// DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" = NULL) AND ("d" IN ('a', 'b', 'c')))
+	// DELETE FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" = NULL)))
 }
 
 func ExampleDeleteDataset_Where_prepared() {
@@ -186,11 +186,11 @@ func ExampleDeleteDataset_Where_prepared() {
 	).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// DELETE FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS NULL) OR ("d" IN (?, ?, ?))) [10 10 a b c]
-	// DELETE FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS NULL) AND ("d" IN (?, ?, ?)))) [10 10 a b c]
-	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// DELETE FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [10 10]
+	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" = ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" = ?) OR ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" = ?) AND ("d" IN (?, ?, ?)))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" = ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" = ?))) [10 10 <nil>]
 }
 
 func ExampleDeleteDataset_ClearWhere() {
@@ -309,5 +309,5 @@ func ExampleDeleteDataset_Returning() {
 
 	// Output:
 	// DELETE FROM "items" RETURNING "id" []
-	// DELETE FROM "items" WHERE ("id" IS NOT NULL) RETURNING "id" []
+	// DELETE FROM "items" WHERE ("id" != NULL) RETURNING "id" []
 }

@@ -216,7 +216,7 @@ type (
 		// 		exp.CrossJoinType:        []byte(" CROSS JOIN "),
 		// 	})
 		JoinTypeLookup map[exp.JoinType][]byte
-		// Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
+		// Whether or not to use literal TRUE or FALSE for IS statements (e.g. `= TRUE` or `= 0`)
 		UseLiteralIsBools bool
 		// EscapedRunes is a map of a rune and the corresponding escape sequence in bytes. Used when escaping text
 		// types.

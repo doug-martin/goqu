@@ -538,7 +538,7 @@ func ExampleInsertDataset_OnConflict_doUpdateWithWhere() {
 	fmt.Println(insertSQL, args)
 
 	// Output:
-	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" IS TRUE) []
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT (key) DO UPDATE SET "updated"=NOW() WHERE ("allow_update" = TRUE) []
 }
 
 func ExampleInsertDataset_Returning() {
