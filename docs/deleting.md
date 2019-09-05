@@ -228,8 +228,7 @@ Set an Error on a dataset:
 ```go
 func GetDelete(name string, value string) *goqu.DeleteDataset {
 
-    var ds = goqu.Delete("test").
-        Where(goqu.C(name).Eq(value))
+    var ds = goqu.Delete("test")
 
     if len(name) == 0 {
         return ds.SetError(fmt.Errorf("name is empty"))
@@ -239,7 +238,7 @@ func GetDelete(name string, value string) *goqu.DeleteDataset {
         return ds.SetError(fmt.Errorf("value is empty"))
     }
 
-    return ds
+    return ds.Where(goqu.C(name).Eq(value))
 }
 
 ```
