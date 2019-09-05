@@ -10,9 +10,10 @@
   * [Order](#order)
   * [Limit](#limit)
   * [Returning](#returning)
+  * [SetError](#seterror)
   * [Executing](#executing)
-  
-<a name="create"></a>  
+
+<a name="create"></a>
 To create a [`UpdateDataset`](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset)  you can use
 
 **[`goqu.Update`](https://godoc.org/github.com/doug-martin/goqu/#Update)**
@@ -268,7 +269,7 @@ UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 
 **NOTE** The `sqlite3` adapter does not support a multi table syntax.
 
-`Postgres` Example 
+`Postgres` Example
 
 ```go
 dialect := goqu.Dialect("postgres")
@@ -413,6 +414,52 @@ fmt.Println(sql)
 Output:
 ```
 UPDATE "test" SET "foo"='bar' RETURNING "test".*
+```
+
+<a name="seterror"></a>
+**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.SetError)**
+
+Sometimes while building up a query with goqu you will encounter situations where certain
+preconditions are not met or some end-user contraint has been violated. While you could
+track this error case separately, goqu provides a convenient built-in mechanism to set an
+error on a dataset if one has not already been set to simplify query building.
+
+Set an Error on a dataset:
+
+```go
+func GetUpdate(name string, value string) *goqu.UpdateDataset {
+
+    var ds = goqu.Update("test").
+        Set(goqu.Record{name: value})
+
+    if len(name) == 0 {
+        return ds.SetError(fmt.Errorf("name is empty"))
+    }
+
+    if len(value) == 0 {
+        return ds.SetError(fmt.Errorf("value is empty"))
+    }
+
+    return ds
+}
+
+```
+
+This error is returned on any subsequent call to `Error` or `ToSQL`:
+
+```go
+var field, value string
+ds = GetUpdate(field, value)
+fmt.Println(ds.Error())
+
+sql, args, err = ds.ToSQL()
+fmt.Println(err)
+```
+
+Output:
+```
+name is empty
+name is empty
 ```
 
 <a name="executing"></a>

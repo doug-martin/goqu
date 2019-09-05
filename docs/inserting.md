@@ -8,9 +8,10 @@
   * [Insert Map](#insert-map)
   * [Insert From Query](#insert-from-query)
   * [Returning](#returning)
+  * [SetError](#seterror)
   * [Executing](#executing)
-  
-<a name="create"></a>  
+
+<a name="create"></a>
 To create a [`InsertDataset`](https://godoc.org/github.com/doug-martin/goqu/#InsertDataset)  you can use
 
 **[`goqu.Insert`](https://godoc.org/github.com/doug-martin/goqu/#Insert)**
@@ -109,7 +110,7 @@ insertSQL, args, _ := ds.ToSQL()
 fmt.Println(insertSQL, args)
 ```
 
-Output: 
+Output:
 ```sql
 INSERT INTO "user" ("first_name", "last_name") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
 ```
@@ -371,6 +372,52 @@ fmt.Println(sql)
 Output:
 ```
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "test".*
+```
+
+<a name="seterror"></a>
+**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#InsertDataset.SetError)**
+
+Sometimes while building up a query with goqu you will encounter situations where certain
+preconditions are not met or some end-user contraint has been violated. While you could
+track this error case separately, goqu provides a convenient built-in mechanism to set an
+error on a dataset if one has not already been set to simplify query building.
+
+Set an Error on a dataset:
+
+```go
+func GetInsert(name string, value string) *goqu.InsertDataset {
+
+    var ds = goqu.Insert("test").
+        Rows(goqu.Record{name: value})
+
+    if len(field) == 0 {
+        return ds.SetError(fmt.Errorf("name is empty"))
+    }
+
+    if len(value) == 0 {
+        return ds.SetError(fmt.Errorf("value is empty"))
+    }
+
+    return ds
+}
+
+```
+
+This error is returned on any subsequent call to `Error` or `ToSQL`:
+
+```go
+var field, value string
+ds = GetInsert(field, value)
+fmt.Println(ds.Error())
+
+sql, args, err = ds.ToSQL()
+fmt.Println(err)
+```
+
+Output:
+```
+name is empty
+name is empty
 ```
 
 <a name="executing"></a>
