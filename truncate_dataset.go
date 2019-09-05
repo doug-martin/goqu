@@ -11,6 +11,7 @@ type TruncateDataset struct {
 	clauses      exp.TruncateClauses
 	isPrepared   bool
 	queryFactory exec.QueryFactory
+	err          error
 }
 
 // used internally by database to create a database with a specific adapter
@@ -79,6 +80,7 @@ func (td *TruncateDataset) copy(clauses exp.TruncateClauses) *TruncateDataset {
 		clauses:      clauses,
 		isPrepared:   td.isPrepared,
 		queryFactory: td.queryFactory,
+		err:          td.err,
 	}
 }
 
@@ -126,6 +128,22 @@ func (td *TruncateDataset) Identity(identity string) *TruncateDataset {
 	return td.copy(td.clauses.SetOptions(opts))
 }
 
+// Get any error that has been set or nil if no error has been set.
+func (td *TruncateDataset) Error() error {
+	return td.err
+}
+
+// Set an error on the dataset if one has not already been set. This error will be returned by a future call to Error
+// or as part of ToSQL. This can be used by end users to record errors while building up queries without having to
+// track those separately.
+func (td *TruncateDataset) SetError(err error) *TruncateDataset {
+	if td.err == nil {
+		td.err = err
+	}
+
+	return td
+}
+
 // Generates a TRUNCATE sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
 //
@@ -143,6 +161,9 @@ func (td *TruncateDataset) Executor() exec.QueryExecutor {
 
 func (td *TruncateDataset) truncateSQLBuilder() sb.SQLBuilder {
 	buf := sb.NewSQLBuilder(td.isPrepared)
+	if td.err != nil {
+		return buf.SetError(td.err)
+	}
 	td.dialect.ToTruncateSQL(buf, td.clauses)
 	return buf
 }

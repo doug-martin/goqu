@@ -12,6 +12,7 @@ type InsertDataset struct {
 	clauses      exp.InsertClauses
 	isPrepared   bool
 	queryFactory exec.QueryFactory
+	err          error
 }
 
 var errUnsupportedIntoType = errors.New("unsupported table type, a string or identifier expression is required")
@@ -84,6 +85,7 @@ func (id *InsertDataset) copy(clauses exp.InsertClauses) *InsertDataset {
 		clauses:      clauses,
 		isPrepared:   id.isPrepared,
 		queryFactory: id.queryFactory,
+		err:          id.err,
 	}
 }
 
@@ -179,6 +181,22 @@ func (id *InsertDataset) ClearOnConflict() *InsertDataset {
 	return id.OnConflict(nil)
 }
 
+// Get any error that has been set or nil if no error has been set.
+func (id *InsertDataset) Error() error {
+	return id.err
+}
+
+// Set an error on the dataset if one has not already been set. This error will be returned by a future call to Error
+// or as part of ToSQL. This can be used by end users to record errors while building up queries without having to
+// track those separately.
+func (id *InsertDataset) SetError(err error) *InsertDataset {
+	if id.err == nil {
+		id.err = err
+	}
+
+	return id
+}
+
 // Generates the default INSERT statement. If Prepared has been called with true then the statement will not be
 // interpolated. See examples. When using structs you may specify a column to be skipped in the insert, (e.g. id) by
 // specifying a goqu tag with `skipinsert`
@@ -209,6 +227,9 @@ func (id *InsertDataset) Executor() exec.QueryExecutor {
 
 func (id *InsertDataset) insertSQLBuilder() sb.SQLBuilder {
 	buf := sb.NewSQLBuilder(id.isPrepared)
+	if id.err != nil {
+		return buf.SetError(id.err)
+	}
 	id.dialect.ToInsertSQL(buf, id.clauses)
 	return buf
 }
