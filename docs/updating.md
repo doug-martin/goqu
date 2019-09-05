@@ -429,8 +429,7 @@ Set an Error on a dataset:
 ```go
 func GetUpdate(name string, value string) *goqu.UpdateDataset {
 
-    var ds = goqu.Update("test").
-        Set(goqu.Record{name: value})
+    var ds = goqu.Update("test")
 
     if len(name) == 0 {
         return ds.SetError(fmt.Errorf("name is empty"))
@@ -440,7 +439,7 @@ func GetUpdate(name string, value string) *goqu.UpdateDataset {
         return ds.SetError(fmt.Errorf("value is empty"))
     }
 
-    return ds
+    return ds.Set(goqu.Record{name: value})
 }
 
 ```

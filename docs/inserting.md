@@ -387,8 +387,7 @@ Set an Error on a dataset:
 ```go
 func GetInsert(name string, value string) *goqu.InsertDataset {
 
-    var ds = goqu.Insert("test").
-        Rows(goqu.Record{name: value})
+    var ds = goqu.Insert("test")
 
     if len(field) == 0 {
         return ds.SetError(fmt.Errorf("name is empty"))
@@ -398,7 +397,7 @@ func GetInsert(name string, value string) *goqu.InsertDataset {
         return ds.SetError(fmt.Errorf("value is empty"))
     }
 
-    return ds
+    return ds.Rows(goqu.Record{name: value})
 }
 
 ```

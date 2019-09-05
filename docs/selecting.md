@@ -661,14 +661,13 @@ Set an Error on a dataset:
 ```go
 func GetSelect(name string) *goqu.SelectDataset {
 
-    var ds = goqu.From("test").
-        Select(name)
+    var ds = goqu.From("test")
 
     if len(name) == 0 {
         return ds.SetError(fmt.Errorf("name is empty"))
     }
 
-    return ds
+    return ds.Select(name)
 }
 
 ```
