@@ -1465,6 +1465,51 @@ func (sds *selectDatasetSuite) TestPluck_WithPreparedStatement() {
 	sds.Equal([]string{"Bob", "Sally", "Billy"}, names)
 }
 
+func (sds *selectDatasetSuite) TestSetError() {
+
+	err1 := errors.New("error #1")
+	err2 := errors.New("error #2")
+	err3 := errors.New("error #3")
+
+	// Verify initial error set/get works properly
+	md := new(mocks.SQLDialect)
+	ds := From("test").SetDialect(md)
+	ds = ds.SetError(err1)
+	sds.Equal(err1, ds.Error())
+	sql, args, err := ds.ToSQL()
+	sds.Empty(sql)
+	sds.Empty(args)
+	sds.Equal(err1, err)
+
+	// Repeated SetError calls on Dataset should not overwrite the original error
+	ds = ds.SetError(err2)
+	sds.Equal(err1, ds.Error())
+	sql, args, err = ds.ToSQL()
+	sds.Empty(sql)
+	sds.Empty(args)
+	sds.Equal(err1, err)
+
+	// Builder functions should not lose the error
+	ds = ds.ClearWindow()
+	sds.Equal(err1, ds.Error())
+	sql, args, err = ds.ToSQL()
+	sds.Empty(sql)
+	sds.Empty(args)
+	sds.Equal(err1, err)
+
+	// Deeper errors inside SQL generation should still return original error
+	c := ds.GetClauses()
+	sqlB := sb.NewSQLBuilder(false)
+	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
+		args.Get(0).(sb.SQLBuilder).SetError(err3)
+	}).Once()
+
+	sql, args, err = ds.ToSQL()
+	sds.Empty(sql)
+	sds.Empty(args)
+	sds.Equal(err1, err)
+}
+
 func TestSelectDataset(t *testing.T) {
 	suite.Run(t, new(selectDatasetSuite))
 }

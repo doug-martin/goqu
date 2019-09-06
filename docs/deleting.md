@@ -8,9 +8,10 @@
   * [Order](#order)
   * [Limit](#limit)
   * [Returning](#returning)
+  * [SetError](#seterror)
   * [Executing](#exec)
-  
-<a name="create"></a>  
+
+<a name="create"></a>
 To create a [`DeleteDataset`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset)  you can use
 
 **[`goqu.Delete`](https://godoc.org/github.com/doug-martin/goqu/#Delete)**
@@ -212,6 +213,51 @@ fmt.Println(sql)
 Output:
 ```
 DELETE FROM "test" RETURNING "test".*
+```
+
+<a name="seterror"></a>
+**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.SetError)**
+
+Sometimes while building up a query with goqu you will encounter situations where certain
+preconditions are not met or some end-user contraint has been violated. While you could
+track this error case separately, goqu provides a convenient built-in mechanism to set an
+error on a dataset if one has not already been set to simplify query building.
+
+Set an Error on a dataset:
+
+```go
+func GetDelete(name string, value string) *goqu.DeleteDataset {
+
+    var ds = goqu.Delete("test")
+
+    if len(name) == 0 {
+        return ds.SetError(fmt.Errorf("name is empty"))
+    }
+
+    if len(value) == 0 {
+        return ds.SetError(fmt.Errorf("value is empty"))
+    }
+
+    return ds.Where(goqu.C(name).Eq(value))
+}
+
+```
+
+This error is returned on any subsequent call to `Error` or `ToSQL`:
+
+```go
+var field, value string
+ds = GetDelete(field, value)
+fmt.Println(ds.Error())
+
+sql, args, err = ds.ToSQL()
+fmt.Println(err)
+```
+
+Output:
+```
+name is empty
+name is empty
 ```
 
 ## Executing Deletes

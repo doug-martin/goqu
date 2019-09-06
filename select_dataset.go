@@ -16,6 +16,7 @@ type SelectDataset struct {
 	clauses      exp.SelectClauses
 	isPrepared   bool
 	queryFactory exec.QueryFactory
+	err          error
 }
 
 var (
@@ -94,6 +95,7 @@ func (sd *SelectDataset) copy(clauses exp.SelectClauses) *SelectDataset {
 		clauses:      clauses,
 		isPrepared:   sd.isPrepared,
 		queryFactory: sd.queryFactory,
+		err:          sd.err,
 	}
 }
 
@@ -511,6 +513,22 @@ func (sd *SelectDataset) ClearWindow() *SelectDataset {
 	return sd.copy(sd.clauses.ClearWindows())
 }
 
+// Get any error that has been set or nil if no error has been set.
+func (sd *SelectDataset) Error() error {
+	return sd.err
+}
+
+// Set an error on the dataset if one has not already been set. This error will be returned by a future call to Error
+// or as part of ToSQL. This can be used by end users to record errors while building up queries without having to
+// track those separately.
+func (sd *SelectDataset) SetError(err error) *SelectDataset {
+	if sd.err == nil {
+		sd.err = err
+	}
+
+	return sd
+}
+
 // Generates a SELECT sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
 //
@@ -658,6 +676,9 @@ func (sd *SelectDataset) PluckContext(ctx context.Context, i interface{}, col st
 
 func (sd *SelectDataset) selectSQLBuilder() sb.SQLBuilder {
 	buf := sb.NewSQLBuilder(sd.isPrepared)
+	if sd.err != nil {
+		return buf.SetError(sd.err)
+	}
 	sd.dialect.ToSelectSQL(buf, sd.GetClauses())
 	return buf
 }

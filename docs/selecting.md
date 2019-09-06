@@ -12,6 +12,7 @@
   * [`GroupBy`](#group_by)
   * [`Having`](#having)
   * [`Window`](#window)
+  * [`SetError`](#seterror)
 * Executing Queries
   * [`ScanStructs`](#scan-structs) - Scans rows into a slice of structs
   * [`ScanStruct`](#scan-struct) - Scans a row into a slice a struct, returns false if a row wasnt found
@@ -20,7 +21,7 @@
   * [`Count`](#count) - Returns the count for the current query
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
-<a name="create"></a>  
+<a name="create"></a>
 To create a [`SelectDataset`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset)  you can use
 
 **[`goqu.From`](https://godoc.org/github.com/doug-martin/goqu/#From) and [`goqu.Select`](https://godoc.org/github.com/doug-martin/goqu/#Select)**
@@ -95,7 +96,7 @@ sql, _, _ := goqu.From("test").Select("a", "b", "c").ToSQL()
 fmt.Println(sql)
 ```
 
-Output: 
+Output:
 ```sql
 SELECT "a", "b", "c" FROM "test"
 ```
@@ -647,12 +648,53 @@ Output:
 SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b")
 ```
 
+<a name="seterror"></a>
+**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.SetError)**
+
+Sometimes while building up a query with goqu you will encounter situations where certain
+preconditions are not met or some end-user contraint has been violated. While you could
+track this error case separately, goqu provides a convenient built-in mechanism to set an
+error on a dataset if one has not already been set to simplify query building.
+
+Set an Error on a dataset:
+
+```go
+func GetSelect(name string) *goqu.SelectDataset {
+
+    var ds = goqu.From("test")
+
+    if len(name) == 0 {
+        return ds.SetError(fmt.Errorf("name is empty"))
+    }
+
+    return ds.Select(name)
+}
+
+```
+
+This error is returned on any subsequent call to `Error` or `ToSQL`:
+
+```go
+var name string = ""
+ds = GetSelect(name)
+fmt.Println(ds.Error())
+
+sql, args, err = ds.ToSQL()
+fmt.Println(err)
+```
+
+Output:
+```
+name is empty
+name is empty
+```
+
 ## Executing Queries
 
 To execute your query use [`goqu.Database#From`](https://godoc.org/github.com/doug-martin/goqu/#Database.From) to create your dataset
 
 <a name="scan-structs"></a>
-**[`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStructs)** 
+**[`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStructs)**
 
 Scans rows into a slice of structs
 
@@ -742,7 +784,7 @@ fmt.Printf("\n%+v", ids)
 <a name="scan-val"></a>
 [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanVal)
 
-Scans a row of 1 column into a primitive value, returns false if a row wasnt found.   
+Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
 
 **Note** when using the dataset a `LIMIT` of 1 is automatically applied.
 ```go
@@ -774,7 +816,7 @@ fmt.Printf("\nCount:= %d", count)
 ```
 
 <a name="pluck"></a>
-**[`Pluck`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Pluck)** 
+**[`Pluck`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Pluck)**
 
 Selects a single column and stores the results into a slice of primitive values
 

@@ -14,6 +14,7 @@ type DeleteDataset struct {
 	clauses      exp.DeleteClauses
 	isPrepared   bool
 	queryFactory exec.QueryFactory
+	err          error
 }
 
 // used internally by database to create a database with a specific adapter
@@ -74,6 +75,7 @@ func (dd *DeleteDataset) copy(clauses exp.DeleteClauses) *DeleteDataset {
 		clauses:      clauses,
 		isPrepared:   dd.isPrepared,
 		queryFactory: dd.queryFactory,
+		err:          dd.err,
 	}
 }
 
@@ -170,6 +172,22 @@ func (dd *DeleteDataset) Returning(returning ...interface{}) *DeleteDataset {
 	return dd.copy(dd.clauses.SetReturning(exp.NewColumnListExpression(returning...)))
 }
 
+// Get any error that has been set or nil if no error has been set.
+func (dd *DeleteDataset) Error() error {
+	return dd.err
+}
+
+// Set an error on the dataset if one has not already been set. This error will be returned by a future call to Error
+// or as part of ToSQL. This can be used by end users to record errors while building up queries without having to
+// track those separately.
+func (dd *DeleteDataset) SetError(err error) *DeleteDataset {
+	if dd.err == nil {
+		dd.err = err
+	}
+
+	return dd
+}
+
 // Generates a DELETE sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
 //
@@ -189,6 +207,9 @@ func (dd *DeleteDataset) Executor() exec.QueryExecutor {
 
 func (dd *DeleteDataset) deleteSQLBuilder() sb.SQLBuilder {
 	buf := sb.NewSQLBuilder(dd.isPrepared)
+	if dd.err != nil {
+		return buf.SetError(dd.err)
+	}
 	dd.dialect.ToDeleteSQL(buf, dd.clauses)
 	return buf
 }

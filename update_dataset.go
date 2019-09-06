@@ -12,6 +12,7 @@ type UpdateDataset struct {
 	clauses      exp.UpdateClauses
 	isPrepared   bool
 	queryFactory exec.QueryFactory
+	err          error
 }
 
 var errUnsupportedUpdateTableType = errors.New("unsupported table type, a string or identifier expression is required")
@@ -82,6 +83,7 @@ func (ud *UpdateDataset) copy(clauses exp.UpdateClauses) *UpdateDataset {
 		clauses:      clauses,
 		isPrepared:   ud.isPrepared,
 		queryFactory: ud.queryFactory,
+		err:          ud.err,
 	}
 }
 
@@ -184,6 +186,22 @@ func (ud *UpdateDataset) Returning(returning ...interface{}) *UpdateDataset {
 	return ud.copy(ud.clauses.SetReturning(exp.NewColumnListExpression(returning...)))
 }
 
+// Get any error that has been set or nil if no error has been set.
+func (ud *UpdateDataset) Error() error {
+	return ud.err
+}
+
+// Set an error on the dataset if one has not already been set. This error will be returned by a future call to Error
+// or as part of ToSQL. This can be used by end users to record errors while building up queries without having to
+// track those separately.
+func (ud *UpdateDataset) SetError(err error) *UpdateDataset {
+	if ud.err == nil {
+		ud.err = err
+	}
+
+	return ud
+}
+
 // Generates an UPDATE sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
 //
@@ -201,6 +219,9 @@ func (ud *UpdateDataset) Executor() exec.QueryExecutor {
 
 func (ud *UpdateDataset) updateSQLBuilder() sb.SQLBuilder {
 	buf := sb.NewSQLBuilder(ud.isPrepared)
+	if ud.err != nil {
+		return buf.SetError(ud.err)
+	}
 	ud.dialect.ToUpdateSQL(buf, ud.clauses)
 	return buf
 }
