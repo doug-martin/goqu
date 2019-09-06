@@ -1,12 +1,16 @@
-## 8.5.0
+## v8.6.0
+
+* [ADDED] `SetError()` and `Error()` to all datasets. [#152](https://github.com/doug-martin/goqu/pull/152) and [#150] - [@marshallmcmullen](https://github.com/marshallmcmullen)
+
+## v8.5.0
 
 * [ADDED] Window Function support [#128](https://github.com/doug-martin/goqu/issues/128) - [@Xuyuanp](https://github.com/Xuyuanp)
 
-## 8.4.1
+## v8.4.1
 
 * [FIXED] Returning func be able to handle nil [#140](https://github.com/doug-martin/goqu/issues/140)
 
-## 8.4.0
+## v8.4.0
 
 * Created new `sqlgen` module to encapsulate sql generation
     * Broke SQLDialect inti new SQL generators for each statement type.
@@ -17,7 +21,7 @@
 
 * [FIXED] Data race during query factory initialization [#133](https://github.com/doug-martin/goqu/issues/133) and [#136](https://github.com/doug-martin/goqu/issues/136) - [@o1egl](https://github.com/o1egl)    
 
-## 8.3.1
+## v8.3.1
 
 * [FIXED] InsertDataset.WithDialect return old dataset [#126](https://github.com/doug-martin/goqu/issues/126) - [@chen56](https://github.com/chen56)
 * Test clean up and more testing pattern consistency
@@ -25,7 +29,7 @@
     * Updated Equals assertions to have expected output first 
 * Increase overall test coverage.
 
-## 8.3.0
+## v8.3.0
 
 * [Added] Support for `DISTINCT ON` clauses [#119](https://github.com/doug-martin/goqu/issues/119)
 
