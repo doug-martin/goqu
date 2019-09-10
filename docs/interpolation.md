@@ -35,7 +35,7 @@ sql, args, _ = preparedDs.
 fmt.Println(sql, args)
 
 // Output:
-// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
+// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" = TRUE) AND ("col4" = FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
 // INSERT INTO "items" ("address", "name") VALUES (?, ?), (?, ?) [111 Test Addr Test1 112 Test Addr Test2]
 // UPDATE "items" SET "address"=?,"name"=? [111 Test Addr Test]
 // DELETE FROM "items" WHERE ("id" > ?) [10]

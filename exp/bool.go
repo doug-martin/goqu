@@ -129,28 +129,22 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	return NewBooleanExpression(op, lhs, rhs)
 }
 
-// checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
+// checks a boolean operation normalizing the operation based on the RHS.
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
-	if rhs == nil {
-		op = IsOp
-	} else {
-		switch reflect.Indirect(reflect.ValueOf(rhs)).Kind() {
-		case reflect.Bool:
-			op = IsOp
-		case reflect.Slice:
-			// if its a slice of bytes dont treat as an IN
-			if _, ok := rhs.([]byte); !ok {
-				op = InOp
-			}
-		case reflect.Struct:
-			switch rhs.(type) {
-			case SQLExpression:
-				op = InOp
-			case AppendableExpression:
-				op = InOp
-			case *regexp.Regexp:
-				return checkLikeExp(LikeOp, lhs, rhs, invert)
-			}
+	switch reflect.Indirect(reflect.ValueOf(rhs)).Kind() {
+	case reflect.Slice:
+		// if its a slice of bytes dont treat as an IN
+		if _, ok := rhs.([]byte); !ok {
+			op = InOp
+		}
+	case reflect.Struct:
+		switch rhs.(type) {
+		case SQLExpression:
+			op = InOp
+		case AppendableExpression:
+			op = InOp
+		case *regexp.Regexp:
+			return checkLikeExp(LikeOp, lhs, rhs, invert)
 		}
 	}
 	if invert {

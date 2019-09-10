@@ -3,6 +3,7 @@ package sqlgen
 import (
 	"database/sql/driver"
 	"fmt"
+	"reflect"
 	"regexp"
 	"testing"
 	"time"
@@ -113,7 +114,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Invalid() {
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: b, sql: "NULL"},
-		expressionTestCase{val: b, sql: "NULL", isPrepared: true},
+		expressionTestCase{val: b, sql: "?", isPrepared: true, args: []interface{}{reflect.ValueOf(nil)}},
 	)
 }
 
@@ -141,13 +142,13 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {
 		NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{
 			val: ex,
-			sql: `(("a" = 1) AND ("b" IS TRUE) AND ("c" IS FALSE) AND ("d" IN ('a', 'b', 'c')))`,
+			sql: `(("a" = 1) AND ("b" = TRUE) AND ("c" = FALSE) AND ("d" IN ('a', 'b', 'c')))`,
 		},
 		expressionTestCase{
 			val:        ex,
-			sql:        `(("a" = $1) AND ("b" IS TRUE) AND ("c" IS FALSE) AND ("d" IN ($2, $3, $4)))`,
+			sql:        `(("a" = $1) AND ("b" = $2) AND ("c" = $3) AND ("d" IN ($4, $5, $6)))`,
 			isPrepared: true,
-			args:       []interface{}{int64(1), "a", "b", "c"},
+			args:       []interface{}{int64(1), true, false, "a", "b", "c"},
 		},
 	)
 }
@@ -258,7 +259,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_TimeTypes() {
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: nt, sql: "NULL"},
-		expressionTestCase{val: nt, sql: "NULL", isPrepared: true},
+		expressionTestCase{val: nt, sql: "?", isPrepared: true, args: []interface{}{nt}},
 	)
 }
 
@@ -266,7 +267,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_NilTypes() {
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: nil, sql: "NULL"},
-		expressionTestCase{val: nil, sql: "NULL", isPrepared: true},
+		expressionTestCase{val: nil, sql: "?", isPrepared: true, args: []interface{}{nil}},
 	)
 }
 
@@ -463,14 +464,14 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 		expressionTestCase{val: ident.Eq(1), sql: `("a" = 1)`},
 		expressionTestCase{val: ident.Eq(1), sql: `("a" = ?)`, isPrepared: true, args: []interface{}{int64(1)}},
 
-		expressionTestCase{val: ident.Eq(true), sql: `("a" IS TRUE)`},
-		expressionTestCase{val: ident.Eq(true), sql: `("a" IS TRUE)`, isPrepared: true},
+		expressionTestCase{val: ident.Eq(true), sql: `("a" = TRUE)`},
+		expressionTestCase{val: ident.Eq(true), sql: `("a" = ?)`, isPrepared: true, args: []interface{}{true}},
 
-		expressionTestCase{val: ident.Eq(false), sql: `("a" IS FALSE)`},
-		expressionTestCase{val: ident.Eq(false), sql: `("a" IS FALSE)`, isPrepared: true},
+		expressionTestCase{val: ident.Eq(false), sql: `("a" = FALSE)`},
+		expressionTestCase{val: ident.Eq(false), sql: `("a" = ?)`, isPrepared: true, args: []interface{}{false}},
 
-		expressionTestCase{val: ident.Eq(nil), sql: `("a" IS NULL)`},
-		expressionTestCase{val: ident.Eq(nil), sql: `("a" IS NULL)`, isPrepared: true},
+		expressionTestCase{val: ident.Eq(nil), sql: `("a" = NULL)`},
+		expressionTestCase{val: ident.Eq(nil), sql: `("a" = ?)`, isPrepared: true, args: []interface{}{nil}},
 
 		expressionTestCase{val: ident.Eq([]int64{1, 2, 3}), sql: `("a" IN (1, 2, 3))`},
 		expressionTestCase{val: ident.Eq([]int64{1, 2, 3}), sql: `("a" IN (?, ?, ?))`, isPrepared: true, args: []interface{}{
@@ -483,14 +484,14 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 		expressionTestCase{val: ident.Neq(1), sql: `("a" != 1)`},
 		expressionTestCase{val: ident.Neq(1), sql: `("a" != ?)`, isPrepared: true, args: []interface{}{int64(1)}},
 
-		expressionTestCase{val: ident.Neq(true), sql: `("a" IS NOT TRUE)`},
-		expressionTestCase{val: ident.Neq(true), sql: `("a" IS NOT TRUE)`, isPrepared: true},
+		expressionTestCase{val: ident.Neq(true), sql: `("a" != TRUE)`},
+		expressionTestCase{val: ident.Neq(true), sql: `("a" != ?)`, isPrepared: true, args: []interface{}{true}},
 
-		expressionTestCase{val: ident.Neq(false), sql: `("a" IS NOT FALSE)`},
-		expressionTestCase{val: ident.Neq(false), sql: `("a" IS NOT FALSE)`, isPrepared: true},
+		expressionTestCase{val: ident.Neq(false), sql: `("a" != FALSE)`},
+		expressionTestCase{val: ident.Neq(false), sql: `("a" != ?)`, isPrepared: true, args: []interface{}{false}},
 
-		expressionTestCase{val: ident.Neq(nil), sql: `("a" IS NOT NULL)`},
-		expressionTestCase{val: ident.Neq(nil), sql: `("a" IS NOT NULL)`, isPrepared: true},
+		expressionTestCase{val: ident.Neq(nil), sql: `("a" != NULL)`},
+		expressionTestCase{val: ident.Neq(nil), sql: `("a" != ?)`, isPrepared: true, args: []interface{}{nil}},
 
 		expressionTestCase{val: ident.Neq([]int64{1, 2, 3}), sql: `("a" NOT IN (1, 2, 3))`},
 		expressionTestCase{val: ident.Neq([]int64{1, 2, 3}), sql: `("a" NOT IN (?, ?, ?))`, isPrepared: true, args: []interface{}{
@@ -501,22 +502,22 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 		expressionTestCase{val: ident.Neq(ae), sql: `("a" NOT IN (SELECT "id" FROM "test2"))`, isPrepared: true},
 
 		expressionTestCase{val: ident.Is(true), sql: `("a" IS TRUE)`},
-		expressionTestCase{val: ident.Is(true), sql: `("a" IS TRUE)`, isPrepared: true},
+		expressionTestCase{val: ident.Is(true), sql: `("a" IS ?)`, isPrepared: true, args: []interface{}{true}},
 
 		expressionTestCase{val: ident.Is(false), sql: `("a" IS FALSE)`},
-		expressionTestCase{val: ident.Is(false), sql: `("a" IS FALSE)`, isPrepared: true},
+		expressionTestCase{val: ident.Is(false), sql: `("a" IS ?)`, isPrepared: true, args: []interface{}{false}},
 
 		expressionTestCase{val: ident.Is(nil), sql: `("a" IS NULL)`},
-		expressionTestCase{val: ident.Is(nil), sql: `("a" IS NULL)`, isPrepared: true},
+		expressionTestCase{val: ident.Is(nil), sql: `("a" IS ?)`, isPrepared: true, args: []interface{}{nil}},
 
 		expressionTestCase{val: ident.IsNot(true), sql: `("a" IS NOT TRUE)`},
-		expressionTestCase{val: ident.IsNot(true), sql: `("a" IS NOT TRUE)`, isPrepared: true},
+		expressionTestCase{val: ident.IsNot(true), sql: `("a" IS NOT ?)`, isPrepared: true, args: []interface{}{true}},
 
 		expressionTestCase{val: ident.IsNot(false), sql: `("a" IS NOT FALSE)`},
-		expressionTestCase{val: ident.IsNot(false), sql: `("a" IS NOT FALSE)`, isPrepared: true},
+		expressionTestCase{val: ident.IsNot(false), sql: `("a" IS NOT ?)`, isPrepared: true, args: []interface{}{false}},
 
 		expressionTestCase{val: ident.IsNot(nil), sql: `("a" IS NOT NULL)`},
-		expressionTestCase{val: ident.IsNot(nil), sql: `("a" IS NOT NULL)`, isPrepared: true},
+		expressionTestCase{val: ident.IsNot(nil), sql: `("a" IS NOT ?)`, isPrepared: true, args: []interface{}{nil}},
 
 		expressionTestCase{val: ident.Gt(1), sql: `("a" > 1)`},
 		expressionTestCase{val: ident.Gt(1), sql: `("a" > ?)`, isPrepared: true, args: []interface{}{int64(1)}},
@@ -1118,14 +1119,14 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 		expressionTestCase{val: exp.Ex{"a": 1}, sql: `("a" = 1)`},
 		expressionTestCase{val: exp.Ex{"a": 1}, sql: `("a" = ?)`, isPrepared: true, args: []interface{}{int64(1)}},
 
-		expressionTestCase{val: exp.Ex{"a": true}, sql: `("a" IS TRUE)`},
-		expressionTestCase{val: exp.Ex{"a": true}, sql: `("a" IS TRUE)`, isPrepared: true},
+		expressionTestCase{val: exp.Ex{"a": true}, sql: `("a" = TRUE)`},
+		expressionTestCase{val: exp.Ex{"a": true}, sql: `("a" = ?)`, isPrepared: true, args: []interface{}{true}},
 
-		expressionTestCase{val: exp.Ex{"a": false}, sql: `("a" IS FALSE)`},
-		expressionTestCase{val: exp.Ex{"a": false}, sql: `("a" IS FALSE)`, isPrepared: true},
+		expressionTestCase{val: exp.Ex{"a": false}, sql: `("a" = FALSE)`},
+		expressionTestCase{val: exp.Ex{"a": false}, sql: `("a" = ?)`, isPrepared: true, args: []interface{}{false}},
 
-		expressionTestCase{val: exp.Ex{"a": nil}, sql: `("a" IS NULL)`},
-		expressionTestCase{val: exp.Ex{"a": nil}, sql: `("a" IS NULL)`, isPrepared: true},
+		expressionTestCase{val: exp.Ex{"a": nil}, sql: `("a" = NULL)`},
+		expressionTestCase{val: exp.Ex{"a": nil}, sql: `("a" = ?)`, isPrepared: true, args: []interface{}{nil}},
 
 		expressionTestCase{val: exp.Ex{"a": []string{"a", "b", "c"}}, sql: `("a" IN ('a', 'b', 'c'))`},
 		expressionTestCase{
@@ -1141,7 +1142,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 		}},
 
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT TRUE)`},
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT TRUE)`, isPrepared: true},
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT ?)`, isPrepared: true, args: []interface{}{true}},
 
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gt": 1}}, sql: `("a" > 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gt": 1}}, sql: `("a" > ?)`, isPrepared: true, args: []interface{}{
@@ -1274,9 +1275,9 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 		},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"is": nil, "eq": 10}},
-			sql:        `(("a" = ?) OR ("a" IS NULL))`,
+			sql:        `(("a" = ?) OR ("a" IS ?))`,
 			isPrepared: true,
-			args:       []interface{}{int64(10)},
+			args:       []interface{}{int64(10), nil},
 		},
 	)
 }
@@ -1297,12 +1298,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionOrMap() {
 			err:        "goqu: unsupported expression type map[badOp:%!s(bool=true)]",
 		},
 
-		expressionTestCase{val: exp.ExOr{"a": 1, "b": true}, sql: `(("a" = 1) OR ("b" IS TRUE))`},
+		expressionTestCase{val: exp.ExOr{"a": 1, "b": true}, sql: `(("a" = 1) OR ("b" = TRUE))`},
 		expressionTestCase{
 			val:        exp.ExOr{"a": 1, "b": true},
-			sql:        `(("a" = ?) OR ("b" IS TRUE))`,
+			sql:        `(("a" = ?) OR ("b" = ?))`,
 			isPrepared: true,
-			args:       []interface{}{int64(1)},
+			args:       []interface{}{int64(1), true},
 		},
 
 		expressionTestCase{

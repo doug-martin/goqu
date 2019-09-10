@@ -81,8 +81,8 @@ func ExampleSelectDataset() {
 	fmt.Println(sql, args)
 	// nolint:lll
 	// Output:
-	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ '^(a|b)') AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN ('passed', 'active', 'registered')))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > 10) ORDER BY "test"."created" DESC NULLS LAST []
-	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]
+	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ '^(a|b)') AND ("test2"."amount" != NULL)) AND (("test3"."id" = NULL) OR ("test3"."status" IN ('passed', 'active', 'registered')))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > 10) ORDER BY "test"."created" DESC NULLS LAST []
+	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" != NULL)) AND (("test3"."id" = NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]
 }
 
 func ExampleSelect() {
@@ -413,9 +413,9 @@ func ExampleSelectDataset_Where() {
 	).ToSQL()
 	fmt.Println(sql)
 	// Output:
-	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
-	// SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" IS NULL) OR ("d" IN ('a', 'b', 'c')))
-	// SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" IS NULL) AND ("d" IN ('a', 'b', 'c'))))
+	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" = NULL) AND ("d" IN ('a', 'b', 'c')))
+	// SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" = NULL) OR ("d" IN ('a', 'b', 'c')))
+	// SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" = NULL) AND ("d" IN ('a', 'b', 'c'))))
 	// SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
 	// SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
 }
@@ -471,11 +471,11 @@ func ExampleSelectDataset_Where_prepared() {
 	).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS NULL) OR ("d" IN (?, ?, ?))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS NULL) AND ("d" IN (?, ?, ?)))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [10 10]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" = ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" = ?) OR ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" = ?) AND ("d" IN (?, ?, ?)))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS ?))) [10 10 <nil>]
 }
 
 func ExampleSelectDataset_ClearWhere() {
@@ -1135,7 +1135,7 @@ func ExampleSelectDataset_Prepared() {
 	fmt.Println(sql, args)
 	// nolint:lll
 	// Output:
-	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
+	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" = TRUE) AND ("col4" = FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
 }
 
 func ExampleSelectDataset_ScanStructs() {

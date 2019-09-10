@@ -89,7 +89,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_nilValues() {
 	igs.assertCases(
 		NewInsertSQLGenerator("test", DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a") VALUES (NULL)`},
-		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a") VALUES (NULL)`, isPrepared: true},
+		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a") VALUES (?)`, isPrepared: true, args: []interface{}{nil}},
 	)
 }
 
@@ -291,13 +291,13 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 
 		insertTestCase{
 			clause: icDuw,
-			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b' WHERE ("foo" = TRUE)`,
 		},
 		insertTestCase{
 			clause:     icDuw,
-			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" = ?)`,
 			isPrepared: true,
-			args:       []interface{}{"a1", "b"},
+			args:       []interface{}{"a1", "b", true},
 		},
 
 		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error()},
@@ -341,13 +341,13 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 
 		insertTestCase{
 			clause: icDuw,
-			sql:    `insert ignore into "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`,
+			sql:    `insert ignore into "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b' WHERE ("foo" = TRUE)`,
 		},
 		insertTestCase{
 			clause:     icDuw,
-			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
+			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" = ?)`,
 			isPrepared: true,
-			args:       []interface{}{"a1", "b"},
+			args:       []interface{}{"a1", "b", true},
 		},
 
 		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error()},

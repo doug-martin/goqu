@@ -27,8 +27,6 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.IncludePlaceholderNum = false
 	opts.QuoteRune = '`'
 	opts.DefaultValuesFragment = []byte("")
-	opts.True = []byte("1")
-	opts.False = []byte("0")
 	opts.TimeFormat = "2006-01-02 15:04:05"
 	opts.BooleanOperatorLookup = map[exp.BooleanOperation][]byte{
 		exp.EqOp:             []byte("="),

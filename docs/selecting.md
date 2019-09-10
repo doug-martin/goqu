@@ -467,7 +467,7 @@ fmt.Println(sql)
 Output:
 
 ```
-SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
+SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" = NULL) AND ("d" IN ('a', 'b', 'c')))
 ```
 
 You can use `goqu.ExOr` to create an ORed condition
@@ -484,7 +484,7 @@ fmt.Println(sql)
 
 Output:
 ```
-SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" IS NULL) OR ("d" IN ('a', 'b', 'c')))
+SELECT * FROM "test" WHERE (("a" > 10) OR ("b" < 10) OR ("c" = NULL) OR ("d" IN ('a', 'b', 'c')))
 ```
 
 You can use `goqu.Ex` with `goqu.ExOr` for complex expressions
@@ -509,7 +509,7 @@ fmt.Println(sql)
 Output:
 
 ```
-SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" IS NULL) AND ("d" IN ('a', 'b', 'c'))))
+SELECT * FROM "test" WHERE ((("a" > 10) AND ("b" < 10)) OR (("c" = NULL) AND ("d" IN ('a', 'b', 'c'))))
 ```
 
 You can also use identifiers to create your where condition
@@ -526,7 +526,7 @@ fmt.Println(sql)
 
 Output:
 ```
-SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
+SELECT * FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" = NULL) AND ("d" IN ('a', 'b', 'c')))
 ```
 
 Using `goqu.Or` to create ORed expression
@@ -548,7 +548,7 @@ fmt.Println(sql)
 Output:
 
 ```
-SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
+SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" = NULL)))
 ```
 
 <a name="limit"></a>
