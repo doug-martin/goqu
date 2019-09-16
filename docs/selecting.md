@@ -801,6 +801,38 @@ if !found{
 }
 ```
 
+<a name="Scanner"></a>
+**[`Scanner`](http://godoc.org/github.com/doug-martin/goqu/exec#Scanner)**
+
+Scanner knows how to scan rows into structs. This is usefull when dealing with
+large result sets where you can have only one item scanned in memory at one
+time.
+
+```go
+// Create a new scanner from sql.Rows.
+
+rows, _ := sql.Query(...)
+
+scanner, err := exec.Scanner(rows)
+
+for scanner.Next() {
+    scanner.ScanStruct(&myStruct)
+}
+
+// Or create a scanner from a SelectDataset.
+
+scanner, err := db.From("user").
+    Select("first_name", "last_name").
+    Executor().Scanner()
+
+for scanner.Next() {
+    myStruct := MyStruct{}
+    scanner.ScanSTruct(&myStruct)
+    
+    doSomethingWithStruct(myStruct)
+}
+```
+
 <a name="count"></a>
 **[`Count`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Count)**
 

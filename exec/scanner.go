@@ -10,13 +10,19 @@ import (
 )
 
 type (
+	// Scanner knows how to scan sql.Rows into structs.
 	Scanner interface {
-		ScanStructs(i interface{}) (bool, error)
-		ScanVals(i interface{}) (bool, error)
-		ScanVal(i interface{}) (found bool, err error)
+		Next() bool
+		ScanStruct(i interface{}) error
+		ScanVal(i interface{}) error
+		Close() error
+		Err() error
 	}
+
 	scanner struct {
-		rows *sql.Rows
+		rows      *sql.Rows
+		columnMap util.ColumnMap
+		columns   []string
 	}
 )
 
@@ -24,109 +30,79 @@ func unableToFindFieldError(col string) error {
 	return errors.New(`unable to find corresponding field to column "%s" returned by query`, col)
 }
 
+// NewScanner returns a scanner that can be used for scanning rows into structs.
 func NewScanner(rows *sql.Rows) Scanner {
 	return &scanner{rows: rows}
 }
 
-// This will execute the SQL and append results to the slice
-//    var myStructs []MyStruct
-//    if err := From("test").ScanStructs(&myStructs); err != nil{
-//        panic(err.Error()
-//    }
-//    //use your structs
-//
-//
-// i: A pointer to a slice of structs.
-func (q *scanner) ScanStructs(i interface{}) (found bool, err error) {
-	defer q.rows.Close()
-	cm, err := util.GetColumnMap(i)
-	if err != nil {
-		return found, err
-	}
-	var results []map[string]interface{}
-	columns, err := q.rows.Columns()
-	if err != nil {
-		return false, err
-	}
-	for q.rows.Next() {
-		record, err := q.scanIntoRecord(columns, cm)
+// Next prepares the next row for Scanning. See sql.Rows#Next for more
+// information.
+func (it *scanner) Next() bool {
+	return it.rows.Next()
+}
+
+// Err returns the error, if any that was encountered during iteration. See
+// sql.Rows#Err for more information.
+func (it *scanner) Err() error {
+	return it.rows.Err()
+}
+
+// ScanStruct will scan the current row into i.
+func (it *scanner) ScanStruct(i interface{}) error {
+	// Setup columnMap and columns, but only once.
+	if it.columnMap == nil || it.columns == nil {
+		cm, err := util.GetColumnMap(i)
 		if err != nil {
-			return found, err
+			return err
 		}
 
-		results = append(results, record)
-	}
-	if q.rows.Err() != nil {
-		return false, q.rows.Err()
-	}
-	if len(results) > 0 {
-		found = true
-		util.AssignStructVals(i, results, cm)
-	}
-	return found, nil
-}
-
-// This will execute the SQL and append results to the slice.
-//    var ids []uint32
-//    if err := From("test").Select("id").ScanVals(&ids); err != nil{
-//        panic(err.Error()
-//    }
-//
-// i: Takes a pointer to a slice of primitive values.
-func (q *scanner) ScanVals(i interface{}) (found bool, err error) {
-	defer q.rows.Close()
-	val := reflect.Indirect(reflect.ValueOf(i))
-	t, _, isSliceOfPointers := util.GetTypeInfo(i, val)
-	for q.rows.Next() {
-		found = true
-		row := reflect.New(t)
-		if err = q.rows.Scan(row.Interface()); err != nil {
-			return found, err
+		cols, err := it.rows.Columns()
+		if err != nil {
+			return err
 		}
-		if isSliceOfPointers {
-			val.Set(reflect.Append(val, row))
-		} else {
-			val.Set(reflect.Append(val, reflect.Indirect(row)))
-		}
-	}
-	return found, q.rows.Err()
-}
 
-// This will execute the SQL and append results to the slice.
-//    var ids []uint32
-//    if err := From("test").Select("id").ScanVals(&ids); err != nil{
-//        panic(err.Error()
-//    }
-//
-// i: Takes a pointer to a slice of primitive values.
-func (q *scanner) ScanVal(i interface{}) (found bool, err error) {
-	defer q.rows.Close()
-	for q.rows.Next() {
-		found = true
-		if err = q.rows.Scan(i); err != nil {
-			return false, err
-		}
+		it.columnMap = cm
+		it.columns = cols
 	}
-	return found, q.rows.Err()
-}
 
-func (q *scanner) scanIntoRecord(columns []string, cm util.ColumnMap) (record exp.Record, err error) {
-	scans := make([]interface{}, len(columns))
-	for i, col := range columns {
-		data, ok := cm[col]
+	scans := make([]interface{}, len(it.columns))
+	for idx, col := range it.columns {
+		data, ok := it.columnMap[col]
 		switch {
 		case !ok:
-			return record, unableToFindFieldError(col)
+			return unableToFindFieldError(col)
 		default:
-			scans[i] = reflect.New(data.GoType).Interface()
+			scans[idx] = reflect.New(data.GoType).Interface()
 		}
 	}
-	if err := q.rows.Scan(scans...); err != nil {
-		return record, err
+
+	err := it.rows.Scan(scans...)
+	if err != nil {
+		return err
 	}
-	record = exp.Record{}
-	for index, col := range columns {
+
+	record := exp.Record{}
+	for index, col := range it.columns {
 		record[col] = scans[index]
 	}
-	return record, nil
+
+	util.AssignStructVals(i, record, it.columnMap)
+
+	return it.Err()
+}
+
+// ScanVal will scan the current row and column into i.
+func (it *scanner) ScanVal(i interface{}) error {
+	err := it.rows.Scan(i)
+	if err != nil {
+		return err
+	}
+
+	return it.Err()
+}
+
+// Close closes the Rows, preventing further enumeration. See sql.Rows#Close
+// for more info.
+func (it *scanner) Close() error {
+	return it.rows.Close()
 }

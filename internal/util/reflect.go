@@ -103,6 +103,26 @@ func SetColumnRenameFunction(newFunction func(string) string) {
 	columnRenameFunction = newFunction
 }
 
+// GetSliceElementType returns the type for a slices elements.
+func GetSliceElementType(val reflect.Value) reflect.Type {
+	elemType := val.Type().Elem()
+	if elemType.Kind() == reflect.Ptr {
+		elemType = elemType.Elem()
+	}
+
+	return elemType
+}
+
+// AppendSliceElement will append val to slice. Handles slice of pointers and
+// not pointers. Val needs to be a pointer.
+func AppendSliceElement(slice, val reflect.Value) {
+	if slice.Type().Elem().Kind() == reflect.Ptr {
+		slice.Set(reflect.Append(slice, val))
+	} else {
+		slice.Set(reflect.Append(slice, reflect.Indirect(val)))
+	}
+}
+
 func GetTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind, bool) {
 	var t reflect.Type
 	isSliceOfPointers := false
@@ -140,32 +160,15 @@ func SafeGetFieldByIndex(v reflect.Value, fieldIndex []int) (result reflect.Valu
 
 type rowData = map[string]interface{}
 
-func AssignStructVals(i interface{}, results []rowData, cm ColumnMap) {
+// AssignStructVals will assign the data from rd to i.
+func AssignStructVals(i interface{}, rd rowData, cm ColumnMap) {
 	val := reflect.Indirect(reflect.ValueOf(i))
-	t, _, isSliceOfPointers := GetTypeInfo(i, val)
-	switch val.Kind() {
-	case reflect.Struct:
-		result := results[0]
-		assignRowData(val, result, cm)
-	case reflect.Slice:
-		for _, result := range results {
-			row := reflect.Indirect(reflect.New(t))
-			assignRowData(row, result, cm)
-			if isSliceOfPointers {
-				val.Set(reflect.Append(val, row.Addr()))
-			} else {
-				val.Set(reflect.Append(val, row))
-			}
-		}
-	}
-}
+	initEmbeddedPtr(val)
 
-func assignRowData(row reflect.Value, rd rowData, cm ColumnMap) {
-	initEmbeddedPtr(row)
 	for name, data := range cm {
 		src, ok := rd[name]
 		if ok {
-			f := row.FieldByIndex(data.FieldIndex)
+			f := val.FieldByIndex(data.FieldIndex)
 			srcVal := reflect.ValueOf(src)
 			f.Set(reflect.Indirect(srcVal))
 		}
