@@ -1,6 +1,10 @@
 # v9.0.0
 
 * Changed `NULL`, `TRUE`, `FALSE` to not be interpolated when creating prepared statements. [#132](https://github.com/doug-martin/goqu/pull/132), [#158](https://github.com/doug-martin/goqu/pull/158) - [@marshallmcmullen](https://github.com/marshallmcmullen)
+* Updated dependencies
+    * `github.com/lib/pq v1.1.1 -> v1.2.0`
+    * `github.com/mattn/go-sqlite3 v1.10.0 -> v1.11.0`
+    * `github.com/stretchr/testify v1.3.0 -> v1.4.0`
 
 ## v8.6.0
 
