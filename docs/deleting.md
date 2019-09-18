@@ -54,7 +54,7 @@ DELETE FROM "table" WHERE "foo"='bar'
 Use this when you want to create SQL for a specific `dialect`
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 dialect := goqu.Dialect("mysql")
 
@@ -71,7 +71,7 @@ DELETE FROM `table`
 Use this when you want to execute the SQL or create SQL for the drivers dialect.
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 mysqlDB := //initialize your db
 db := goqu.New("mysql", mysqlDB)
@@ -118,7 +118,7 @@ fmt.Println(sql)
 
 Output:
 ```
-DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
+DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
 ```
 
 <a name="where"></a>
@@ -145,7 +145,7 @@ DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" I
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").Delete("test").Order(goqu.C("a").Asc())
 sql, _, _ := ds.ToSQL()
@@ -163,7 +163,7 @@ DELETE FROM `test` ORDER BY `a` ASC
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").Delete("test").Limit(10)
 sql, _, _ := ds.ToSQL()

@@ -7,10 +7,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/doug-martin/goqu/v8/exp"
-	"github.com/doug-martin/goqu/v8/internal/errors"
-	"github.com/doug-martin/goqu/v8/internal/sb"
-	"github.com/doug-martin/goqu/v8/internal/util"
+	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/internal/errors"
+	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/doug-martin/goqu/v9/internal/util"
 )
 
 type (
@@ -247,6 +247,10 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 
 // Generates SQL NULL value
 func (esg *expressionSQLGenerator) literalNil(b sb.SQLBuilder) {
+	if b.IsPrepared() {
+		esg.placeHolderSQL(b, nil)
+		return
+	}
 	b.Write(esg.dialectOptions.Null)
 }
 
@@ -361,7 +365,7 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		return
 	}
 	rhs := operator.RHS()
-	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
+	if !b.IsPrepared() && (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
 		if rhs == true {
 			rhs = TrueLiteral
 		} else if rhs == false {

@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v8/exec"
-	"github.com/doug-martin/goqu/v8/exp"
-	"github.com/doug-martin/goqu/v8/internal/errors"
-	"github.com/doug-martin/goqu/v8/internal/sb"
-	"github.com/doug-martin/goqu/v8/mocks"
+	"github.com/doug-martin/goqu/v9/exec"
+	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/internal/errors"
+	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/doug-martin/goqu/v9/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
@@ -432,8 +432,8 @@ func (uds *updateDatasetSuite) TestExecutor() {
 
 	updateSQL, args, err = ds.Prepared(true).Executor().ToSQL()
 	uds.NoError(err)
-	uds.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
-	uds.Equal(`UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`, updateSQL)
+	uds.Equal([]interface{}{"111 Test Addr", "Test1", nil}, args)
+	uds.Equal(`UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS ?)`, updateSQL)
 }
 
 func (uds *updateDatasetSuite) TestSetError() {

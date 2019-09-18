@@ -6,7 +6,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/doug-martin/goqu/v8"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/lib/pq"
 )
 
@@ -471,11 +471,11 @@ func ExampleSelectDataset_Where_prepared() {
 	).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS NULL) OR ("d" IN (?, ?, ?))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS NULL) AND ("d" IN (?, ?, ?)))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [10 10]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS ?) OR ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS ?) AND ("d" IN (?, ?, ?)))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// SELECT * FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS ?))) [10 10 <nil>]
 }
 
 func ExampleSelectDataset_ClearWhere() {

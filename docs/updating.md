@@ -62,7 +62,7 @@ UPDATE "user" SET "first_name"='Greg', "last_name"='Farley' WHERE "first_name"='
 Use this when you want to create SQL for a specific `dialect`
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 dialect := goqu.Dialect("mysql")
 
@@ -82,7 +82,7 @@ UPDATE `user` SET `first_name`='Greg', `last_name`='Farley'
 Use this when you want to execute the SQL or create SQL for the drivers dialect.
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 mysqlDB := //initialize your db
 db := goqu.New("mysql", mysqlDB)
@@ -332,7 +332,7 @@ UPDATE "test" SET "foo"='bar' WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL)
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").
 	Update("test").
@@ -353,7 +353,7 @@ UPDATE `test` SET `foo`='bar' ORDER BY `a` ASC
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v8/dialect/mysql"
+// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").
 	Update("test").

@@ -3,8 +3,8 @@ package goqu_test
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v8"
-	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
+	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 )
 
 func ExampleDelete() {
@@ -186,11 +186,11 @@ func ExampleDeleteDataset_Where_prepared() {
 	).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// DELETE FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS NULL) OR ("d" IN (?, ?, ?))) [10 10 a b c]
-	// DELETE FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS NULL) AND ("d" IN (?, ?, ?)))) [10 10 a b c]
-	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
-	// DELETE FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [10 10]
+	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS ?) OR ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS ?) AND ("d" IN (?, ?, ?)))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+	// DELETE FROM "test" WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS ?))) [10 10 <nil>]
 }
 
 func ExampleDeleteDataset_ClearWhere() {

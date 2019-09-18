@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v8/exec"
-	"github.com/doug-martin/goqu/v8/exp"
-	"github.com/doug-martin/goqu/v8/internal/errors"
-	"github.com/doug-martin/goqu/v8/internal/sb"
-	"github.com/doug-martin/goqu/v8/mocks"
+	"github.com/doug-martin/goqu/v9/exec"
+	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/internal/errors"
+	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/doug-martin/goqu/v9/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )

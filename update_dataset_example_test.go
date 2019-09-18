@@ -4,8 +4,8 @@ package goqu_test
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v8"
-	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
+	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 )
 
 func ExampleUpdate_withStruct() {
@@ -384,11 +384,11 @@ func ExampleUpdateDataset_Where_prepared() {
 		).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [bar 10 10 a b c]
-	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS NULL) OR ("d" IN (?, ?, ?))) [bar 10 10 a b c]
-	// UPDATE "test" SET "foo"=? WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS NULL) AND ("d" IN (?, ?, ?)))) [bar 10 10 a b c]
-	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [bar 10 10 a b c]
-	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS NULL))) [bar 10 10]
+	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [bar 10 10 <nil> a b c]
+	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) OR ("b" < ?) OR ("c" IS ?) OR ("d" IN (?, ?, ?))) [bar 10 10 <nil> a b c]
+	// UPDATE "test" SET "foo"=? WHERE ((("a" > ?) AND ("b" < ?)) OR (("c" IS ?) AND ("d" IN (?, ?, ?)))) [bar 10 10 <nil> a b c]
+	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [bar 10 10 <nil> a b c]
+	// UPDATE "test" SET "foo"=? WHERE (("a" > ?) OR (("b" < ?) AND ("c" IS ?))) [bar 10 10 <nil>]
 }
 
 func ExampleUpdateDataset_ClearWhere() {
