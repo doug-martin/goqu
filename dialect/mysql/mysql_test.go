@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu/v8"
-	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
+	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/suite"

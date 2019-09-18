@@ -4,8 +4,8 @@ package goqu_test
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v8"
-	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
+	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 )
 
 func ExampleUpdate_withStruct() {

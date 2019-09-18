@@ -1,8 +1,8 @@
 package mysql
 
 import (
-	"github.com/doug-martin/goqu/v8"
-	"github.com/doug-martin/goqu/v8/exp"
+	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 )
 
 func DialectOptions() *goqu.SQLDialectOptions {
