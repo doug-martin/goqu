@@ -1,7 +1,7 @@
 package sqlgen
 
 import (
-	"github.com/doug-martin/goqu/v8/internal/sb"
+	"github.com/doug-martin/goqu/v9/internal/sb"
 	"github.com/stretchr/testify/suite"
 )
 

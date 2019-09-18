@@ -6,7 +6,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/doug-martin/goqu/v8"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/lib/pq"
 )
 

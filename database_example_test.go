@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/doug-martin/goqu/v8"
+	"github.com/doug-martin/goqu/v9"
 )
 
 func ExampleDatabase_Begin() {

@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/doug-martin/goqu/v8/internal/errors"
-	"github.com/doug-martin/goqu/v8/internal/util"
+	"github.com/doug-martin/goqu/v9/internal/errors"
+	"github.com/doug-martin/goqu/v9/internal/util"
 )
 
 type (

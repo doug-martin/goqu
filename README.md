@@ -9,7 +9,7 @@
 [![Actions Status](https://github.com/doug-martin/goqu/workflows/Test/badge.svg)](https://github.com/doug-martin/goqu/actions)
 [![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![codecov](https://codecov.io/gh/doug-martin/goqu/branch/master/graph/badge.svg)](https://codecov.io/gh/doug-martin/goqu)
-[![Go Report Card](https://goreportcard.com/badge/github.com/doug-martin/goqu/v8)](https://goreportcard.com/report/github.com/doug-martin/goqu/v8)
+[![Go Report Card](https://goreportcard.com/badge/github.com/doug-martin/goqu/v9)](https://goreportcard.com/report/github.com/doug-martin/goqu/v9)
 
 `goqu` is an expressive SQL builder and executor
     
@@ -21,12 +21,12 @@ If you are upgrading from an older version please read the [Migrating Between Ve
 If using go modules.
 
 ```sh
-go get -u github.com/doug-martin/goqu/v8
+go get -u github.com/doug-martin/goqu/v9
 ```
 
 If you are not using go modules...
 
-**NOTE** You should still be able to use this package if you are using go version `>v1.10` but, you will need to drop the version from the package. `import "github.com/doug-martin/goqu/v8` -> `import "github.com/doug-martin/goqu"`
+**NOTE** You should still be able to use this package if you are using go version `>v1.10` but, you will need to drop the version from the package. `import "github.com/doug-martin/goqu/v9` -> `import "github.com/doug-martin/goqu"`
 
 ```sh
 go get -u github.com/doug-martin/goqu

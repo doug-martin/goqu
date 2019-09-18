@@ -4,15 +4,15 @@ import (
 	"fmt"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v8"
-	_ "github.com/doug-martin/goqu/v8/dialect/mysql"
-	_ "github.com/doug-martin/goqu/v8/dialect/postgres"
-	_ "github.com/doug-martin/goqu/v8/dialect/sqlite3"
+	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
+	_ "github.com/doug-martin/goqu/v9/dialect/sqlite3"
 )
 
 // Creating a mysql dataset. Be sure to import the mysql adapter
 func ExampleDialect_datasetMysql() {
-	// import _ "github.com/doug-martin/goqu/v8/adapters/mysql"
+	// import _ "github.com/doug-martin/goqu/v9/adapters/mysql"
 
 	d := goqu.Dialect("mysql")
 	ds := d.From("test").Where(goqu.Ex{
@@ -33,7 +33,7 @@ func ExampleDialect_datasetMysql() {
 
 // Creating a mysql database. Be sure to import the mysql adapter
 func ExampleDialect_dbMysql() {
-	// import _ "github.com/doug-martin/goqu/v8/adapters/mysql"
+	// import _ "github.com/doug-martin/goqu/v9/adapters/mysql"
 
 	type item struct {
 		ID      int64  `db:"id"`
@@ -83,7 +83,7 @@ func ExampleDialect_dbMysql() {
 
 // Creating a mysql dataset. Be sure to import the postgres adapter
 func ExampleDialect_datasetPostgres() {
-	// import _ "github.com/doug-martin/goqu/v8/adapters/postgres"
+	// import _ "github.com/doug-martin/goqu/v9/adapters/postgres"
 
 	d := goqu.Dialect("postgres")
 	ds := d.From("test").Where(goqu.Ex{
@@ -104,7 +104,7 @@ func ExampleDialect_datasetPostgres() {
 
 // Creating a postgres dataset. Be sure to import the postgres adapter
 func ExampleDialect_dbPostgres() {
-	// import _ "github.com/doug-martin/goqu/v8/adapters/postgres"
+	// import _ "github.com/doug-martin/goqu/v9/adapters/postgres"
 
 	type item struct {
 		ID      int64  `db:"id"`
@@ -154,7 +154,7 @@ func ExampleDialect_dbPostgres() {
 
 // Creating a mysql dataset. Be sure to import the sqlite3 adapter
 func ExampleDialect_datasetSqlite3() {
-	// import _ "github.com/doug-martin/goqu/v8/adapters/sqlite3"
+	// import _ "github.com/doug-martin/goqu/v9/adapters/sqlite3"
 
 	d := goqu.Dialect("sqlite3")
 	ds := d.From("test").Where(goqu.Ex{
@@ -175,7 +175,7 @@ func ExampleDialect_datasetSqlite3() {
 
 // Creating a sqlite3 database. Be sure to import the sqlite3 adapter
 func ExampleDialect_dbSqlite3() {
-	// import _ "github.com/doug-martin/goqu/v8/adapters/sqlite3"
+	// import _ "github.com/doug-martin/goqu/v9/adapters/sqlite3"
 
 	type item struct {
 		ID      int64  `db:"id"`

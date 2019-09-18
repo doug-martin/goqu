@@ -13,7 +13,7 @@ Please see https://github.com/doug-martin/goqu for an introduction to goqu.
 package goqu
 
 import (
-	"github.com/doug-martin/goqu/v8/internal/util"
+	"github.com/doug-martin/goqu/v9/internal/util"
 )
 
 type DialectWrapper struct {
