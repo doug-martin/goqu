@@ -118,7 +118,7 @@ fmt.Println(sql)
 
 Output:
 ```
-DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS ?) AND ("d" IN (?, ?, ?))) [10 10 <nil> a b c]
+DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN (?, ?, ?))) [10 10 a b c]
 ```
 
 <a name="where"></a>

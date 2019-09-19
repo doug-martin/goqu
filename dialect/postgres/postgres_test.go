@@ -190,6 +190,112 @@ func (pt *postgresTest) TestQuery() {
 	pt.Len(entries, 0)
 }
 
+func (pt *postgresTest) TestQuery_Prepared() {
+	var entries []entry
+	ds := pt.db.From("entry").Prepared(true)
+	pt.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 10)
+	floatVal := float64(0)
+	baseDate, err := time.Parse(time.RFC3339Nano, "2015-02-22T18:19:55.000000000-00:00")
+	pt.NoError(err)
+	baseDate = baseDate.UTC()
+	for i, entry := range entries {
+		f := fmt.Sprintf("%f", floatVal)
+		pt.Equal(uint32(i+1), entry.ID)
+		pt.Equal(i, entry.Int)
+		pt.Equal(f, fmt.Sprintf("%f", entry.Float))
+		pt.Equal(f, entry.String)
+		pt.Equal([]byte(f), entry.Bytes)
+		pt.Equal(i%2 == 0, entry.Bool)
+		pt.Equal(baseDate.Add(time.Duration(i)*time.Hour).Unix(), entry.Time.Unix())
+		floatVal += float64(0.1)
+	}
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 5)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.True(entry.Bool)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("bool").IsFalse()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 5)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.False(entry.Bool)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 5)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.True(entry.Int > 4)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 5)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.True(entry.Int >= 5)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 5)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.True(entry.Int < 5)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 5)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.True(entry.Int <= 4)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 4)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.True(entry.Int >= 3)
+		pt.True(entry.Int <= 6)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 1)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.Equal(entry.String, "0.100000")
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 1)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.Equal("0.100000", entry.String)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 9)
+	pt.NoError(err)
+	for _, entry := range entries {
+		pt.NotEqual("0.100000", entry.String)
+	}
+
+	entries = entries[0:0]
+	pt.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	pt.Len(entries, 0)
+}
+
 func (pt *postgresTest) TestQuery_ValueExpressions() {
 	type wrappedEntry struct {
 		entry

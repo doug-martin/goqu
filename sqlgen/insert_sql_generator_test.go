@@ -295,9 +295,9 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 		},
 		insertTestCase{
 			clause:     icDuw,
-			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS ?)`,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
 			isPrepared: true,
-			args:       []interface{}{"a1", "b", true},
+			args:       []interface{}{"a1", "b"},
 		},
 
 		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error()},
@@ -345,9 +345,9 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 		},
 		insertTestCase{
 			clause:     icDuw,
-			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS ?)`,
+			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
 			isPrepared: true,
-			args:       []interface{}{"a1", "b", true},
+			args:       []interface{}{"a1", "b"},
 		},
 
 		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error()},

@@ -208,6 +208,103 @@ func (st *sqlite3Suite) TestQuery() {
 	st.Empty(entries)
 }
 
+func (st *sqlite3Suite) TestQuery_Prepared() {
+	var entries []entry
+	ds := st.db.From("entry").Prepared(true)
+	st.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 10)
+	floatVal := float64(0)
+	baseDate, err := time.Parse(DialectOptions().TimeFormat, "2015-02-22 18:19:55")
+	st.NoError(err)
+	for i, entry := range entries {
+		f := fmt.Sprintf("%f", floatVal)
+		st.Equal(uint32(i+1), entry.ID)
+		st.Equal(i, entry.Int)
+		st.Equal(f, fmt.Sprintf("%f", entry.Float))
+		st.Equal(f, entry.String)
+		st.Equal([]byte(f), entry.Bytes)
+		st.Equal(i%2 == 0, entry.Bool)
+		st.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
+		floatVal += float64(0.1)
+	}
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 5)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.True(entry.Bool)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 5)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.True(entry.Int > 4)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 5)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.True(entry.Int >= 5)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 5)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.True(entry.Int < 5)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 5)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.True(entry.Int <= 4)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 4)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.True(entry.Int >= 3)
+		st.True(entry.Int <= 6)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 1)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.Equal(entry.String, "0.100000")
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 1)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.Equal("0.100000", entry.String)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Len(entries, 9)
+	st.NoError(err)
+	for _, entry := range entries {
+		st.NotEqual("0.100000", entry.String)
+	}
+
+	entries = entries[0:0]
+	st.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	st.Empty(entries)
+}
+
 func (st *sqlite3Suite) TestQuery_ValueExpressions() {
 	type wrappedEntry struct {
 		entry
