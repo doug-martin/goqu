@@ -1,3 +1,7 @@
+# v9.0.2
+
+* [FIXED] ExampleDoUpdate does't work in postgres [#156](https://github.com/doug-martin/goqu/issues/156) 
+
 # v9.0.1
 
 * [FIXED] Issue where `NULL`, `TRUE` and `FALSE` are interpolated when using an `IS` clause. [#165](https://github.com/doug-martin/goqu/issues/165)
