@@ -359,7 +359,7 @@ fmt.Println(sql, args)
 Output:
 ```sql
 SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo'))) []
-SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS ?)) OR (("col3" IS ?) AND ("col4" = ?))) [1 true <nil> foo]
+SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?))) [1 foo]
 ```
 
 <a name="complex"></a>
@@ -437,11 +437,11 @@ SELECT COUNT(*)
 FROM "test"
          INNER JOIN "test2" ON ("test"."fkey" = "test2"."id")
          LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id")
-WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT ?)) AND
-       (("test3"."id" IS ?) OR ("test3"."status" IN (?, ?, ?))))
+WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND
+       (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?))))
 GROUP BY "test"."user_id"
 HAVING (AVG("test3"."age") > ?)
-ORDER BY "test"."created" DESC NULLS LAST [^(a|b) <nil> <nil> passed active registered 10]
+ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]
 ```
 
 

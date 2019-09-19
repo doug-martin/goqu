@@ -365,11 +365,15 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		return
 	}
 	rhs := operator.RHS()
-	if !b.IsPrepared() && (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
-		if rhs == true {
+	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
+		// these values must be interpolated because preparing them generates invalid SQL
+		switch rhs {
+		case true:
 			rhs = TrueLiteral
-		} else if rhs == false {
+		case false:
 			rhs = FalseLiteral
+		case nil:
+			rhs = exp.NewLiteralExpression(string(esg.dialectOptions.Null))
 		}
 	}
 	b.WriteRunes(esg.dialectOptions.SpaceRune)

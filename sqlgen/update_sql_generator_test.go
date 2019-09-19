@@ -101,11 +101,19 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 		SetSetValues(exp.Record{"foo": "bar"}).
 		SetFrom(exp.NewColumnListExpression("other_test"))
 
+	ucNullSet := exp.NewUpdateClauses().
+		SetTable(exp.NewIdentifierExpression("", "test", "")).
+		SetSetValues(exp.Record{"foo": nil}).
+		SetFrom(exp.NewColumnListExpression("other_test"))
+
 	opts := DefaultDialectOptions()
 	usgs.assertCases(
 		NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "foo"='bar' FROM "other_test"`},
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "foo"=? FROM "other_test"`, isPrepared: true, args: []interface{}{"bar"}},
+
+		updateTestCase{clause: ucNullSet, sql: `UPDATE "test" SET "foo"=NULL FROM "other_test"`},
+		updateTestCase{clause: ucNullSet, sql: `UPDATE "test" SET "foo"=? FROM "other_test"`, isPrepared: true, args: []interface{}{nil}},
 	)
 
 	opts = DefaultDialectOptions()
@@ -114,6 +122,9 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 		NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test","other_test" SET "foo"='bar'`},
 		updateTestCase{clause: uc, sql: `UPDATE "test","other_test" SET "foo"=?`, isPrepared: true, args: []interface{}{"bar"}},
+
+		updateTestCase{clause: ucNullSet, sql: `UPDATE "test","other_test" SET "foo"=NULL`},
+		updateTestCase{clause: ucNullSet, sql: `UPDATE "test","other_test" SET "foo"=?`, isPrepared: true, args: []interface{}{nil}},
 	)
 
 	opts = DefaultDialectOptions()
@@ -134,12 +145,20 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withUpdateExpression() {
 	uc := exp.NewUpdateClauses().
 		SetTable(exp.NewIdentifierExpression("", "test", ""))
 	ucRecord := uc.SetSetValues(exp.Record{"a": "b", "b": "c"})
+	ucRecordNullVal := uc.SetSetValues(exp.Record{"a": "b", "b": nil})
+	ucRecordBoolVals := uc.SetSetValues(exp.Record{"a": true, "b": false})
 	ucEmptyRecord := uc.SetSetValues(exp.Record{})
 
 	usgs.assertCases(
 		NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: ucRecord, sql: `UPDATE "test" set "a"='b',"b"='c'`},
 		updateTestCase{clause: ucRecord, sql: `UPDATE "test" set "a"=?,"b"=?`, isPrepared: true, args: []interface{}{"b", "c"}},
+
+		updateTestCase{clause: ucRecordNullVal, sql: `UPDATE "test" set "a"='b',"b"=NULL`},
+		updateTestCase{clause: ucRecordNullVal, sql: `UPDATE "test" set "a"=?,"b"=?`, isPrepared: true, args: []interface{}{"b", nil}},
+
+		updateTestCase{clause: ucRecordBoolVals, sql: `UPDATE "test" set "a"=TRUE,"b"=FALSE`},
+		updateTestCase{clause: ucRecordBoolVals, sql: `UPDATE "test" set "a"=?,"b"=?`, isPrepared: true, args: []interface{}{true, false}},
 
 		updateTestCase{clause: ucEmptyRecord, err: errNoUpdatedValuesProvided.Error()},
 		updateTestCase{clause: ucEmptyRecord, err: errNoUpdatedValuesProvided.Error(), isPrepared: true},
