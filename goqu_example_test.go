@@ -2,6 +2,7 @@ package goqu_test
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/doug-martin/goqu/v9"
@@ -221,4 +222,31 @@ func ExampleDialect_dbSqlite3() {
 	// Output:
 	// {1 111 Test Addr Test1} true <nil>
 	// {1 111 Test Addr Test1} true <nil>
+}
+
+func ExampleSetTimeLocation() {
+
+	created, err := time.Parse(time.RFC3339, "2019-10-01T15:01:00Z")
+	if err != nil {
+		panic(err)
+	}
+
+	// use original time with tz info
+	goqu.SetTimeLocation("Asia/Shanghai")
+	ds := goqu.Insert("test").Rows(goqu.Record{
+		"address": "111 Address",
+		"name":    "Bob Yukon",
+		"created": created,
+	})
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+
+	// convert time to UTC
+	goqu.SetTimeLocation("UTC")
+	sql, _, _ = ds.ToSQL()
+	fmt.Println(sql)
+
+	// Output:
+	// INSERT INTO "test" ("address", "created", "name") VALUES ('111 Address', '2019-10-01T23:01:00+08:00', 'Bob Yukon')
+	// INSERT INTO "test" ("address", "created", "name") VALUES ('111 Address', '2019-10-01T15:01:00Z', 'Bob Yukon')
 }

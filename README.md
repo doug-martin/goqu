@@ -72,6 +72,7 @@ We tried a few other sql builders but each was a thin wrapper around sql fragmen
 * [Delete Dataset](./docs/deleting.md) - Docs and examples about creating and executing DELETE sql statements.
 * [Prepared Statements](./docs/interpolation.md) - Docs about interpolation and prepared statements in `goqu`.
 * [Database](./docs/database.md) - Docs and examples of using a Database to execute queries in `goqu`
+* [Working with time.Time](./docs/time.md) - Docs on how to use alternate time locations.
 
 ## Quick Examples
 

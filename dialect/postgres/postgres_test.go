@@ -359,8 +359,17 @@ func (pt *postgresTest) TestInsert() {
 	pt.NoError(err)
 
 	var newEntries []entry
+
 	pt.NoError(ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
 	pt.Len(newEntries, 4)
+	for i, e := range newEntries {
+		pt.Equal(entries[i].Int, e.Int)
+		pt.Equal(entries[i].Float, e.Float)
+		pt.Equal(entries[i].String, e.String)
+		pt.Equal(entries[i].Time.Unix(), e.Time.Unix())
+		pt.Equal(entries[i].Bool, e.Bool)
+		pt.Equal(entries[i].Bytes, e.Bytes)
+	}
 
 	_, err = ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},

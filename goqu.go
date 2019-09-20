@@ -14,6 +14,7 @@ package goqu
 
 import (
 	"github.com/doug-martin/goqu/v9/internal/util"
+	"github.com/doug-martin/goqu/v9/sqlgen"
 )
 
 type DialectWrapper struct {
@@ -67,4 +68,10 @@ func New(dialect string, db SQLDatabase) *Database {
 // By default all struct fields that do not have a db tag will be converted lowercase
 func SetColumnRenameFunction(renameFunc func(string) string) {
 	util.SetColumnRenameFunction(renameFunc)
+}
+
+// Set the location to use when interpolating time.Time instances. See https://golang.org/src/time/zoneinfo_abbrs_windows.go
+// NOTE: This has no effect when using prepared statements.
+func SetTimeLocation(loc string) {
+	sqlgen.SetTimeLocation(loc)
 }
