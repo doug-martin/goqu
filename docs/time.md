@@ -4,13 +4,12 @@ By default when interpolating `time.Time` (and `*time.Time`) `goqu` will convert
 
 ## Why?
 
-For most use cases `UTC` should be preferred, if a timezone is specified it is usually ingored silently by `postgres` and `mysql` unless you configure your DB to run in a different timezone, leading to unexpected behavior.
+For most use cases `UTC` should be preferred, if a timezone is specified it is usually ignored silently by `postgres` and `mysql` unless you configure your DB to run in a different timezone, leading to unexpected behavior.
 
 ## How to use a different default timezone?
-`goqu` provides a **_global_** configuration settings to set the [location](https://golang.org/src/time/zoneinfo_abbrs_windows.go) to convert all timestamps to. 
+`goqu` provides a **_global_** configuration settings to set the [location](https://golang.org/pkg/time/#Location) to convert all timestamps to. 
 
 To change the default timezone to covert time instances to you can use [`goqu.SetTimeLocation`](https://godoc.org/github.com/doug-martin/goqu#SetTimeLocation) to change the default timezone.
-
 
 In the following example the default value `UTC` is used.
 
@@ -35,7 +34,12 @@ INSERT INTO "test" ("address", "created", "name") VALUES ('111 Address', '2019-1
 In the following example `UTC` is overridden to `Asia/Shanghai`
 
 ```go
-goqu.SetTimeLocation("Asia/Shanghai")
+loc, err := time.LoadLocation("Asia/Shanghai")
+if err != nil {
+	panic(err)
+}
+
+goqu.SetTimeLocation(loc)
 
 created, err := time.Parse(time.RFC3339, "2019-10-01T15:01:00Z")
 if err != nil {

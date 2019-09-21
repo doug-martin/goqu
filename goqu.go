@@ -13,6 +13,8 @@ Please see https://github.com/doug-martin/goqu for an introduction to goqu.
 package goqu
 
 import (
+	"time"
+
 	"github.com/doug-martin/goqu/v9/internal/util"
 	"github.com/doug-martin/goqu/v9/sqlgen"
 )
@@ -70,8 +72,8 @@ func SetColumnRenameFunction(renameFunc func(string) string) {
 	util.SetColumnRenameFunction(renameFunc)
 }
 
-// Set the location to use when interpolating time.Time instances. See https://golang.org/src/time/zoneinfo_abbrs_windows.go
+// Set the location to use when interpolating time.Time instances. See https://golang.org/pkg/time/#LoadLocation
 // NOTE: This has no effect when using prepared statements.
-func SetTimeLocation(loc string) {
+func SetTimeLocation(loc *time.Location) {
 	sqlgen.SetTimeLocation(loc)
 }

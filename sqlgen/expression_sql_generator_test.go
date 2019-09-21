@@ -241,14 +241,17 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_TimeTypes() {
 	esgs.Require().NoError(err)
 	originalLoc := timeLocation
 
-	SetTimeLocation("Asia/Shanghai")
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	esgs.Require().NoError(err)
+
+	SetTimeLocation(loc)
 	// non time
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: ts, sql: "'2019-10-01T23:01:00+08:00'"},
 		expressionTestCase{val: ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
 	)
-	SetTimeLocation("UTC")
+	SetTimeLocation(time.UTC)
 	// utc time
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),

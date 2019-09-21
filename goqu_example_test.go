@@ -226,13 +226,18 @@ func ExampleDialect_dbSqlite3() {
 
 func ExampleSetTimeLocation() {
 
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	if err != nil {
+		panic(err)
+	}
+
 	created, err := time.Parse(time.RFC3339, "2019-10-01T15:01:00Z")
 	if err != nil {
 		panic(err)
 	}
 
 	// use original time with tz info
-	goqu.SetTimeLocation("Asia/Shanghai")
+	goqu.SetTimeLocation(loc)
 	ds := goqu.Insert("test").Rows(goqu.Record{
 		"address": "111 Address",
 		"name":    "Bob Yukon",
@@ -242,7 +247,7 @@ func ExampleSetTimeLocation() {
 	fmt.Println(sql)
 
 	// convert time to UTC
-	goqu.SetTimeLocation("UTC")
+	goqu.SetTimeLocation(time.UTC)
 	sql, _, _ = ds.ToSQL()
 	fmt.Println(sql)
 
