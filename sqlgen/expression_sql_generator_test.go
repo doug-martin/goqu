@@ -237,29 +237,33 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BoolTypes() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_TimeTypes() {
 	var nt *time.Time
 
-	asiaShanghai, err := time.LoadLocation("Asia/Shanghai")
+	ts, err := time.Parse(time.RFC3339, "2019-10-01T15:01:00Z")
 	esgs.Require().NoError(err)
-	testDatas := []time.Time{
-		time.Now().UTC(),
-		time.Now().In(asiaShanghai),
-	}
+	originalLoc := timeLocation
 
-	for _, n := range testDatas {
-		now := n
-		esgs.assertCases(
-			NewExpressionSQLGenerator("test", DefaultDialectOptions()),
-			expressionTestCase{val: now, sql: "'" + now.Format(time.RFC3339Nano) + "'"},
-			expressionTestCase{val: now, sql: "?", isPrepared: true, args: []interface{}{now}},
+	loc, err := time.LoadLocation("Asia/Shanghai")
+	esgs.Require().NoError(err)
 
-			expressionTestCase{val: &now, sql: "'" + now.Format(time.RFC3339Nano) + "'"},
-			expressionTestCase{val: &now, sql: "?", isPrepared: true, args: []interface{}{now}},
-		)
-	}
+	SetTimeLocation(loc)
+	// non time
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		expressionTestCase{val: ts, sql: "'2019-10-01T23:01:00+08:00'"},
+		expressionTestCase{val: ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
+	)
+	SetTimeLocation(time.UTC)
+	// utc time
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		expressionTestCase{val: ts, sql: "'2019-10-01T15:01:00Z'"},
+		expressionTestCase{val: ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
+	)
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: nt, sql: "NULL"},
 		expressionTestCase{val: nt, sql: "?", isPrepared: true, args: []interface{}{nil}},
 	)
+	SetTimeLocation(originalLoc)
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_NilTypes() {

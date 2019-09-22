@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/dialect/mysql"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
-
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/suite"
 )
@@ -360,6 +360,14 @@ func (mt *mysqlTest) TestInsert() {
 	var newEntries []entry
 	mt.NoError(ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
 	mt.Len(newEntries, 4)
+	for i, e := range newEntries {
+		mt.Equal(entries[i].Int, e.Int)
+		mt.Equal(entries[i].Float, e.Float)
+		mt.Equal(entries[i].String, e.String)
+		mt.Equal(entries[i].Time.UTC().Format(mysql.DialectOptions().TimeFormat), e.Time.Format(mysql.DialectOptions().TimeFormat))
+		mt.Equal(entries[i].Bool, e.Bool)
+		mt.Equal(entries[i].Bytes, e.Bytes)
+	}
 
 	_, err = ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},

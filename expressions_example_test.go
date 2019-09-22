@@ -523,19 +523,19 @@ func ExampleDoUpdate() {
 
 	sql, args, _ := ds.
 		Rows(goqu.Record{"address": "111 Address"}).
-		OnConflict(goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address")))).
+		OnConflict(goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("excluded.address")))).
 		ToSQL()
 	fmt.Println(sql, args)
 
 	sql, args, _ = ds.Prepared(true).
 		Rows(goqu.Record{"address": "111 Address"}).
-		OnConflict(goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("EXCLUDED.address")))).
+		OnConflict(goqu.DoUpdate("address", goqu.C("address").Set(goqu.I("excluded.address")))).
 		ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
-	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" []
-	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" [111 Address]
+	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="excluded"."address" []
+	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="excluded"."address" [111 Address]
 }
 
 func ExampleDoUpdate_where() {
@@ -545,7 +545,7 @@ func ExampleDoUpdate_where() {
 		Rows(goqu.Record{"address": "111 Address"}).
 		OnConflict(goqu.DoUpdate(
 			"address",
-			goqu.C("address").Set(goqu.I("EXCLUDED.address"))).Where(goqu.I("items.updated").IsNull()),
+			goqu.C("address").Set(goqu.I("excluded.address"))).Where(goqu.I("items.updated").IsNull()),
 		).
 		ToSQL()
 	fmt.Println(sql, args)
@@ -554,14 +554,14 @@ func ExampleDoUpdate_where() {
 		Rows(goqu.Record{"address": "111 Address"}).
 		OnConflict(goqu.DoUpdate(
 			"address",
-			goqu.C("address").Set(goqu.I("EXCLUDED.address"))).Where(goqu.I("items.updated").IsNull()),
+			goqu.C("address").Set(goqu.I("excluded.address"))).Where(goqu.I("items.updated").IsNull()),
 		).
 		ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
-	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" IS NULL) []
-	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="EXCLUDED"."address" WHERE ("items"."updated" IS NULL) [111 Address]
+	// INSERT INTO "items" ("address") VALUES ('111 Address') ON CONFLICT (address) DO UPDATE SET "address"="excluded"."address" WHERE ("items"."updated" IS NULL) []
+	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="excluded"."address" WHERE ("items"."updated" IS NULL) [111 Address]
 }
 
 func ExampleFIRST() {
