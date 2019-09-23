@@ -87,12 +87,10 @@ func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) er
 	if !util.IsSlice(val.Kind()) {
 		return errUnsupportedScanStructsType
 	}
-	scanner, err := q.rowsScanner(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = scanner.ScanStructs(i)
-	return err
+
+	return q.scanIntoSlice(ctx, val, func(sc Scanner, r interface{}) error {
+		return sc.ScanStruct(r)
+	})
 }
 
 // This will execute the SQL and fill out the struct with the fields returned.
@@ -132,11 +130,24 @@ func (q QueryExecutor) ScanStructContext(ctx context.Context, i interface{}) (bo
 	if !util.IsStruct(val.Kind()) {
 		return false, errUnsupportedScanStructType
 	}
-	scanner, err := q.rowsScanner(ctx)
+
+	scanner, err := q.ScannerContext(ctx)
 	if err != nil {
 		return false, err
 	}
-	return scanner.ScanStructs(i)
+
+	defer scanner.Close()
+
+	if scanner.Next() {
+		err = scanner.ScanStruct(i)
+		if err != nil {
+			return false, err
+		}
+
+		return true, scanner.Err()
+	}
+
+	return false, scanner.Err()
 }
 
 // This will execute the SQL and append results to the slice.
@@ -166,12 +177,10 @@ func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error
 	if !util.IsSlice(val.Kind()) {
 		return errUnsupportedScanValsType
 	}
-	scanner, err := q.rowsScanner(ctx)
-	if err != nil {
-		return err
-	}
-	_, err = scanner.ScanVals(i)
-	return err
+
+	return q.scanIntoSlice(ctx, val, func(sc Scanner, r interface{}) error {
+		return sc.ScanVal(r)
+	})
 }
 
 // This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
@@ -215,17 +224,59 @@ func (q QueryExecutor) ScanValContext(ctx context.Context, i interface{}) (bool,
 			return false, errScanValNonSlice
 		}
 	}
-	rows, err := q.QueryContext(ctx)
+
+	scanner, err := q.ScannerContext(ctx)
 	if err != nil {
 		return false, err
 	}
-	return NewScanner(rows).ScanVal(i)
+
+	defer scanner.Close()
+
+	if scanner.Next() {
+		err = scanner.ScanVal(i)
+		if err != nil {
+			return false, err
+		}
+
+		return true, scanner.Err()
+	}
+
+	return false, scanner.Err()
 }
 
-func (q QueryExecutor) rowsScanner(ctx context.Context) (Scanner, error) {
+// Scanner will return a Scanner that can be used for manually scanning rows.
+func (q QueryExecutor) Scanner() (Scanner, error) {
+	return q.ScannerContext(context.Background())
+}
+
+// ScannerContext will return a Scanner that can be used for manually scanning rows.
+func (q QueryExecutor) ScannerContext(ctx context.Context) (Scanner, error) {
 	rows, err := q.QueryContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return NewScanner(rows), nil
+}
+
+func (q QueryExecutor) scanIntoSlice(ctx context.Context, val reflect.Value, it func(sc Scanner, i interface{}) error) error {
+	elemType := util.GetSliceElementType(val)
+
+	scanner, err := q.ScannerContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer scanner.Close()
+
+	for scanner.Next() {
+		row := reflect.New(elemType)
+		err = it(scanner, row.Interface())
+		if err != nil {
+			return err
+		}
+
+		util.AppendSliceElement(val, row)
+	}
+
+	return scanner.Err()
 }

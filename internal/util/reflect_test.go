@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -446,14 +447,13 @@ func (rt *reflectTest) TestAssignStructVals_withStruct() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	data := []map[string]interface{}{
-		{
-			"str":    "string",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": sql.NullString{String: "null_str", Valid: true},
-		},
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": sql.NullString{String: "null_str", Valid: true},
 	}
+
 	AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		Str:    "string",
@@ -474,13 +474,11 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
-	data := []map[string]interface{}{
-		{
-			"str":    "string",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": &ns,
-		},
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
 	}
 	AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
@@ -506,13 +504,11 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
-	data := []map[string]interface{}{
-		{
-			"str":    "string",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": &ns,
-		},
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
 	}
 	AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
@@ -538,13 +534,11 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
-	data := []map[string]interface{}{
-		{
-			"str":    "string",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": &ns,
-		},
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
 	}
 	AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
@@ -552,228 +546,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 		Int:            10,
 		Bool:           true,
 		Valuer:         ns,
-	})
-}
-
-func (rt *reflectTest) TestAssignStructVals_withSlice() {
-
-	type TestStruct struct {
-		Str    string
-		Int    int64
-		Bool   bool
-		Valuer sql.NullString
-	}
-	var ts []TestStruct
-	cm, err := GetColumnMap(&ts)
-	rt.NoError(err)
-	data := []map[string]interface{}{
-		{
-			"str":    "string1",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": sql.NullString{String: "null_str1", Valid: true},
-		},
-		{
-			"str":    "string2",
-			"int":    int64(20),
-			"bool":   false,
-			"valuer": sql.NullString{String: "null_str2", Valid: true},
-		},
-	}
-	AssignStructVals(&ts, data, cm)
-	rt.Equal(ts, []TestStruct{
-		{
-			Str:    "string1",
-			Int:    10,
-			Bool:   true,
-			Valuer: sql.NullString{String: "null_str1", Valid: true},
-		},
-		{
-			Str:    "string2",
-			Int:    20,
-			Bool:   false,
-			Valuer: sql.NullString{String: "null_str2", Valid: true},
-		},
-	})
-}
-
-func (rt *reflectTest) TestAssignStructVals_withSliceOfPointers() {
-
-	type TestStruct struct {
-		Str    string
-		Int    int64
-		Bool   bool
-		Valuer sql.NullString
-	}
-	var ts []*TestStruct
-	cm, err := GetColumnMap(&ts)
-	rt.NoError(err)
-	data := []map[string]interface{}{
-		{
-			"str":    "string1",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": sql.NullString{String: "null_str1", Valid: true},
-		},
-		{
-			"str":    "string2",
-			"int":    int64(20),
-			"bool":   false,
-			"valuer": sql.NullString{String: "null_str2", Valid: true},
-		},
-	}
-	AssignStructVals(&ts, data, cm)
-	rt.Equal(ts, []*TestStruct{
-		{
-			Str:    "string1",
-			Int:    10,
-			Bool:   true,
-			Valuer: sql.NullString{String: "null_str1", Valid: true},
-		},
-		{
-			Str:    "string2",
-			Int:    20,
-			Bool:   false,
-			Valuer: sql.NullString{String: "null_str2", Valid: true},
-		},
-	})
-}
-
-func (rt *reflectTest) TestAssignStructVals_withSliceOfStructsWithPointerVals() {
-
-	type TestStruct struct {
-		Str    string
-		Int    int64
-		Bool   bool
-		Valuer *sql.NullString
-	}
-	var ts []TestStruct
-	cm, err := GetColumnMap(&ts)
-	rt.NoError(err)
-	ns1 := &sql.NullString{String: "null_str1", Valid: true}
-	ns2 := &sql.NullString{String: "null_str2", Valid: true}
-	data := []map[string]interface{}{
-		{
-			"str":    "string1",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": &ns1,
-		},
-		{
-			"str":    "string2",
-			"int":    int64(20),
-			"bool":   false,
-			"valuer": &ns2,
-		},
-	}
-	AssignStructVals(&ts, data, cm)
-	rt.Equal(ts, []TestStruct{
-		{
-			Str:    "string1",
-			Int:    10,
-			Bool:   true,
-			Valuer: ns1,
-		},
-		{
-			Str:    "string2",
-			Int:    20,
-			Bool:   false,
-			Valuer: ns2,
-		},
-	})
-}
-
-func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStruct() {
-
-	type EmbeddedStruct struct {
-		Str string
-	}
-	type TestStruct struct {
-		EmbeddedStruct
-		Int    int64
-		Bool   bool
-		Valuer *sql.NullString
-	}
-	var ts []TestStruct
-	cm, err := GetColumnMap(&ts)
-	rt.NoError(err)
-	ns1 := &sql.NullString{String: "null_str1", Valid: true}
-	ns2 := &sql.NullString{String: "null_str2", Valid: true}
-	data := []map[string]interface{}{
-		{
-			"str":    "string1",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": &ns1,
-		},
-		{
-			"str":    "string2",
-			"int":    int64(20),
-			"bool":   false,
-			"valuer": &ns2,
-		},
-	}
-	AssignStructVals(&ts, data, cm)
-	rt.Equal(ts, []TestStruct{
-		{
-			EmbeddedStruct: EmbeddedStruct{Str: "string1"},
-			Int:            10,
-			Bool:           true,
-			Valuer:         ns1,
-		},
-		{
-			EmbeddedStruct: EmbeddedStruct{Str: "string2"},
-			Int:            20,
-			Bool:           false,
-			Valuer:         ns2,
-		},
-	})
-}
-
-func (rt *reflectTest) TestAssignStructVals_withSliceofStructsWithEmbeddedStructPointer() {
-
-	type EmbeddedStruct struct {
-		Str string
-	}
-	type TestStruct struct {
-		*EmbeddedStruct
-		Int    int64
-		Bool   bool
-		Valuer *sql.NullString
-	}
-	var ts []TestStruct
-	cm, err := GetColumnMap(&ts)
-	rt.NoError(err)
-	ns1 := &sql.NullString{String: "null_str1", Valid: true}
-	ns2 := &sql.NullString{String: "null_str2", Valid: true}
-	data := []map[string]interface{}{
-		{
-			"str":    "string1",
-			"int":    int64(10),
-			"bool":   true,
-			"valuer": &ns1,
-		},
-		{
-			"str":    "string2",
-			"int":    int64(20),
-			"bool":   false,
-			"valuer": &ns2,
-		},
-	}
-	AssignStructVals(&ts, data, cm)
-	rt.Equal(ts, []TestStruct{
-		{
-			EmbeddedStruct: &EmbeddedStruct{Str: "string1"},
-			Int:            10,
-			Bool:           true,
-			Valuer:         ns1,
-		},
-		{
-			EmbeddedStruct: &EmbeddedStruct{Str: "string2"},
-			Int:            20,
-			Bool:           false,
-			Valuer:         ns2,
-		},
 	})
 }
 
@@ -1033,6 +805,24 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 	}, cm)
 }
 
+func (rt *reflectTest) TestGetTypeInfo() {
+	var a int64
+	var b []int64
+	var c []*time.Time
+
+	t, k := GetTypeInfo(&a, reflect.ValueOf(a))
+	rt.Equal(reflect.TypeOf(a), t)
+	rt.Equal(reflect.Int64, k)
+
+	t, k = GetTypeInfo(&b, reflect.ValueOf(a))
+	rt.Equal(reflect.TypeOf(a), t)
+	rt.Equal(reflect.Int64, k)
+
+	t, k = GetTypeInfo(c, reflect.ValueOf(c))
+	rt.Equal(reflect.TypeOf(time.Time{}), t)
+	rt.Equal(reflect.Struct, k)
+}
+
 func (rt *reflectTest) TestSafeGetFieldByIndex() {
 	type TestEmbedded struct {
 		FieldA int
@@ -1094,6 +884,53 @@ func (rt *reflectTest) TestSafeGetFieldByIndex() {
 	f, isAvailable = SafeGetFieldByIndex(v, []int{})
 	rt.True(isAvailable)
 	rt.Equal(v, f)
+}
+
+func (rt *reflectTest) TestGetSliceElementType() {
+	type MyStruct struct{}
+
+	tests := []struct {
+		slice interface{}
+		want  reflect.Type
+	}{
+		{
+			slice: []int{},
+			want:  reflect.TypeOf(1),
+		},
+		{
+			slice: []*int{},
+			want:  reflect.TypeOf(1),
+		},
+		{
+			slice: []MyStruct{},
+			want:  reflect.TypeOf(MyStruct{}),
+		},
+		{
+			slice: []*MyStruct{},
+			want:  reflect.TypeOf(MyStruct{}),
+		},
+	}
+
+	for _, tt := range tests {
+		sliceVal := reflect.ValueOf(tt.slice)
+		elementType := GetSliceElementType(sliceVal)
+
+		rt.Equal(tt.want, elementType)
+	}
+}
+
+func (rt *reflectTest) TestAppendSliceElement() {
+	type MyStruct struct{}
+
+	sliceVal := reflect.Indirect(reflect.ValueOf(&[]MyStruct{}))
+	AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
+
+	rt.Equal([]MyStruct{{}}, sliceVal.Interface())
+
+	sliceVal = reflect.Indirect(reflect.ValueOf(&[]*MyStruct{}))
+	AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
+
+	rt.Equal([]*MyStruct{{}}, sliceVal.Interface())
 }
 
 func TestReflectSuite(t *testing.T) {

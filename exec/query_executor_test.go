@@ -24,11 +24,11 @@ var (
 	testByteSliceContent       = "byte slice result"
 )
 
-type crudExecTest struct {
+type queryExecutorSuite struct {
 	suite.Suite
 }
 
-func (cet *crudExecTest) TestWithError() {
+func (qes *queryExecutorSuite) TestWithError() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -36,38 +36,51 @@ func (cet *crudExecTest) TestWithError() {
 
 	ctx := context.Background()
 	db, _, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 	expectedErr := fmt.Errorf("crud exec error")
 	e := newQueryExecutor(db, expectedErr, `SELECT * FROM "items"`)
 	var items []StructWithTags
-	cet.EqualError(e.ScanStructs(&items), expectedErr.Error())
-	cet.EqualError(e.ScanStructsContext(ctx, &items), expectedErr.Error())
+	qes.EqualError(e.ScanStructs(&items), expectedErr.Error())
+	qes.EqualError(e.ScanStructsContext(ctx, &items), expectedErr.Error())
 	found, err := e.ScanStruct(&StructWithTags{})
-	cet.EqualError(err, expectedErr.Error())
-	cet.False(found)
+	qes.EqualError(err, expectedErr.Error())
+	qes.False(found)
 	found, err = e.ScanStructContext(ctx, &StructWithTags{})
-	cet.EqualError(err, expectedErr.Error())
-	cet.False(found)
+	qes.EqualError(err, expectedErr.Error())
+	qes.False(found)
 	var vals []string
-	cet.EqualError(e.ScanVals(&vals), expectedErr.Error())
-	cet.EqualError(e.ScanValsContext(ctx, &vals), expectedErr.Error())
+	qes.EqualError(e.ScanVals(&vals), expectedErr.Error())
+	qes.EqualError(e.ScanValsContext(ctx, &vals), expectedErr.Error())
 	var val string
 	found, err = e.ScanVal(&val)
-	cet.EqualError(err, expectedErr.Error())
-	cet.False(found)
+	qes.EqualError(err, expectedErr.Error())
+	qes.False(found)
 	found, err = e.ScanValContext(ctx, &val)
-	cet.EqualError(err, expectedErr.Error())
-	cet.False(found)
+	qes.EqualError(err, expectedErr.Error())
+	qes.False(found)
 }
 
-func (cet *crudExecTest) TestScanStructs_withTaggedFields() {
+func (qes *queryExecutorSuite) TestToSQL() {
+
+	db, _, err := sqlmock.New()
+	qes.NoError(err)
+
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+	query, args, err := e.ToSQL()
+	qes.NoError(err)
+	qes.Equal(`SELECT * FROM "items"`, query)
+	qes.Empty(args)
+
+}
+
+func (qes *queryExecutorSuite) TestScanStructs_withTaggedFields() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -79,20 +92,20 @@ func (cet *crudExecTest) TestScanStructs_withTaggedFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithTags
-	cet.NoError(e.ScanStructs(&items))
-	cet.Equal([]StructWithTags{
+	qes.NoError(e.ScanStructs(&items))
+	qes.Equal([]StructWithTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
+func (qes *queryExecutorSuite) TestScanStructs_withUntaggedFields() {
 	type StructWithNoTags struct {
 		Address string
 		Name    string
 	}
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -103,14 +116,14 @@ func (cet *crudExecTest) TestScanStructs_withUntaggedFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithNoTags
-	cet.NoError(e.ScanStructs(&items))
-	cet.Equal([]StructWithNoTags{
+	qes.NoError(e.ScanStructs(&items))
+	qes.Equal([]StructWithNoTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructs_withPointerFields() {
+func (qes *queryExecutorSuite) TestScanStructs_withPointerFields() {
 	type StructWithPointerFields struct {
 		Str   *string
 		Time  *time.Time
@@ -119,7 +132,7 @@ func (cet *crudExecTest) TestScanStructs_withPointerFields() {
 		Float *float64
 	}
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 	now := time.Now()
 	str1, str2 := "str1", "str2"
 	t := true
@@ -136,15 +149,15 @@ func (cet *crudExecTest) TestScanStructs_withPointerFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithPointerFields
-	cet.NoError(e.ScanStructs(&items))
-	cet.Equal([]StructWithPointerFields{
+	qes.NoError(e.ScanStructs(&items))
+	qes.Equal([]StructWithPointerFields{
 		{Str: &str1, Time: &now, Bool: &t, Int: &i1, Float: &f1},
 		{Str: &str2, Time: &now, Bool: &t, Int: &i2, Float: &f2},
 		{},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructs_withPrivateFields() {
+func (qes *queryExecutorSuite) TestScanStructs_withPrivateFields() {
 	type StructWithPrivateTags struct {
 		private string // nolint:structcheck,unused
 		Address string `db:"address"`
@@ -152,7 +165,7 @@ func (cet *crudExecTest) TestScanStructs_withPrivateFields() {
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -164,21 +177,21 @@ func (cet *crudExecTest) TestScanStructs_withPrivateFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithPrivateTags
-	cet.NoError(e.ScanStructs(&items))
-	cet.Equal([]StructWithPrivateTags{
+	qes.NoError(e.ScanStructs(&items))
+	qes.Equal([]StructWithPrivateTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructs_pointers() {
+func (qes *queryExecutorSuite) TestScanStructs_pointers() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -190,14 +203,14 @@ func (cet *crudExecTest) TestScanStructs_pointers() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []*StructWithTags
-	cet.NoError(e.ScanStructs(&items))
-	cet.Equal([]*StructWithTags{
+	qes.NoError(e.ScanStructs(&items))
+	qes.Equal([]*StructWithTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructs_withIgnoredEmbeddedStruct() {
+func (qes *queryExecutorSuite) TestScanStructs_withIgnoredEmbeddedStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -210,7 +223,7 @@ func (cet *crudExecTest) TestScanStructs_withIgnoredEmbeddedStruct() {
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -221,14 +234,14 @@ func (cet *crudExecTest) TestScanStructs_withIgnoredEmbeddedStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedIgnoredStruct
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]ComposedIgnoredStruct{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]ComposedIgnoredStruct{
 		{StructWithTags: StructWithTags{}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: StructWithTags{}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
+func (qes *queryExecutorSuite) TestScanStructs_withEmbeddedStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -239,7 +252,7 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
 		Age         int64  `db:"age"`
 	}
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -251,14 +264,14 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedStruct
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]ComposedStruct{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]ComposedStruct{
 		{StructWithTags: StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
+func (qes *queryExecutorSuite) TestScanStructs_pointersWithEmbeddedStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -270,7 +283,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -282,14 +295,14 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*ComposedStruct
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]*ComposedStruct{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]*ComposedStruct{
 		{StructWithTags: StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFields() {
+func (qes *queryExecutorSuite) TestScanStructs_pointersWithEmbeddedStructDuplicateFields() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -305,7 +318,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFiel
 	var otherName1, otherName2 = "Test1 Other", "Test2 Other"
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -317,8 +330,8 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFiel
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*ComposedStructWithDuplicateFields
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]*ComposedStructWithDuplicateFields{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]*ComposedStructWithDuplicateFields{
 		{
 			StructWithTags: StructWithTags{Address: testAddr1, Name: testName1},
 			Address:        otherAddr1,
@@ -332,7 +345,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructDuplicateFiel
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFields() {
+func (qes *queryExecutorSuite) TestScanStructs_pointersWithEmbeddedPointerDuplicateFields() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -348,7 +361,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFie
 	var otherName1, otherName2 = "Test1 Other", "Test2 Other"
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -360,8 +373,8 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFie
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*ComposedWithWithPointerWithDuplicateFields
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]*ComposedWithWithPointerWithDuplicateFields{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]*ComposedWithWithPointerWithDuplicateFields{
 		{
 			StructWithTags: &StructWithTags{Address: testAddr1, Name: testName1},
 			Address:        otherAddr1,
@@ -375,7 +388,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedPointerDuplicateFie
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_withIgnoredEmbeddedPointerStruct() {
+func (qes *queryExecutorSuite) TestScanStructs_withIgnoredEmbeddedPointerStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -388,7 +401,7 @@ func (cet *crudExecTest) TestScanStructs_withIgnoredEmbeddedPointerStruct() {
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -400,14 +413,14 @@ func (cet *crudExecTest) TestScanStructs_withIgnoredEmbeddedPointerStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedIgnoredPointerStruct
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]ComposedIgnoredPointerStruct{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]ComposedIgnoredPointerStruct{
 		{StructWithTags: &StructWithTags{}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: &StructWithTags{}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
+func (qes *queryExecutorSuite) TestScanStructs_withEmbeddedStructPointer() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -420,7 +433,7 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -432,14 +445,14 @@ func (cet *crudExecTest) TestScanStructs_withEmbeddedStructPointer() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedWithPointerStruct
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]ComposedWithPointerStruct{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]ComposedWithPointerStruct{
 		{StructWithTags: &StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: &StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
+func (qes *queryExecutorSuite) TestScanStructs_pointersWithEmbeddedStructPointer() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -451,7 +464,7 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
 		Age         int64  `db:"age"`
 	}
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -463,37 +476,37 @@ func (cet *crudExecTest) TestScanStructs_pointersWithEmbeddedStructPointer() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*ComposedWithPointerStruct
-	cet.NoError(e.ScanStructs(&composed))
-	cet.Equal([]*ComposedWithPointerStruct{
+	qes.NoError(e.ScanStructs(&composed))
+	qes.Equal([]*ComposedWithPointerStruct{
 		{StructWithTags: &StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: &StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructs_badValue() {
+func (qes *queryExecutorSuite) TestScanStructs_badValue() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
 
 	db, _, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithTags
-	cet.Equal(errUnsupportedScanStructsType, e.ScanStructs(items))
-	cet.Equal(errUnsupportedScanStructsType, e.ScanStructs(&StructWithTags{}))
+	qes.Equal(errUnsupportedScanStructsType, e.ScanStructs(items))
+	qes.Equal(errUnsupportedScanStructsType, e.ScanStructs(&StructWithTags{}))
 }
 
-func (cet *crudExecTest) TestScanStructs_queryError() {
+func (qes *queryExecutorSuite) TestScanStructs_queryError() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
@@ -501,10 +514,10 @@ func (cet *crudExecTest) TestScanStructs_queryError() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithTags
-	cet.EqualError(e.ScanStructs(&items), "queryExecutor error")
+	qes.EqualError(e.ScanStructs(&items), "queryExecutor error")
 }
 
-func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
+func (qes *queryExecutorSuite) TestScanStructsContext_withTaggedFields() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -512,7 +525,7 @@ func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -524,14 +537,14 @@ func (cet *crudExecTest) TestScanStructsContext_withTaggedFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithTags
-	cet.NoError(e.ScanStructsContext(ctx, &items))
-	cet.Equal([]StructWithTags{
+	qes.NoError(e.ScanStructsContext(ctx, &items))
+	qes.Equal([]StructWithTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
+func (qes *queryExecutorSuite) TestScanStructsContext_withUntaggedFields() {
 	type StructWithNoTags struct {
 		Address string
 		Name    string
@@ -539,7 +552,7 @@ func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -551,21 +564,21 @@ func (cet *crudExecTest) TestScanStructsContext_withUntaggedFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithNoTags
-	cet.NoError(e.ScanStructsContext(ctx, &items))
-	cet.Equal([]StructWithNoTags{
+	qes.NoError(e.ScanStructsContext(ctx, &items))
+	qes.Equal([]StructWithNoTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_withPointerFields() {
+func (qes *queryExecutorSuite) TestScanStructsContext_withPointerFields() {
 	type StructWithPointerFields struct {
 		Address *string
 		Name    *string
 	}
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -577,14 +590,14 @@ func (cet *crudExecTest) TestScanStructsContext_withPointerFields() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithPointerFields
-	cet.NoError(e.ScanStructsContext(ctx, &items))
-	cet.Equal([]StructWithPointerFields{
+	qes.NoError(e.ScanStructsContext(ctx, &items))
+	qes.Equal([]StructWithPointerFields{
 		{Address: &testAddr1, Name: &testName1},
 		{Address: &testAddr2, Name: &testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_pointers() {
+func (qes *queryExecutorSuite) TestScanStructsContext_pointers() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -592,7 +605,7 @@ func (cet *crudExecTest) TestScanStructsContext_pointers() {
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -604,14 +617,14 @@ func (cet *crudExecTest) TestScanStructsContext_pointers() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []*StructWithTags
-	cet.NoError(e.ScanStructsContext(ctx, &items))
-	cet.Equal([]*StructWithTags{
+	qes.NoError(e.ScanStructsContext(ctx, &items))
+	qes.Equal([]*StructWithTags{
 		{Address: testAddr1, Name: testName1},
 		{Address: testAddr2, Name: testName2},
 	}, items)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
+func (qes *queryExecutorSuite) TestScanStructsContext_withEmbeddedStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -623,7 +636,7 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
 	}
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -635,14 +648,14 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedStruct
-	cet.NoError(e.ScanStructsContext(ctx, &composed))
-	cet.Equal([]ComposedStruct{
+	qes.NoError(e.ScanStructsContext(ctx, &composed))
+	qes.Equal([]ComposedStruct{
 		{StructWithTags: StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_withIgnoredEmbeddedStruct() {
+func (qes *queryExecutorSuite) TestScanStructsContext_withIgnoredEmbeddedStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -656,7 +669,7 @@ func (cet *crudExecTest) TestScanStructsContext_withIgnoredEmbeddedStruct() {
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -668,14 +681,14 @@ func (cet *crudExecTest) TestScanStructsContext_withIgnoredEmbeddedStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedIgnoredStruct
-	cet.NoError(e.ScanStructsContext(ctx, &composed))
-	cet.Equal([]ComposedIgnoredStruct{
+	qes.NoError(e.ScanStructsContext(ctx, &composed))
+	qes.Equal([]ComposedIgnoredStruct{
 		{StructWithTags: StructWithTags{}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: StructWithTags{}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
+func (qes *queryExecutorSuite) TestScanStructsContext_pointersWithEmbeddedStruct() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -687,7 +700,7 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
 	}
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -699,14 +712,14 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStruct() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*ComposedStruct
-	cet.NoError(e.ScanStructsContext(ctx, &composed))
-	cet.Equal([]*ComposedStruct{
+	qes.NoError(e.ScanStructsContext(ctx, &composed))
+	qes.Equal([]*ComposedStruct{
 		{StructWithTags: StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
+func (qes *queryExecutorSuite) TestScanStructsContext_withEmbeddedStructPointer() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -720,7 +733,7 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -732,14 +745,14 @@ func (cet *crudExecTest) TestScanStructsContext_withEmbeddedStructPointer() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []ComposedWithPointerStruct
-	cet.NoError(e.ScanStructsContext(ctx, &composed))
-	cet.Equal([]ComposedWithPointerStruct{
+	qes.NoError(e.ScanStructsContext(ctx, &composed))
+	qes.Equal([]ComposedWithPointerStruct{
 		{StructWithTags: &StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: &StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointer() {
+func (qes *queryExecutorSuite) TestScanStructsContext_pointersWithEmbeddedStructPointer() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -753,7 +766,7 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointe
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -765,14 +778,14 @@ func (cet *crudExecTest) TestScanStructsContext_pointersWithEmbeddedStructPointe
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var composed []*ComposedWithPointerStruct
-	cet.NoError(e.ScanStructsContext(ctx, &composed))
-	cet.Equal([]*ComposedWithPointerStruct{
+	qes.NoError(e.ScanStructsContext(ctx, &composed))
+	qes.Equal([]*ComposedWithPointerStruct{
 		{StructWithTags: &StructWithTags{Address: testAddr1, Name: testName1}, PhoneNumber: testPhone1, Age: testAge1},
 		{StructWithTags: &StructWithTags{Address: testAddr2, Name: testName2}, PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
-func (cet *crudExecTest) TestScanStructsContext_badValue() {
+func (qes *queryExecutorSuite) TestScanStructsContext_badValue() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -780,16 +793,16 @@ func (cet *crudExecTest) TestScanStructsContext_badValue() {
 
 	ctx := context.Background()
 	db, _, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithTags
-	cet.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(ctx, items))
-	cet.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(ctx, &StructWithTags{}))
+	qes.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(ctx, items))
+	qes.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(ctx, &StructWithTags{}))
 }
 
-func (cet *crudExecTest) TestScanStructsContext_queryError() {
+func (qes *queryExecutorSuite) TestScanStructsContext_queryError() {
 	type StructWithTags struct {
 		Address string `db:"address"`
 		Name    string `db:"name"`
@@ -797,7 +810,7 @@ func (cet *crudExecTest) TestScanStructsContext_queryError() {
 
 	ctx := context.Background()
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
@@ -805,10 +818,10 @@ func (cet *crudExecTest) TestScanStructsContext_queryError() {
 	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
 
 	var items []StructWithTags
-	cet.EqualError(e.ScanStructsContext(ctx, &items), "queryExecutor error")
+	qes.EqualError(e.ScanStructsContext(ctx, &items), "queryExecutor error")
 }
 
-func (cet *crudExecTest) TestScanStruct() {
+func (qes *queryExecutorSuite) TestScanStruct() {
 	type StructWithNoTags struct {
 		Address string
 		Name    string
@@ -831,10 +844,20 @@ func (cet *crudExecTest) TestScanStruct() {
 	}
 
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			AddRow(nil, nil),
+		)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}))
 
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -863,28 +886,36 @@ func (cet *crudExecTest) TestScanStruct() {
 	var slicePtr []StructWithTags
 	var item StructWithTags
 	found, err := e.ScanStruct(item)
-	cet.Equal(errUnsupportedScanStructType, err)
-	cet.False(found)
+	qes.Equal(errUnsupportedScanStructType, err)
+	qes.False(found)
 	found, err = e.ScanStruct(&slicePtr)
-	cet.Equal(errUnsupportedScanStructType, err)
-	cet.False(found)
+	qes.Equal(errUnsupportedScanStructType, err)
+	qes.False(found)
 	found, err = e.ScanStruct(&item)
-	cet.EqualError(err, "queryExecutor error")
-	cet.False(found)
+	qes.EqualError(err, "queryExecutor error")
+	qes.False(found)
 
 	found, err = e.ScanStruct(&item)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(StructWithTags{
+	qes.Error(err)
+	qes.False(found)
+
+	found, err = e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.False(found)
+
+	found, err = e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(StructWithTags{
 		Address: testAddr1,
 		Name:    testName1,
 	}, item)
 
 	var composed ComposedStruct
 	found, err = e.ScanStruct(&composed)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(ComposedStruct{
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(ComposedStruct{
 		StructWithTags: StructWithTags{Address: testAddr1, Name: testName1},
 		PhoneNumber:    testPhone1,
 		Age:            testAge1,
@@ -892,9 +923,9 @@ func (cet *crudExecTest) TestScanStruct() {
 
 	var embeddedPtr ComposedWithPointerStruct
 	found, err = e.ScanStruct(&embeddedPtr)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(ComposedWithPointerStruct{
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(ComposedWithPointerStruct{
 		StructWithTags: &StructWithTags{
 			Address: testAddr1,
 			Name:    testName1,
@@ -905,22 +936,30 @@ func (cet *crudExecTest) TestScanStruct() {
 
 	var noTag StructWithNoTags
 	found, err = e.ScanStruct(&noTag)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(StructWithNoTags{
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(StructWithNoTags{
 		Address: testAddr1,
 		Name:    testName1,
 	}, noTag)
 }
 
-func (cet *crudExecTest) TestScanVals() {
+func (qes *queryExecutorSuite) TestScanVals() {
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	var id1, id2 int64 = 1, 2
 
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
+
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(id1).RowError(0, fmt.Errorf("row error")))
+
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(id1).AddRow("a"))
 
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
@@ -934,27 +973,38 @@ func (cet *crudExecTest) TestScanVals() {
 
 	var id int64
 	var ids []int64
-	cet.Equal(errUnsupportedScanValsType, e.ScanVals(ids))
-	cet.Equal(errUnsupportedScanValsType, e.ScanVals(&id))
-	cet.EqualError(e.ScanVals(&ids), "queryExecutor error")
+	qes.Equal(errUnsupportedScanValsType, e.ScanVals(ids))
+	qes.Equal(errUnsupportedScanValsType, e.ScanVals(&id))
+	qes.EqualError(e.ScanVals(&ids), "queryExecutor error")
+	qes.EqualError(e.ScanVals(&ids), "row error")
+	qes.Error(e.ScanVals(&ids))
 
-	cet.NoError(e.ScanVals(&ids))
-	cet.Equal(ids, []int64{id1, id2})
+	ids = ids[0:0]
+	qes.NoError(e.ScanVals(&ids))
+	qes.Equal(ids, []int64{id1, id2})
 
 	var pointers []*int64
-	cet.NoError(e.ScanVals(&pointers))
-	cet.Len(pointers, 2)
-	cet.Equal(&id1, pointers[0])
-	cet.Equal(&id2, pointers[1])
+	qes.NoError(e.ScanVals(&pointers))
+	qes.Len(pointers, 2)
+	qes.Equal(&id1, pointers[0])
+	qes.Equal(&id2, pointers[1])
 }
 
-func (cet *crudExecTest) TestScanVal() {
+func (qes *queryExecutorSuite) TestScanVal() {
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	id1 := int64(1)
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WillReturnError(fmt.Errorf("queryExecutor error"))
+
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).RowError(0, fmt.Errorf("row error")).AddRow(id1))
+
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("c"))
 
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
@@ -965,25 +1015,33 @@ func (cet *crudExecTest) TestScanVal() {
 	var id int64
 	var ids []int64
 	found, err := e.ScanVal(id)
-	cet.Equal(errScanValPointer, err)
-	cet.False(found)
+	qes.Equal(errScanValPointer, err)
+	qes.False(found)
 	found, err = e.ScanVal(&ids)
-	cet.Equal(errScanValNonSlice, err)
-	cet.False(found)
+	qes.Equal(errScanValNonSlice, err)
+	qes.False(found)
 	found, err = e.ScanVal(&id)
-	cet.EqualError(err, "queryExecutor error")
-	cet.False(found)
+	qes.EqualError(err, "queryExecutor error")
+	qes.False(found)
+
+	found, err = e.ScanVal(&id)
+	qes.EqualError(err, "row error")
+	qes.False(found)
+
+	found, err = e.ScanVal(&id)
+	qes.Error(err)
+	qes.False(found)
 
 	var ptrID *int64
 	found, err = e.ScanVal(&ptrID)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(&id1, ptrID)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(&id1, ptrID)
 }
 
-func (cet *crudExecTest) TestScanVal_withByteSlice() {
+func (qes *queryExecutorSuite) TestScanVal_withByteSlice() {
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT "name" FROM "items"`).
 		WithArgs().
@@ -993,18 +1051,18 @@ func (cet *crudExecTest) TestScanVal_withByteSlice() {
 
 	var bytes []byte
 	found, err := e.ScanVal(bytes)
-	cet.Equal(errScanValPointer, err)
-	cet.False(found)
+	qes.Equal(errScanValPointer, err)
+	qes.False(found)
 
 	found, err = e.ScanVal(&bytes)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal([]byte(testByteSliceContent), bytes)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal([]byte(testByteSliceContent), bytes)
 }
 
-func (cet *crudExecTest) TestScanVal_withRawBytes() {
+func (qes *queryExecutorSuite) TestScanVal_withRawBytes() {
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT "name" FROM "items"`).
 		WithArgs().
@@ -1014,13 +1072,13 @@ func (cet *crudExecTest) TestScanVal_withRawBytes() {
 
 	var bytes sql.RawBytes
 	found, err := e.ScanVal(bytes)
-	cet.Equal(errScanValPointer, err)
-	cet.False(found)
+	qes.Equal(errScanValPointer, err)
+	qes.False(found)
 
 	found, err = e.ScanVal(&bytes)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(sql.RawBytes(testByteSliceContent), bytes)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(sql.RawBytes(testByteSliceContent), bytes)
 }
 
 type JSONBoolArray []bool
@@ -1029,9 +1087,9 @@ func (b *JSONBoolArray) Scan(src interface{}) error {
 	return json.Unmarshal(src.([]byte), b)
 }
 
-func (cet *crudExecTest) TestScanVal_withValuerSlice() {
+func (qes *queryExecutorSuite) TestScanVal_withValuerSlice() {
 	db, mock, err := sqlmock.New()
-	cet.NoError(err)
+	qes.NoError(err)
 
 	mock.ExpectQuery(`SELECT "bools" FROM "items"`).
 		WithArgs().
@@ -1041,15 +1099,15 @@ func (cet *crudExecTest) TestScanVal_withValuerSlice() {
 
 	var bools JSONBoolArray
 	found, err := e.ScanVal(bools)
-	cet.Equal(errScanValPointer, err)
-	cet.False(found)
+	qes.Equal(errScanValPointer, err)
+	qes.False(found)
 
 	found, err = e.ScanVal(&bools)
-	cet.NoError(err)
-	cet.True(found)
-	cet.Equal(JSONBoolArray{true, false, true}, bools)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(JSONBoolArray{true, false, true}, bools)
 }
 
-func TestCrudExecSuite(t *testing.T) {
-	suite.Run(t, new(crudExecTest))
+func TestQueryExecutorSuite(t *testing.T) {
+	suite.Run(t, new(queryExecutorSuite))
 }

@@ -1277,3 +1277,89 @@ func ExampleSelectDataset_Pluck() {
 	// Output:
 	// LastNames := [Yukon Yukon Yukon Doe]
 }
+
+func ExampleSelectDataset_Executor_scannerScanStruct() {
+	type User struct {
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+	}
+	db := getDb()
+
+	scanner, err := db.
+		From("goqu_user").
+		Select("first_name", "last_name").
+		Where(goqu.Ex{
+			"last_name": "Yukon",
+		}).
+		Executor().
+		Scanner()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	defer scanner.Close()
+
+	for scanner.Next() {
+		u := User{}
+
+		err = scanner.ScanStruct(&u)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		fmt.Printf("\n%+v", u)
+	}
+
+	if scanner.Err() != nil {
+		fmt.Println(scanner.Err().Error())
+	}
+
+	// Output:
+	// {FirstName:Bob LastName:Yukon}
+	// {FirstName:Sally LastName:Yukon}
+	// {FirstName:Vinita LastName:Yukon}
+}
+
+func ExampleSelectDataset_Executor_scannerScanVal() {
+	db := getDb()
+
+	scanner, err := db.
+		From("goqu_user").
+		Select("first_name").
+		Where(goqu.Ex{
+			"last_name": "Yukon",
+		}).
+		Executor().
+		Scanner()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	defer scanner.Close()
+
+	for scanner.Next() {
+		name := ""
+
+		err = scanner.ScanVal(&name)
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		fmt.Println(name)
+	}
+
+	if scanner.Err() != nil {
+		fmt.Println(scanner.Err().Error())
+	}
+
+	// Output:
+	// Bob
+	// Sally
+	// Vinita
+}
