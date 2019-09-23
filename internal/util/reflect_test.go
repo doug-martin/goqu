@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -802,6 +803,24 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 		"bool":   {ColumnName: "bool", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
+}
+
+func (rt *reflectTest) TestGetTypeInfo() {
+	var a int64
+	var b []int64
+	var c []*time.Time
+
+	t, k := GetTypeInfo(&a, reflect.ValueOf(a))
+	rt.Equal(reflect.TypeOf(a), t)
+	rt.Equal(reflect.Int64, k)
+
+	t, k = GetTypeInfo(&b, reflect.ValueOf(a))
+	rt.Equal(reflect.TypeOf(a), t)
+	rt.Equal(reflect.Int64, k)
+
+	t, k = GetTypeInfo(c, reflect.ValueOf(c))
+	rt.Equal(reflect.TypeOf(time.Time{}), t)
+	rt.Equal(reflect.Struct, k)
 }
 
 func (rt *reflectTest) TestSafeGetFieldByIndex() {

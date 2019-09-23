@@ -18,6 +18,7 @@
   * [`ScanStruct`](#scan-struct) - Scans a row into a slice a struct, returns false if a row wasnt found
   * [`ScanVals`](#scan-vals)- Scans a rows of 1 column into a slice of primitive values
   * [`ScanVal`](#scan-val) - Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
+  * [`Scanner`](#scanner) - Allows you to interatively scan rows into structs or values.
   * [`Count`](#count) - Returns the count for the current query
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
@@ -801,35 +802,88 @@ if !found{
 }
 ```
 
-<a name="Scanner"></a>
+<a name="scanner"></a>
 **[`Scanner`](http://godoc.org/github.com/doug-martin/goqu/exec#Scanner)**
 
-Scanner knows how to scan rows into structs. This is usefull when dealing with
-large result sets where you can have only one item scanned in memory at one
-time.
+Scanner knows how to scan rows into structs. This is useful when dealing with large result sets where you can have only one item scanned in memory at one time.
+
+In the following example we scan each row into struct.
 
 ```go
-// Create a new scanner from sql.Rows.
 
-rows, _ := sql.Query(...)
+type User struct {
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+}
+db := getDb()
 
-scanner, err := exec.Scanner(rows)
+scanner, err := db.
+  From("goqu_user").
+	Select("first_name", "last_name").
+	Where(goqu.Ex{
+		"last_name": "Yukon",
+	}).
+	Executor().
+	Scanner()
 
-for scanner.Next() {
-    scanner.ScanStruct(&myStruct)
+if err != nil {
+	fmt.Println(err.Error())
+	return
 }
 
-// Or create a scanner from a SelectDataset.
-
-scanner, err := db.From("user").
-    Select("first_name", "last_name").
-    Executor().Scanner()
+defer scanner.Close()
 
 for scanner.Next() {
-    myStruct := MyStruct{}
-    scanner.ScanSTruct(&myStruct)
-    
-    doSomethingWithStruct(myStruct)
+	u := User{}
+
+	err = scanner.ScanStruct(&u)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Printf("\n%+v", u)
+}
+
+if scanner.Err() != nil {
+	fmt.Println(scanner.Err().Error())
+}
+```
+
+In this example we scan each row into a val.
+```go
+db := getDb()
+
+scanner, err := db.
+	From("goqu_user").
+	Select("first_name").
+	Where(goqu.Ex{
+		"last_name": "Yukon",
+	}).
+	Executor().
+	Scanner()
+
+if err != nil {
+	fmt.Println(err.Error())
+	return
+}
+
+defer scanner.Close()
+
+for scanner.Next() {
+	name := ""
+
+	err = scanner.ScanVal(&name)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Println(name)
+}
+
+if scanner.Err() != nil {
+	fmt.Println(scanner.Err().Error())
 }
 ```
 
@@ -860,4 +914,5 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
+
 

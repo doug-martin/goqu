@@ -123,9 +123,8 @@ func AppendSliceElement(slice, val reflect.Value) {
 	}
 }
 
-func GetTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind, bool) {
+func GetTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind) {
 	var t reflect.Type
-	isSliceOfPointers := false
 	valKind := val.Kind()
 	if valKind == reflect.Slice {
 		if reflect.ValueOf(i).Kind() == reflect.Ptr {
@@ -134,14 +133,13 @@ func GetTypeInfo(i interface{}, val reflect.Value) (reflect.Type, reflect.Kind, 
 			t = reflect.TypeOf(i).Elem()
 		}
 		if t.Kind() == reflect.Ptr {
-			isSliceOfPointers = true
 			t = t.Elem()
 		}
 		valKind = t.Kind()
 	} else {
 		t = val.Type()
 	}
-	return t, valKind, isSliceOfPointers
+	return t, valKind
 }
 
 func SafeGetFieldByIndex(v reflect.Value, fieldIndex []int) (result reflect.Value, isAvailable bool) {
@@ -189,7 +187,7 @@ func initEmbeddedPtr(value reflect.Value) {
 
 func GetColumnMap(i interface{}) (ColumnMap, error) {
 	val := reflect.Indirect(reflect.ValueOf(i))
-	t, valKind, _ := GetTypeInfo(i, val)
+	t, valKind := GetTypeInfo(i, val)
 	if valKind != reflect.Struct {
 		return nil, errors.New("cannot scan into this type: %v", t) // #nosec
 	}

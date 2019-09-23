@@ -1278,30 +1278,33 @@ func ExampleSelectDataset_Pluck() {
 	// LastNames := [Yukon Yukon Yukon Doe]
 }
 
-func ExampleSelectDataset_Executor_scanner_scanstruct() {
+func ExampleSelectDataset_Executor_scannerScanStruct() {
 	type User struct {
 		FirstName string `db:"first_name"`
 		LastName  string `db:"last_name"`
 	}
 	db := getDb()
 
-	rows, err := db.From("goqu_user").
+	scanner, err := db.
+		From("goqu_user").
 		Select("first_name", "last_name").
 		Where(goqu.Ex{
 			"last_name": "Yukon",
-		}).Executor().Scanner()
+		}).
+		Executor().
+		Scanner()
 
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	defer rows.Close()
+	defer scanner.Close()
 
-	for rows.Next() {
+	for scanner.Next() {
 		u := User{}
 
-		err = rows.ScanStruct(&u)
+		err = scanner.ScanStruct(&u)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -1310,8 +1313,8 @@ func ExampleSelectDataset_Executor_scanner_scanstruct() {
 		fmt.Printf("\n%+v", u)
 	}
 
-	if rows.Err() != nil {
-		fmt.Println(rows.Err().Error())
+	if scanner.Err() != nil {
+		fmt.Println(scanner.Err().Error())
 	}
 
 	// Output:
@@ -1320,26 +1323,29 @@ func ExampleSelectDataset_Executor_scanner_scanstruct() {
 	// {FirstName:Vinita LastName:Yukon}
 }
 
-func ExampleSelectDataset_Executor_scanner_scanval() {
+func ExampleSelectDataset_Executor_scannerScanVal() {
 	db := getDb()
 
-	rows, err := db.From("goqu_user").
+	scanner, err := db.
+		From("goqu_user").
 		Select("first_name").
 		Where(goqu.Ex{
 			"last_name": "Yukon",
-		}).Executor().Scanner()
+		}).
+		Executor().
+		Scanner()
 
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
 
-	defer rows.Close()
+	defer scanner.Close()
 
-	for rows.Next() {
+	for scanner.Next() {
 		name := ""
 
-		err = rows.ScanVal(&name)
+		err = scanner.ScanVal(&name)
 		if err != nil {
 			fmt.Println(err.Error())
 			return
@@ -1348,8 +1354,8 @@ func ExampleSelectDataset_Executor_scanner_scanval() {
 		fmt.Println(name)
 	}
 
-	if rows.Err() != nil {
-		fmt.Println(rows.Err().Error())
+	if scanner.Err() != nil {
+		fmt.Println(scanner.Err().Error())
 	}
 
 	// Output:

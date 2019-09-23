@@ -1,3 +1,7 @@
+# v9.2.0
+
+* [ADDED] exec.Scanner: New exposed scanner supports iterative scanning [#157](https://github.com/doug-martin/goqu/pull/157) - [@akarl](https://github.com/akarl)
+
 # v9.1.0
 
 * [FIXED] ExampleDoUpdate does't work in postgres [#156](https://github.com/doug-martin/goqu/issues/156)

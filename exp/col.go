@@ -23,7 +23,7 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 		case Expression:
 			cols = append(cols, t)
 		default:
-			_, valKind, _ := util.GetTypeInfo(val, reflect.Indirect(reflect.ValueOf(val)))
+			_, valKind := util.GetTypeInfo(val, reflect.Indirect(reflect.ValueOf(val)))
 
 			if valKind == reflect.Struct {
 				cm, err := util.GetColumnMap(val)

@@ -37,37 +37,37 @@ func NewScanner(rows *sql.Rows) Scanner {
 
 // Next prepares the next row for Scanning. See sql.Rows#Next for more
 // information.
-func (it *scanner) Next() bool {
-	return it.rows.Next()
+func (s *scanner) Next() bool {
+	return s.rows.Next()
 }
 
 // Err returns the error, if any that was encountered during iteration. See
 // sql.Rows#Err for more information.
-func (it *scanner) Err() error {
-	return it.rows.Err()
+func (s *scanner) Err() error {
+	return s.rows.Err()
 }
 
 // ScanStruct will scan the current row into i.
-func (it *scanner) ScanStruct(i interface{}) error {
+func (s *scanner) ScanStruct(i interface{}) error {
 	// Setup columnMap and columns, but only once.
-	if it.columnMap == nil || it.columns == nil {
+	if s.columnMap == nil || s.columns == nil {
 		cm, err := util.GetColumnMap(i)
 		if err != nil {
 			return err
 		}
 
-		cols, err := it.rows.Columns()
+		cols, err := s.rows.Columns()
 		if err != nil {
 			return err
 		}
 
-		it.columnMap = cm
-		it.columns = cols
+		s.columnMap = cm
+		s.columns = cols
 	}
 
-	scans := make([]interface{}, len(it.columns))
-	for idx, col := range it.columns {
-		data, ok := it.columnMap[col]
+	scans := make([]interface{}, len(s.columns))
+	for idx, col := range s.columns {
+		data, ok := s.columnMap[col]
 		switch {
 		case !ok:
 			return unableToFindFieldError(col)
@@ -76,33 +76,33 @@ func (it *scanner) ScanStruct(i interface{}) error {
 		}
 	}
 
-	err := it.rows.Scan(scans...)
+	err := s.rows.Scan(scans...)
 	if err != nil {
 		return err
 	}
 
 	record := exp.Record{}
-	for index, col := range it.columns {
+	for index, col := range s.columns {
 		record[col] = scans[index]
 	}
 
-	util.AssignStructVals(i, record, it.columnMap)
+	util.AssignStructVals(i, record, s.columnMap)
 
-	return it.Err()
+	return s.Err()
 }
 
 // ScanVal will scan the current row and column into i.
-func (it *scanner) ScanVal(i interface{}) error {
-	err := it.rows.Scan(i)
+func (s *scanner) ScanVal(i interface{}) error {
+	err := s.rows.Scan(i)
 	if err != nil {
 		return err
 	}
 
-	return it.Err()
+	return s.Err()
 }
 
 // Close closes the Rows, preventing further enumeration. See sql.Rows#Close
 // for more info.
-func (it *scanner) Close() error {
-	return it.rows.Close()
+func (s *scanner) Close() error {
+	return s.rows.Close()
 }

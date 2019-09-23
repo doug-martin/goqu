@@ -88,27 +88,9 @@ func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) er
 		return errUnsupportedScanStructsType
 	}
 
-	elemType := util.GetSliceElementType(val)
-
-	scanner, err := q.ScannerContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer scanner.Close()
-
-	for scanner.Next() {
-		row := reflect.New(elemType)
-
-		err = scanner.ScanStruct(row.Interface())
-		if err != nil {
-			return err
-		}
-
-		util.AppendSliceElement(val, row)
-	}
-
-	return scanner.Err()
+	return q.scanIntoSlice(ctx, val, func(sc Scanner, r interface{}) error {
+		return sc.ScanStruct(r)
+	})
 }
 
 // This will execute the SQL and fill out the struct with the fields returned.
@@ -159,7 +141,7 @@ func (q QueryExecutor) ScanStructContext(ctx context.Context, i interface{}) (bo
 	if scanner.Next() {
 		err = scanner.ScanStruct(i)
 		if err != nil {
-			return true, err
+			return false, err
 		}
 
 		return true, scanner.Err()
@@ -196,27 +178,9 @@ func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error
 		return errUnsupportedScanValsType
 	}
 
-	elemType := util.GetSliceElementType(val)
-
-	scanner, err := q.ScannerContext(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer scanner.Close()
-
-	for scanner.Next() {
-		row := reflect.New(elemType)
-
-		err = scanner.ScanVal(row.Interface())
-		if err != nil {
-			return err
-		}
-
-		util.AppendSliceElement(val, row)
-	}
-
-	return scanner.Err()
+	return q.scanIntoSlice(ctx, val, func(sc Scanner, r interface{}) error {
+		return sc.ScanVal(r)
+	})
 }
 
 // This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
@@ -271,7 +235,7 @@ func (q QueryExecutor) ScanValContext(ctx context.Context, i interface{}) (bool,
 	if scanner.Next() {
 		err = scanner.ScanVal(i)
 		if err != nil {
-			return true, err
+			return false, err
 		}
 
 		return true, scanner.Err()
@@ -292,4 +256,27 @@ func (q QueryExecutor) ScannerContext(ctx context.Context) (Scanner, error) {
 		return nil, err
 	}
 	return NewScanner(rows), nil
+}
+
+func (q QueryExecutor) scanIntoSlice(ctx context.Context, val reflect.Value, it func(sc Scanner, i interface{}) error) error {
+	elemType := util.GetSliceElementType(val)
+
+	scanner, err := q.ScannerContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer scanner.Close()
+
+	for scanner.Next() {
+		row := reflect.New(elemType)
+		err = it(scanner, row.Interface())
+		if err != nil {
+			return err
+		}
+
+		util.AppendSliceElement(val, row)
+	}
+
+	return scanner.Err()
 }
