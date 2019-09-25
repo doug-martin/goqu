@@ -1,3 +1,4 @@
+// nolint:lll
 package goqu_test
 
 import (
@@ -176,6 +177,62 @@ func ExampleSelectDataset_With() {
 	// WITH one AS (SELECT 1) SELECT * FROM "one"
 	// WITH intermed AS (SELECT * FROM "test" WHERE ("x" >= 5)), derived AS (SELECT * FROM "intermed" WHERE ("x" < 10)) SELECT * FROM "derived"
 	// WITH multi(x,y) AS (SELECT 1, 2) SELECT "x", "y" FROM "multi"
+}
+
+func ExampleSelectDataset_With_insertDataset() {
+	insertDs := goqu.Insert("foo").Rows(goqu.Record{"user_id": 10}).Returning("id")
+
+	ds := goqu.From("bar").
+		With("ins", insertDs).
+		Select("bar_name").
+		Where(goqu.Ex{"bar.user_id": goqu.I("ins.user_id")})
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+
+	sql, args, _ := ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// WITH ins AS (INSERT INTO "foo" ("user_id") VALUES (10) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "ins"."user_id")
+	// WITH ins AS (INSERT INTO "foo" ("user_id") VALUES (?) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "ins"."user_id") [10]
+}
+
+func ExampleSelectDataset_With_updateDataset() {
+	updateDs := goqu.Update("foo").Set(goqu.Record{"bar": "baz"}).Returning("id")
+
+	ds := goqu.From("bar").
+		With("upd", updateDs).
+		Select("bar_name").
+		Where(goqu.Ex{"bar.user_id": goqu.I("upd.user_id")})
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+
+	sql, args, _ := ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// WITH upd AS (UPDATE "foo" SET "bar"='baz' RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "upd"."user_id")
+	// WITH upd AS (UPDATE "foo" SET "bar"=? RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "upd"."user_id") [baz]
+}
+
+func ExampleSelectDataset_With_deleteDataset() {
+	deleteDs := goqu.Delete("foo").Where(goqu.Ex{"bar": "baz"}).Returning("id")
+
+	ds := goqu.From("bar").
+		With("del", deleteDs).
+		Select("bar_name").
+		Where(goqu.Ex{"bar.user_id": goqu.I("del.user_id")})
+
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+
+	sql, args, _ := ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// WITH del AS (DELETE FROM "foo" WHERE ("bar" = 'baz') RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")
+	// WITH del AS (DELETE FROM "foo" WHERE ("bar" = ?) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id") [baz]
 }
 
 func ExampleSelectDataset_WithRecursive() {

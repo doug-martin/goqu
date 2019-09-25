@@ -30,6 +30,13 @@ func (ids *insertDatasetSuite) assertCases(cases ...insertTestCase) {
 	}
 }
 
+func (ids *insertDatasetSuite) TestInsert() {
+	ds := Insert("test")
+	ids.IsType(&InsertDataset{}, ds)
+	ids.Implements((*exp.Expression)(nil), ds)
+	ids.Implements((*exp.AppendableExpression)(nil), ds)
+}
+
 func (ids *insertDatasetSuite) TestClone() {
 	ds := Insert("test")
 	ids.Equal(ds.Clone(), ds)

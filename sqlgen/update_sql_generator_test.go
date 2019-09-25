@@ -222,7 +222,7 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withLimit() {
 }
 
 func (usgs *updateSQLGeneratorSuite) TestGenerate_withCommonTables() {
-	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
+	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil, true)
 	uc := exp.NewUpdateClauses().
 		SetTable(exp.NewIdentifierExpression("", "test_cte", "")).
 		SetSetValues(exp.Record{"a": "b", "b": "c"})

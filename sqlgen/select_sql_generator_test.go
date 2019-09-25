@@ -471,7 +471,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOffset() {
 
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withCommonTables() {
 
-	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
+	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil, true)
 
 	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test_cte"))
 	scCte1 := sc.CommonTablesAppend(exp.NewCommonTableExpression(false, "test_cte", tse))
@@ -489,7 +489,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withCommonTables() {
 }
 
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withCompounds() {
-	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
+	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil, true)
 	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")).
 		CompoundsAppend(exp.NewCompoundExpression(exp.UnionCompoundType, tse)).
 		CompoundsAppend(exp.NewCompoundExpression(exp.IntersectCompoundType, tse))

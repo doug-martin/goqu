@@ -34,8 +34,11 @@ var (
 	TrueLiteral     = exp.NewLiteralExpression("TRUE")
 	FalseLiteral    = exp.NewLiteralExpression("FALSE")
 
-	errEmptyIdentifier       = errors.New(`a empty identifier was encountered, please specify a "schema", "table" or "column"`)
-	errUnexpectedNamedWindow = errors.New(`unexpected named window function`)
+	errEmptyIdentifier = errors.New(
+		`a empty identifier was encountered, please specify a "schema", "table" or "column"`,
+	)
+	errUnexpectedNamedWindow                  = errors.New(`unexpected named window function`)
+	errNoReturnColumnsForAppendableExpression = errors.New(`no return columns found for appendable expression`)
 )
 
 func errUnsupportedExpressionType(e exp.Expression) error {
@@ -191,16 +194,16 @@ func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}
 
 // Generates creates the sql for a sub select on a Dataset
 func (esg *expressionSQLGenerator) appendableExpressionSQL(b sb.SQLBuilder, a exp.AppendableExpression) {
+	if !a.ReturnsColumns() {
+		b.SetError(errNoReturnColumnsForAppendableExpression)
+		return
+	}
 	b.WriteRunes(esg.dialectOptions.LeftParenRune)
 	a.AppendSQL(b)
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
-	c := a.GetClauses()
-	if c != nil {
-		alias := c.Alias()
-		if alias != nil {
-			b.Write(esg.dialectOptions.AsFragment)
-			esg.Generate(b, alias)
-		}
+	if a.GetAs() != nil {
+		b.Write(esg.dialectOptions.AsFragment)
+		esg.Generate(b, a.GetAs())
 	}
 }
 

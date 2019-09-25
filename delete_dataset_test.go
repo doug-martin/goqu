@@ -49,6 +49,23 @@ func (dds *deleteDatasetSuite) TearDownSuite() {
 	DeregisterDialect("order-on-delete")
 }
 
+func (dds *deleteDatasetSuite) TestDelete() {
+	ds := Delete("test")
+	dds.IsType(&DeleteDataset{}, ds)
+	dds.Implements((*exp.Expression)(nil), ds)
+	dds.Implements((*exp.AppendableExpression)(nil), ds)
+}
+
+func (dds *deleteDatasetSuite) TestClone() {
+	ds := Delete("test")
+	dds.Equal(ds.Clone(), ds)
+}
+
+func (dds *deleteDatasetSuite) TestExpression() {
+	ds := Delete("test")
+	dds.Equal(ds.Expression(), ds)
+}
+
 func (dds *deleteDatasetSuite) TestDialect() {
 	ds := Delete("test")
 	dds.NotNil(ds.Dialect())
