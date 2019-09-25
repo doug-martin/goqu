@@ -248,6 +248,82 @@ func (gis *githubIssuesSuite) TestIssue140() {
 
 }
 
+// Test for https://github.com/doug-martin/goqu/issues/164
+func (gis *githubIssuesSuite) TestIssue164() {
+	insertDs := goqu.Insert("foo").Rows(goqu.Record{"user_id": 10}).Returning("id")
+
+	ds := goqu.From("bar").
+		With("ins", insertDs).
+		Select("bar_name").
+		Where(goqu.Ex{"bar.user_id": goqu.I("ins.user_id")})
+
+	sql, args, err := ds.ToSQL()
+	gis.NoError(err)
+	gis.Empty(args)
+	gis.Equal(
+		`WITH ins AS (INSERT INTO "foo" ("user_id") VALUES (10) RETURNING "id") `+
+			`SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "ins"."user_id")`,
+		sql,
+	)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	gis.NoError(err)
+	gis.Equal([]interface{}{int64(10)}, args)
+	gis.Equal(
+		`WITH ins AS (INSERT INTO "foo" ("user_id") VALUES (?) RETURNING "id")`+
+			` SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "ins"."user_id")`,
+		sql,
+	)
+
+	updateDs := goqu.Update("foo").Set(goqu.Record{"bar": "baz"}).Returning("id")
+
+	ds = goqu.From("bar").
+		With("upd", updateDs).
+		Select("bar_name").
+		Where(goqu.Ex{"bar.user_id": goqu.I("upd.user_id")})
+
+	sql, args, err = ds.ToSQL()
+	gis.NoError(err)
+	gis.Empty(args)
+	gis.Equal(
+		`WITH upd AS (UPDATE "foo" SET "bar"='baz' RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "upd"."user_id")`,
+		sql,
+	)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	gis.NoError(err)
+	gis.Equal([]interface{}{"baz"}, args)
+	gis.Equal(
+		`WITH upd AS (UPDATE "foo" SET "bar"=? RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "upd"."user_id")`,
+		sql,
+	)
+
+	deleteDs := goqu.Delete("foo").Where(goqu.Ex{"bar": "baz"}).Returning("id")
+
+	ds = goqu.From("bar").
+		With("del", deleteDs).
+		Select("bar_name").
+		Where(goqu.Ex{"bar.user_id": goqu.I("del.user_id")})
+
+	sql, args, err = ds.ToSQL()
+	gis.NoError(err)
+	gis.Empty(args)
+	gis.Equal(
+		`WITH del AS (DELETE FROM "foo" WHERE ("bar" = 'baz') RETURNING "id")`+
+			` SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")`,
+		sql,
+	)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	gis.NoError(err)
+	gis.Equal([]interface{}{"baz"}, args)
+	gis.Equal(
+		`WITH del AS (DELETE FROM "foo" WHERE ("bar" = ?) RETURNING "id")`+
+			` SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")`,
+		sql,
+	)
+}
+
 func TestGithubIssuesSuite(t *testing.T) {
 	suite.Run(t, new(githubIssuesSuite))
 }

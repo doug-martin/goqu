@@ -498,6 +498,11 @@ func (sd *SelectDataset) As(alias string) *SelectDataset {
 	return sd.copy(sd.clauses.SetAlias(T(alias)))
 }
 
+// Returns the alias value as an identiier expression
+func (sd *SelectDataset) GetAs() exp.IdentifierExpression {
+	return sd.clauses.Alias()
+}
+
 // Sets the WINDOW clauses
 func (sd *SelectDataset) Window(ws ...exp.WindowExpression) *SelectDataset {
 	return sd.copy(sd.clauses.SetWindows(ws))
@@ -550,6 +555,10 @@ func (sd *SelectDataset) Executor() exec.QueryExecutor {
 // This is used internally for sub-selects by the dialect
 func (sd *SelectDataset) AppendSQL(b sb.SQLBuilder) {
 	sd.dialect.ToSelectSQL(b, sd.GetClauses())
+}
+
+func (sd *SelectDataset) ReturnsColumns() bool {
+	return true
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanStructs to scan the results into a slice of structs.

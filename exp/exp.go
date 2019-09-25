@@ -143,7 +143,12 @@ type (
 	AppendableExpression interface {
 		Expression
 		AppendSQL(b sb.SQLBuilder)
-		GetClauses() SelectClauses
+		// Returns the alias value as an identiier expression
+		GetAs() IdentifierExpression
+
+		// Returns true if this expression returns columns.
+		// Used to determine if a Select, Update, Insert, or Delete query returns columns
+		ReturnsColumns() bool
 	}
 	// Expression for Aliased expressions
 	//   I("a").As("b") -> "a" AS "b"

@@ -30,6 +30,15 @@ func Delete(table interface{}) *DeleteDataset {
 	return newDeleteDataset("default", nil).From(table)
 }
 
+func (dd *DeleteDataset) Expression() exp.Expression {
+	return dd
+}
+
+// Clones the dataset
+func (dd *DeleteDataset) Clone() exp.Expression {
+	return dd.copy(dd.clauses)
+}
+
 // Set the parameter interpolation behavior. See examples
 //
 // prepared: If true the dataset WILL NOT interpolate the parameters.
@@ -195,6 +204,20 @@ func (dd *DeleteDataset) SetError(err error) *DeleteDataset {
 //  * There is an error generating the SQL
 func (dd *DeleteDataset) ToSQL() (sql string, params []interface{}, err error) {
 	return dd.deleteSQLBuilder().ToSQL()
+}
+
+// Appends this Dataset's DELETE statement to the SQLBuilder
+// This is used internally when using deletes in CTEs
+func (dd *DeleteDataset) AppendSQL(b sb.SQLBuilder) {
+	dd.dialect.ToDeleteSQL(b, dd.GetClauses())
+}
+
+func (dd *DeleteDataset) GetAs() exp.IdentifierExpression {
+	return nil
+}
+
+func (dd *DeleteDataset) ReturnsColumns() bool {
+	return !dd.clauses.Returning().IsEmpty()
 }
 
 // Creates an QueryExecutor to execute the query.

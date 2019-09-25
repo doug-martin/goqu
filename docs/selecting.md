@@ -12,6 +12,7 @@
   * [`GroupBy`](#group_by)
   * [`Having`](#having)
   * [`Window`](#window)
+  * [`With`](#with)
   * [`SetError`](#seterror)
 * Executing Queries
   * [`ScanStructs`](#scan-structs) - Scans rows into a slice of structs
@@ -613,13 +614,132 @@ Output:
 SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 ```
 
+<a name="with"></a>
+**[`With`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.With)**
+
+To use CTEs in `SELECT` statements you can use the `With` method.
+
+Simple Example
+
+```go
+sql, _, _ := goqu.From("one").
+	With("one", goqu.From().Select(goqu.L("1"))).
+	Select(goqu.Star()).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+WITH one AS (SELECT 1) SELECT * FROM "one"
+```
+
+Dependent `WITH` clauses:
+
+```go
+sql, _, _ = goqu.From("derived").
+	With("intermed", goqu.From("test").Select(goqu.Star()).Where(goqu.C("x").Gte(5))).
+	With("derived", goqu.From("intermed").Select(goqu.Star()).Where(goqu.C("x").Lt(10))).
+	Select(goqu.Star()).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+WITH intermed AS (SELECT * FROM "test" WHERE ("x" >= 5)), derived AS (SELECT * FROM "intermed" WHERE ("x" < 10)) SELECT * FROM "derived"
+```
+
+`WITH` clause with arguments
+
+```go
+sql, _, _ = goqu.From("multi").
+		With("multi(x,y)", goqu.From().Select(goqu.L("1"), goqu.L("2"))).
+		Select(goqu.C("x"), goqu.C("y")).
+		ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+WITH multi(x,y) AS (SELECT 1, 2) SELECT "x", "y" FROM "multi"
+```
+
+Using a `InsertDataset`.
+
+```go
+insertDs := goqu.Insert("foo").Rows(goqu.Record{"user_id": 10}).Returning("id")
+
+ds := goqu.From("bar").
+	With("ins", insertDs).
+	Select("bar_name").
+	Where(goqu.Ex{"bar.user_id": goqu.I("ins.user_id")})
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+
+sql, args, _ := ds.Prepared(true).ToSQL()
+fmt.Println(sql, args)
+```
+Output:
+```
+WITH ins AS (INSERT INTO "foo" ("user_id") VALUES (10) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "ins"."user_id")
+WITH ins AS (INSERT INTO "foo" ("user_id") VALUES (?) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "ins"."user_id") [10]
+```
+
+Using an `UpdateDataset`
+
+```go
+updateDs := goqu.Update("foo").Set(goqu.Record{"bar": "baz"}).Returning("id")
+
+ds := goqu.From("bar").
+	With("upd", updateDs).
+	Select("bar_name").
+	Where(goqu.Ex{"bar.user_id": goqu.I("ins.user_id")})
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+
+sql, args, _ := ds.Prepared(true).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```
+WITH upd AS (UPDATE "foo" SET "bar"='baz' RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "upd"."user_id")
+WITH upd AS (UPDATE "foo" SET "bar"=? RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "upd"."user_id") [baz]
+```
+
+Using a `DeleteDataset`
+
+```go
+deleteDs := goqu.Delete("foo").Where(goqu.Ex{"bar": "baz"}).Returning("id")
+
+ds := goqu.From("bar").
+	With("del", deleteDs).
+	Select("bar_name").
+	Where(goqu.Ex{"bar.user_id": goqu.I("del.user_id")})
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+
+sql, args, _ := ds.Prepared(true).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```
+WITH del AS (DELETE FROM "foo" WHERE ("bar" = 'baz') RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")
+WITH del AS (DELETE FROM "foo" WHERE ("bar" = ?) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id") [baz]
+```
 
 <a name="window"></a>
 **[`Window Function`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Window)**
 
 **NOTE** currently only the `postgres`, `mysql8` (NOT `mysql`) and the default dialect support `Window Function`
 
-To use windowing in select you can use the `Over` method on an `SQLFunction`
+To use windowing in `SELECT` statements you can use the `Over` method on an `SQLFunction`
 
 ```go
 sql, _, _ := goqu.From("test").Select(
@@ -914,5 +1034,6 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
+
 
 

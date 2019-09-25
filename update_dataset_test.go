@@ -29,6 +29,13 @@ func (uds *updateDatasetSuite) assertCases(cases ...updateTestCase) {
 	}
 }
 
+func (uds *updateDatasetSuite) TestUpdate() {
+	ds := Update("test")
+	uds.IsType(&UpdateDataset{}, ds)
+	uds.Implements((*exp.Expression)(nil), ds)
+	uds.Implements((*exp.AppendableExpression)(nil), ds)
+}
+
 func (uds *updateDatasetSuite) TestClone() {
 	ds := Update("test")
 	uds.Equal(ds, ds.Clone())

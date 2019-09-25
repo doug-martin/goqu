@@ -211,6 +211,20 @@ func (ud *UpdateDataset) ToSQL() (sql string, params []interface{}, err error) {
 	return ud.updateSQLBuilder().ToSQL()
 }
 
+// Appends this Dataset's UPDATE statement to the SQLBuilder
+// This is used internally when using updates in CTEs
+func (ud *UpdateDataset) AppendSQL(b sb.SQLBuilder) {
+	ud.dialect.ToUpdateSQL(b, ud.GetClauses())
+}
+
+func (ud *UpdateDataset) GetAs() exp.IdentifierExpression {
+	return nil
+}
+
+func (ud *UpdateDataset) ReturnsColumns() bool {
+	return !ud.clauses.Returning().IsEmpty()
+}
+
 // Generates the UPDATE sql, and returns an exec.QueryExecutor with the sql set to the UPDATE statement
 //    db.Update("test").Set(Record{"name":"Bob", update: time.Now()}).Executor()
 func (ud *UpdateDataset) Executor() exec.QueryExecutor {
