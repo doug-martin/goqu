@@ -32,7 +32,12 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 				}
 				structCols := cm.Cols()
 				for _, col := range structCols {
-					cols = append(cols, ParseIdentifier(col))
+					i := ParseIdentifier(col)
+					var sc Expression = i
+					if i.IsQualified() {
+						sc = i.As(NewIdentifierExpression("", "", col))
+					}
+					cols = append(cols, sc)
 				}
 			} else {
 				panic(fmt.Sprintf("Cannot created expression from  %+v", val))

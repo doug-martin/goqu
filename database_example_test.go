@@ -109,13 +109,13 @@ func ExampleDatabase_Dialect() {
 func ExampleDatabase_Exec() {
 	db := getDb()
 
-	_, err := db.Exec(`DROP TABLE "goqu_user"`)
+	_, err := db.Exec(`DROP TABLE "user_role"; DROP TABLE "goqu_user"`)
 	if err != nil {
-		fmt.Println("Error occurred while dropping table", err.Error())
+		fmt.Println("Error occurred while dropping tables", err.Error())
 	}
-	fmt.Println("Dropped table goqu_user")
+	fmt.Println("Dropped tables user_role and goqu_user")
 	// Output:
-	// Dropped table goqu_user
+	// Dropped tables user_role and goqu_user
 }
 
 func ExampleDatabase_ExecContext() {
@@ -123,13 +123,13 @@ func ExampleDatabase_ExecContext() {
 	d := time.Now().Add(50 * time.Millisecond)
 	ctx, cancel := context.WithDeadline(context.Background(), d)
 	defer cancel()
-	_, err := db.ExecContext(ctx, `DROP TABLE "goqu_user"`)
+	_, err := db.ExecContext(ctx, `DROP TABLE "user_role"; DROP TABLE "goqu_user"`)
 	if err != nil {
-		fmt.Println("Error occurred while dropping table", err.Error())
+		fmt.Println("Error occurred while dropping tables", err.Error())
 	}
-	fmt.Println("Dropped table goqu_user")
+	fmt.Println("Dropped tables user_role and goqu_user")
 	// Output:
-	// Dropped table goqu_user
+	// Dropped tables user_role and goqu_user
 }
 
 func ExampleDatabase_From() {

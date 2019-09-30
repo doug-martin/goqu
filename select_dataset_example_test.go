@@ -6,24 +6,27 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/lib/pq"
 )
 
 const schema = `
-        DROP TABLE IF EXISTS "goqu_user";
-        CREATE  TABLE "goqu_user" (
-            "id" SERIAL PRIMARY KEY NOT NULL,
-            "first_name" VARCHAR(45) NOT NULL,
+		DROP TABLE IF EXISTS "user_role";
+		DROP TABLE IF EXISTS "goqu_user";	
+		CREATE  TABLE "goqu_user" (
+			"id" SERIAL PRIMARY KEY NOT NULL,
+			"first_name" VARCHAR(45) NOT NULL,
 			"last_name" VARCHAR(45) NOT NULL,
 			"created" TIMESTAMP NOT NULL DEFAULT now()
 		);
-        INSERT INTO "goqu_user" ("first_name", "last_name") VALUES
-            ('Bob', 'Yukon'),
-            ('Sally', 'Yukon'),
-			('Vinita', 'Yukon'),
-			('John', 'Doe')
+		CREATE  TABLE "user_role" (
+			"id" SERIAL PRIMARY KEY NOT NULL,
+			"user_id" BIGINT NOT NULL REFERENCES goqu_user(id) ON DELETE CASCADE,
+			"name" VARCHAR(45) NOT NULL,
+			"created" TIMESTAMP NOT NULL DEFAULT now()
+		); 
     `
 
 const defaultDbURI = "postgres://postgres:@localhost:5435/goqupostgres?sslmode=disable"
@@ -48,6 +51,41 @@ func getDb() *goqu.Database {
 	}
 	// reset the db
 	if _, err := goquDb.Exec(schema); err != nil {
+		panic(err)
+	}
+	type goquUser struct {
+		ID        int64     `db:"id" goqu:"skipinsert"`
+		FirstName string    `db:"first_name"`
+		LastName  string    `db:"last_name"`
+		Created   time.Time `db:"created" goqu:"skipupdate"`
+	}
+
+	var users = []goquUser{
+		{FirstName: "Bob", LastName: "Yukon"},
+		{FirstName: "Sally", LastName: "Yukon"},
+		{FirstName: "Vinita", LastName: "Yukon"},
+		{FirstName: "John", LastName: "Doe"},
+	}
+	var userIds []int64
+	err := goquDb.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIds)
+	if err != nil {
+		panic(err)
+	}
+	type userRole struct {
+		ID      int64     `db:"id" goqu:"skipinsert"`
+		UserID  int64     `db:"user_id"`
+		Name    string    `db:"name"`
+		Created time.Time `db:"created" goqu:"skipupdate"`
+	}
+
+	var roles = []userRole{
+		{UserID: userIds[0], Name: "Admin"},
+		{UserID: userIds[1], Name: "Manager"},
+		{UserID: userIds[2], Name: "Manager"},
+		{UserID: userIds[3], Name: "User"},
+	}
+	_, err = goquDb.Insert("user_role").Rows(roles).Executor().Exec()
+	if err != nil {
 		panic(err)
 	}
 	return goquDb
@@ -1244,6 +1282,85 @@ func ExampleSelectDataset_ScanStructs_prepared() {
 	// [{FirstName:Bob LastName:Yukon} {FirstName:Sally LastName:Yukon} {FirstName:Vinita LastName:Yukon}]
 }
 
+// In this example we create a new struct that has two structs that represent two table
+// the User and Role fields are tagged with the table name
+func ExampleSelectDataset_ScanStructs_withJoinAutoSelect() {
+	type Role struct {
+		UserID uint64 `db:"user_id"`
+		Name   string `db:"name"`
+	}
+	type User struct {
+		ID        uint64 `db:"id"`
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+	}
+	type UserAndRole struct {
+		User User `db:"goqu_user"` // tag as the "goqu_user" table
+		Role Role `db:"user_role"` // tag as "user_role" table
+	}
+	db := getDb()
+
+	ds := db.
+		From("goqu_user").
+		Join(goqu.T("user_role"), goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id"))))
+	var users []UserAndRole
+	// Scan structs will auto build the
+	if err := ds.ScanStructs(&users); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	for _, u := range users {
+		fmt.Printf("\n%+v", u)
+	}
+	// Output:
+	// {User:{ID:1 FirstName:Bob LastName:Yukon} Role:{UserID:1 Name:Admin}}
+	// {User:{ID:2 FirstName:Sally LastName:Yukon} Role:{UserID:2 Name:Manager}}
+	// {User:{ID:3 FirstName:Vinita LastName:Yukon} Role:{UserID:3 Name:Manager}}
+	// {User:{ID:4 FirstName:John LastName:Doe} Role:{UserID:4 Name:User}}
+}
+
+// In this example we create a new struct that has the user properties as well as a nested
+// Role struct from the join table
+func ExampleSelectDataset_ScanStructs_withJoinManualSelect() {
+	type Role struct {
+		UserID uint64 `db:"user_id"`
+		Name   string `db:"name"`
+	}
+	type User struct {
+		ID        uint64 `db:"id"`
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+		Role      Role   `db:"user_role"` // tag as "user_role" table
+	}
+	db := getDb()
+
+	ds := db.
+		Select(
+			"goqu_user.id",
+			"goqu_user.first_name",
+			"goqu_user.last_name",
+			// alias the fully qualified identifier `C` is important here so it doesnt parse it
+			goqu.I("user_role.user_id").As(goqu.C("user_role.user_id")),
+			goqu.I("user_role.name").As(goqu.C("user_role.name")),
+		).
+		From("goqu_user").
+		Join(goqu.T("user_role"), goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id"))))
+	var users []User
+	if err := ds.ScanStructs(&users); err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	for _, u := range users {
+		fmt.Printf("\n%+v", u)
+	}
+
+	// Output:
+	// {ID:1 FirstName:Bob LastName:Yukon Role:{UserID:1 Name:Admin}}
+	// {ID:2 FirstName:Sally LastName:Yukon Role:{UserID:2 Name:Manager}}
+	// {ID:3 FirstName:Vinita LastName:Yukon Role:{UserID:3 Name:Manager}}
+	// {ID:4 FirstName:John LastName:Doe Role:{UserID:4 Name:User}}
+}
+
 func ExampleSelectDataset_ScanStruct() {
 	type User struct {
 		FirstName string `db:"first_name"`
@@ -1269,6 +1386,100 @@ func ExampleSelectDataset_ScanStruct() {
 
 	// Output:
 	// Found user: {FirstName:Bob LastName:Yukon}
+	// No user found for first_name Zeb
+}
+
+// In this example we create a new struct that has two structs that represent two table
+// the User and Role fields are tagged with the table name
+func ExampleSelectDataset_ScanStruct_withJoinAutoSelect() {
+	type Role struct {
+		UserID uint64 `db:"user_id"`
+		Name   string `db:"name"`
+	}
+	type User struct {
+		ID        uint64 `db:"id"`
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+	}
+	type UserAndRole struct {
+		User User `db:"goqu_user"` // tag as the "goqu_user" table
+		Role Role `db:"user_role"` // tag as "user_role" table
+	}
+	db := getDb()
+	findUserAndRoleByName := func(name string) {
+		var userAndRole UserAndRole
+		ds := db.
+			From("goqu_user").
+			Join(
+				goqu.T("user_role"),
+				goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id"))),
+			).
+			Where(goqu.C("first_name").Eq(name))
+		found, err := ds.ScanStruct(&userAndRole)
+		switch {
+		case err != nil:
+			fmt.Println(err.Error())
+		case !found:
+			fmt.Printf("No user found for first_name %s\n", name)
+		default:
+			fmt.Printf("Found user and role: %+v\n", userAndRole)
+		}
+	}
+
+	findUserAndRoleByName("Bob")
+	findUserAndRoleByName("Zeb")
+	// Output:
+	// Found user and role: {User:{ID:1 FirstName:Bob LastName:Yukon} Role:{UserID:1 Name:Admin}}
+	// No user found for first_name Zeb
+}
+
+// In this example we create a new struct that has the user properties as well as a nested
+// Role struct from the join table
+func ExampleSelectDataset_ScanStruct_withJoinManualSelect() {
+	type Role struct {
+		UserID uint64 `db:"user_id"`
+		Name   string `db:"name"`
+	}
+	type User struct {
+		ID        uint64 `db:"id"`
+		FirstName string `db:"first_name"`
+		LastName  string `db:"last_name"`
+		Role      Role   `db:"user_role"` // tag as "user_role" table
+	}
+	db := getDb()
+	findUserByName := func(name string) {
+		var userAndRole User
+		ds := db.
+			Select(
+				"goqu_user.id",
+				"goqu_user.first_name",
+				"goqu_user.last_name",
+				// alias the fully qualified identifier `C` is important here so it doesnt parse it
+				goqu.I("user_role.user_id").As(goqu.C("user_role.user_id")),
+				goqu.I("user_role.name").As(goqu.C("user_role.name")),
+			).
+			From("goqu_user").
+			Join(
+				goqu.T("user_role"),
+				goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id"))),
+			).
+			Where(goqu.C("first_name").Eq(name))
+		found, err := ds.ScanStruct(&userAndRole)
+		switch {
+		case err != nil:
+			fmt.Println(err.Error())
+		case !found:
+			fmt.Printf("No user found for first_name %s\n", name)
+		default:
+			fmt.Printf("Found user and role: %+v\n", userAndRole)
+		}
+	}
+
+	findUserByName("Bob")
+	findUserByName("Zeb")
+
+	// Output:
+	// Found user and role: {ID:1 FirstName:Bob LastName:Yukon Role:{UserID:1 Name:Admin}}
 	// No user found for first_name Zeb
 }
 

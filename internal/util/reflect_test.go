@@ -2,6 +2,7 @@ package util
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -549,6 +550,126 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 	})
 }
 
+func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedStruct() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		EmbeddedStruct `db:"embedded"`
+		Int            int64
+		Bool           bool
+		Valuer         *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"embedded.str": "string",
+		"int":          int64(10),
+		"bool":         true,
+		"valuer":       &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		EmbeddedStruct: EmbeddedStruct{Str: "string"},
+		Int:            10,
+		Bool:           true,
+		Valuer:         ns,
+	})
+}
+
+func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedPointer() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		*EmbeddedStruct `db:"embedded"`
+		Int             int64
+		Bool            bool
+		Valuer          *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"embedded.str": "string",
+		"int":          int64(10),
+		"bool":         true,
+		"valuer":       &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		EmbeddedStruct: &EmbeddedStruct{Str: "string"},
+		Int:            10,
+		Bool:           true,
+		Valuer:         ns,
+	})
+}
+
+func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructField() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		Embedded EmbeddedStruct `db:"embedded"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"embedded.str": "string",
+		"int":          int64(10),
+		"bool":         true,
+		"valuer":       &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: EmbeddedStruct{Str: "string"},
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
+
+func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerField() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		Embedded *EmbeddedStruct `db:"embedded"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"embedded.str": "string",
+		"int":          int64(10),
+		"bool":         true,
+		"valuer":       &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: &EmbeddedStruct{Str: "string"},
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
+
 func (rt *reflectTest) TestGetColumnMap_withStruct() {
 
 	type TestStruct struct {
@@ -805,6 +926,197 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 	}, cm)
 }
 
+func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStruct() {
+
+	type TestEmbedded struct {
+		Bool   bool
+		Valuer *sql.NullString
+	}
+
+	type TestStruct struct {
+		TestEmbedded `db:"test_embedded"`
+		Bool         bool
+		Valuer       *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	fmt.Println(cm)
+	rt.Equal(ColumnMap{
+		"test_embedded.bool": {
+			ColumnName:   "test_embedded.bool",
+			FieldIndex:   []int{0, 0},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"test_embedded.valuer": {
+			ColumnName:   "test_embedded.valuer",
+			FieldIndex:   []int{0, 1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+		"bool": {
+			ColumnName:   "bool",
+			FieldIndex:   []int{1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"valuer": {
+			ColumnName:   "valuer",
+			FieldIndex:   []int{2},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStructPointer() {
+
+	type TestEmbedded struct {
+		Bool   bool
+		Valuer *sql.NullString
+	}
+
+	type TestStruct struct {
+		*TestEmbedded `db:"test_embedded"`
+		Bool          bool
+		Valuer        *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	fmt.Println(cm)
+	rt.Equal(ColumnMap{
+		"test_embedded.bool": {
+			ColumnName:   "test_embedded.bool",
+			FieldIndex:   []int{0, 0},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"test_embedded.valuer": {
+			ColumnName:   "test_embedded.valuer",
+			FieldIndex:   []int{0, 1},
+			ShouldInsert: true, ShouldUpdate: true,
+			GoType: reflect.TypeOf(&sql.NullString{}),
+		},
+		"bool": {
+			ColumnName:   "bool",
+			FieldIndex:   []int{1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"valuer": {
+			ColumnName:   "valuer",
+			FieldIndex:   []int{2},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withTaggedStructField() {
+
+	type TestEmbedded struct {
+		Bool   bool
+		Valuer *sql.NullString
+	}
+
+	type TestStruct struct {
+		Embedded TestEmbedded `db:"test_embedded"`
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	fmt.Println(cm)
+	rt.Equal(ColumnMap{
+		"test_embedded.bool": {
+			ColumnName:   "test_embedded.bool",
+			FieldIndex:   []int{0, 0},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"test_embedded.valuer": {
+			ColumnName:   "test_embedded.valuer",
+			FieldIndex:   []int{0, 1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+		"bool": {
+			ColumnName:   "bool",
+			FieldIndex:   []int{1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"valuer": {
+			ColumnName:   "valuer",
+			FieldIndex:   []int{2},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withTaggedStructPointerField() {
+
+	type TestEmbedded struct {
+		Bool   bool
+		Valuer *sql.NullString
+	}
+
+	type TestStruct struct {
+		Embedded *TestEmbedded `db:"test_embedded"`
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	fmt.Println(cm)
+	rt.Equal(ColumnMap{
+		"test_embedded.bool": {
+			ColumnName:   "test_embedded.bool",
+			FieldIndex:   []int{0, 0},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"test_embedded.valuer": {
+			ColumnName:   "test_embedded.valuer",
+			FieldIndex:   []int{0, 1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+		"bool": {
+			ColumnName:   "bool",
+			FieldIndex:   []int{1},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"valuer": {
+			ColumnName:   "valuer",
+			FieldIndex:   []int{2},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			GoType:       reflect.TypeOf(&sql.NullString{}),
+		},
+	}, cm)
+}
+
 func (rt *reflectTest) TestGetTypeInfo() {
 	var a int64
 	var b []int64
@@ -884,6 +1196,59 @@ func (rt *reflectTest) TestSafeGetFieldByIndex() {
 	f, isAvailable = SafeGetFieldByIndex(v, []int{})
 	rt.True(isAvailable)
 	rt.Equal(v, f)
+}
+
+func (rt *reflectTest) TestSafeSetFieldByIndex() {
+	type TestEmbedded struct {
+		FieldA int
+	}
+	type TestEmbeddedPointerStruct struct {
+		*TestEmbedded
+		FieldB string
+	}
+	type TestEmbeddedStruct struct {
+		TestEmbedded
+		FieldB string
+	}
+	var teps TestEmbeddedPointerStruct
+	v := reflect.ValueOf(&teps)
+	f := SafeSetFieldByIndex(v, []int{}, nil)
+	rt.Equal(TestEmbeddedPointerStruct{}, f.Interface())
+
+	f = SafeSetFieldByIndex(v, []int{0, 0}, 1)
+	rt.Equal(TestEmbeddedPointerStruct{
+		TestEmbedded: &TestEmbedded{FieldA: 1},
+	}, f.Interface())
+
+	f = SafeSetFieldByIndex(v, []int{1}, "hello")
+	rt.Equal(TestEmbeddedPointerStruct{
+		TestEmbedded: &TestEmbedded{FieldA: 1},
+		FieldB:       "hello",
+	}, f.Interface())
+	rt.Equal(TestEmbeddedPointerStruct{
+		TestEmbedded: &TestEmbedded{FieldA: 1},
+		FieldB:       "hello",
+	}, teps)
+
+	var tes TestEmbeddedStruct
+	v = reflect.ValueOf(&tes)
+	f = SafeSetFieldByIndex(v, []int{}, nil)
+	rt.Equal(TestEmbeddedStruct{}, f.Interface())
+
+	f = SafeSetFieldByIndex(v, []int{0, 0}, 1)
+	rt.Equal(TestEmbeddedStruct{
+		TestEmbedded: TestEmbedded{FieldA: 1},
+	}, f.Interface())
+
+	f = SafeSetFieldByIndex(v, []int{1}, "hello")
+	rt.Equal(TestEmbeddedStruct{
+		TestEmbedded: TestEmbedded{FieldA: 1},
+		FieldB:       "hello",
+	}, f.Interface())
+	rt.Equal(TestEmbeddedStruct{
+		TestEmbedded: TestEmbedded{FieldA: 1},
+		FieldB:       "hello",
+	}, tes)
 }
 
 func (rt *reflectTest) TestGetSliceElementType() {

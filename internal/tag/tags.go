@@ -14,6 +14,9 @@ func New(tagName string, st reflect.StructTag) Options {
 }
 
 func (o Options) Values() []string {
+	if string(o) == "" {
+		return []string{}
+	}
 	return strings.Split(string(o), ",")
 }
 
