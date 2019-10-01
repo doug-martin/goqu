@@ -1,6 +1,7 @@
 package util
 
 import (
+	"database/sql"
 	"reflect"
 	"sort"
 	"strings"
@@ -27,6 +28,8 @@ const (
 	skipInsertTagName     = "skipinsert"
 	defaultIfEmptyTagName = "defaultifempty"
 )
+
+var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 
 func IsUint(k reflect.Kind) bool {
 	return (k == reflect.Uint) ||
@@ -156,31 +159,42 @@ func SafeGetFieldByIndex(v reflect.Value, fieldIndex []int) (result reflect.Valu
 	return reflect.ValueOf(nil), false
 }
 
+func SafeSetFieldByIndex(v reflect.Value, fieldIndex []int, src interface{}) (result reflect.Value) {
+	v = reflect.Indirect(v)
+	switch len(fieldIndex) {
+	case 0:
+		return v
+	case 1:
+		f := v.FieldByIndex(fieldIndex)
+		srcVal := reflect.ValueOf(src)
+		f.Set(reflect.Indirect(srcVal))
+	default:
+		f := v.Field(fieldIndex[0])
+		switch f.Kind() {
+		case reflect.Ptr:
+			s := f
+			if f.IsNil() || !f.IsValid() {
+				s = reflect.New(f.Type().Elem())
+				f.Set(s)
+			}
+			SafeSetFieldByIndex(reflect.Indirect(s), fieldIndex[1:], src)
+		case reflect.Struct:
+			SafeSetFieldByIndex(f, fieldIndex[1:], src)
+		}
+	}
+	return v
+}
+
 type rowData = map[string]interface{}
 
 // AssignStructVals will assign the data from rd to i.
 func AssignStructVals(i interface{}, rd rowData, cm ColumnMap) {
 	val := reflect.Indirect(reflect.ValueOf(i))
-	initEmbeddedPtr(val)
 
 	for name, data := range cm {
 		src, ok := rd[name]
 		if ok {
-			f := val.FieldByIndex(data.FieldIndex)
-			srcVal := reflect.ValueOf(src)
-			f.Set(reflect.Indirect(srcVal))
-		}
-	}
-}
-
-func initEmbeddedPtr(value reflect.Value) {
-	for i := 0; i < value.NumField(); i++ {
-		v := value.Field(i)
-		kind := v.Kind()
-		t := value.Type().Field(i)
-		if t.Anonymous && kind == reflect.Ptr {
-			z := reflect.New(t.Type.Elem())
-			v.Set(z)
+			SafeSetFieldByIndex(val, data.FieldIndex, src)
 		}
 	}
 }
@@ -195,12 +209,12 @@ func GetColumnMap(i interface{}) (ColumnMap, error) {
 	structMapCacheLock.Lock()
 	defer structMapCacheLock.Unlock()
 	if _, ok := structMapCache[t]; !ok {
-		structMapCache[t] = createColumnMap(t, []int{})
+		structMapCache[t] = createColumnMap(t, []int{}, []string{})
 	}
 	return structMapCache[t], nil
 }
 
-func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
+func createColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap {
 	cm, n := ColumnMap{}, t.NumField()
 	var subColMaps []ColumnMap
 	for i := 0; i < n; i++ {
@@ -208,23 +222,40 @@ func createColumnMap(t reflect.Type, fieldIndex []int) ColumnMap {
 		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
 			goquTag := tag.New("db", f.Tag)
 			if !goquTag.Contains("-") {
+				subFieldIndexes := append(fieldIndex, f.Index...)
+				subPrefixes := append(prefixes, goquTag.Values()...)
 				if f.Type.Kind() == reflect.Ptr {
-					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), append(fieldIndex, f.Index...)))
+					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes))
 				} else {
-					subColMaps = append(subColMaps, createColumnMap(f.Type, append(fieldIndex, f.Index...)))
+					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, subPrefixes))
 				}
 			}
 		} else if f.PkgPath == "" {
-			// if PkgPath is empty then it is an exported field
 			dbTag := tag.New("db", f.Tag)
+			// if PkgPath is empty then it is an exported field
 			var columnName string
 			if dbTag.IsEmpty() {
 				columnName = columnRenameFunction(f.Name)
 			} else {
 				columnName = dbTag.Values()[0]
 			}
-			goquTag := tag.New("goqu", f.Tag)
 			if !dbTag.Equals("-") {
+				if !implementsScanner(f.Type) {
+					subFieldIndexes := append(fieldIndex, f.Index...)
+					subPrefixes := append(prefixes, columnName)
+					var subCm ColumnMap
+					if f.Type.Kind() == reflect.Ptr {
+						subCm = createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
+					} else {
+						subCm = createColumnMap(f.Type, subFieldIndexes, subPrefixes)
+					}
+					if len(subCm) != 0 {
+						subColMaps = append(subColMaps, subCm)
+						continue
+					}
+				}
+				goquTag := tag.New("goqu", f.Tag)
+				columnName = strings.Join(append(prefixes, columnName), ".")
 				cm[columnName] = ColumnData{
 					ColumnName:     columnName,
 					ShouldInsert:   !goquTag.Contains(skipInsertTagName),
@@ -253,4 +284,18 @@ func (cm ColumnMap) Cols() []string {
 	}
 	sort.Strings(structCols)
 	return structCols
+}
+
+func implementsScanner(t reflect.Type) bool {
+	if IsPointer(t.Kind()) {
+		t = t.Elem()
+	}
+	if reflect.PtrTo(t).Implements(scannerType) {
+		return true
+	}
+	if !IsStruct(t.Kind()) {
+		return true
+	}
+
+	return false
 }

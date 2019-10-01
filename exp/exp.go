@@ -252,6 +252,14 @@ type (
 		Updateable
 		Distinctable
 		Castable
+		// returns true if this identifier has more more than on part (Schema, Table or Col)
+		//	"schema" -> true //cant qualify anymore
+		//	"schema.table" -> true
+		//	"table" -> false
+		// "schema"."table"."col" -> true
+		// "table"."col" -> true
+		// "col" -> false
+		IsQualified() bool
 		// Returns a new IdentifierExpression with the specified schema
 		Schema(string) IdentifierExpression
 		// Returns the current schema

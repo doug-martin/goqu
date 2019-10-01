@@ -1,3 +1,7 @@
+# v9.4.0
+
+* [ADDED] Ability to scan into struct fields from multiple tables [#160](https://github.com/doug-martin/goqu/issues/160)
+
 # v9.3.0
 
 * [ADDED] Using Update, Insert, or Delete datasets in sub selects and CTEs [#164](https://github.com/doug-martin/goqu/issues/164)

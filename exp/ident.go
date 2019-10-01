@@ -33,6 +33,24 @@ func (i identifier) Clone() Expression {
 	return i.clone()
 }
 
+func (i identifier) IsQualified() bool {
+	schema, table, col := i.schema, i.table, i.col
+	switch c := col.(type) {
+	case string:
+		if c != "" {
+			return len(table) > 0 || len(schema) > 0
+		}
+	default:
+		if c != nil {
+			return len(table) > 0 || len(schema) > 0
+		}
+	}
+	if len(table) > 0 {
+		return len(schema) > 0
+	}
+	return false
+}
+
 // Sets the table on the current identifier
 //  I("col").Table("table") -> "table"."col" //postgres
 //  I("col").Table("table") -> `table`.`col` //mysql

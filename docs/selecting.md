@@ -842,6 +842,78 @@ if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
 fmt.Printf("\n%+v", users)
 ```
 
+`goqu` also supports scanning into multiple structs. In the example below we define a `Role` and `User` struct that could both be used individually to scan into. However, you can also create a new struct that adds both structs as fields that can be populated in a single query.
+
+**NOTE** When calling `ScanStructs` without a select already defined it will automatically only `SELECT` the columns found in the struct
+
+ ```go
+type Role struct {
+  Id     uint64 `db:"id"`
+	UserID uint64 `db:"user_id"`
+	Name   string `db:"name"`
+}
+type User struct {
+	Id        uint64 `db:"id"`
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+}
+type UserAndRole struct {
+	User User `db:"goqu_user"` // tag as the "goqu_user" table
+	Role Role `db:"user_role"` // tag as "user_role" table
+}
+db := getDb()
+
+ds := db.
+	From("goqu_user").
+	Join(goqu.T("user_role"), goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id"))))
+var users []UserAndRole
+	// Scan structs will auto build the
+if err := ds.ScanStructs(&users); err != nil {
+	fmt.Println(err.Error())
+	return
+}
+for _, u := range users {
+	fmt.Printf("\n%+v", u)
+}
+```
+
+You can alternatively manually select the columns with the appropriate aliases using the `goqu.C` method to create the alias.
+
+```go
+type Role struct {
+	UserID uint64 `db:"user_id"`
+	Name   string `db:"name"`
+}
+type User struct {
+	Id        uint64 `db:"id"`
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+	Role      Role   `db:"user_role"` // tag as "user_role" table
+}
+db := getDb()
+
+ds := db.
+	Select(
+		"goqu_user.id",
+		"goqu_user.first_name",
+		"goqu_user.last_name",
+		// alias the fully qualified identifier `C` is important here so it doesnt parse it
+		goqu.I("user_role.user_id").As(goqu.C("user_role.user_id")),
+		goqu.I("user_role.name").As(goqu.C("user_role.name")),
+	).
+	From("goqu_user").
+	Join(goqu.T("user_role"), goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id"))))
+
+var users []User
+if err := ds.ScanStructs(&users); err != nil {
+	fmt.Println(err.Error())
+	return
+}
+for _, u := range users {
+	fmt.Printf("\n%+v", u)
+}
+```
+
 <a name="scan-struct"></a>
 **[`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStruct)**
 
@@ -858,6 +930,83 @@ type User struct{
 var user User
 // SELECT "first_name", "last_name" FROM "user" LIMIT 1;
 found, err := db.From("user").ScanStruct(&user)
+if err != nil{
+  fmt.Println(err.Error())
+  return
+}
+if !found {
+  fmt.Println("No user found")
+} else {
+  fmt.Printf("\nFound user: %+v", user)
+}
+```
+
+`goqu` also supports scanning into multiple structs. In the example below we define a `Role` and `User` struct that could both be used individually to scan into. However, you can also create a new struct that adds both structs as fields that can be populated in a single query.
+
+**NOTE** When calling `ScanStruct` without a select already defined it will automatically only `SELECT` the columns found in the struct
+
+ ```go
+type Role struct {
+	UserID uint64 `db:"user_id"`
+	Name   string `db:"name"`
+}
+type User struct {
+	ID        uint64 `db:"id"`
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+}
+type UserAndRole struct {
+	User User `db:"goqu_user"` // tag as the "goqu_user" table
+	Role Role `db:"user_role"` // tag as "user_role" table
+}
+db := getDb()
+var userAndRole UserAndRole
+ds := db.
+	From("goqu_user").
+	Join(goqu.T("user_role"),goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id")))).
+	Where(goqu.C("first_name").Eq("Bob"))
+
+found, err := ds.ScanStruct(&userAndRole)
+if err != nil{
+  fmt.Println(err.Error())
+  return
+}
+if !found {
+  fmt.Println("No user found")
+} else {
+  fmt.Printf("\nFound user: %+v", user)
+}
+```
+
+You can alternatively manually select the columns with the appropriate aliases using the `goqu.C` method to create the alias.
+
+```go
+type Role struct {
+	UserID uint64 `db:"user_id"`
+	Name   string `db:"name"`
+}
+type User struct {
+	ID        uint64 `db:"id"`
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+	Role      Role   `db:"user_role"` // tag as "user_role" table
+}
+db := getDb()
+var userAndRole UserAndRole
+ds := db.
+	Select(
+		"goqu_user.id",
+		"goqu_user.first_name",
+		"goqu_user.last_name",
+		// alias the fully qualified identifier `C` is important here so it doesnt parse it
+		goqu.I("user_role.user_id").As(goqu.C("user_role.user_id")),
+		goqu.I("user_role.name").As(goqu.C("user_role.name")),
+	).
+	From("goqu_user").
+	Join(goqu.T("user_role"),goqu.On(goqu.I("goqu_user.id").Eq(goqu.I("user_role.user_id")))).
+	Where(goqu.C("first_name").Eq("Bob"))
+
+found, err := ds.ScanStruct(&userAndRole)
 if err != nil{
   fmt.Println(err.Error())
   return
@@ -1034,6 +1183,7 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
+
 
 
 

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -415,8 +416,8 @@ func (qes *queryExecutorSuite) TestScanStructs_withIgnoredEmbeddedPointerStruct(
 	var composed []ComposedIgnoredPointerStruct
 	qes.NoError(e.ScanStructs(&composed))
 	qes.Equal([]ComposedIgnoredPointerStruct{
-		{StructWithTags: &StructWithTags{}, PhoneNumber: testPhone1, Age: testAge1},
-		{StructWithTags: &StructWithTags{}, PhoneNumber: testPhone2, Age: testAge2},
+		{PhoneNumber: testPhone1, Age: testAge1},
+		{PhoneNumber: testPhone2, Age: testAge2},
 	}, composed)
 }
 
@@ -942,6 +943,79 @@ func (qes *queryExecutorSuite) TestScanStruct() {
 		Address: testAddr1,
 		Name:    testName1,
 	}, noTag)
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_taggedStructs() {
+	type StructWithNoTags struct {
+		Address string
+		Name    string
+	}
+
+	type StructWithTags struct {
+		Address string `db:"address"`
+		Name    string `db:"name"`
+	}
+
+	type ComposedStruct struct {
+		StructWithTags
+		PhoneNumber string `db:"phone_number"`
+		Age         int64  `db:"age"`
+	}
+	type ComposedWithPointerStruct struct {
+		*StructWithTags
+		PhoneNumber string `db:"phone_number"`
+		Age         int64  `db:"age"`
+	}
+
+	type StructWithTaggedStructs struct {
+		NoTags          StructWithNoTags          `db:"notags"`
+		Tags            StructWithTags            `db:"tags"`
+		Composed        ComposedStruct            `db:"composedstruct"`
+		ComposedPointer ComposedWithPointerStruct `db:"composedptrstruct"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+
+	cols := []string{
+		"notags.address", "notags.name",
+		"tags.address", "tags.name",
+		"composedstruct.address", "composedstruct.name", "composedstruct.phone_number", "composedstruct.age",
+		"composedptrstruct.address", "composedptrstruct.name", "composedptrstruct.phone_number", "composedptrstruct.age",
+	}
+
+	q := `SELECT` + strings.Join(cols, ", ") + ` FROM "items"`
+
+	mock.ExpectQuery(q).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows(cols).AddRow(
+			testAddr1, testName1,
+			testAddr2, testName2,
+			testAddr1, testName1, testPhone1, testAge1,
+			testAddr2, testName2, testPhone2, testAge2,
+		))
+
+	e := newQueryExecutor(db, nil, q)
+
+	var item StructWithTaggedStructs
+	found, err := e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(StructWithTaggedStructs{
+		NoTags: StructWithNoTags{Address: testAddr1, Name: testName1},
+		Tags:   StructWithTags{Address: testAddr2, Name: testName2},
+		Composed: ComposedStruct{
+			StructWithTags: StructWithTags{Address: testAddr1, Name: testName1},
+			PhoneNumber:    testPhone1,
+			Age:            testAge1,
+		},
+		ComposedPointer: ComposedWithPointerStruct{
+			StructWithTags: &StructWithTags{Address: testAddr2, Name: testName2},
+			PhoneNumber:    testPhone2,
+			Age:            testAge2,
+		},
+	}, item)
+
 }
 
 func (qes *queryExecutorSuite) TestScanVals() {
