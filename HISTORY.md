@@ -1,3 +1,7 @@
+# v9.5.0
+
+* [ADDED] Ability to use regexp like, ilike, notlike, and notilike without a regexp [#172](https://github.com/doug-martin/goqu/issues/172)
+
 # v9.4.0
 
 * [ADDED] Ability to scan into struct fields from multiple tables [#160](https://github.com/doug-martin/goqu/issues/160)

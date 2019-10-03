@@ -47,7 +47,7 @@ func (eo ExOr) Expression() Expression {
 }
 
 func (eo ExOr) Clone() Expression {
-	ret := Ex{}
+	ret := ExOr{}
 	for key, val := range eo {
 		ret[key] = val
 	}
@@ -108,6 +108,7 @@ func createOredExpressionFromMap(lhs IdentifierExpression, op Op) ([]Expression,
 	return ors, nil
 }
 
+// nolint:gocyclo
 func createExpressionFromOp(lhs IdentifierExpression, opKey string, op Op) (exp Expression, err error) {
 	switch strings.ToLower(opKey) {
 	case EqOp.String():
@@ -138,6 +139,14 @@ func createExpressionFromOp(lhs IdentifierExpression, opKey string, op Op) (exp 
 		exp = lhs.ILike(op[opKey])
 	case NotILikeOp.String():
 		exp = lhs.NotILike(op[opKey])
+	case RegexpLikeOp.String():
+		exp = lhs.RegexpLike(op[opKey])
+	case RegexpNotLikeOp.String():
+		exp = lhs.RegexpNotLike(op[opKey])
+	case RegexpILikeOp.String():
+		exp = lhs.RegexpILike(op[opKey])
+	case RegexpNotILikeOp.String():
+		exp = lhs.RegexpNotILike(op[opKey])
 	case betweenStr:
 		rangeVal, ok := op[opKey].(RangeVal)
 		if ok {
@@ -149,7 +158,7 @@ func createExpressionFromOp(lhs IdentifierExpression, opKey string, op Op) (exp 
 			exp = lhs.NotBetween(rangeVal)
 		}
 	default:
-		err = errors.New("unsupported expression type %s", op)
+		err = errors.New("unsupported expression type %s", opKey)
 	}
 	return exp, err
 }

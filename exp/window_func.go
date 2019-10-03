@@ -58,6 +58,18 @@ func (swfe sqlWindowFunctionExpression) ILike(val interface{}) BooleanExpression
 func (swfe sqlWindowFunctionExpression) NotILike(val interface{}) BooleanExpression {
 	return notILike(swfe, val)
 }
+func (swfe sqlWindowFunctionExpression) RegexpLike(val interface{}) BooleanExpression {
+	return regexpLike(swfe, val)
+}
+func (swfe sqlWindowFunctionExpression) RegexpNotLike(val interface{}) BooleanExpression {
+	return regexpNotLike(swfe, val)
+}
+func (swfe sqlWindowFunctionExpression) RegexpILike(val interface{}) BooleanExpression {
+	return regexpILike(swfe, val)
+}
+func (swfe sqlWindowFunctionExpression) RegexpNotILike(val interface{}) BooleanExpression {
+	return regexpNotILike(swfe, val)
+}
 func (swfe sqlWindowFunctionExpression) In(vals ...interface{}) BooleanExpression {
 	return in(swfe, vals...)
 }

@@ -607,13 +607,13 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 		expressionTestCase{val: ident.In([]int64{1, 2, 3}), err: "goqu: boolean operator 'in' not supported"},
 		expressionTestCase{val: ident.NotIn([]int64{1, 2, 3}), err: "goqu: boolean operator 'notin' not supported"},
 		expressionTestCase{val: ident.Like("a%"), err: "goqu: boolean operator 'like' not supported"},
-		expressionTestCase{val: ident.Like(re), err: "goqu: boolean operator 'regexp like' not supported"},
+		expressionTestCase{val: ident.Like(re), err: "goqu: boolean operator 'regexplike' not supported"},
 		expressionTestCase{val: ident.ILike("a%"), err: "goqu: boolean operator 'ilike' not supported"},
-		expressionTestCase{val: ident.ILike(re), err: "goqu: boolean operator 'regexp ilike' not supported"},
+		expressionTestCase{val: ident.ILike(re), err: "goqu: boolean operator 'regexpilike' not supported"},
 		expressionTestCase{val: ident.NotLike("a%"), err: "goqu: boolean operator 'notlike' not supported"},
-		expressionTestCase{val: ident.NotLike(re), err: "goqu: boolean operator 'regexp notlike' not supported"},
+		expressionTestCase{val: ident.NotLike(re), err: "goqu: boolean operator 'regexpnotlike' not supported"},
 		expressionTestCase{val: ident.NotILike("a%"), err: "goqu: boolean operator 'notilike' not supported"},
-		expressionTestCase{val: ident.NotILike(re), err: "goqu: boolean operator 'regexp notilike' not supported"},
+		expressionTestCase{val: ident.NotILike(re), err: "goqu: boolean operator 'regexpnotilike' not supported"},
 	)
 }
 
@@ -1128,12 +1128,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"badOp": true}},
-			err: "goqu: unsupported expression type map[badOp:%!s(bool=true)]",
+			err: "goqu: unsupported expression type badOp",
 		},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"badOp": true}},
 			isPrepared: true,
-			err:        "goqu: unsupported expression type map[badOp:%!s(bool=true)]",
+			err:        "goqu: unsupported expression type badOp",
 		},
 
 		expressionTestCase{val: exp.Ex{"a": 1}, sql: `("a" = 1)`},
@@ -1248,6 +1248,37 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			args:       []interface{}{"(a|b)"},
 		},
 
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpLike": "(a|b)"}}, sql: `("a" ~ '(a|b)')`},
+		expressionTestCase{
+			val:        exp.Ex{"a": exp.Op{"regexpLike": "(a|b)"}},
+			sql:        `("a" ~ ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpNotLike": "(a|b)"}}, sql: `("a" !~ '(a|b)')`},
+		expressionTestCase{
+			val:        exp.Ex{"a": exp.Op{"regexpNotLike": "(a|b)"}},
+			sql:        `("a" !~ ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpILike": "(a|b)"}}, sql: `("a" ~* '(a|b)')`},
+		expressionTestCase{
+			val:        exp.Ex{"a": exp.Op{"regexpILike": "(a|b)"}},
+			sql:        `("a" ~* ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpNotILike": "(a|b)"}}, sql: `("a" !~* '(a|b)')`},
+		expressionTestCase{
+			val:        exp.Ex{"a": exp.Op{"regexpNotILike": "(a|b)"}},
+			sql:        `("a" !~* ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}}, sql: `("a" IN ('a', 'b', 'c'))`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}},
@@ -1308,14 +1339,45 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionOrMap() {
 		expressionTestCase{val: exp.ExOr{}},
 		expressionTestCase{val: exp.ExOr{}, isPrepared: true},
 
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpLike": "(a|b)"}}, sql: `("a" ~ '(a|b)')`},
+		expressionTestCase{
+			val:        exp.ExOr{"a": exp.Op{"regexpLike": "(a|b)"}},
+			sql:        `("a" ~ ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpNotLike": "(a|b)"}}, sql: `("a" !~ '(a|b)')`},
+		expressionTestCase{
+			val:        exp.ExOr{"a": exp.Op{"regexpNotLike": "(a|b)"}},
+			sql:        `("a" !~ ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpILike": "(a|b)"}}, sql: `("a" ~* '(a|b)')`},
+		expressionTestCase{
+			val:        exp.ExOr{"a": exp.Op{"regexpILike": "(a|b)"}},
+			sql:        `("a" ~* ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpNotILike": "(a|b)"}}, sql: `("a" !~* '(a|b)')`},
+		expressionTestCase{
+			val:        exp.ExOr{"a": exp.Op{"regexpNotILike": "(a|b)"}},
+			sql:        `("a" !~* ?)`,
+			isPrepared: true,
+			args:       []interface{}{"(a|b)"},
+		},
+
 		expressionTestCase{
 			val: exp.ExOr{"a": exp.Op{"badOp": true}},
-			err: "goqu: unsupported expression type map[badOp:%!s(bool=true)]",
+			err: "goqu: unsupported expression type badOp",
 		},
 		expressionTestCase{
 			val:        exp.ExOr{"a": exp.Op{"badOp": true}},
 			isPrepared: true,
-			err:        "goqu: unsupported expression type map[badOp:%!s(bool=true)]",
+			err:        "goqu: unsupported expression type badOp",
 		},
 
 		expressionTestCase{val: exp.ExOr{"a": 1, "b": true}, sql: `(("a" = 1) OR ("b" IS TRUE))`},
