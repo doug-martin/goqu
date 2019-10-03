@@ -140,24 +140,28 @@ func (i identifier) Lt(val interface{}) BooleanExpression { return lt(i, val) }
 func (i identifier) Lte(val interface{}) BooleanExpression { return lte(i, val) }
 
 // Returns a BooleanExpression for checking that a identifier is in a list of values or  (e.g "my_col" > 1)
-func (i identifier) In(vals ...interface{}) BooleanExpression    { return in(i, vals...) }
-func (i identifier) NotIn(vals ...interface{}) BooleanExpression { return notIn(i, vals...) }
-func (i identifier) Like(val interface{}) BooleanExpression      { return like(i, val) }
-func (i identifier) NotLike(val interface{}) BooleanExpression   { return notLike(i, val) }
-func (i identifier) ILike(val interface{}) BooleanExpression     { return iLike(i, val) }
-func (i identifier) NotILike(val interface{}) BooleanExpression  { return notILike(i, val) }
-func (i identifier) Is(val interface{}) BooleanExpression        { return is(i, val) }
-func (i identifier) IsNot(val interface{}) BooleanExpression     { return isNot(i, val) }
-func (i identifier) IsNull() BooleanExpression                   { return is(i, nil) }
-func (i identifier) IsNotNull() BooleanExpression                { return isNot(i, nil) }
-func (i identifier) IsTrue() BooleanExpression                   { return is(i, true) }
-func (i identifier) IsNotTrue() BooleanExpression                { return isNot(i, true) }
-func (i identifier) IsFalse() BooleanExpression                  { return is(i, false) }
-func (i identifier) IsNotFalse() BooleanExpression               { return isNot(i, false) }
-func (i identifier) Asc() OrderedExpression                      { return asc(i) }
-func (i identifier) Desc() OrderedExpression                     { return desc(i) }
-func (i identifier) Distinct() SQLFunctionExpression             { return NewSQLFunctionExpression("DISTINCT", i) }
-func (i identifier) Cast(t string) CastExpression                { return NewCastExpression(i, t) }
+func (i identifier) In(vals ...interface{}) BooleanExpression         { return in(i, vals...) }
+func (i identifier) NotIn(vals ...interface{}) BooleanExpression      { return notIn(i, vals...) }
+func (i identifier) Like(val interface{}) BooleanExpression           { return like(i, val) }
+func (i identifier) NotLike(val interface{}) BooleanExpression        { return notLike(i, val) }
+func (i identifier) ILike(val interface{}) BooleanExpression          { return iLike(i, val) }
+func (i identifier) NotILike(val interface{}) BooleanExpression       { return notILike(i, val) }
+func (i identifier) RegexpLike(val interface{}) BooleanExpression     { return regexpLike(i, val) }
+func (i identifier) RegexpNotLike(val interface{}) BooleanExpression  { return regexpNotLike(i, val) }
+func (i identifier) RegexpILike(val interface{}) BooleanExpression    { return regexpILike(i, val) }
+func (i identifier) RegexpNotILike(val interface{}) BooleanExpression { return regexpNotILike(i, val) }
+func (i identifier) Is(val interface{}) BooleanExpression             { return is(i, val) }
+func (i identifier) IsNot(val interface{}) BooleanExpression          { return isNot(i, val) }
+func (i identifier) IsNull() BooleanExpression                        { return is(i, nil) }
+func (i identifier) IsNotNull() BooleanExpression                     { return isNot(i, nil) }
+func (i identifier) IsTrue() BooleanExpression                        { return is(i, true) }
+func (i identifier) IsNotTrue() BooleanExpression                     { return isNot(i, true) }
+func (i identifier) IsFalse() BooleanExpression                       { return is(i, false) }
+func (i identifier) IsNotFalse() BooleanExpression                    { return isNot(i, false) }
+func (i identifier) Asc() OrderedExpression                           { return asc(i) }
+func (i identifier) Desc() OrderedExpression                          { return desc(i) }
+func (i identifier) Distinct() SQLFunctionExpression                  { return NewSQLFunctionExpression("DISTINCT", i) }
+func (i identifier) Cast(t string) CastExpression                     { return NewCastExpression(i, t) }
 
 // Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
 func (i identifier) Between(val RangeVal) RangeExpression { return between(i, val) }

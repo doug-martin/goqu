@@ -71,6 +71,19 @@ type (
 		// Creates an Boolean expression for case insensitive NOT LIKE clauses
 		//   ds.Where(I("a").NotILike("a%")) //("a" NOT ILIKE 'a%')
 		NotILike(interface{}) BooleanExpression
+
+		// Creates an Boolean expression for REGEXP LIKE clauses
+		//   ds.Where(I("a").RegexpLike("a%")) //("a" ~ 'a%')
+		RegexpLike(interface{}) BooleanExpression
+		// Creates an Boolean expression for REGEXP NOT LIKE clauses
+		//   ds.Where(I("a").RegexpNotLike("a%")) //("a" !~ 'a%')
+		RegexpNotLike(interface{}) BooleanExpression
+		// Creates an Boolean expression for case insensitive REGEXP ILIKE clauses
+		//   ds.Where(I("a").RegexpILike("a%")) //("a" ~* 'a%')
+		RegexpILike(interface{}) BooleanExpression
+		// Creates an Boolean expression for case insensitive REGEXP NOT ILIKE clauses
+		//   ds.Where(I("a").RegexpNotILike("a%")) //("a" !~* 'a%')
+		RegexpNotILike(interface{}) BooleanExpression
 	}
 
 	// Interface that an expression should implement if it can be compared with other values.
@@ -564,13 +577,13 @@ func (bo BooleanOperation) String() string {
 	case NotILikeOp:
 		return "notilike"
 	case RegexpLikeOp:
-		return "regexp like"
+		return "regexplike"
 	case RegexpNotLikeOp:
-		return "regexp notlike"
+		return "regexpnotlike"
 	case RegexpILikeOp:
-		return "regexp ilike"
+		return "regexpilike"
 	case RegexpNotILikeOp:
-		return "regexp notilike"
+		return "regexpnotilike"
 	}
 	return fmt.Sprintf("%d", bo)
 }

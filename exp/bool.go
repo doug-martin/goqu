@@ -111,6 +111,26 @@ func notILike(lhs Expression, val interface{}) BooleanExpression {
 	return checkLikeExp(ILikeOp, lhs, val, true)
 }
 
+// used internally to create a LIKE BooleanExpression
+func regexpLike(lhs Expression, val interface{}) BooleanExpression {
+	return checkLikeExp(RegexpLikeOp, lhs, val, false)
+}
+
+// used internally to create an ILIKE BooleanExpression
+func regexpILike(lhs Expression, val interface{}) BooleanExpression {
+	return checkLikeExp(RegexpILikeOp, lhs, val, false)
+}
+
+// used internally to create a NOT LIKE BooleanExpression
+func regexpNotLike(lhs Expression, val interface{}) BooleanExpression {
+	return checkLikeExp(RegexpLikeOp, lhs, val, true)
+}
+
+// used internally to create a NOT ILIKE BooleanExpression
+func regexpNotILike(lhs Expression, val interface{}) BooleanExpression {
+	return checkLikeExp(RegexpILikeOp, lhs, val, true)
+}
+
 // checks an like rhs to create the proper like expression for strings or regexps
 func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert bool) BooleanExpression {
 	rhs := val
