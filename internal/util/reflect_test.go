@@ -2,7 +2,6 @@ package util
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -549,7 +548,99 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 		Valuer:         ns,
 	})
 }
+func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructWithFollowTag() {
 
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		EmbeddedStruct `db:",follow"`
+		Int            int64
+		Bool           bool
+		Valuer         *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		EmbeddedStruct: EmbeddedStruct{Str: "string"},
+		Int:            10,
+		Bool:           true,
+		Valuer:         ns,
+	})
+}
+
+func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointerWithFollowTag() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		*EmbeddedStruct `db:",follow"`
+		Int             int64
+		Bool            bool
+		Valuer          *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		EmbeddedStruct: &EmbeddedStruct{Str: "string"},
+		Int:            10,
+		Bool:           true,
+		Valuer:         ns,
+	})
+}
+func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructWithMultiLevelFollow() {
+
+	type Follow struct {
+		End string
+	}
+	type EmbeddedStruct struct {
+		Follow Follow `db:",follow"`
+		Str    string
+	}
+	type TestStruct struct {
+		EmbeddedStruct `db:",follow"`
+		Int            int64
+		Bool           bool
+		Valuer         *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"str":    "string",
+		"end":    "fin",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		EmbeddedStruct: EmbeddedStruct{Str: "string", Follow: Follow{End: "fin"}},
+		Int:            10,
+		Bool:           true,
+		Valuer:         ns,
+	})
+}
 func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedStruct() {
 
 	type EmbeddedStruct struct {
@@ -609,7 +700,64 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedPointer(
 		Valuer:         ns,
 	})
 }
+func (rt *reflectTest) TestAssignStructVals_withNamedStructFieldWithFollowTaggedStructField() {
 
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		Embedded EmbeddedStruct `db:"name_isnt_evaluated_due_to_follow_tag,follow"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: EmbeddedStruct{Str: "string"},
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
+func (rt *reflectTest) TestAssignStructVals_withNamedPointerStructFieldWithFollowTaggedStructField() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		Embedded *EmbeddedStruct `db:"name_isnt_evaluated_due_to_follow_tag,follow"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"str":    "string",
+		"int":    int64(10),
+		"bool":   true,
+		"valuer": &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: &EmbeddedStruct{Str: "string"},
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
 func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructField() {
 
 	type EmbeddedStruct struct {
@@ -669,7 +817,132 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerField() {
 		Valuer:   ns,
 	})
 }
+func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructFieldOfAsIs() {
 
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		Embedded EmbeddedStruct `db:"embedded,embed"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"embedded": EmbeddedStruct{Str: "string"},
+		"int":      int64(10),
+		"bool":     true,
+		"valuer":   &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: EmbeddedStruct{Str: "string"},
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
+func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerStructFieldOfAsIs() {
+
+	type EmbeddedStruct struct {
+		Str string
+	}
+	type TestStruct struct {
+		Embedded *EmbeddedStruct `db:"embedded,embed"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	es := &EmbeddedStruct{Str: "string"}
+	data := map[string]interface{}{
+		"embedded": &es,
+		"int":      int64(10),
+		"bool":     true,
+		"valuer":   &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: es,
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
+func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructWithAsIsTag() {
+	type AsIsStruct struct {
+		Int int
+	}
+	type EmbeddedStruct struct {
+		Str  string
+		AsIs AsIsStruct `db:"as_is,embed"`
+	}
+	type TestStruct struct {
+		Embedded EmbeddedStruct `db:"embedded"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	data := map[string]interface{}{
+		"embedded.str":   "string",
+		"embedded.as_is": AsIsStruct{Int: 5},
+		"int":            int64(10),
+		"bool":           true,
+		"valuer":         &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: EmbeddedStruct{Str: "string", AsIs: AsIsStruct{Int: 5}},
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
+func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedPointerStructWithAsIsTag() {
+	type AsIsStruct struct {
+		Int int
+	}
+	type EmbeddedStruct struct {
+		Str  string
+		AsIs *AsIsStruct `db:"as_is,embed"`
+	}
+	type TestStruct struct {
+		Embedded *EmbeddedStruct `db:"embedded"`
+		Int      int64
+		Bool     bool
+		Valuer   *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	ns := &sql.NullString{String: "null_str1", Valid: true}
+	es := &EmbeddedStruct{Str: "string", AsIs: &AsIsStruct{Int: 5}}
+	data := map[string]interface{}{
+		"embedded.str":   "string",
+		"embedded.as_is": &es.AsIs,
+		"int":            int64(10),
+		"bool":           true,
+		"valuer":         &ns,
+	}
+	AssignStructVals(&ts, data, cm)
+	rt.Equal(ts, TestStruct{
+		Embedded: es,
+		Int:      10,
+		Bool:     true,
+		Valuer:   ns,
+	})
+}
 func (rt *reflectTest) TestGetColumnMap_withStruct() {
 
 	type TestStruct struct {
@@ -733,6 +1006,26 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 		"i": {ColumnName: "i", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"b": {ColumnName: "b", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"v": {ColumnName: "v", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+	}, cm)
+}
+
+func (rt *reflectTest) TestGetColumnMap_withOmitemptyTag() {
+
+	type TestStruct struct {
+		Str    *string `db:"str,omitempty"`
+		Int    int64
+		Bool   bool
+		Valuer *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	var ps *string
+	rt.Equal(ColumnMap{
+		"str":    {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, Omitempty: true, GoType: reflect.TypeOf(ps)},
+		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 
@@ -941,7 +1234,6 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStruct() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
@@ -989,7 +1281,6 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStructPointer() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
@@ -1036,7 +1327,6 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructField() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
@@ -1084,7 +1374,6 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructPointerField() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",

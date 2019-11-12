@@ -18,6 +18,8 @@ type (
 		ShouldInsert   bool
 		ShouldUpdate   bool
 		DefaultIfEmpty bool
+		Omitempty      bool
+		Embed          bool
 		GoType         reflect.Type
 	}
 	ColumnMap map[string]ColumnData
@@ -27,6 +29,10 @@ const (
 	skipUpdateTagName     = "skipupdate"
 	skipInsertTagName     = "skipinsert"
 	defaultIfEmptyTagName = "defaultifempty"
+
+	omitEmptyTagName = "omitempty"
+	followTagName    = "follow"
+	embedTagName     = "embed"
 )
 
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
@@ -219,48 +225,47 @@ func createColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) Column
 	var subColMaps []ColumnMap
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
-		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
-			goquTag := tag.New("db", f.Tag)
-			if !goquTag.Contains("-") {
-				subFieldIndexes := append(fieldIndex, f.Index...)
-				subPrefixes := append(prefixes, goquTag.Values()...)
-				if f.Type.Kind() == reflect.Ptr {
-					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes))
-				} else {
-					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, subPrefixes))
-				}
-			}
-		} else if f.PkgPath == "" {
-			dbTag := tag.New("db", f.Tag)
-			// if PkgPath is empty then it is an exported field
+		dbTag := tag.New("db", f.Tag)
+		if !dbTag.Has("-") {
 			var columnName string
-			if dbTag.IsEmpty() {
+
+			if dbTag.Name().IsEmpty() {
 				columnName = columnRenameFunction(f.Name)
 			} else {
-				columnName = dbTag.Values()[0]
+				columnName = dbTag.Name().String()
 			}
-			if !dbTag.Equals("-") {
-				if !implementsScanner(f.Type) {
-					subFieldIndexes := append(fieldIndex, f.Index...)
-					subPrefixes := append(prefixes, columnName)
-					var subCm ColumnMap
-					if f.Type.Kind() == reflect.Ptr {
-						subCm = createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
-					} else {
-						subCm = createColumnMap(f.Type, subFieldIndexes, subPrefixes)
-					}
-					if len(subCm) != 0 {
-						subColMaps = append(subColMaps, subCm)
-						continue
-					}
+
+			if (dbTag.Has(followTagName) || f.Anonymous) && IsUnderlyingStruct(f.Type) {
+				subFieldIndexes := append(fieldIndex, f.Index...)
+				if f.Type.Kind() == reflect.Ptr {
+					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), subFieldIndexes, nil))
+				} else {
+					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, nil))
 				}
-				goquTag := tag.New("goqu", f.Tag)
+			} else if !implementsScanner(f.Type) && !dbTag.Has(embedTagName) {
+				subFieldIndexes := append(fieldIndex, f.Index...)
+				subPrefixes := append(prefixes, columnName)
+				var subCm ColumnMap
+				if f.Type.Kind() == reflect.Ptr {
+					subCm = createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
+				} else {
+					subCm = createColumnMap(f.Type, subFieldIndexes, subPrefixes)
+				}
+				if len(subCm) != 0 {
+					subColMaps = append(subColMaps, subCm)
+					continue
+				}
+			} else if f.PkgPath == "" {
+				// if PkgPath is empty then it is an exported field
+
 				columnName = strings.Join(append(prefixes, columnName), ".")
 				cm[columnName] = ColumnData{
 					ColumnName:     columnName,
-					ShouldInsert:   !goquTag.Contains(skipInsertTagName),
-					ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
-					DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
+					ShouldInsert:   !dbTag.Has(skipInsertTagName),
+					ShouldUpdate:   !dbTag.Has(skipUpdateTagName),
+					DefaultIfEmpty: dbTag.Has(defaultIfEmptyTagName),
+					Omitempty:      dbTag.Has(omitEmptyTagName),
+					Embed:          dbTag.Has(embedTagName),
 					FieldIndex:     append(fieldIndex, f.Index...),
 					GoType:         f.Type,
 				}
@@ -277,6 +282,9 @@ func createColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) Column
 	return cm
 }
 
+func IsUnderlyingStruct(t reflect.Type) bool {
+	return t.Kind() == reflect.Struct || (t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct)
+}
 func (cm ColumnMap) Cols() []string {
 	var structCols []string
 	for key := range cm {
@@ -298,4 +306,20 @@ func implementsScanner(t reflect.Type) bool {
 	}
 
 	return false
+}
+
+type Embedder interface {
+	Value() interface{}
+}
+
+func NewEmbedder(v interface{}) Embedder {
+	return Embedded{v}
+}
+
+type Embedded struct {
+	value interface{}
+}
+
+func (em Embedded) Value() interface{} {
+	return em.value
 }

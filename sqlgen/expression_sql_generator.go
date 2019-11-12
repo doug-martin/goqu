@@ -2,6 +2,8 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"encoding/json"
+	"github.com/lib/pq"
 	"reflect"
 	"strconv"
 	"time"
@@ -105,6 +107,8 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 			return
 		}
 		esg.Generate(b, dVal)
+	case util.Embedder:
+		esg.embedValueSQL(b, v)
 	default:
 		esg.reflectSQL(b, val)
 	}
@@ -322,6 +326,8 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 		return
 	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
+	// TODO:
+	// Does i have any purpose?
 	i := 0
 	for len(bs) > 0 {
 		char, l := utf8.DecodeRune(bs)
@@ -335,6 +341,17 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
+func (esg *expressionSQLGenerator) formatRune(b sb.SQLBuilder, bs []byte) {
+	for len(bs) > 0 {
+		char, l := utf8.DecodeRune(bs)
+		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
+			b.Write(e)
+		} else {
+			b.WriteRunes(char)
+		}
+		bs = bs[l:]
+	}
+}
 
 // Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)
 func (esg *expressionSQLGenerator) sliceValueSQL(b sb.SQLBuilder, slice reflect.Value) {
@@ -346,6 +363,57 @@ func (esg *expressionSQLGenerator) sliceValueSQL(b sb.SQLBuilder, slice reflect.
 		}
 	}
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+// embedValueSQL Generates SQL for an embedded value. If Prepared is set to true, then the embedded value will be added to the argument list and move on.
+// if not prepared, the embedded value has to be reduced to []byte.
+// Therefore, we will first try to match the type to an already already existing driver.Valuer implementation ([]string, []int, ...), or marshal via json (map, struct, []struct, etc).
+func (esg *expressionSQLGenerator) embedValueSQL(b sb.SQLBuilder, embed util.Embedder) {
+	if b.IsPrepared() {
+		esg.placeHolderSQL(b, embed.Value())
+		return
+	}
+
+	// if not prepared, embedded values must be reduce to bytes.
+	// check to see if value can be type asserted to implement scanner/valuer interface
+	switch v := embed.Value().(type) {
+	case []bool:
+		esg.Generate(b, (*pq.BoolArray)(&v))
+		return
+	case []float64:
+		esg.Generate(b, (*pq.Float64Array)(&v))
+		return
+	case []int64:
+		esg.Generate(b, (*pq.Int64Array)(&v))
+		return
+	case []string:
+		esg.Generate(b, (*pq.StringArray)(&v))
+		return
+
+	case *[]bool:
+		esg.Generate(b, (*pq.BoolArray)(v))
+		return
+	case *[]float64:
+		esg.Generate(b, (*pq.Float64Array)(v))
+		return
+	case *[]int64:
+		esg.Generate(b, (*pq.Int64Array)(v))
+		return
+	case *[]string:
+		esg.Generate(b, (*pq.StringArray)(v))
+		return
+	}
+
+	// assume everything at this point is either a struct, []struct, or map[string]interface{}
+	bytes, err := json.Marshal(embed.Value())
+	if err != nil {
+		b.SetError(err)
+		return
+	}
+
+	b.WriteRunes(esg.dialectOptions.StringQuote)
+	esg.formatRune(b, bytes)
+	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
 
 // Generates SQL for an AliasedExpression (e.g. I("a").As("b") -> "a" AS "b")

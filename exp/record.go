@@ -52,13 +52,19 @@ func addFieldToRecord(r Record, val reflect.Value, f util.ColumnData) Record {
 	if !isAvailable {
 		return r
 	}
-	switch {
-	case f.DefaultIfEmpty && util.IsEmptyValue(v):
-		r[f.ColumnName] = Default()
-	case v.IsValid():
-		r[f.ColumnName] = v.Interface()
-	default:
-		r[f.ColumnName] = reflect.Zero(f.GoType).Interface()
+	if !(f.Omitempty && util.IsEmptyValue(v)) {
+		switch {
+		case f.DefaultIfEmpty && util.IsEmptyValue(v):
+			r[f.ColumnName] = Default()
+		case v.IsValid():
+			if f.Embed {
+				r[f.ColumnName] = util.NewEmbedder(v.Interface())
+			} else {
+				r[f.ColumnName] = v.Interface()
+			}
+		default:
+			r[f.ColumnName] = reflect.Zero(f.GoType).Interface()
+		}
 	}
 	return r
 }

@@ -427,7 +427,93 @@ func ExampleInsertDataset_Rows_withEmbeddedStruct() {
 	// Output:
 	// INSERT INTO "user" ("address_state", "address_street", "firstname", "lastname") VALUES ('NY', '111 Street', 'Greg', 'Farley'), ('NY', '211 Street', 'Jimmy', 'Stewart'), ('NY', '311 Street', 'Jeff', 'Jeffers') []
 }
+func ExampleInsertDataset_Rows_withOmitempty() {
+	type User struct {
+		FirstName string
+		LastName  string
+		Age       *int `db:",omitempty"`
+	}
+	ds := goqu.Insert("user").Rows(
+		User{FirstName: "Greg", LastName: "Farley"},
+	)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
 
+	// Output:
+	// INSERT INTO "user" ("firstname", "lastname") VALUES ('Greg', 'Farley') []
+}
+func ExampleInsertDataset_Rows_withEmbeddedValues() {
+	type Address struct {
+		Line1 string
+		City  string
+	}
+	type User struct {
+		FirstName        string
+		LastName         string
+		BestFriends      []string               `db:"best_friends,embed"`
+		FavoriteIceCream []string               `db:"favorite_ice_cream,embed,omitempty"`
+		CRUD             []bool                 `db:"crud,embed"`
+		Address          *Address               `db:",embed,omitempty"`
+		Map              map[string]interface{} `db:"map,embed"`
+	}
+	ds := goqu.Insert("user").Rows(
+		User{
+			FirstName:   "Greg",
+			LastName:    "Farley",
+			BestFriends: []string{"jane smith", "john doe"},
+			CRUD:        []bool{true, true, false, true},
+			Address: &Address{
+				Line1: "555 random road",
+				City:  "strange city",
+			},
+			Map: map[string]interface{}{
+				"key":    "value",
+				"number": 5,
+			},
+		},
+	)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "user" ("address", "best_friends", "crud", "firstname", "lastname", "map") VALUES ('{"Line1":"555 random road","City":"strange city"}', '{"jane smith","john doe"}', '{t,t,f,t}', 'Greg', 'Farley', '{"key":"value","number":5}') []
+}
+func ExampleInsertDataset_Rows_withEmbeddedValuesPrepared() {
+	type Address struct {
+		Line1 string
+		City  string
+	}
+	type User struct {
+		FirstName        string
+		LastName         string
+		BestFriends      []string               `db:"best_friends,embed"`
+		FavoriteIceCream []string               `db:"favorite_ice_cream,embed,omitempty"`
+		CRUD             []bool                 `db:"crud,embed"`
+		Address          Address                `db:",embed,omitempty"`
+		Map              map[string]interface{} `db:"map,embed"`
+	}
+	ds := goqu.Insert("user").Rows(
+		User{
+			FirstName:   "Greg",
+			LastName:    "Farley",
+			BestFriends: []string{"jane smith", "john doe"},
+			CRUD:        []bool{true, true, false, true},
+			Address: Address{
+				Line1: "555 random road",
+				City:  "strange city",
+			},
+			Map: map[string]interface{}{
+				"key":    "value",
+				"number": 5,
+			},
+		},
+	)
+	insertSQL, args, _ := ds.Prepared(true).ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "user" ("address", "best_friends", "crud", "firstname", "lastname", "map") VALUES (?, ?, ?, ?, ?, ?) [{555 random road strange city} [jane smith john doe] [true true false true] Greg Farley map[key:value number:5]]
+}
 func ExampleInsertDataset_Rows_withIgnoredEmbedded() {
 	type Address struct {
 		Street string

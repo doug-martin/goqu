@@ -466,6 +466,79 @@ func ExampleUpdateDataset_Set_struct() {
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 }
 
+func ExampleUpdateDataset_Set_withEmbeddedValues() {
+	type Address struct {
+		Line1 string
+		City  string
+	}
+	type User struct {
+		FirstName        string
+		LastName         string
+		BestFriends      []string               `db:"best_friends,embed"`
+		FavoriteIceCream []string               `db:"favorite_ice_cream,embed,omitempty"`
+		CRUD             []bool                 `db:"crud,embed"`
+		Address          *Address               `db:",embed,omitempty"`
+		Map              map[string]interface{} `db:"map,embed"`
+	}
+	ds := goqu.Update("user").Set(
+		User{
+			FirstName:   "Greg",
+			LastName:    "Farley",
+			BestFriends: []string{"jane smith", "john doe"},
+			CRUD:        []bool{true, true, false, true},
+			Address: &Address{
+				Line1: "555 random road",
+				City:  "strange city",
+			},
+			Map: map[string]interface{}{
+				"key":    "value",
+				"number": 5,
+			},
+		},
+	)
+	insertSQL, args, _ := ds.ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// UPDATE "user" SET "address"='{"Line1":"555 random road","City":"strange city"}',"best_friends"='{"jane smith","john doe"}',"crud"='{t,t,f,t}',"firstname"='Greg',"lastname"='Farley',"map"='{"key":"value","number":5}' []
+}
+func ExampleUpdateDataset_Set_withEmbeddedValuesPrepared() {
+	type Address struct {
+		Line1 string
+		City  string
+	}
+	type User struct {
+		FirstName        string
+		LastName         string
+		BestFriends      []string               `db:"best_friends,embed"`
+		FavoriteIceCream []string               `db:"favorite_ice_cream,embed,omitempty"`
+		CRUD             []bool                 `db:"crud,embed"`
+		Address          Address                `db:",embed,omitempty"`
+		Map              map[string]interface{} `db:"map,embed"`
+	}
+	ds := goqu.Update("user").Set(
+		User{
+			FirstName:   "Greg",
+			LastName:    "Farley",
+			BestFriends: []string{"jane smith", "john doe"},
+			CRUD:        []bool{true, true, false, true},
+			Address: Address{
+				Line1: "555 random road",
+				City:  "strange city",
+			},
+			Map: map[string]interface{}{
+				"key":    "value",
+				"number": 5,
+			},
+		},
+	)
+	insertSQL, args, _ := ds.Prepared(true).ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// UPDATE "user" SET "address"=?,"best_friends"=?,"crud"=?,"firstname"=?,"lastname"=?,"map"=? [{555 random road strange city} [jane smith john doe] [true true false true] Greg Farley map[key:value number:5]]
+}
+
 func ExampleUpdateDataset_Set_goquRecord() {
 	sql, args, _ := goqu.Update("items").Set(
 		goqu.Record{"name": "Test", "address": "111 Test Addr"},
