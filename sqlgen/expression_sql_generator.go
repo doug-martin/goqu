@@ -3,7 +3,7 @@ package sqlgen
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"github.com/lib/pq"
+	"github.com/doug-martin/goqu/v9/internal/types"
 	"reflect"
 	"strconv"
 	"time"
@@ -326,19 +326,7 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 		return
 	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
-	// TODO:
-	// Does i have any purpose?
-	i := 0
-	for len(bs) > 0 {
-		char, l := utf8.DecodeRune(bs)
-		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
-			b.Write(e)
-		} else {
-			b.WriteRunes(char)
-		}
-		i++
-		bs = bs[l:]
-	}
+	esg.formatRune(b, bs)
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
 func (esg *expressionSQLGenerator) formatRune(b sb.SQLBuilder, bs []byte) {
@@ -376,31 +364,32 @@ func (esg *expressionSQLGenerator) embedValueSQL(b sb.SQLBuilder, embed util.Emb
 
 	// if not prepared, embedded values must be reduce to bytes.
 	// check to see if value can be type asserted to implement scanner/valuer interface
+	// pq array library is imported to ease of use and simplicity. These types could be
 	switch v := embed.Value().(type) {
 	case []bool:
-		esg.Generate(b, (*pq.BoolArray)(&v))
+		esg.Generate(b, (*types.BoolArray)(&v))
 		return
 	case []float64:
-		esg.Generate(b, (*pq.Float64Array)(&v))
+		esg.Generate(b, (*types.Float64Array)(&v))
 		return
 	case []int64:
-		esg.Generate(b, (*pq.Int64Array)(&v))
+		esg.Generate(b, (*types.Int64Array)(&v))
 		return
 	case []string:
-		esg.Generate(b, (*pq.StringArray)(&v))
+		esg.Generate(b, (*types.StringArray)(&v))
 		return
 
 	case *[]bool:
-		esg.Generate(b, (*pq.BoolArray)(v))
+		esg.Generate(b, (*types.BoolArray)(v))
 		return
 	case *[]float64:
-		esg.Generate(b, (*pq.Float64Array)(v))
+		esg.Generate(b, (*types.Float64Array)(v))
 		return
 	case *[]int64:
-		esg.Generate(b, (*pq.Int64Array)(v))
+		esg.Generate(b, (*types.Int64Array)(v))
 		return
 	case *[]string:
-		esg.Generate(b, (*pq.StringArray)(v))
+		esg.Generate(b, (*types.StringArray)(v))
 		return
 	}
 

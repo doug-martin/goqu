@@ -961,7 +961,33 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
+func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 
+	type TestStruct struct {
+		Str    string `goqu:"skipinsert,skipupdate"`
+		Int    int64  `goqu:"skipinsert"`
+		Bool   bool   `goqu:"skipupdate"`
+		Empty  bool   `goqu:"defaultifempty"`
+		Valuer *sql.NullString
+	}
+	var ts TestStruct
+	cm, err := GetColumnMap(&ts)
+	rt.NoError(err)
+	rt.Equal(ColumnMap{
+		"str":  {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
+		"int":  {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"bool": {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
+		"empty": {
+			ColumnName:     "empty",
+			FieldIndex:     []int{3},
+			ShouldInsert:   true,
+			ShouldUpdate:   true,
+			DefaultIfEmpty: true,
+			GoType:         reflect.TypeOf(true),
+		},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{4}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+	}, cm)
+}
 func (rt *reflectTest) TestGetColumnMap_withStructDBTags() {
 
 	type TestStruct struct {

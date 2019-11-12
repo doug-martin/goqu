@@ -17,13 +17,7 @@ type Options []string
 func New(tagName string, st reflect.StructTag) Tag {
 	return Parse(st.Get(tagName))
 }
-func (t Tag) Values() []string {
-	tags := strings.Split(t.tag, ",")
-	for i, tag := range tags {
-		tags[i] = strings.TrimSpace(tag)
-	}
-	return tags
-}
+
 func Parse(tag string) Tag {
 	var t Tag
 	t.tag = tag
@@ -65,6 +59,16 @@ func (t Tag) IsEmpty() bool {
 
 func (t Tag) Has(optionName string) bool {
 	return t.options.Contains(optionName)
+}
+func (t Tag) Values() Options {
+	return t.values()
+}
+func (t Tag) values() []string {
+	tags := strings.Split(t.tag, ",")
+	for i, tag := range tags {
+		tags[i] = strings.TrimSpace(tag)
+	}
+	return tags
 }
 
 // Contains reports whether a comma-separated list of options

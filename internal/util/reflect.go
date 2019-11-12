@@ -269,13 +269,13 @@ func createColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) Column
 				}
 			} else if f.PkgPath == "" {
 				// if PkgPath is empty then it is an exported field
-
+				goquTag := tag.New("goqu", f.Tag)
 				columnName = strings.Join(append(prefixes, columnName), ".")
 				cm[columnName] = ColumnData{
 					ColumnName:     columnName,
-					ShouldInsert:   !dbTag.Has(skipInsertTagName),
-					ShouldUpdate:   !dbTag.Has(skipUpdateTagName),
-					DefaultIfEmpty: dbTag.Has(defaultIfEmptyTagName),
+					ShouldInsert:   !(dbTag.Has(skipInsertTagName) || goquTag.Values().Contains(skipInsertTagName)),
+					ShouldUpdate:   !(dbTag.Has(skipUpdateTagName) || goquTag.Values().Contains(skipUpdateTagName)),
+					DefaultIfEmpty: dbTag.Has(defaultIfEmptyTagName) || goquTag.Values().Contains(defaultIfEmptyTagName),
 					Omitempty:      dbTag.Has(omitEmptyTagName),
 					Embed:          dbTag.Has(embedTagName),
 					FieldIndex:     append(fieldIndex, f.Index...),
