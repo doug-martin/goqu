@@ -82,6 +82,11 @@ func IsPointer(k reflect.Kind) bool {
 	return k == reflect.Ptr
 }
 
+// IsBuiltin takes into account the time.Time builtin struct
+func IsBuiltin(t reflect.Type) bool {
+	return !IsStruct(t.Kind()) || t.Name() == "Time"
+}
+
 func IsEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
@@ -226,22 +231,29 @@ func createColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) Column
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
 		dbTag := tag.New("db", f.Tag)
-		if !dbTag.Has("-") {
+		if !dbTag.Skip() {
 			var columnName string
 
-			if dbTag.Name().IsEmpty() {
+			if !dbTag.IsNamed() {
 				columnName = columnRenameFunction(f.Name)
 			} else {
-				columnName = dbTag.Name().String()
+				columnName = dbTag.Name()
 			}
 
 			if (dbTag.Has(followTagName) || f.Anonymous) && IsUnderlyingStruct(f.Type) {
 				subFieldIndexes := append(fieldIndex, f.Index...)
+
 				if f.Type.Kind() == reflect.Ptr {
-					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), subFieldIndexes, nil))
-				} else {
-					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, nil))
+					f.Type = f.Type.Elem()
 				}
+
+				if dbTag.IsNamed() && !dbTag.Has(followTagName) {
+					subPrefixes := append(prefixes, columnName)
+					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, subPrefixes))
+				} else {
+					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, prefixes))
+				}
+
 			} else if !implementsScanner(f.Type) && !dbTag.Has(embedTagName) {
 				subFieldIndexes := append(fieldIndex, f.Index...)
 				subPrefixes := append(prefixes, columnName)
@@ -301,7 +313,7 @@ func implementsScanner(t reflect.Type) bool {
 	if reflect.PtrTo(t).Implements(scannerType) {
 		return true
 	}
-	if !IsStruct(t.Kind()) {
+	if IsBuiltin(t) { // accounts for time.Time builtin struct
 		return true
 	}
 

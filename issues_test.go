@@ -66,10 +66,10 @@ func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFiel
 	type Role struct {
 		*SimpleRole
 
-		ID        string    `json:"id" db:"id" goqu:"skipinsert"`
+		ID        string    `json:"id" db:"id,skipinsert"`
 		Key       string    `json:"key" db:"key"`
 		Name      string    `json:"name" db:"name"`
-		CreatedAt time.Time `json:"-" db:"created_at" goqu:"skipinsert"`
+		CreatedAt time.Time `json:"-" db:"created_at,skipinsert"`
 	}
 
 	rUser := &Role{
@@ -138,10 +138,10 @@ func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFiel
 	type Role struct {
 		*SimpleRole
 
-		ID        string    `json:"id" db:"id" goqu:"skipinsert"`
+		ID        string    `json:"id" db:"id,skipinsert"`
 		Key       string    `json:"key" db:"key"`
 		Name      string    `json:"name" db:"name"`
-		CreatedAt time.Time `json:"-" db:"created_at" goqu:"skipinsert"`
+		CreatedAt time.Time `json:"-" db:"created_at,skipinsert"`
 	}
 
 	rUser := &Role{

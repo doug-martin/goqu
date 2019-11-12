@@ -9,10 +9,9 @@ import (
 // tag, or the empty string. It does not include the leading comma.
 type Tag struct {
 	tag     string
-	name    Name
+	name    string
 	options Options
 }
-type Name string
 type Options []string
 
 func New(tagName string, st reflect.StructTag) Tag {
@@ -37,34 +36,35 @@ func Parse(tag string) Tag {
 		t.name = ""
 		t.options = nil
 	case 1:
-		t.name = Name(tags[0])
+		t.name = tags[0]
 		t.options = nil
 	default:
-		t.name = Name(tags[0])
+		t.name = tags[0]
 		t.options = tags[1:]
 	}
 	return t
 }
-func (t Tag) Name() Name {
+func (t Tag) Name() string {
 	return t.name
 }
-
+func (t Tag) IsNamed() bool {
+	if t.name != "" {
+		return true
+	}
+	return false
+}
+func (t Tag) Skip() bool {
+	if t.name == "-" {
+		return true
+	}
+	return false
+}
 func (t Tag) IsEmpty() bool {
 	return len(t.tag) == 0
 }
 
 func (t Tag) Has(optionName string) bool {
 	return t.options.Contains(optionName)
-}
-
-func (n Name) IsEmpty() bool {
-	if n != "" {
-		return false
-	}
-	return true
-}
-func (n Name) String() string {
-	return string(n)
 }
 
 // Contains reports whether a comma-separated list of options

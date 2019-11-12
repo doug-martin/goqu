@@ -962,13 +962,13 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 	}, cm)
 }
 
-func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
+func (rt *reflectTest) TestGetColumnMap_withStructDBTags() {
 
 	type TestStruct struct {
-		Str    string `goqu:"skipinsert,skipupdate"`
-		Int    int64  `goqu:"skipinsert"`
-		Bool   bool   `goqu:"skipupdate"`
-		Empty  bool   `goqu:"defaultifempty"`
+		Str    string `db:",skipinsert,skipupdate"`
+		Int    int64  `db:",skipinsert"`
+		Bool   bool   `db:",skipupdate"`
+		Empty  bool   `db:",defaultifempty"`
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
@@ -989,7 +989,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{4}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
-
 func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 
 	type TestStruct struct {
@@ -1029,12 +1028,12 @@ func (rt *reflectTest) TestGetColumnMap_withOmitemptyTag() {
 	}, cm)
 }
 
-func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
+func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndSkipTag() {
 
 	type TestStruct struct {
-		Str    string          `db:"s" goqu:"skipinsert,skipupdate"`
-		Int    int64           `db:"i" goqu:"skipinsert"`
-		Bool   bool            `db:"b" goqu:"skipupdate"`
+		Str    string          `db:"s,skipinsert,skipupdate"`
+		Int    int64           `db:"i,skipinsert"`
+		Bool   bool            `db:"b,skipupdate"`
 		Valuer *sql.NullString `db:"v"`
 	}
 	var ts TestStruct
