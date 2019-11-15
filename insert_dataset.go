@@ -229,7 +229,10 @@ func (id *InsertDataset) GetAs() exp.IdentifierExpression {
 }
 
 func (id *InsertDataset) ReturnsColumns() bool {
-	return !id.clauses.Returning().IsEmpty()
+	if cols := id.clauses.Returning(); cols != nil {
+		return !cols.IsEmpty()
+	}
+	return false
 }
 
 // Generates the INSERT sql, and returns an QueryExecutor struct with the sql set to the INSERT statement
