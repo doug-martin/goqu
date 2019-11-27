@@ -258,13 +258,19 @@ func (sd *SelectDataset) Distinct(on ...interface{}) *SelectDataset {
 // Adds a FROM clause. This return a new dataset with the original sources replaced. See examples.
 // You can pass in the following.
 //   string: Will automatically be turned into an identifier
-//   Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
+//   Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased. If there is
+//   an error on the provided Dataset it will be set on the newly returned dataset.
 //   LiteralExpression: (See Literal) Will use the literal SQL
 func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
 	var sources []interface{}
 	numSources := 0
 	for _, source := range from {
-		if ds, ok := source.(*SelectDataset); ok && !ds.clauses.HasAlias() {
+
+		ds, ok := source.(*SelectDataset)
+
+		if ok && ds.err != nil {
+			return sd.SetError(ds.err)
+		} else if ok && !ds.clauses.HasAlias() {
 			numSources++
 			sources = append(sources, ds.As(fmt.Sprintf("t%d", numSources)))
 		} else {

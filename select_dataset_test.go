@@ -340,6 +340,15 @@ func (sds *selectDatasetSuite) TestFrom() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestFromWithError() {
+	ee := errors.New("expected error")
+	bd := From("test").SetError(ee)
+	sds.NotNil(bd.Error())
+
+	bd2 := From(bd)
+	sds.NotNil(bd2.Error())
+}
+
 func (sds *selectDatasetSuite) TestFromSelf() {
 	bd := From("test")
 	sds.assertCases(
