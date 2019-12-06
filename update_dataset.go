@@ -222,7 +222,7 @@ func (ud *UpdateDataset) GetAs() exp.IdentifierExpression {
 }
 
 func (ud *UpdateDataset) ReturnsColumns() bool {
-	return !ud.clauses.Returning().IsEmpty()
+	return ud.clauses.HasReturning()
 }
 
 // Generates the UPDATE sql, and returns an exec.QueryExecutor with the sql set to the UPDATE statement

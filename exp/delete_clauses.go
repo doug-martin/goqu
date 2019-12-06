@@ -166,7 +166,7 @@ func (dc *deleteClauses) Returning() ColumnListExpression {
 }
 
 func (dc *deleteClauses) HasReturning() bool {
-	return dc.returning != nil
+	return dc.returning != nil && !dc.returning.IsEmpty()
 }
 
 func (dc *deleteClauses) SetReturning(cl ColumnListExpression) DeleteClauses {

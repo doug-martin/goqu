@@ -217,7 +217,7 @@ func (dd *DeleteDataset) GetAs() exp.IdentifierExpression {
 }
 
 func (dd *DeleteDataset) ReturnsColumns() bool {
-	return !dd.clauses.Returning().IsEmpty()
+	return dd.clauses.HasReturning()
 }
 
 // Creates an QueryExecutor to execute the query.
