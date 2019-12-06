@@ -1,3 +1,7 @@
+# v9.5.1
+
+* [FIXED] Unable to execute union with order by expression [#185](https://github.com/doug-martin/goqu/issues/185)
+
 # v9.5.0
 
 * [ADDED] Ability to use regexp like, ilike, notlike, and notilike without a regexp [#172](https://github.com/doug-martin/goqu/issues/172)
