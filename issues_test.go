@@ -1,10 +1,13 @@
 package goqu_test
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/DATA-DOG/go-sqlmock"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/stretchr/testify/suite"
@@ -322,6 +325,29 @@ func (gis *githubIssuesSuite) TestIssue164() {
 			` SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")`,
 		sql,
 	)
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/185
+func (gis *githubIssuesSuite) TestIssue185() {
+	mDb, sqlMock, err := sqlmock.New()
+	gis.NoError(err)
+	sqlMock.ExpectQuery(
+		`SELECT \* FROM \(SELECT "id" FROM "table" ORDER BY "id" ASC\) AS "t1" UNION 
+\(SELECT \* FROM \(SELECT "id" FROM "table" ORDER BY "id" ASC\) AS "t1"\)`,
+	).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n"))
+	db := goqu.New("mock", mDb)
+
+	ds := db.Select("id").From("table").Order(goqu.C("id").Asc()).
+		Union(
+			db.Select("id").From("table").Order(goqu.C("id").Asc()),
+		)
+
+	ctx := context.Background()
+	var i []int
+	gis.NoError(ds.ScanValsContext(ctx, &i))
+	gis.Equal([]int{1, 2, 3, 4}, i)
+
 }
 
 func TestGithubIssuesSuite(t *testing.T) {

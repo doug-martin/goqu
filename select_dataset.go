@@ -277,12 +277,7 @@ func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
 // Returns a new Dataset with the current one as an source. If the current Dataset is not aliased (See Dataset#As) then
 // it will automatically be aliased. See examples.
 func (sd *SelectDataset) FromSelf() *SelectDataset {
-	builder := SelectDataset{
-		dialect: sd.dialect,
-		clauses: exp.NewSelectClauses(),
-	}
-	return builder.From(sd)
-
+	return sd.copy(exp.NewSelectClauses()).From(sd)
 }
 
 // Alias to InnerJoin. See examples.
