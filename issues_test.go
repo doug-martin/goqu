@@ -2,14 +2,15 @@ package goqu_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -325,6 +326,45 @@ func (gis *githubIssuesSuite) TestIssue164() {
 			` SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")`,
 		sql,
 	)
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/183
+func (gis *githubIssuesSuite) TestIssue184() {
+	expectedErr := fmt.Errorf("an error")
+	testCases := []struct {
+		ds exp.AppendableExpression
+	}{
+		{ds: goqu.From("test").As("t").SetError(expectedErr)},
+		{ds: goqu.Insert("test").Rows(goqu.Record{"foo": "bar"}).Returning("foo").SetError(expectedErr)},
+		{ds: goqu.Update("test").Set(goqu.Record{"foo": "bar"}).Returning("foo").SetError(expectedErr)},
+		{ds: goqu.Update("test").Set(goqu.Record{"foo": "bar"}).Returning("foo").SetError(expectedErr)},
+		{ds: goqu.Delete("test").Returning("foo").SetError(expectedErr)},
+	}
+
+	for _, tc := range testCases {
+		ds := goqu.From(tc.ds)
+		sql, args, err := ds.ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+
+		sql, args, err = ds.Prepared(true).ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+
+		ds = goqu.From("test2").Where(goqu.Ex{"foo": tc.ds})
+
+		sql, args, err = ds.ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+
+		sql, args, err = ds.Prepared(true).ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+	}
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/185

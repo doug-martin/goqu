@@ -214,6 +214,10 @@ func (ud *UpdateDataset) ToSQL() (sql string, params []interface{}, err error) {
 // Appends this Dataset's UPDATE statement to the SQLBuilder
 // This is used internally when using updates in CTEs
 func (ud *UpdateDataset) AppendSQL(b sb.SQLBuilder) {
+	if ud.err != nil {
+		b.SetError(ud.err)
+		return
+	}
 	ud.dialect.ToUpdateSQL(b, ud.GetClauses())
 }
 
