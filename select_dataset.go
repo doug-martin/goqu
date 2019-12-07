@@ -277,12 +277,7 @@ func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
 // Returns a new Dataset with the current one as an source. If the current Dataset is not aliased (See Dataset#As) then
 // it will automatically be aliased. See examples.
 func (sd *SelectDataset) FromSelf() *SelectDataset {
-	builder := SelectDataset{
-		dialect: sd.dialect,
-		clauses: exp.NewSelectClauses(),
-	}
-	return builder.From(sd)
-
+	return sd.copy(exp.NewSelectClauses()).From(sd)
 }
 
 // Alias to InnerJoin. See examples.
@@ -554,6 +549,10 @@ func (sd *SelectDataset) Executor() exec.QueryExecutor {
 // Appends this Dataset's SELECT statement to the SQLBuilder
 // This is used internally for sub-selects by the dialect
 func (sd *SelectDataset) AppendSQL(b sb.SQLBuilder) {
+	if sd.err != nil {
+		b.SetError(sd.err)
+		return
+	}
 	sd.dialect.ToSelectSQL(b, sd.GetClauses())
 }
 

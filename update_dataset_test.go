@@ -378,6 +378,12 @@ func (uds *updateDatasetSuite) TestReturning() {
 	)
 }
 
+func (uds *updateDatasetSuite) TestReturnsColumns() {
+	ds := Update("test")
+	uds.False(ds.ReturnsColumns())
+	uds.True(ds.Returning("foo", "bar").ReturnsColumns())
+}
+
 func (uds *updateDatasetSuite) TestToSQL() {
 	md := new(mocks.SQLDialect)
 	ds := Update("test").SetDialect(md)

@@ -1,12 +1,16 @@
 package goqu_test
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -322,6 +326,106 @@ func (gis *githubIssuesSuite) TestIssue164() {
 			` SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")`,
 		sql,
 	)
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/177
+func (gis *githubIssuesSuite) TestIssue177() {
+	ds := goqu.Dialect("postgres").
+		From("ins1").
+		With("ins1",
+			goqu.Dialect("postgres").
+				Insert("account").
+				Rows(goqu.Record{"email": "email@email.com", "status": "active", "uuid": "XXX-XXX-XXXX"}).
+				Returning("*"),
+		).
+		With("ins2",
+			goqu.Dialect("postgres").
+				Insert("account_user").
+				Cols("account_id", "user_id").
+				FromQuery(goqu.Dialect("postgres").
+					From("ins1").
+					Select(
+						"id",
+						goqu.V(1001),
+					),
+				),
+		).
+		Select("*")
+	sql, args, err := ds.ToSQL()
+	gis.NoError(err)
+	gis.Equal(`WITH ins1 AS (`+
+		`INSERT INTO "account" ("email", "status", "uuid") VALUES ('email@email.com', 'active', 'XXX-XXX-XXXX') RETURNING *),`+
+		` ins2 AS (INSERT INTO "account_user" ("account_id", "user_id") SELECT "id", 1001 FROM "ins1")`+
+		` SELECT * FROM "ins1"`, sql)
+	gis.Len(args, 0)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	gis.NoError(err)
+	gis.Equal(`WITH ins1 AS (INSERT INTO "account" ("email", "status", "uuid") VALUES ($1, $2, $3) RETURNING *), ins2`+
+		` AS (INSERT INTO "account_user" ("account_id", "user_id") SELECT "id", $4 FROM "ins1") SELECT * FROM "ins1"`, sql)
+	gis.Equal(args, []interface{}{"email@email.com", "active", "XXX-XXX-XXXX", int64(1001)})
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/183
+func (gis *githubIssuesSuite) TestIssue184() {
+	expectedErr := fmt.Errorf("an error")
+	testCases := []struct {
+		ds exp.AppendableExpression
+	}{
+		{ds: goqu.From("test").As("t").SetError(expectedErr)},
+		{ds: goqu.Insert("test").Rows(goqu.Record{"foo": "bar"}).Returning("foo").SetError(expectedErr)},
+		{ds: goqu.Update("test").Set(goqu.Record{"foo": "bar"}).Returning("foo").SetError(expectedErr)},
+		{ds: goqu.Update("test").Set(goqu.Record{"foo": "bar"}).Returning("foo").SetError(expectedErr)},
+		{ds: goqu.Delete("test").Returning("foo").SetError(expectedErr)},
+	}
+
+	for _, tc := range testCases {
+		ds := goqu.From(tc.ds)
+		sql, args, err := ds.ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+
+		sql, args, err = ds.Prepared(true).ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+
+		ds = goqu.From("test2").Where(goqu.Ex{"foo": tc.ds})
+
+		sql, args, err = ds.ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+
+		sql, args, err = ds.Prepared(true).ToSQL()
+		gis.Equal(expectedErr, err)
+		gis.Empty(sql)
+		gis.Empty(args)
+	}
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/185
+func (gis *githubIssuesSuite) TestIssue185() {
+	mDb, sqlMock, err := sqlmock.New()
+	gis.NoError(err)
+	sqlMock.ExpectQuery(
+		`SELECT \* FROM \(SELECT "id" FROM "table" ORDER BY "id" ASC\) AS "t1" UNION 
+\(SELECT \* FROM \(SELECT "id" FROM "table" ORDER BY "id" ASC\) AS "t1"\)`,
+	).
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n"))
+	db := goqu.New("mock", mDb)
+
+	ds := db.Select("id").From("table").Order(goqu.C("id").Asc()).
+		Union(
+			db.Select("id").From("table").Order(goqu.C("id").Asc()),
+		)
+
+	ctx := context.Background()
+	var i []int
+	gis.NoError(ds.ScanValsContext(ctx, &i))
+	gis.Equal([]int{1, 2, 3, 4}, i)
+
 }
 
 func TestGithubIssuesSuite(t *testing.T) {

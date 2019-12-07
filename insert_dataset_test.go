@@ -383,6 +383,12 @@ func (ids *insertDatasetSuite) TestReturning() {
 	)
 }
 
+func (ids *insertDatasetSuite) TestReturnsColumns() {
+	ds := Insert("test")
+	ids.False(ds.ReturnsColumns())
+	ids.True(ds.Returning("foo", "bar").ReturnsColumns())
+}
+
 func (ids *insertDatasetSuite) TestExecutor() {
 	mDb, _, err := sqlmock.New()
 	ids.NoError(err)

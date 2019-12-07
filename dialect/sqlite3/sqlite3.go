@@ -50,13 +50,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	}
 	opts.UseLiteralIsBools = false
 	opts.EscapedRunes = map[rune][]byte{
-		'\'': []byte("\\'"),
-		'"':  []byte("\\\""),
-		'\\': []byte("\\\\"),
-		'\n': []byte("\\n"),
-		'\r': []byte("\\r"),
-		0:    []byte("\\x00"),
-		0x1a: []byte("\\x1a"),
+		'\'': []byte("''"),
 	}
 	opts.InsertIgnoreClause = []byte("INSERT OR IGNORE")
 	opts.ConflictFragment = []byte("")

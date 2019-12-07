@@ -221,6 +221,10 @@ func (id *InsertDataset) ToSQL() (sql string, params []interface{}, err error) {
 // Appends this Dataset's INSERT statement to the SQLBuilder
 // This is used internally when using inserts in CTEs
 func (id *InsertDataset) AppendSQL(b sb.SQLBuilder) {
+	if id.err != nil {
+		b.SetError(id.err)
+		return
+	}
 	id.dialect.ToInsertSQL(b, id.GetClauses())
 }
 
@@ -229,7 +233,7 @@ func (id *InsertDataset) GetAs() exp.IdentifierExpression {
 }
 
 func (id *InsertDataset) ReturnsColumns() bool {
-	return !id.clauses.Returning().IsEmpty()
+	return id.clauses.HasReturning()
 }
 
 // Generates the INSERT sql, and returns an QueryExecutor struct with the sql set to the INSERT statement

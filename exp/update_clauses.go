@@ -205,7 +205,7 @@ func (uc *updateClauses) Returning() ColumnListExpression {
 }
 
 func (uc *updateClauses) HasReturning() bool {
-	return uc.returning != nil
+	return uc.returning != nil && !uc.returning.IsEmpty()
 }
 
 func (uc *updateClauses) SetReturning(cl ColumnListExpression) UpdateClauses {

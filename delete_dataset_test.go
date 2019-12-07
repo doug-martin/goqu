@@ -379,6 +379,12 @@ func (dds *deleteDatasetSuite) TestReturning() {
 	)
 }
 
+func (dds *deleteDatasetSuite) TestReturnsColumns() {
+	ds := Delete("test")
+	dds.False(ds.ReturnsColumns())
+	dds.True(ds.Returning("foo", "bar").ReturnsColumns())
+}
+
 func (dds *deleteDatasetSuite) TestToSQL() {
 	md := new(mocks.SQLDialect)
 	ds := Delete("test").SetDialect(md)

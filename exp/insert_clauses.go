@@ -112,7 +112,7 @@ func (ic *insertClauses) Returning() ColumnListExpression {
 }
 
 func (ic *insertClauses) HasReturning() bool {
-	return ic.returning != nil
+	return ic.returning != nil && !ic.returning.IsEmpty()
 }
 
 func (ic *insertClauses) SetReturning(cl ColumnListExpression) InsertClauses {

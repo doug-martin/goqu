@@ -215,7 +215,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withEmptyRows() {
 func (igs *insertSQLGeneratorSuite) TestGenerate_withRowsAppendableExpression() {
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
-		SetRows([]interface{}{newTestAppendableExpression(`select * from "other"`, emptyArgs, nil, nil, true)})
+		SetRows([]interface{}{newTestAppendableExpression(`select * from "other"`, emptyArgs, nil, nil)})
 
 	igs.assertCases(
 		NewInsertSQLGenerator("test", DefaultDialectOptions()),
@@ -227,7 +227,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withRowsAppendableExpression() 
 func (igs *insertSQLGeneratorSuite) TestGenerate_withFrom() {
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
-		SetFrom(newTestAppendableExpression(`select c, d from test where a = 'b'`, nil, nil, nil, true))
+		SetFrom(newTestAppendableExpression(`select c, d from test where a = 'b'`, nil, nil, nil))
 
 	icCols := ic.SetCols(exp.NewColumnListExpression("a", "b"))
 	igs.assertCases(
@@ -372,7 +372,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
 	opts.WithFragment = []byte("with ")
 	opts.RecursiveFragment = []byte("recursive ")
 
-	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil, true)
+	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
 
 	ic := exp.NewInsertClauses().SetInto(exp.NewIdentifierExpression("", "test_cte", ""))
 	icCte1 := ic.CommonTablesAppend(exp.NewCommonTableExpression(false, "test_cte", tse))
