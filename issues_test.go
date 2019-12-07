@@ -328,6 +328,44 @@ func (gis *githubIssuesSuite) TestIssue164() {
 	)
 }
 
+// Test for https://github.com/doug-martin/goqu/issues/177
+func (gis *githubIssuesSuite) TestIssue177() {
+	ds := goqu.Dialect("postgres").
+		From("ins1").
+		With("ins1",
+			goqu.Dialect("postgres").
+				Insert("account").
+				Rows(goqu.Record{"email": "email@email.com", "status": "active", "uuid": "XXX-XXX-XXXX"}).
+				Returning("*"),
+		).
+		With("ins2",
+			goqu.Dialect("postgres").
+				Insert("account_user").
+				Cols("account_id", "user_id").
+				FromQuery(goqu.Dialect("postgres").
+					From("ins1").
+					Select(
+						"id",
+						goqu.V(1001),
+					),
+				),
+		).
+		Select("*")
+	sql, args, err := ds.ToSQL()
+	gis.NoError(err)
+	gis.Equal(`WITH ins1 AS (`+
+		`INSERT INTO "account" ("email", "status", "uuid") VALUES ('email@email.com', 'active', 'XXX-XXX-XXXX') RETURNING *),`+
+		` ins2 AS (INSERT INTO "account_user" ("account_id", "user_id") SELECT "id", 1001 FROM "ins1")`+
+		` SELECT * FROM "ins1"`, sql)
+	gis.Len(args, 0)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	gis.NoError(err)
+	gis.Equal(`WITH ins1 AS (INSERT INTO "account" ("email", "status", "uuid") VALUES ($1, $2, $3) RETURNING *), ins2`+
+		` AS (INSERT INTO "account_user" ("account_id", "user_id") SELECT "id", $4 FROM "ins1") SELECT * FROM "ins1"`, sql)
+	gis.Equal(args, []interface{}{"email@email.com", "active", "XXX-XXX-XXXX", int64(1001)})
+}
+
 // Test for https://github.com/doug-martin/goqu/issues/183
 func (gis *githubIssuesSuite) TestIssue184() {
 	expectedErr := fmt.Errorf("an error")

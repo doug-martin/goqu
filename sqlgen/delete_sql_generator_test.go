@@ -109,7 +109,7 @@ func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withCommonTables() {
 	opts.WithFragment = []byte("with ")
 	opts.RecursiveFragment = []byte("recursive ")
 
-	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil, true)
+	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
 
 	dc := exp.NewDeleteClauses().SetFrom(exp.NewIdentifierExpression("", "test_cte", ""))
 	dcCte1 := dc.CommonTablesAppend(exp.NewCommonTableExpression(false, "test_cte", tse))

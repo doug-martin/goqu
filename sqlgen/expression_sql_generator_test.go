@@ -27,9 +27,8 @@ func newTestAppendableExpression(
 	sql string,
 	args []interface{},
 	err error,
-	alias exp.IdentifierExpression,
-	returnsColumns bool) exp.AppendableExpression {
-	return &testAppendableExpression{sql: sql, args: args, err: err, alias: alias, returnsColumns: returnsColumns}
+	alias exp.IdentifierExpression) exp.AppendableExpression {
+	return &testAppendableExpression{sql: sql, args: args, err: err, alias: alias}
 }
 
 func (tae *testAppendableExpression) Expression() exp.Expression {
@@ -350,12 +349,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerateUnsupportedExpression() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_AppendableExpression() {
 	ti := exp.NewIdentifierExpression("", "b", "")
-	a := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, nil, true)
-	aliasedA := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, ti, true)
-	argsA := newTestAppendableExpression(`select * from "a" where x=?`, []interface{}{true}, nil, ti, true)
-	ae := newTestAppendableExpression(`select * from "a"`, emptyArgs, errors.New("expected error"), nil, true)
-
-	aenr := newTestAppendableExpression(`update "foo" set "a"='b'`, emptyArgs, nil, nil, false)
+	a := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, nil)
+	aliasedA := newTestAppendableExpression(`select * from "a"`, []interface{}{}, nil, ti)
+	argsA := newTestAppendableExpression(`select * from "a" where x=?`, []interface{}{true}, nil, ti)
+	ae := newTestAppendableExpression(`select * from "a"`, emptyArgs, errors.New("expected error"), nil)
 
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
@@ -367,9 +364,6 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AppendableExpression() {
 
 		expressionTestCase{val: ae, err: "goqu: expected error"},
 		expressionTestCase{val: ae, err: "goqu: expected error", isPrepared: true},
-
-		expressionTestCase{val: aenr, err: errNoReturnColumnsForAppendableExpression.Error()},
-		expressionTestCase{val: aenr, err: errNoReturnColumnsForAppendableExpression.Error(), isPrepared: true},
 
 		expressionTestCase{val: argsA, sql: `(select * from "a" where x=?) AS "b"`, args: []interface{}{true}},
 		expressionTestCase{val: argsA, sql: `(select * from "a" where x=?) AS "b"`, isPrepared: true, args: []interface{}{true}},
@@ -475,7 +469,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AliasedExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
-	ae := newTestAppendableExpression(`SELECT "id" FROM "test2"`, emptyArgs, nil, nil, true)
+	ae := newTestAppendableExpression(`SELECT "id" FROM "test2"`, emptyArgs, nil, nil)
 	re := regexp.MustCompile("(a|b)")
 	ident := exp.NewIdentifierExpression("", "", "a")
 
@@ -862,7 +856,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CastExpression() {
 
 // Generates the sql for the WITH clauses for common table expressions (CTE)
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpressionSlice() {
-	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil, true)
+	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 
 	cteNoArgs := []exp.CommonTableExpression{
 		exp.NewCommonTableExpression(false, "a", ae),
@@ -961,7 +955,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpressionSlice
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpression() {
-	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil, true)
+	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 
 	cteNoArgs := exp.NewCommonTableExpression(false, "a", ae)
 	cteArgs := exp.NewCommonTableExpression(false, "a(x,y)", ae)
@@ -986,7 +980,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_CompoundExpression() {
-	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil, true)
+	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)
 
 	u := exp.NewCompoundExpression(exp.UnionCompoundType, ae)
 	ua := exp.NewCompoundExpression(exp.UnionAllCompoundType, ae)
