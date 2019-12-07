@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/dialect/mysql"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/stretchr/testify/suite"
@@ -360,25 +361,34 @@ func (st *sqlite3Suite) TestInsert() {
 		{Int: 12, Float: 1.200000, String: "1.200000", Time: now, Bool: true, Bytes: []byte("1.200000")},
 		{Int: 13, Float: 1.300000, String: "1.300000", Time: now, Bool: false, Bytes: []byte("1.300000")},
 		{Int: 14, Float: 1.400000, String: "1.400000", Time: now, Bool: true, Bytes: []byte("1.400000")},
+		{Int: 14, Float: 1.400000, String: `abc'd"e"f\\gh\n\ri\x00`, Time: now, Bool: true, Bytes: []byte("1.400000")},
 	}
 	_, err = ds.Insert().Rows(entries).Executor().Exec()
 	st.NoError(err)
 
 	var newEntries []entry
 	st.NoError(ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
-	st.Len(newEntries, 4)
+	for i, e := range newEntries {
+		st.Equal(entries[i].Int, e.Int)
+		st.Equal(entries[i].Float, e.Float)
+		st.Equal(entries[i].String, e.String)
+		st.Equal(entries[i].Time.UTC().Format(mysql.DialectOptions().TimeFormat), e.Time.Format(mysql.DialectOptions().TimeFormat))
+		st.Equal(entries[i].Bool, e.Bool)
+		st.Equal(entries[i].Bytes, e.Bytes)
+	}
 
 	_, err = ds.Insert().Rows(
 		entry{Int: 15, Float: 1.500000, String: "1.500000", Time: now, Bool: false, Bytes: []byte("1.500000")},
 		entry{Int: 16, Float: 1.600000, String: "1.600000", Time: now, Bool: true, Bytes: []byte("1.600000")},
 		entry{Int: 17, Float: 1.700000, String: "1.700000", Time: now, Bool: false, Bytes: []byte("1.700000")},
 		entry{Int: 18, Float: 1.800000, String: "1.800000", Time: now, Bool: true, Bytes: []byte("1.800000")},
+		entry{Int: 18, Float: 1.800000, String: `abc'd"e"f\\gh\n\ri\x00`, Time: now, Bool: true, Bytes: []byte("1.800000")},
 	).Executor().Exec()
 	st.NoError(err)
 
 	newEntries = newEntries[0:0]
 	st.NoError(ds.Where(goqu.C("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
-	st.Len(newEntries, 4)
+	st.Len(newEntries, 5)
 }
 
 func (st *sqlite3Suite) TestInsert_returning() {
