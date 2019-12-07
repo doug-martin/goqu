@@ -1,9 +1,10 @@
 # v9.5.1
 
+* [FIXED] WITH clause without a RETURNING clause will panic [#177](https://github.com/doug-martin/goqu/issues/177)
+* [FIXED] SQlite dialect escapes single quotes wrong, leads to SQL syntax error [#178](https://github.com/doug-martin/goqu/issues/178)
 * [FIXED] Fix ReturnsColumns() nil pointer panic [#181](https://github.com/doug-martin/goqu/issues/181) - [@yeaha](https://github.com/yeaha)
 * [FIXED] SelectDataset From with Error [#183](https://github.com/doug-martin/goqu/issues/183)
 * [FIXED] Unable to execute union with order by expression [#185](https://github.com/doug-martin/goqu/issues/185)
-* [FIXED] SQlite dialect escapes single quotes wrong, leads to SQL syntax error [#178](https://github.com/doug-martin/goqu/issues/178)
 
 # v9.5.0
 
