@@ -1,7 +1,8 @@
 # v9.5.1
 
-* [FIXED] Unable to execute union with order by expression [#185](https://github.com/doug-martin/goqu/issues/185)
+* [FIXED] Fix ReturnsColumns() nil pointer panic [#181](https://github.com/doug-martin/goqu/issues/181) - [@yeaha](https://github.com/yeaha)
 * [FIXED] SelectDataset From with Error [#183](https://github.com/doug-martin/goqu/issues/183)
+* [FIXED] Unable to execute union with order by expression [#185](https://github.com/doug-martin/goqu/issues/185)
 
 # v9.5.0
 
