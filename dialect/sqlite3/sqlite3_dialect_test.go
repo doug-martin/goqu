@@ -63,31 +63,31 @@ func (sds *sqlite3DialectSuite) TestLiteralString() {
 
 	sql, _, err = ds.Where(goqu.C("a").Eq("test'test")).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\'test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test''test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq(`test"test`)).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\"test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\"test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq(`test\test`)).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\\test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq("test\ntest")).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\ntest')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\ntest')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq("test\rtest")).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\rtest')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\rtest')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq("test\x00test")).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x00test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\x00test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq("test\x1atest")).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\x1atest')", sql)
 }
 
 func (sds *sqlite3DialectSuite) TestLiteralBytes() {
@@ -98,31 +98,31 @@ func (sds *sqlite3DialectSuite) TestLiteralBytes() {
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte("test'test"))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\'test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test''test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte(`test"test`))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\"test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\"test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte(`test\test`))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\\test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte("test\ntest"))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\ntest')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\ntest')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte("test\rtest"))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\rtest')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\rtest')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte("test\x00test"))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x00test')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\x00test')", sql)
 
 	sql, _, err = ds.Where(goqu.C("a").Eq([]byte("test\x1atest"))).ToSQL()
 	sds.NoError(err)
-	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')", sql)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\x1atest')", sql)
 }
 
 func (sds *sqlite3DialectSuite) TestBooleanOperations() {
