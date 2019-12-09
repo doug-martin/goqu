@@ -258,6 +258,39 @@ Output:
 SELECT * FROM (SELECT * FROM "test" WHERE ("age" > 10)) AS "test2"
 ```
 
+Lateral Query
+
+```go
+maxEntry := goqu.From("entry").
+	Select(goqu.MAX("int").As("max_int")).
+	Where(goqu.Ex{"time": goqu.Op{"lt": goqu.I("e.time")}}).
+	As("max_entry")
+
+maxId := goqu.From("entry").
+	Select("id").
+	Where(goqu.Ex{"int": goqu.I("max_entry.max_int")}).
+	As("max_id")
+
+ds := goqu.
+	Select("e.id", "max_entry.max_int", "max_id.id").
+	From(
+		goqu.T("entry").As("e"),
+		goqu.Lateral(maxEntry),
+		goqu.Lateral(maxId),
+	)
+query, args, _ := ds.ToSQL()
+fmt.Println(query, args)
+
+query, args, _ = ds.Prepared(true).ToSQL()
+fmt.Println(query, args)
+```
+
+Output
+```
+SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e", LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry", LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" []
+SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e", LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry", LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" []
+```
+
 <a name="joins"></a>
 **[`Join`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Join)**
 
@@ -450,6 +483,38 @@ fmt.Println(sql)
 Output:
 ```
 SELECT * FROM "test" CROSS JOIN "test2"
+```
+
+Join with a Lateral
+
+```go
+maxEntry := goqu.From("entry").
+	Select(goqu.MAX("int").As("max_int")).
+	Where(goqu.Ex{"time": goqu.Op{"lt": goqu.I("e.time")}}).
+	As("max_entry")
+
+maxId := goqu.From("entry").
+	Select("id").
+	Where(goqu.Ex{"int": goqu.I("max_entry.max_int")}).
+	As("max_id")
+
+ds := goqu.
+	Select("e.id", "max_entry.max_int", "max_id.id").
+	From(goqu.T("entry").As("e")).
+	Join(goqu.Lateral(maxEntry), goqu.On(goqu.V(true))).
+	Join(goqu.Lateral(maxId), goqu.On(goqu.V(true)))
+query, args, _ := ds.ToSQL()
+fmt.Println(query, args)
+
+query, args, _ = ds.Prepared(true).ToSQL()
+fmt.Println(query, args)
+```
+
+Output:
+```
+SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER JOIN LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry" ON TRUE INNER JOIN LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" ON TRUE []
+
+SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER JOIN LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry" ON ? INNER JOIN LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" ON ? [true true]
 ```
 
 <a name="where"></a>
@@ -1183,6 +1248,7 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
+
 
 
 

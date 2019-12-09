@@ -283,3 +283,7 @@ func Star() exp.LiteralExpression { return exp.Star() }
 func Default() exp.LiteralExpression {
 	return exp.Default()
 }
+
+func Lateral(table exp.AppendableExpression) exp.LateralExpression {
+	return exp.NewLateralExpression(table)
+}

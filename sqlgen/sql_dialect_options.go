@@ -34,6 +34,8 @@ type (
 		SupportsMultipleUpdateTables bool
 		// Set to true if DISTINCT ON is supported (DEFAULT=true)
 		SupportsDistinctOn bool
+		// Set to true if LATERAL queries are supported (DEFAULT=true)
+		SupportsLateral bool
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
 
@@ -118,6 +120,8 @@ type (
 		SkipLockedFragment []byte
 		// The SQL AS fragment when aliasing an Expression(DEFAULT=[]byte(" AS "))
 		AsFragment []byte
+		/// The SQL LATERAL fragment used for LATERAL joins
+		LateralFragment []byte
 		// The quote rune to use when quoting identifiers(DEFAULT='"')
 		QuoteRune rune
 		// The NULL literal to use when interpolating nulls values (DEFAULT=[]byte("NULL"))
@@ -384,6 +388,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		SupportsDistinctOn:          true,
 		WrapCompoundsInParens:       true,
 		SupportsWindowFunction:      true,
+		SupportsLateral:             true,
 
 		SupportsMultipleUpdateTables:         true,
 		UseFromClauseForMultipleUpdateTables: true,
@@ -423,6 +428,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		ForKeyShareFragment:       []byte(" FOR KEY SHARE "),
 		NowaitFragment:            []byte("NOWAIT"),
 		SkipLockedFragment:        []byte("SKIP LOCKED"),
+		LateralFragment:           []byte("LATERAL "),
 		AsFragment:                []byte(" AS "),
 		AscFragment:               []byte(" ASC"),
 		DescFragment:              []byte(" DESC"),

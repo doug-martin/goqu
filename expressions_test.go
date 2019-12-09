@@ -169,6 +169,11 @@ func (ges *goquExpressionsSuite) TestDefault() {
 	ges.Equal(exp.Default(), Default())
 }
 
+func (ges *goquExpressionsSuite) TestLateral() {
+	ds := From("test")
+	ges.Equal(exp.NewLateralExpression(ds), Lateral(ds))
+}
+
 func TestGoquExpressions(t *testing.T) {
 	suite.Run(t, new(goquExpressionsSuite))
 }
