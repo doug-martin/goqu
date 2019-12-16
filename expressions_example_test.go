@@ -1737,9 +1737,65 @@ func ExampleW() {
 		Window(goqu.W("w").PartitionBy("a"))
 	query, args, _ = ds.ToSQL()
 	fmt.Println(query, args)
-	// Output
+	// Output:
 	// SELECT ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) FROM "test" []
 	// SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER BY "b" ASC) []
-	// SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w1" AS (PARTITION BY "a"), "w" AS ("w1" ORDER BY "b" ASC) []
+	// SELECT ROW_NUMBER() OVER "w1" FROM "test" WINDOW "w1" AS (PARTITION BY "a"), "w" AS ("w1" ORDER BY "b" ASC) []
 	// SELECT ROW_NUMBER() OVER ("w" ORDER BY "b") FROM "test" WINDOW "w" AS (PARTITION BY "a") []
+}
+
+func ExampleLateral() {
+	maxEntry := goqu.From("entry").
+		Select(goqu.MAX("int").As("max_int")).
+		Where(goqu.Ex{"time": goqu.Op{"lt": goqu.I("e.time")}}).
+		As("max_entry")
+
+	maxID := goqu.From("entry").
+		Select("id").
+		Where(goqu.Ex{"int": goqu.I("max_entry.max_int")}).
+		As("max_id")
+
+	ds := goqu.
+		Select("e.id", "max_entry.max_int", "max_id.id").
+		From(
+			goqu.T("entry").As("e"),
+			goqu.Lateral(maxEntry),
+			goqu.Lateral(maxID),
+		)
+	query, args, _ := ds.ToSQL()
+	fmt.Println(query, args)
+
+	query, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(query, args)
+
+	// Output:
+	// SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e", LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry", LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" []
+	// SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e", LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry", LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" []
+}
+
+func ExampleLateral_join() {
+	maxEntry := goqu.From("entry").
+		Select(goqu.MAX("int").As("max_int")).
+		Where(goqu.Ex{"time": goqu.Op{"lt": goqu.I("e.time")}}).
+		As("max_entry")
+
+	maxID := goqu.From("entry").
+		Select("id").
+		Where(goqu.Ex{"int": goqu.I("max_entry.max_int")}).
+		As("max_id")
+
+	ds := goqu.
+		Select("e.id", "max_entry.max_int", "max_id.id").
+		From(goqu.T("entry").As("e")).
+		Join(goqu.Lateral(maxEntry), goqu.On(goqu.V(true))).
+		Join(goqu.Lateral(maxID), goqu.On(goqu.V(true)))
+	query, args, _ := ds.ToSQL()
+	fmt.Println(query, args)
+
+	query, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(query, args)
+
+	// Output:
+	// SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER JOIN LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry" ON TRUE INNER JOIN LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" ON TRUE []
+	// SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER JOIN LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry" ON ? INNER JOIN LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" ON ? [true true]
 }

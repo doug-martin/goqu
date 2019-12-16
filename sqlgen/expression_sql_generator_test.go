@@ -1113,6 +1113,32 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IdentifierExpression() {
 	)
 }
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_LateralExpression() {
+	lateralExp := exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, emptyArgs, nil, nil))
+
+	do := DefaultDialectOptions()
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", do),
+		expressionTestCase{val: lateralExp, sql: `LATERAL (SELECT * FROM "test")`},
+		expressionTestCase{val: lateralExp, sql: `LATERAL (SELECT * FROM "test")`, isPrepared: true},
+	)
+
+	do = DefaultDialectOptions()
+	do.LateralFragment = []byte("lateral ")
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", do),
+		expressionTestCase{val: lateralExp, sql: `lateral (SELECT * FROM "test")`},
+		expressionTestCase{val: lateralExp, sql: `lateral (SELECT * FROM "test")`, isPrepared: true},
+	)
+	do = DefaultDialectOptions()
+	do.SupportsLateral = false
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", do),
+		expressionTestCase{val: lateralExp, err: "goqu: dialect does not support lateral expressions [dialect=test]"},
+		expressionTestCase{val: lateralExp, err: "goqu: dialect does not support lateral expressions [dialect=test]", isPrepared: true},
+	)
+}
+
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 	re := regexp.MustCompile("(a|b)")
 	esgs.assertCases(
