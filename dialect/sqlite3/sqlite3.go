@@ -20,6 +20,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.WrapCompoundsInParens = false
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
+	opts.SupportsLateral = false
 
 	opts.PlaceHolderRune = '?'
 	opts.IncludePlaceholderNum = false

@@ -1,3 +1,7 @@
+# v9.6.0
+
+* [ADDED] Support for Lateral queries [#182](https://github.com/doug-martin/goqu/issues/182)
+
 # v9.5.1
 
 * [FIXED] WITH clause without a RETURNING clause will panic [#177](https://github.com/doug-martin/goqu/issues/177)

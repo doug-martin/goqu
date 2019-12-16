@@ -57,6 +57,10 @@ func errUnsupportedRangeExpressionOperator(op exp.RangeOperation) error {
 	return errors.New("range operator %+v not supported", op)
 }
 
+func errLateralNotSupported(dialect string) error {
+	return errors.New("dialect does not support lateral expressions [dialect=%s]", dialect)
+}
+
 func NewExpressionSQLGenerator(dialect string, do *SQLDialectOptions) ExpressionSQLGenerator {
 	return &expressionSQLGenerator{dialect: dialect, dialectOptions: do}
 }
@@ -150,6 +154,8 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 		esg.literalExpressionSQL(b, e)
 	case exp.IdentifierExpression:
 		esg.identifierExpressionSQL(b, e)
+	case exp.LateralExpression:
+		esg.lateralExpressionSQL(b, e)
 	case exp.AliasedExpression:
 		esg.aliasedExpressionSQL(b, e)
 	case exp.BooleanExpression:
@@ -242,6 +248,15 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 	default:
 		b.SetError(errUnsupportedIdentifierExpression(col))
 	}
+}
+
+func (esg *expressionSQLGenerator) lateralExpressionSQL(b sb.SQLBuilder, le exp.LateralExpression) {
+	if !esg.dialectOptions.SupportsLateral {
+		b.SetError(errLateralNotSupported(esg.dialect))
+		return
+	}
+	b.Write(esg.dialectOptions.LateralFragment)
+	esg.Generate(b, le.Table())
 }
 
 // Generates SQL NULL value

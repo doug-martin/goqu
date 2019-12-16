@@ -33,18 +33,9 @@ func (sds *selectDatasetSuite) assertCases(cases ...selectTestCase) {
 	}
 }
 
-func (ids *insertDatasetSuite) TestFrom() {
-	ds := From("test")
-	ids.IsType(&SelectDataset{}, ds)
-	ids.Implements((*exp.Expression)(nil), ds)
-	ids.Implements((*exp.AppendableExpression)(nil), ds)
-}
-
-func (ids *insertDatasetSuite) TestSelect() {
-	ds := Select(L("NoW()"))
-	ids.IsType(&SelectDataset{}, ds)
-	ids.Implements((*exp.Expression)(nil), ds)
-	ids.Implements((*exp.AppendableExpression)(nil), ds)
+func (sds *selectDatasetSuite) TestReturnsColumns() {
+	ds := Select(L("NOW()"))
+	sds.True(ds.ReturnsColumns())
 }
 
 func (sds *selectDatasetSuite) TestClone() {

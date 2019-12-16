@@ -316,6 +316,11 @@ type (
 		Condition() JoinCondition
 		IsConditionEmpty() bool
 	}
+	LateralExpression interface {
+		Expression
+		Aliaseable
+		Table() AppendableExpression
+	}
 
 	// Expression for representing "literal" sql.
 	//  L("col = 1") -> col = 1)
