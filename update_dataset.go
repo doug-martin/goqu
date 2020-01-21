@@ -165,10 +165,7 @@ func (ud *UpdateDataset) ClearOrder() *UpdateDataset {
 
 // Adds a LIMIT clause. If the LIMIT is currently set it replaces it. See examples.
 func (ud *UpdateDataset) Limit(limit uint) *UpdateDataset {
-	if limit > 0 {
-		return ud.copy(ud.clauses.SetLimit(limit))
-	}
-	return ud.copy(ud.clauses.ClearLimit())
+	return ud.copy(ud.clauses.SetLimit(limit))
 }
 
 // Adds a LIMIT ALL clause. If the LIMIT is currently set it replaces it. See examples.

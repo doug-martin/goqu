@@ -160,10 +160,7 @@ func (dd *DeleteDataset) ClearOrder() *DeleteDataset {
 
 // Adds a LIMIT clause. If the LIMIT is currently set it replaces it. See examples.
 func (dd *DeleteDataset) Limit(limit uint) *DeleteDataset {
-	if limit > 0 {
-		return dd.copy(dd.clauses.SetLimit(limit))
-	}
-	return dd.copy(dd.clauses.ClearLimit())
+	return dd.copy(dd.clauses.SetLimit(limit))
 }
 
 // Adds a LIMIT ALL clause. If the LIMIT is currently set it replaces it. See examples.

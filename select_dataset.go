@@ -418,10 +418,7 @@ func (sd *SelectDataset) ClearOrder() *SelectDataset {
 
 // Adds a LIMIT clause. If the LIMIT is currently set it replaces it. See examples.
 func (sd *SelectDataset) Limit(limit uint) *SelectDataset {
-	if limit > 0 {
-		return sd.copy(sd.clauses.SetLimit(limit))
-	}
-	return sd.copy(sd.clauses.ClearLimit())
+	return sd.copy(sd.clauses.SetLimit(limit))
 }
 
 // Adds a LIMIT ALL clause. If the LIMIT is currently set it replaces it. See examples.
