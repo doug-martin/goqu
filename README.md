@@ -6,7 +6,7 @@
  |___/          |_|
 ```
 [![GitHub tag](https://img.shields.io/github/tag/doug-martin/goqu.svg?style=flat)](https://github.com/doug-martin/goqu/releases)
-[![Actions Status](https://github.com/doug-martin/goqu/workflows/Test/badge.svg)](https://github.com/doug-martin/goqu/actions)
+[![Test](https://github.com/doug-martin/goqu/workflows/Test/badge.svg?branch=master&event=push)](https://github.com/doug-martin/goqu/actions?query=workflow%3ATest+and+branch%3Amaster+)
 [![GoDoc](https://godoc.org/github.com/doug-martin/goqu?status.png)](http://godoc.org/github.com/doug-martin/goqu)
 [![codecov](https://codecov.io/gh/doug-martin/goqu/branch/master/graph/badge.svg)](https://codecov.io/gh/doug-martin/goqu)
 [![Go Report Card](https://goreportcard.com/badge/github.com/doug-martin/goqu/v9)](https://goreportcard.com/report/github.com/doug-martin/goqu/v9)
