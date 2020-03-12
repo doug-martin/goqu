@@ -22,7 +22,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsWindowFunction = false
 	opts.SupportsLateral = false
 
-	opts.PlaceHolderRune = '?'
+	opts.PlaceHolderFragment = []byte("?")
 	opts.IncludePlaceholderNum = false
 	opts.QuoteRune = '`'
 	opts.DefaultValuesFragment = []byte("")

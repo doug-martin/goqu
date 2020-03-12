@@ -1,31 +1,32 @@
-package mysql
+package sqlserver
 
 import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/sqlgen"
 )
 
 func DialectOptions() *goqu.SQLDialectOptions {
 	opts := goqu.DefaultDialectOptions()
 
+	opts.UseLiteralIsBools = false
+
 	opts.SupportsReturn = false
-	opts.SupportsOrderByOnUpdate = true
-	opts.SupportsLimitOnUpdate = true
-	opts.SupportsLimitOnDelete = true
+	opts.SupportsOrderByOnUpdate = false
+	opts.SupportsLimitOnUpdate = false
+	opts.SupportsLimitOnDelete = false
 	opts.SupportsOrderByOnDelete = true
 	opts.SupportsConflictUpdateWhere = false
-	opts.SupportsInsertIgnoreSyntax = true
+	opts.SupportsInsertIgnoreSyntax = false
 	opts.SupportsConflictTarget = false
 	opts.SupportsWithCTE = false
 	opts.SupportsWithCTERecursive = false
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
 
-	opts.UseFromClauseForMultipleUpdateTables = false
-
-	opts.PlaceHolderFragment = []byte("?")
-	opts.IncludePlaceholderNum = false
-	opts.QuoteRune = '`'
+	opts.PlaceHolderFragment = []byte("@p")
+	opts.LimitFragment = []byte(" TOP ")
+	opts.IncludePlaceholderNum = true
 	opts.DefaultValuesFragment = []byte("")
 	opts.True = []byte("1")
 	opts.False = []byte("0")
@@ -39,10 +40,10 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		exp.LteOp:            []byte("<="),
 		exp.InOp:             []byte("IN"),
 		exp.NotInOp:          []byte("NOT IN"),
-		exp.IsOp:             []byte("IS"),
+		exp.IsOp:             []byte("="),
 		exp.IsNotOp:          []byte("IS NOT"),
-		exp.LikeOp:           []byte("LIKE BINARY"),
-		exp.NotLikeOp:        []byte("NOT LIKE BINARY"),
+		exp.LikeOp:           []byte("LIKE"),
+		exp.NotLikeOp:        []byte("NOT LIKE"),
 		exp.ILikeOp:          []byte("LIKE"),
 		exp.NotILikeOp:       []byte("NOT LIKE"),
 		exp.RegexpLikeOp:     []byte("REGEXP BINARY"),
@@ -50,6 +51,23 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		exp.RegexpILikeOp:    []byte("REGEXP"),
 		exp.RegexpNotILikeOp: []byte("NOT REGEXP"),
 	}
+
+	opts.FetchFragment = []byte(" FETCH FIRST ")
+
+	opts.SelectSQLOrder = []sqlgen.SQLFragmentType{
+		sqlgen.CommonTableSQLFragment,
+		sqlgen.SelectWithLimitSQLFragment,
+		sqlgen.FromSQLFragment,
+		sqlgen.JoinSQLFragment,
+		sqlgen.WhereSQLFragment,
+		sqlgen.GroupBySQLFragment,
+		sqlgen.HavingSQLFragment,
+		sqlgen.WindowSQLFragment,
+		sqlgen.CompoundsSQLFragment,
+		sqlgen.OrderWithOffsetFetchSQLFragment,
+		sqlgen.ForSQLFragment,
+	}
+
 	opts.EscapedRunes = map[rune][]byte{
 		'\'': []byte("\\'"),
 		'"':  []byte("\\\""),
@@ -59,20 +77,14 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		0:    []byte("\\x00"),
 		0x1a: []byte("\\x1a"),
 	}
-	opts.InsertIgnoreClause = []byte("INSERT IGNORE INTO")
-	opts.ConflictFragment = []byte("")
-	opts.ConflictDoUpdateFragment = []byte(" ON DUPLICATE KEY UPDATE ")
-	opts.ConflictDoNothingFragment = []byte("")
-	return opts
-}
 
-func DialectOptionsV8() *goqu.SQLDialectOptions {
-	opts := DialectOptions()
-	opts.SupportsWindowFunction = true
+	opts.ConflictFragment = []byte("")
+	opts.ConflictDoUpdateFragment = []byte("")
+	opts.ConflictDoNothingFragment = []byte("")
+
 	return opts
 }
 
 func init() {
-	goqu.RegisterDialect("mysql", DialectOptions())
-	goqu.RegisterDialect("mysql8", DialectOptionsV8())
+	goqu.RegisterDialect("sqlserver", DialectOptions())
 }

@@ -7,7 +7,7 @@ on:
   pull_request:  # Specify a second event with pattern matching
 jobs:
   test:
-    name: Test go - ${{ matrix.go_version }} mysql - ${{ matrix.db_versions.mysql_version}} postgres - ${{ matrix.db_versions.postgres_version}}
+    name: Test go - ${{ matrix.go_version }} mysql - ${{ matrix.db_versions.mysql_version}} postgres - ${{ matrix.db_versions.postgres_version}} sqlserver- ${{ matrix.db_versions.sqlserver_version}}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -15,10 +15,13 @@ jobs:
         db_versions:
         - mysql_version: 5
           postgres_version: 9.6
+          sqlserver_version: "2017-CU8-ubuntu"
         - mysql_version: 5
           postgres_version: "10.10"
+          sqlserver_version: "2017-CU8-ubuntu"
         - mysql_version: 8
           postgres_version: 11.5
+          sqlserver_version: "2017-CU8-ubuntu"
     steps:
     - name: checkout
       uses: actions/checkout@v1
@@ -27,6 +30,7 @@ jobs:
         GO_VERSION: ${{ matrix.go_version }}
         MYSQL_VERSION: ${{ matrix.db_versions.mysql_version }}
         POSTGRES_VERSION: ${{ matrix.db_versions.postgres_version }}
+        SQLSERVER_VERSION: ${{ matrix.db.versions.sqlserver_version }}
       run: docker-compose run goqu-coverage
     - name: Upload coverage to Codecov
       run: bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN -n $GO_VERSION -e GO_VERSION,MYSQL_VERSION,POSTGRES_VERSION,GITHUB_WORKFLOW,GITHUB_ACTION
@@ -35,3 +39,4 @@ jobs:
         GO_VERSION: ${{ matrix.go_version }}
         MYSQL_VERSION: ${{ matrix.db_versions.mysql_version }}
         POSTGRES_VERSION: ${{ matrix.db_versions.postgres_version }}
+        SQLSERVER_VERSION: ${{ matrix.db.versions.sqlserver_version }}

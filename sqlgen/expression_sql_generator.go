@@ -191,7 +191,7 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 
 // Generates a placeholder (e.g. ?, $1)
 func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}) {
-	b.WriteRunes(esg.dialectOptions.PlaceHolderRune)
+	b.Write(esg.dialectOptions.PlaceHolderFragment)
 	if esg.dialectOptions.IncludePlaceholderNum {
 		b.WriteStrings(strconv.FormatInt(int64(b.CurrentArgPosition()), 10))
 	}
