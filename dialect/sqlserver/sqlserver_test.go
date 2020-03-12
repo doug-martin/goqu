@@ -3,10 +3,11 @@ package sqlserver_test
 import (
 	"database/sql"
 	"fmt"
-	"github.com/doug-martin/goqu/v9/dialect/mysql"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/doug-martin/goqu/v9/dialect/mysql"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/doug-martin/goqu/v9"
@@ -377,10 +378,22 @@ func (mt *sqlserverTest) TestInsert() {
 	mt.True(insertedEntry.ID > 0)
 
 	entries := []goqu.Record{
-		{"Int": 11, "Float": 1.100000, "String": "1.100000", "Time": now, "Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.100000")), "BINARY(8)")},
-		{"Int": 12, "Float": 1.200000, "String": "1.200000", "Time": now, "Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.200000")), "BINARY(8)")},
-		{"Int": 13, "Float": 1.300000, "String": "1.300000", "Time": now, "Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.300000")), "BINARY(8)")},
-		{"Int": 14, "Float": 1.400000, "String": "1.400000", "Time": now, "Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.400000")), "BINARY(8)")},
+		{
+			"Int": 11, "Float": 1.100000, "String": "1.100000", "Time": now,
+			"Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.100000")), "BINARY(8)"),
+		},
+		{
+			"Int": 12, "Float": 1.200000, "String": "1.200000", "Time": now,
+			"Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.200000")), "BINARY(8)"),
+		},
+		{
+			"Int": 13, "Float": 1.300000, "String": "1.300000", "Time": now,
+			"Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.300000")), "BINARY(8)"),
+		},
+		{
+			"Int": 14, "Float": 1.400000, "String": "1.400000", "Time": now,
+			"Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.400000")), "BINARY(8)"),
+		},
 	}
 	_, err = ds.Insert().Rows(entries).Executor().Exec()
 	mt.NoError(err)
@@ -392,16 +405,31 @@ func (mt *sqlserverTest) TestInsert() {
 		mt.Equal(entries[i]["Int"], e.Int)
 		mt.Equal(entries[i]["Float"], e.Float)
 		mt.Equal(entries[i]["String"], e.String)
-		mt.Equal(entries[i]["Time"].(time.Time).UTC().Format(mysql.DialectOptions().TimeFormat), e.Time.Format(mysql.DialectOptions().TimeFormat))
+		mt.Equal(
+			entries[i]["Time"].(time.Time).UTC().Format(mysql.DialectOptions().TimeFormat),
+			e.Time.Format(mysql.DialectOptions().TimeFormat),
+		)
 		mt.Equal(entries[i]["Bool"], e.Bool)
 		mt.Equal([]byte(entries[i]["String"].(string)), e.Bytes)
 	}
 
 	_, err = ds.Insert().Rows(
-		goqu.Record{"Int": 15, "Float": 1.500000, "String": "1.500000", "Time": now, "Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.500000")), "BINARY(8)")},
-		goqu.Record{"Int": 16, "Float": 1.600000, "String": "1.600000", "Time": now, "Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.600000")), "BINARY(8)")},
-		goqu.Record{"Int": 17, "Float": 1.700000, "String": "1.700000", "Time": now, "Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.700000")), "BINARY(8)")},
-		goqu.Record{"Int": 18, "Float": 1.800000, "String": "1.800000", "Time": now, "Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.800000")), "BINARY(8)")},
+		goqu.Record{
+			"Int": 15, "Float": 1.500000, "String": "1.500000", "Time": now,
+			"Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.500000")), "BINARY(8)"),
+		},
+		goqu.Record{
+			"Int": 16, "Float": 1.600000, "String": "1.600000", "Time": now,
+			"Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.600000")), "BINARY(8)"),
+		},
+		goqu.Record{
+			"Int": 17, "Float": 1.700000, "String": "1.700000", "Time": now,
+			"Bool": false, "Bytes": goqu.Cast(goqu.V([]byte("1.700000")), "BINARY(8)"),
+		},
+		goqu.Record{
+			"Int": 18, "Float": 1.800000, "String": "1.800000", "Time": now,
+			"Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.800000")), "BINARY(8)"),
+		},
 	).Executor().Exec()
 	mt.NoError(err)
 
@@ -481,9 +509,18 @@ func (mt *sqlserverTest) TestInsertIgnoreNotSupported() {
 
 	// insert one
 	entries := []goqu.Record{
-		{"Int": 8, "Float": 6.100000, "String": "6.100000", "Bool": false, "Time": now, "Bytes": goqu.Cast(goqu.V([]byte("6.100000")), "BINARY(8)")},
-		{"Int": 9, "Float": 7.200000, "String": "7.200000", "Bool": false, "Time": now, "Bytes": goqu.Cast(goqu.V([]byte("7.200000")), "BINARY(8)")},
-		{"Int": 10, "Float": 7.200000, "String": "7.200000", "Bool": false, "Time": now, "Bytes": goqu.Cast(goqu.V([]byte("7.200000")), "BINARY(8)")},
+		{
+			"Int": 8, "Float": 6.100000, "String": "6.100000", "Bool": false, "Time": now,
+			"Bytes": goqu.Cast(goqu.V([]byte("6.100000")), "BINARY(8)"),
+		},
+		{
+			"Int": 9, "Float": 7.200000, "String": "7.200000", "Bool": false, "Time": now,
+			"Bytes": goqu.Cast(goqu.V([]byte("7.200000")), "BINARY(8)"),
+		},
+		{
+			"Int": 10, "Float": 7.200000, "String": "7.200000", "Bool": false, "Time": now,
+			"Bytes": goqu.Cast(goqu.V([]byte("7.200000")), "BINARY(8)"),
+		},
 	}
 	_, err := ds.Insert().Rows(entries).OnConflict(goqu.DoNothing()).Executor().Exec()
 	mt.Error(err)
