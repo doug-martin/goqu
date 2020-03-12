@@ -14,9 +14,6 @@ jobs:
         go_version: ["1.10", "1.11", "latest"]
         db_versions:
         - mysql_version: 5
-          postgres_version: 9.6
-          sqlserver_version: "2017-CU8-ubuntu"
-        - mysql_version: 5
           postgres_version: "10.10"
           sqlserver_version: "2017-CU8-ubuntu"
         - mysql_version: 8
