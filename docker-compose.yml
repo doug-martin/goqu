@@ -34,7 +34,7 @@ services:
     environment:
       MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
       PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
-      SQLSERVER_URI: 'sqlserver://sa@sqlserver:1433?database=master&connection+timeout=30'
+      SQLSERVER_URI: 'sqlserver://sa:qwe123QWE@sqlserver:1433?database=master&connection+timeout=30'
     depends_on:
       - postgres
       - mysql
@@ -48,7 +48,7 @@ services:
     environment:
       MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
       PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
-      SQLSERVER_URI: 'sqlserver://sa@sqlserver:1433?database=master&connection+timeout=30'
+      SQLSERVER_URI: 'sqlserver://sa:qwe123QWE@sqlserver:1433?database=master&connection+timeout=30'
     depends_on:
       - postgres
       - mysql
