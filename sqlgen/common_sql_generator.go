@@ -81,7 +81,7 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 	order exp.ColumnListExpression,
 	offset uint,
 	limit interface{},
-){
+) {
 	if order == nil {
 		return
 	}
