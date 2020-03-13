@@ -6,6 +6,7 @@ services:
     environment:
       - "POSTGRES_USER=postgres"
       - "POSTGRES_DB=goqupostgres"
+      - "POSTGRES_HOST_AUTH_METHOD=trust"
     expose:
       - "5432"
 
@@ -27,7 +28,7 @@ services:
 
   goqu:
     image: "golang:${GO_VERSION}"
-    command: bash -c "sleep 30 && go test -v -race ./..."
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "go test -v -race ./..."]
     working_dir: /go/src/github.com/doug-martin/goqu
     volumes:
       - "./:/go/src/github.com/doug-martin/goqu"
@@ -41,7 +42,7 @@ services:
       - sqlserver
   goqu-coverage:
     image: "golang:${GO_VERSION}"
-    command: bash -c "sleep 30 && ./go.test.sh"
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "./go.test.sh"]
     working_dir: /go/src/github.com/doug-martin/goqu
     volumes:
       - "./:/go/src/github.com/doug-martin/goqu"
