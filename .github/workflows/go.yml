@@ -13,12 +13,15 @@ jobs:
       matrix:
         go_version: ["1.10", "1.11", "latest"]
         db_versions:
-        - mysql_version: 5
-          postgres_version: "10.10"
-          sqlserver_version: "2017-CU8-ubuntu"
-        - mysql_version: 8
-          postgres_version: 11.5
-          sqlserver_version: "2017-CU8-ubuntu"
+          - mysql_version: 5
+            postgres_version: 9.6
+            sqlserver_version: "2017-CU8-ubuntu"
+          - mysql_version: 5
+            postgres_version: "10.10"
+            sqlserver_version: "2017-CU8-ubuntu"
+          - mysql_version: 8
+            postgres_version: 11.5
+            sqlserver_version: "2017-CU8-ubuntu"
     steps:
     - name: checkout
       uses: actions/checkout@v1
