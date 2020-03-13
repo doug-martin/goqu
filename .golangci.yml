@@ -45,6 +45,9 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - dupl
+    - gomnd
+    - funlen
+    - wsl
 
 run:
   skip-dirs:
