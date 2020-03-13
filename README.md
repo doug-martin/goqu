@@ -64,7 +64,7 @@ We tried a few other sql builders but each was a thin wrapper around sql fragmen
 
 ## Docs
 
-* [Dialect](./docs/dialect.md) - Introduction to different dialects (`mysql`, `postgres`, `sqlite3` etc) 
+* [Dialect](./docs/dialect.md) - Introduction to different dialects (`mysql`, `postgres`, `sqlite3`, `sqlserver` etc) 
 * [Expressions](./docs/expressions.md) - Introduction to `goqu` expressions and common examples.
 * [Select Dataset](./docs/selecting.md) - Docs and examples about creating and executing SELECT sql statements.
 * [Insert Dataset](./docs/inserting.md) - Docs and examples about creating and executing INSERT sql statements.
