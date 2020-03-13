@@ -241,7 +241,7 @@ type (
 		// The order of SQL fragments when creating a SELECT statement
 		// (Default=[]SQLFragmentType{
 		// 		CommonTableSQLFragment,
-		// 		SelectSQLFragment or SelectWithLimitSQLFragment,
+		// 		SelectSQLFragment,
 		// 		FromSQLFragment,
 		// 		JoinSQLFragment,
 		// 		WhereSQLFragment,

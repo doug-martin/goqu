@@ -120,7 +120,7 @@ if err != nil{
 
 Output:
 ```
-SELECT * FROM `test` WHERE `id` = 10 []
+SELECT * FROM "test" WHERE "id" = 10 []
 
 ### Executing Queries 
 
