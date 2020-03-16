@@ -64,7 +64,7 @@ We tried a few other sql builders but each was a thin wrapper around sql fragmen
 
 ## Docs
 
-* [Dialect](./docs/dialect.md) - Introduction to different dialects (`mysql`, `postgres`, `sqlite3` etc) 
+* [Dialect](./docs/dialect.md) - Introduction to different dialects (`mysql`, `postgres`, `sqlite3`, `sqlserver` etc) 
 * [Expressions](./docs/expressions.md) - Introduction to `goqu` expressions and common examples.
 * [Select Dataset](./docs/selecting.md) - Docs and examples about creating and executing SELECT sql statements.
 * [Insert Dataset](./docs/inserting.md) - Docs and examples about creating and executing INSERT sql statements.
@@ -288,7 +288,7 @@ If you find an issue you want to work on please comment on it letting other peop
 If want to work on an issue but dont know where to start just leave a comment and I'll be more than happy to point you in the right direction.
 
 ### Running tests
-The test suite requires a postgres and mysql database. You can override the mysql/postgres connection strings with the [`MYSQL_URI` and `PG_URI` environment variables](https://github.com/doug-martin/goqu/blob/2fe3349/docker-compose.yml#L26)*
+The test suite requires a postgres, mysql and sqlserver databases. You can override the connection strings with the [`MYSQL_URI`, `PG_URI`, `SQLSERVER_URI` environment variables](https://github.com/doug-martin/goqu/blob/2fe3349/docker-compose.yml#L26)*
 
 ```sh
 go test -v -race ./...

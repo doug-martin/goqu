@@ -56,6 +56,8 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 			ssg.esg.Generate(b, clauses.CommonTables())
 		case SelectSQLFragment:
 			ssg.SelectSQL(b, clauses)
+		case SelectWithLimitSQLFragment:
+			ssg.SelectWithLimitSQL(b, clauses)
 		case FromSQLFragment:
 			ssg.FromSQL(b, clauses.From())
 		case JoinSQLFragment:
@@ -72,6 +74,8 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 			ssg.CompoundsSQL(b, clauses.Compounds())
 		case OrderSQLFragment:
 			ssg.OrderSQL(b, clauses.Order())
+		case OrderWithOffsetFetchSQLFragment:
+			ssg.OrderWithOffsetFetchSQL(b, clauses.Order(), clauses.Offset(), clauses.Limit())
 		case LimitSQLFragment:
 			ssg.LimitSQL(b, clauses.Limit())
 		case OffsetSQLFragment:
@@ -84,10 +88,7 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 	}
 }
 
-// Adds the SELECT clause and columns to a sql statement
-func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
-	b.Write(ssg.dialectOptions.SelectClause).
-		WriteRunes(ssg.dialectOptions.SpaceRune)
+func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	dc := clauses.Distinct()
 	if dc != nil {
 		b.Write(ssg.dialectOptions.DistinctFragment)
@@ -110,6 +111,22 @@ func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClau
 	} else {
 		ssg.esg.Generate(b, cols)
 	}
+}
+
+// Adds the SELECT clause and columns to a sql statement
+func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
+	b.Write(ssg.dialectOptions.SelectClause).WriteRunes(ssg.dialectOptions.SpaceRune)
+	ssg.selectSQLCommon(b, clauses)
+}
+
+// Adds the SELECT clause along with LIMIT to a SQL statement (e.g. MSSQL dialect: SELECT TOP 10 ...)
+func (ssg *selectSQLGenerator) SelectWithLimitSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
+	b.Write(ssg.dialectOptions.SelectClause).WriteRunes(ssg.dialectOptions.SpaceRune)
+	if clauses.Offset() == 0 && clauses.Limit() != nil {
+		ssg.LimitSQL(b, clauses.Limit())
+		b.WriteRunes(ssg.dialectOptions.SpaceRune)
+	}
+	ssg.selectSQLCommon(b, clauses)
 }
 
 // Generates the JOIN clauses for an SQL statement

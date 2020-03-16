@@ -1,3 +1,7 @@
+# v9.7.0
+
+* [ADDED] Support for sqlserver dialect [#197](https://github.com/doug-martin/goqu/issues/197),[#205](https://github.com/doug-martin/goqu/issues/205) - [@vlanse](https://github.com/vlanse)
+
 # v9.6.0
 
 * [ADDED] Support for Lateral queries [#182](https://github.com/doug-martin/goqu/issues/182)
