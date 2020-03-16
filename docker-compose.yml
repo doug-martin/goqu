@@ -18,6 +18,14 @@ services:
     expose:
       - "3306"
 
+  sqlserver:
+    image: "mcr.microsoft.com/mssql/server:${SQLSERVER_VERSION}"
+    environment:
+      - "ACCEPT_EULA=Y"
+      - "SA_PASSWORD=qwe123QWE"
+    expose:
+      - "1433"
+
   goqu:
     image: "golang:${GO_VERSION}"
     command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "go test -v -race ./..."]
@@ -27,9 +35,11 @@ services:
     environment:
       MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
       PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
+      SQLSERVER_URI: 'sqlserver://sa:qwe123QWE@sqlserver:1433?database=master&connection+timeout=30'
     depends_on:
       - postgres
       - mysql
+      - sqlserver
   goqu-coverage:
     image: "golang:${GO_VERSION}"
     command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "./go.test.sh"]
@@ -39,6 +49,8 @@ services:
     environment:
       MYSQL_URI: 'root@tcp(mysql:3306)/goqumysql?parseTime=true'
       PG_URI: 'postgres://postgres:@postgres:5432/goqupostgres?sslmode=disable'
+      SQLSERVER_URI: 'sqlserver://sa:qwe123QWE@sqlserver:1433?database=master&connection+timeout=30'
     depends_on:
       - postgres
       - mysql
+      - sqlserver

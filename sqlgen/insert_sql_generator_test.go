@@ -101,7 +101,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_colsAndVals() {
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
 	opts.CommaRune = ';'
-	opts.PlaceHolderRune = '#'
+	opts.PlaceHolderFragment = []byte("#")
 
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
@@ -139,7 +139,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withNoInto() {
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
 	opts.CommaRune = ';'
-	opts.PlaceHolderRune = '#'
+	opts.PlaceHolderFragment = []byte("#")
 
 	ic := exp.NewInsertClauses().
 		SetCols(exp.NewColumnListExpression("a", "b")).
@@ -163,7 +163,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withRows() {
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
 	opts.CommaRune = ';'
-	opts.PlaceHolderRune = '#'
+	opts.PlaceHolderFragment = []byte("#")
 
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).

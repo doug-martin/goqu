@@ -76,6 +76,30 @@ func (csg *commonSQLGenerator) OrderSQL(b sb.SQLBuilder, order exp.ColumnListExp
 	}
 }
 
+func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
+	b sb.SQLBuilder,
+	order exp.ColumnListExpression,
+	offset uint,
+	limit interface{},
+) {
+	if order == nil {
+		return
+	}
+
+	csg.OrderSQL(b, order)
+	if offset > 0 {
+		b.Write(csg.dialectOptions.OffsetFragment)
+		csg.esg.Generate(b, offset)
+		b.Write([]byte(" ROWS"))
+
+		if limit != nil {
+			b.Write(csg.dialectOptions.FetchFragment)
+			csg.esg.Generate(b, limit)
+			b.Write([]byte(" ROWS ONLY"))
+		}
+	}
+}
+
 // Generates the LIMIT clause for an SQL statement
 func (csg *commonSQLGenerator) LimitSQL(b sb.SQLBuilder, limit interface{}) {
 	if limit != nil {

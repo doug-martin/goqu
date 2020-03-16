@@ -102,6 +102,8 @@ type (
 		WindowOverFragment []byte
 		// The SQL ORDER BY clause fragment(DEFAULT=[]byte(" ORDER BY "))
 		OrderByFragment []byte
+		// The SQL FETCH fragment(DEFAULT=[]byte(" "))
+		FetchFragment []byte
 		// The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
 		LimitFragment []byte
 		// The SQL OFFSET BY clause fragment(DEFAULT=[]byte(" OFFSET "))
@@ -156,8 +158,8 @@ type (
 		StringQuote rune
 		// The operator to use when setting values in an update statement (DEFAULT='=')
 		SetOperatorRune rune
-		// The placeholder rune to use when generating a non interpolated statement (DEFAULT='?')
-		PlaceHolderRune rune
+		// The placeholder fragment to use when generating a non interpolated statement (DEFAULT=[]byte"?")
+		PlaceHolderFragment []byte
 		// Empty string (DEFAULT="")
 		EmptyString string
 		// Comma rune (DEFAULT=',')
@@ -299,6 +301,7 @@ type (
 const (
 	CommonTableSQLFragment = iota
 	SelectSQLFragment
+	SelectWithLimitSQLFragment
 	FromSQLFragment
 	JoinSQLFragment
 	WhereSQLFragment
@@ -306,6 +309,7 @@ const (
 	HavingSQLFragment
 	CompoundsSQLFragment
 	OrderSQLFragment
+	OrderWithOffsetFetchSQLFragment
 	LimitSQLFragment
 	OffsetSQLFragment
 	ForSQLFragment
@@ -420,6 +424,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		WindowOrderByFragment:     []byte("ORDER BY "),
 		WindowOverFragment:        []byte(" OVER "),
 		OrderByFragment:           []byte(" ORDER BY "),
+		FetchFragment:             []byte(" "),
 		LimitFragment:             []byte(" LIMIT "),
 		OffsetFragment:            []byte(" OFFSET "),
 		ForUpdateFragment:         []byte(" FOR UPDATE "),
@@ -448,17 +453,17 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		True:                      []byte("TRUE"),
 		False:                     []byte("FALSE"),
 
-		PlaceHolderRune: '?',
-		QuoteRune:       '"',
-		StringQuote:     '\'',
-		SetOperatorRune: '=',
-		CommaRune:       ',',
-		SpaceRune:       ' ',
-		LeftParenRune:   '(',
-		RightParenRune:  ')',
-		StarRune:        '*',
-		PeriodRune:      '.',
-		EmptyString:     "",
+		PlaceHolderFragment: []byte("?"),
+		QuoteRune:           '"',
+		StringQuote:         '\'',
+		SetOperatorRune:     '=',
+		CommaRune:           ',',
+		SpaceRune:           ' ',
+		LeftParenRune:       '(',
+		RightParenRune:      ')',
+		StarRune:            '*',
+		PeriodRune:          '.',
+		EmptyString:         "",
 
 		BooleanOperatorLookup: map[exp.BooleanOperation][]byte{
 			exp.EqOp:             []byte("="),

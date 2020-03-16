@@ -3,4 +3,4 @@
 phony:
 
 lint:
-	docker run --rm -v ${CURDIR}:/app -w /app golangci/golangci-lint:v1.21.0 golangci-lint run -v
+	docker run --rm -v ${CURDIR}:/app -w /app golangci/golangci-lint:v1.23.8 golangci-lint run -v

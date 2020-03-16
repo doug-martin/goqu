@@ -135,7 +135,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnsupportedType() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {
 	opts := DefaultDialectOptions()
 	opts.IncludePlaceholderNum = true
-	opts.PlaceHolderRune = '$'
+	opts.PlaceHolderFragment = []byte("$")
 	ex := exp.Ex{
 		"a": 1,
 		"b": true,

@@ -23,7 +23,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 
 	opts.UseFromClauseForMultipleUpdateTables = false
 
-	opts.PlaceHolderRune = '?'
+	opts.PlaceHolderFragment = []byte("?")
 	opts.IncludePlaceholderNum = false
 	opts.QuoteRune = '`'
 	opts.DefaultValuesFragment = []byte("")

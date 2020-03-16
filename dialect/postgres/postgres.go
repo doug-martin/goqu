@@ -6,7 +6,7 @@ import (
 
 func DialectOptions() *goqu.SQLDialectOptions {
 	do := goqu.DefaultDialectOptions()
-	do.PlaceHolderRune = '$'
+	do.PlaceHolderFragment = []byte("$")
 	do.IncludePlaceholderNum = true
 	return do
 }
