@@ -29,7 +29,6 @@ func (bsgs *baseSQLGeneratorSuite) assertPreparedSQL(
 	} else {
 		bsgs.Equal(expectedArgs, actualArgs)
 	}
-
 }
 
 func (bsgs *baseSQLGeneratorSuite) assertErrorSQL(b sb.SQLBuilder, errMsg string) {

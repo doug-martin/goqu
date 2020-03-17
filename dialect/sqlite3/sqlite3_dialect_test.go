@@ -192,7 +192,6 @@ func (sds *sqlite3DialectSuite) TestBooleanOperations() {
 	sql, _, err = ds.Where(goqu.C("a").NotILike(regexp.MustCompile("(a|b)"))).ToSQL()
 	sds.NoError(err)
 	sds.Equal("SELECT * FROM `test` WHERE (`a` NOT REGEXP '(a|b)')", sql)
-
 }
 
 func TestDatasetAdapterSuite(t *testing.T) {

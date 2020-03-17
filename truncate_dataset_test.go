@@ -278,7 +278,6 @@ func (tds *truncateDatasetSuite) TestExecutor() {
 }
 
 func (tds *truncateDatasetSuite) TestSetError() {
-
 	err1 := errors.New("error #1")
 	err2 := errors.New("error #2")
 	err3 := errors.New("error #3")

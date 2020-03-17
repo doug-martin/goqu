@@ -122,7 +122,7 @@ type (
 		SkipLockedFragment []byte
 		// The SQL AS fragment when aliasing an Expression(DEFAULT=[]byte(" AS "))
 		AsFragment []byte
-		/// The SQL LATERAL fragment used for LATERAL joins
+		// The SQL LATERAL fragment used for LATERAL joins
 		LateralFragment []byte
 		// The quote rune to use when quoting identifiers(DEFAULT='"')
 		QuoteRune rune
@@ -326,7 +326,7 @@ const (
 	WindowSQLFragment
 )
 
-// nolint:gocyclo
+// nolint:gocyclo // simple type to string conversion
 func (sf SQLFragmentType) String() string {
 	switch sf {
 	case CommonTableSQLFragment:

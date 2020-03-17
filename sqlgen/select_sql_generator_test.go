@@ -240,7 +240,6 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withJoin() {
 		selectTestCase{clause: sc.JoinsAppend(badJoin), err: expectedJoinCondError},
 		selectTestCase{clause: sc.JoinsAppend(badJoin), err: expectedJoinCondError, isPrepared: true},
 	)
-
 }
 
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withWhere() {
@@ -470,7 +469,6 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOffset() {
 }
 
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withCommonTables() {
-
 	tse := newTestAppendableExpression("select * from foo", emptyArgs, nil, nil)
 
 	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test_cte"))
@@ -485,7 +483,6 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withCommonTables() {
 		selectTestCase{clause: scCte2, sql: `WITH RECURSIVE test_cte AS (select * from foo) SELECT * FROM "test_cte"`},
 		selectTestCase{clause: scCte2, sql: `WITH RECURSIVE test_cte AS (select * from foo) SELECT * FROM "test_cte"`, isPrepared: true},
 	)
-
 }
 
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withCompounds() {

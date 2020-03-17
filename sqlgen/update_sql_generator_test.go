@@ -68,7 +68,6 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_empty() {
 		updateTestCase{clause: uc, err: errNoSourceForUpdate.Error()},
 		updateTestCase{clause: uc, err: errNoSourceForUpdate.Error(), isPrepared: true},
 	)
-
 }
 
 func (usgs *updateSQLGeneratorSuite) TestGenerate_withBadUpdateValues() {
@@ -138,7 +137,6 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 }
 
 func (usgs *updateSQLGeneratorSuite) TestGenerate_withUpdateExpression() {
-
 	opts := DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SetFragment = []byte(" set ")

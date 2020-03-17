@@ -37,7 +37,6 @@ func (csgs *commonSQLGeneratorSuite) assertCases(testCases ...commonSQLTestCase)
 }
 
 func (csgs *commonSQLGeneratorSuite) TestReturningSQL() {
-
 	returningGen := func(csgs *commonSQLGenerator) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
 			csgs.ReturningSQL(sb, exp.NewColumnListExpression("a", "b"))
@@ -126,7 +125,6 @@ func (csgs *commonSQLGeneratorSuite) TestFromSQL() {
 }
 
 func (csgs *commonSQLGeneratorSuite) TestWhereSQL() {
-
 	whereAndGen := func(csgs *commonSQLGenerator, exps ...exp.Expression) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
 			csgs.WhereSQL(sb, exp.NewExpressionList(exp.AndType, exps...))
@@ -198,7 +196,6 @@ func (csgs *commonSQLGeneratorSuite) TestWhereSQL() {
 }
 
 func (csgs *commonSQLGeneratorSuite) TestOrderSQL() {
-
 	orderGen := func(csgs *commonSQLGenerator, o ...exp.OrderedExpression) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
 			csgs.OrderSQL(sb, exp.NewOrderedColumnList(o...))

@@ -133,7 +133,6 @@ func ExampleDatabase_ExecContext() {
 }
 
 func ExampleDatabase_From() {
-
 	db := getDb()
 	var names []string
 

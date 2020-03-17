@@ -177,7 +177,6 @@ func ExampleDialect_datasetSqlite3() {
 // Creating a sqlite3 database. Be sure to import the sqlite3 adapter
 func ExampleDialect_dbSqlite3() {
 	// import _ "github.com/doug-martin/goqu/v9/adapters/sqlite3"
-
 	type item struct {
 		ID      int64  `db:"id"`
 		Address string `db:"address"`
@@ -225,7 +224,6 @@ func ExampleDialect_dbSqlite3() {
 }
 
 func ExampleSetTimeLocation() {
-
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	if err != nil {
 		panic(err)

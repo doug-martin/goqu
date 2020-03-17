@@ -37,8 +37,7 @@ var (
 	errEmptyIdentifier = errors.New(
 		`a empty identifier was encountered, please specify a "schema", "table" or "column"`,
 	)
-	errUnexpectedNamedWindow                  = errors.New(`unexpected named window function`)
-	errNoReturnColumnsForAppendableExpression = errors.New(`no return columns found for appendable expression`)
+	errUnexpectedNamedWindow = errors.New(`unexpected named window function`)
 )
 
 func errUnsupportedExpressionType(e exp.Expression) error {
@@ -144,6 +143,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	}
 }
 
+// nolint:gocyclo // not complex just long
 func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp.Expression) {
 	switch e := expression.(type) {
 	case exp.ColumnListExpression:
@@ -630,7 +630,6 @@ func (esg *expressionSQLGenerator) compoundExpressionSQL(b sb.SQLBuilder, compou
 	} else {
 		compound.RHS().AppendSQL(b)
 	}
-
 }
 
 func (esg *expressionSQLGenerator) expressionMapSQL(b sb.SQLBuilder, ex exp.Ex) {

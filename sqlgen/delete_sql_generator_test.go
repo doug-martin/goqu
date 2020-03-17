@@ -48,7 +48,6 @@ func (dsgs *deleteSQLGeneratorSuite) TestDialect() {
 }
 
 func (dsgs *deleteSQLGeneratorSuite) TestGenerate() {
-
 	dc := exp.NewDeleteClauses().
 		SetFrom(exp.NewIdentifierExpression("", "test", ""))
 

@@ -24,7 +24,7 @@ func (dtml *dbTestMockLogger) Printf(format string, v ...interface{}) {
 	dtml.Messages = append(dtml.Messages, fmt.Sprintf(format, v...))
 }
 
-func (dtml *dbTestMockLogger) Reset(format string, v ...interface{}) {
+func (dtml *dbTestMockLogger) Reset() {
 	dtml.Messages = dtml.Messages[0:0]
 }
 

@@ -1,4 +1,4 @@
-// nolint:lll
+// nolint:lll // sql statements are long
 package goqu_test
 
 import (
@@ -125,7 +125,6 @@ func ExampleAnd_withExOr() {
 }
 
 func ExampleC() {
-
 	sql, args, _ := goqu.From("test").
 		Select(goqu.C("*")).
 		ToSQL()
@@ -494,7 +493,6 @@ func ExampleDefault() {
 	// Output:
 	// INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT) []
 	// INSERT INTO "items" ("address", "name") VALUES (DEFAULT, DEFAULT) []
-
 }
 
 func ExampleDoNothing() {
@@ -515,7 +513,6 @@ func ExampleDoNothing() {
 	// Output:
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Address', 'bob') ON CONFLICT DO NOTHING []
 	// INSERT INTO "items" ("address", "name") VALUES (?, ?) ON CONFLICT DO NOTHING [111 Address bob]
-
 }
 
 func ExampleDoUpdate() {
@@ -1231,7 +1228,6 @@ func ExampleUsing_withIdentifier() {
 }
 
 func ExampleEx() {
-
 	ds := goqu.From("items").Where(
 		goqu.Ex{
 			"col1": "a",
@@ -1291,7 +1287,7 @@ func ExampleExOr() {
 	).ToSQL()
 	fmt.Println(sql, args)
 
-	// nolint:lll
+	// nolint:lll // sql statements are long
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c'))) []
 }
@@ -1333,11 +1329,9 @@ func ExampleExOr_withOp() {
 	// SELECT * FROM "items" WHERE (("col1" > 1) OR ("col2" >= 1) OR ("col3" < 1) OR ("col4" <= 1))
 	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') OR ("col2" NOT LIKE 'a%') OR ("col3" ILIKE 'a%') OR ("col4" NOT ILIKE 'a%'))
 	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') OR ("col2" !~ '^(a|b)') OR ("col3" ~* '^(a|b)') OR ("col4" !~* '^(a|b)'))
-
 }
 
 func ExampleOp_comparisons() {
-
 	ds := goqu.From("test").Where(goqu.Ex{
 		"a": 10,
 		"b": goqu.Op{"neq": 10},

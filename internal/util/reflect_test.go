@@ -89,7 +89,6 @@ type reflectTest struct {
 }
 
 func (rt *reflectTest) TestIsUint() {
-
 	for _, v := range uints {
 		rt.True(IsUint(reflect.ValueOf(v).Kind()))
 	}
@@ -408,7 +407,6 @@ func (rt *reflectTest) TestColumnRename() {
 }
 
 func (rt *reflectTest) TestParallelGetColumnMap() {
-
 	type item struct {
 		id   uint
 		name string
@@ -438,7 +436,6 @@ func (rt *reflectTest) TestParallelGetColumnMap() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStruct() {
-
 	type TestStruct struct {
 		Str    string
 		Int    int64
@@ -491,7 +488,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -521,7 +517,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -551,7 +546,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedStruct() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -581,7 +575,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedStruct()
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedPointer() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -611,7 +604,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedPointer(
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructField() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -641,7 +633,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructField() {
 }
 
 func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerField() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -671,7 +662,6 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerField() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStruct() {
-
 	type TestStruct struct {
 		Str    string
 		Int    int64
@@ -690,7 +680,6 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
-
 	type TestStruct struct {
 		Str    string `goqu:"skipinsert,skipupdate"`
 		Int    int64  `goqu:"skipinsert"`
@@ -718,7 +707,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
-
 	type TestStruct struct {
 		Str    string          `db:"s"`
 		Int    int64           `db:"i"`
@@ -737,7 +725,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
-
 	type TestStruct struct {
 		Str    string          `db:"s" goqu:"skipinsert,skipupdate"`
 		Int    int64           `db:"i" goqu:"skipinsert"`
@@ -756,7 +743,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
-
 	type TestStruct struct {
 		Str    string
 		Int    int64
@@ -774,7 +760,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
-
 	type TestStruct struct {
 		Str    string
 		Int    int64
@@ -793,15 +778,12 @@ func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withNonStruct() {
-
 	var v int64
 	_, err := GetColumnMap(&v)
 	rt.EqualError(err, "goqu: cannot scan into this type: int64")
-
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -823,7 +805,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -845,7 +826,6 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -866,7 +846,6 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
-
 	type EmbeddedStruct struct {
 		Str string
 	}
@@ -887,9 +866,8 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
-
 	type TestStruct struct {
-		str    string // nolint:structcheck,unused
+		str    string // nolint:structcheck,unused // not used directly but needed for test
 		Int    int64
 		Bool   bool
 		Valuer *sql.NullString
@@ -905,9 +883,8 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
-
 	type TestEmbedded struct {
-		str string // nolint:structcheck,unused
+		str string // nolint:structcheck,unused // not used directly but need for test
 		Int int64
 	}
 
@@ -927,7 +904,6 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStruct() {
-
 	type TestEmbedded struct {
 		Bool   bool
 		Valuer *sql.NullString
@@ -975,7 +951,6 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStruct() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStructPointer() {
-
 	type TestEmbedded struct {
 		Bool   bool
 		Valuer *sql.NullString
@@ -1022,7 +997,6 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStructPointer() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withTaggedStructField() {
-
 	type TestEmbedded struct {
 		Bool   bool
 		Valuer *sql.NullString
@@ -1070,7 +1044,6 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructField() {
 }
 
 func (rt *reflectTest) TestGetColumnMap_withTaggedStructPointerField() {
-
 	type TestEmbedded struct {
 		Bool   bool
 		Valuer *sql.NullString

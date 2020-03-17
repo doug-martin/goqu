@@ -62,7 +62,6 @@ func (qes *queryExecutorSuite) TestWithError() {
 }
 
 func (qes *queryExecutorSuite) TestToSQL() {
-
 	db, _, err := sqlmock.New()
 	qes.NoError(err)
 
@@ -71,7 +70,6 @@ func (qes *queryExecutorSuite) TestToSQL() {
 	qes.NoError(err)
 	qes.Equal(`SELECT * FROM "items"`, query)
 	qes.Empty(args)
-
 }
 
 func (qes *queryExecutorSuite) TestScanStructs_withTaggedFields() {
@@ -160,7 +158,7 @@ func (qes *queryExecutorSuite) TestScanStructs_withPointerFields() {
 
 func (qes *queryExecutorSuite) TestScanStructs_withPrivateFields() {
 	type StructWithPrivateTags struct {
-		private string // nolint:structcheck,unused
+		private string // nolint:structcheck,unused // need for test
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
@@ -1015,7 +1013,6 @@ func (qes *queryExecutorSuite) TestScanStruct_taggedStructs() {
 			Age:            testAge2,
 		},
 	}, item)
-
 }
 
 func (qes *queryExecutorSuite) TestScanVals() {

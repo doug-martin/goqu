@@ -72,7 +72,6 @@ func (isg *insertSQLGenerator) Generate(
 			b.SetError(errNotSupportedFragment("INSERT", f))
 		}
 	}
-
 }
 
 // Adds the correct fragment to being an INSERT statement
@@ -104,9 +103,7 @@ func (isg *insertSQLGenerator) InsertSQL(b sb.SQLBuilder, ic exp.InsertClauses) 
 		isg.insertFromSQL(b, ic.From())
 	default:
 		isg.defaultValuesSQL(b)
-
 	}
-
 	isg.onConflictSQL(b, ic.OnConflict())
 }
 

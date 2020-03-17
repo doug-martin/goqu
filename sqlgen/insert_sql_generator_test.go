@@ -364,7 +364,6 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 		insertTestCase{clause: icDuw, err: expectedErr},
 		insertTestCase{clause: icDuw, err: expectedErr, isPrepared: true},
 	)
-
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
@@ -429,7 +428,6 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
 		insertTestCase{clause: icCte2, err: expectedErr},
 		insertTestCase{clause: icCte2, err: expectedErr, isPrepared: true},
 	)
-
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_withReturning() {

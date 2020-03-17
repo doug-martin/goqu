@@ -1,3 +1,8 @@
+# v9.7.1
+
+* Fix all formatting for golangci-lint
+* Move to golangci-lint github action
+
 # v9.7.0
 
 * [ADDED] Support for sqlserver dialect [#197](https://github.com/doug-martin/goqu/issues/197),[#205](https://github.com/doug-martin/goqu/issues/205) - [@vlanse](https://github.com/vlanse)

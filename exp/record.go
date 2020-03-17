@@ -47,10 +47,10 @@ func NewRecordFromStruct(i interface{}, forInsert, forUpdate bool) (r Record, er
 	return
 }
 
-func addFieldToRecord(r Record, val reflect.Value, f util.ColumnData) Record {
+func addFieldToRecord(r Record, val reflect.Value, f util.ColumnData) {
 	v, isAvailable := util.SafeGetFieldByIndex(val, f.FieldIndex)
 	if !isAvailable {
-		return r
+		return
 	}
 	switch {
 	case f.DefaultIfEmpty && util.IsEmptyValue(v):
@@ -60,5 +60,4 @@ func addFieldToRecord(r Record, val reflect.Value, f util.ColumnData) Record {
 	default:
 		r[f.ColumnName] = reflect.Zero(f.GoType).Interface()
 	}
-	return r
 }

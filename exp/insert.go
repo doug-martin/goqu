@@ -32,7 +32,6 @@ func NewInsertExpression(rows ...interface{}) (insertExpression InsertExpression
 		if ae, ok := rows[0].(AppendableExpression); ok {
 			return &insert{from: ae}, nil
 		}
-
 	}
 	return newInsert(rows...)
 }

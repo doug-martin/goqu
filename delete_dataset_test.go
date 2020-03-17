@@ -449,7 +449,6 @@ func (dds *deleteDatasetSuite) TestExecutor() {
 }
 
 func (dds *deleteDatasetSuite) TestSetError() {
-
 	err1 := errors.New("error #1")
 	err2 := errors.New("error #2")
 	err3 := errors.New("error #3")

@@ -11,7 +11,6 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/dialect/mysql"
-	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/suite"
 )
@@ -388,7 +387,6 @@ func (mt *mysqlTest) TestInsertReturning() {
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
 	_, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
 	mt.Error(err)
-
 }
 
 func (mt *mysqlTest) TestUpdate() {

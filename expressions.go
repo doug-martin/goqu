@@ -120,7 +120,7 @@ func COALESCE(vals ...interface{}) exp.SQLFunctionExpression {
 	return Func("COALESCE", vals...)
 }
 
-// nolint: golint
+//nolint:stylecheck,golint // sql function name
 func ROW_NUMBER() exp.SQLFunctionExpression {
 	return Func("ROW_NUMBER")
 }
@@ -129,17 +129,17 @@ func RANK() exp.SQLFunctionExpression {
 	return Func("RANK")
 }
 
-// nolint: golint
+//nolint:stylecheck,golint // sql function name
 func DENSE_RANK() exp.SQLFunctionExpression {
 	return Func("DENSE_RANK")
 }
 
-// nolint: golint
+//nolint:stylecheck,golint // sql function name
 func PERCENT_RANK() exp.SQLFunctionExpression {
 	return Func("PERCENT_RANK")
 }
 
-// nolint: golint
+//nolint:stylecheck,golint //sql function name
 func CUME_DIST() exp.SQLFunctionExpression {
 	return Func("CUME_DIST")
 }
@@ -148,17 +148,17 @@ func NTILE(n int) exp.SQLFunctionExpression {
 	return Func("NTILE", n)
 }
 
-// nolint: golint
+//nolint:stylecheck,golint //sql function name
 func FIRST_VALUE(val interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc("FIRST_VALUE", val)
 }
 
-// nolint: golint
+//nolint:stylecheck,golint //sql function name
 func LAST_VALUE(val interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc("LAST_VALUE", val)
 }
 
-// nolint: golint
+//nolint:stylecheck,golint //sql function name
 func NTH_VALUE(val interface{}, nth int) exp.SQLFunctionExpression {
 	if s, ok := val.(string); ok {
 		val = I(s)

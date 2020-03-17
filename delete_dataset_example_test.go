@@ -54,7 +54,6 @@ func ExampleDeleteDataset_Executor_returning() {
 }
 
 func ExampleDeleteDataset_With() {
-
 	sql, _, _ := goqu.Delete("test").
 		With("check_vals(val)", goqu.From().Select(goqu.L("123"))).
 		Where(goqu.C("val").Eq(goqu.From("check_vals").Select("val"))).

@@ -69,7 +69,6 @@ func (scs *selectClausesSuite) TestSetSelect() {
 
 	scs.Equal(NewColumnListExpression(Star()), c.Select())
 	scs.Equal(NewColumnListExpression("a"), c2.Select())
-
 }
 
 func (scs *selectClausesSuite) TestDistinct() {
@@ -141,7 +140,6 @@ func (scs *selectClausesSuite) TestSetAlias() {
 }
 
 func (scs *selectClausesSuite) TestJoins() {
-
 	jc := NewConditionedJoinExpression(
 		LeftJoinType,
 		NewIdentifierExpression("", "test", ""),
@@ -469,7 +467,6 @@ func (scs *selectClausesSuite) TestSetOffset() {
 }
 
 func (scs *selectClausesSuite) TestCompounds() {
-
 	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo", []interface{}{}))
 
 	c := NewSelectClauses()
@@ -480,7 +477,6 @@ func (scs *selectClausesSuite) TestCompounds() {
 	scs.Equal([]CompoundExpression{ce}, c2.Compounds())
 }
 func (scs *selectClausesSuite) TestCompoundsAppend() {
-
 	ce := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo1", []interface{}{}))
 	ce2 := NewCompoundExpression(UnionCompoundType, newTestAppendableExpression("SELECT * FROM foo2", []interface{}{}))
 
@@ -493,7 +489,6 @@ func (scs *selectClausesSuite) TestCompoundsAppend() {
 }
 
 func (scs *selectClausesSuite) TestLock() {
-
 	l := NewLock(ForUpdate, Wait)
 
 	c := NewSelectClauses()
@@ -505,7 +500,6 @@ func (scs *selectClausesSuite) TestLock() {
 }
 
 func (scs *selectClausesSuite) TestSetLock() {
-
 	l := NewLock(ForUpdate, Wait)
 	l2 := NewLock(ForUpdate, NoWait)
 
@@ -518,7 +512,6 @@ func (scs *selectClausesSuite) TestSetLock() {
 }
 
 func (scs *selectClausesSuite) TestCommonTables() {
-
 	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
 	c := NewSelectClauses()
@@ -530,7 +523,6 @@ func (scs *selectClausesSuite) TestCommonTables() {
 }
 
 func (scs *selectClausesSuite) TestAddCommonTablesAppend() {
-
 	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
 	cte2 := NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
 
