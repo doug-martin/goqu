@@ -3,24 +3,10 @@ package util
 import (
 	"database/sql"
 	"reflect"
-	"sort"
 	"strings"
 	"sync"
 
 	"github.com/doug-martin/goqu/v9/internal/errors"
-	"github.com/doug-martin/goqu/v9/internal/tag"
-)
-
-type (
-	ColumnData struct {
-		ColumnName     string
-		FieldIndex     []int
-		ShouldInsert   bool
-		ShouldUpdate   bool
-		DefaultIfEmpty bool
-		GoType         reflect.Type
-	}
-	ColumnMap map[string]ColumnData
 )
 
 const (
@@ -209,93 +195,7 @@ func GetColumnMap(i interface{}) (ColumnMap, error) {
 	structMapCacheLock.Lock()
 	defer structMapCacheLock.Unlock()
 	if _, ok := structMapCache[t]; !ok {
-		structMapCache[t] = createColumnMap(t, []int{}, []string{})
+		structMapCache[t] = newColumnMap(t, []int{}, []string{})
 	}
 	return structMapCache[t], nil
-}
-
-func createColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap {
-	cm, n := ColumnMap{}, t.NumField()
-	var subColMaps []ColumnMap
-	for i := 0; i < n; i++ {
-		f := t.Field(i)
-		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
-			goquTag := tag.New("db", f.Tag)
-			if !goquTag.Contains("-") {
-				subFieldIndexes := append(fieldIndex, f.Index...)
-				subPrefixes := append(prefixes, goquTag.Values()...)
-				if f.Type.Kind() == reflect.Ptr {
-					subColMaps = append(subColMaps, createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes))
-				} else {
-					subColMaps = append(subColMaps, createColumnMap(f.Type, subFieldIndexes, subPrefixes))
-				}
-			}
-		} else if f.PkgPath == "" {
-			dbTag := tag.New("db", f.Tag)
-			// if PkgPath is empty then it is an exported field
-			var columnName string
-			if dbTag.IsEmpty() {
-				columnName = columnRenameFunction(f.Name)
-			} else {
-				columnName = dbTag.Values()[0]
-			}
-			if !dbTag.Equals("-") {
-				if !implementsScanner(f.Type) {
-					subFieldIndexes := append(fieldIndex, f.Index...)
-					subPrefixes := append(prefixes, columnName)
-					var subCm ColumnMap
-					if f.Type.Kind() == reflect.Ptr {
-						subCm = createColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
-					} else {
-						subCm = createColumnMap(f.Type, subFieldIndexes, subPrefixes)
-					}
-					if len(subCm) != 0 {
-						subColMaps = append(subColMaps, subCm)
-						continue
-					}
-				}
-				goquTag := tag.New("goqu", f.Tag)
-				columnName = strings.Join(append(prefixes, columnName), ".")
-				cm[columnName] = ColumnData{
-					ColumnName:     columnName,
-					ShouldInsert:   !goquTag.Contains(skipInsertTagName),
-					ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
-					DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
-					FieldIndex:     append(fieldIndex, f.Index...),
-					GoType:         f.Type,
-				}
-			}
-		}
-	}
-	for _, subCm := range subColMaps {
-		for key, val := range subCm {
-			if _, ok := cm[key]; !ok {
-				cm[key] = val
-			}
-		}
-	}
-	return cm
-}
-
-func (cm ColumnMap) Cols() []string {
-	var structCols []string
-	for key := range cm {
-		structCols = append(structCols, key)
-	}
-	sort.Strings(structCols)
-	return structCols
-}
-
-func implementsScanner(t reflect.Type) bool {
-	if IsPointer(t.Kind()) {
-		t = t.Elem()
-	}
-	if reflect.PtrTo(t).Implements(scannerType) {
-		return true
-	}
-	if !IsStruct(t.Kind()) {
-		return true
-	}
-
-	return false
 }

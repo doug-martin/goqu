@@ -9,6 +9,8 @@ services:
       - "POSTGRES_HOST_AUTH_METHOD=trust"
     expose:
       - "5432"
+    ports:
+      - "5432:5432"
 
   mysql:
     image: "mysql:${MYSQL_VERSION}"
@@ -17,6 +19,8 @@ services:
       - "MYSQL_ALLOW_EMPTY_PASSWORD=yes"
     expose:
       - "3306"
+    ports:
+      - "3306:3306"
 
   sqlserver:
     image: "mcr.microsoft.com/mssql/server:${SQLSERVER_VERSION}"
@@ -25,6 +29,8 @@ services:
       - "SA_PASSWORD=qwe123QWE"
     expose:
       - "1433"
+    ports:
+      - "1433:1433"
 
   goqu:
     image: "golang:${GO_VERSION}"

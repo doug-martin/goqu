@@ -25,6 +25,8 @@ jobs:
     steps:
     - name: checkout
       uses: actions/checkout@v1
+    - name: Run golangci-lint
+      uses: actions-contrib/golangci-lint@v1
     - name: Test
       env:
         GO_VERSION: ${{ matrix.go_version }}

@@ -8,7 +8,6 @@ type (
 		// The table expressions (e.g. LEFT JOIN "my_table", ON (....))
 		table Expression
 	}
-	// todo fix this to use new interfaces
 	// Container for all joins within a dataset
 	conditionedJoin struct {
 		joinExpression

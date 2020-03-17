@@ -93,7 +93,6 @@ func (usg *updateSQLGenerator) UpdateBeginSQL(b sb.SQLBuilder) {
 func (usg *updateSQLGenerator) UpdateExpressionsSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression) {
 	b.Write(usg.dialectOptions.SetFragment)
 	usg.UpdateExpressionSQL(b, updates...)
-
 }
 
 func (usg *updateSQLGenerator) updateTableSQL(b sb.SQLBuilder, uc exp.UpdateClauses) {

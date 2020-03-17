@@ -45,7 +45,6 @@ func (gis *githubIssuesSuite) TestIssue49() {
 
 // Test for https://github.com/doug-martin/goqu/issues/115
 func (gis *githubIssuesSuite) TestIssue115() {
-
 	type TestStruct struct {
 		Field string
 	}
@@ -62,7 +61,7 @@ func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFiel
 	// struct is in a custom package
 	type SimpleRole struct {
 		sync.RWMutex
-		permissions []string // nolint:structcheck,unused
+		permissions []string // nolint:structcheck,unused //needed for test
 	}
 
 	// .....
@@ -125,7 +124,6 @@ func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFiel
 			`"created_at"='0001-01-01T00:00:00Z',"id"='',"key"='user',"name"='User role' RETURNING "id"`,
 		sql,
 	)
-
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/118
@@ -133,7 +131,7 @@ func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFiel
 	// struct is in a custom package
 	type SimpleRole struct {
 		sync.RWMutex
-		permissions []string // nolint:structcheck,unused
+		permissions []string // nolint:structcheck,unused // needed for test
 		IDStr       string
 	}
 
@@ -202,12 +200,10 @@ func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFiel
 			`"created_at"='0001-01-01T00:00:00Z',"id"='',"idstr"='',"key"='user',"name"='User role' RETURNING "id"`,
 		sql,
 	)
-
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/118
 func (gis *githubIssuesSuite) TestIssue140() {
-
 	sql, arg, err := goqu.Insert(`test`).Returning().ToSQL()
 	gis.NoError(err)
 	gis.Empty(arg)
@@ -249,7 +245,6 @@ func (gis *githubIssuesSuite) TestIssue140() {
 		`DELETE FROM "test"`,
 		sql,
 	)
-
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/164
@@ -425,7 +420,6 @@ func (gis *githubIssuesSuite) TestIssue185() {
 	var i []int
 	gis.NoError(ds.ScanValsContext(ctx, &i))
 	gis.Equal([]int{1, 2, 3, 4}, i)
-
 }
 
 func TestGithubIssuesSuite(t *testing.T) {

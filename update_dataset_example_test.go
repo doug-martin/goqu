@@ -1,4 +1,4 @@
-// nolint:lll
+// nolint:lll // sql statements are long
 package goqu_test
 
 import (

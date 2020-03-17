@@ -208,7 +208,6 @@ func (ids *insertDatasetSuite) TestFromQuery() {
 }
 
 func (ids *insertDatasetSuite) TestVals() {
-
 	val1 := []interface{}{
 		"a", "b",
 	}
@@ -300,7 +299,6 @@ func (ids *insertDatasetSuite) TestClearRows() {
 			clauses: exp.NewInsertClauses().SetInto(C("items")).SetRows([]interface{}{r}),
 		},
 	)
-
 }
 
 func (ids *insertDatasetSuite) TestOnConflict() {
@@ -452,7 +450,6 @@ func (ids *insertDatasetSuite) TestToSQL_ReturnedError() {
 }
 
 func (ids *insertDatasetSuite) TestSetError() {
-
 	err1 := errors.New("error #1")
 	err2 := errors.New("error #2")
 	err3 := errors.New("error #3")

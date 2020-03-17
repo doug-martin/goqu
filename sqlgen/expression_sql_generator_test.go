@@ -380,7 +380,6 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ColumnList() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionList() {
-
 	andEl := exp.NewExpressionList(
 		exp.AndType,
 		exp.NewIdentifierExpression("", "", "a").Eq("b"),
@@ -667,7 +666,6 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_RangeExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderedExpression() {
-
 	asc := exp.NewIdentifierExpression("", "", "a").Asc()
 	ascNf := exp.NewIdentifierExpression("", "", "a").Asc().NullsFirst()
 	ascNl := exp.NewIdentifierExpression("", "", "a").Asc().NullsLast()
@@ -708,7 +706,6 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_UpdateExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLFunctionExpression() {
-
 	min := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
 	coalesce := exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a")
 	esgs.assertCases(

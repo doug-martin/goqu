@@ -42,7 +42,6 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 			} else {
 				panic(fmt.Sprintf("Cannot created expression from  %+v", val))
 			}
-
 		}
 	}
 	return columnList{columns: cols}

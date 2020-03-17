@@ -398,7 +398,6 @@ func (sds *selectDatasetSuite) TestJoin() {
 }
 
 func (sds *selectDatasetSuite) TestInnerJoin() {
-
 	bd := From("test")
 	sds.assertCases(
 		selectTestCase{
@@ -1471,7 +1470,6 @@ func (sds *selectDatasetSuite) TestPluck_WithPreparedStatement() {
 }
 
 func (sds *selectDatasetSuite) TestSetError() {
-
 	err1 := errors.New("error #1")
 	err2 := errors.New("error #2")
 	err3 := errors.New("error #3")

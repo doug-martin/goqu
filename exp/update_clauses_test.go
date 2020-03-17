@@ -240,7 +240,6 @@ func (ucs *updateClausesSuite) TestSetLimit() {
 }
 
 func (ucs *updateClausesSuite) TestCommonTables() {
-
 	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
 	c := NewUpdateClauses()
@@ -252,7 +251,6 @@ func (ucs *updateClausesSuite) TestCommonTables() {
 }
 
 func (ucs *updateClausesSuite) TestAddCommonTablesAppend() {
-
 	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
 	cte2 := NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
 
@@ -265,7 +263,6 @@ func (ucs *updateClausesSuite) TestAddCommonTablesAppend() {
 }
 
 func (ucs *updateClausesSuite) TestReturning() {
-
 	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
 
 	c := NewUpdateClauses()
@@ -277,7 +274,6 @@ func (ucs *updateClausesSuite) TestReturning() {
 }
 
 func (ucs *updateClausesSuite) TestHasReturning() {
-
 	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
 
 	c := NewUpdateClauses()
@@ -289,7 +285,6 @@ func (ucs *updateClausesSuite) TestHasReturning() {
 }
 
 func (ucs *updateClausesSuite) TestSetReturning() {
-
 	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
 	cl2 := NewColumnListExpression(NewIdentifierExpression("", "", "col2"))
 

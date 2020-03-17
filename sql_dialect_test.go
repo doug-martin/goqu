@@ -45,7 +45,6 @@ func (dts *dialectTestSuite) TestToUpdateSQL() {
 
 	d.ToUpdateSQL(b, uc)
 	um.AssertExpectations(dts.T())
-
 }
 
 func (dts *dialectTestSuite) TestToInsertSQL() {

@@ -450,7 +450,6 @@ func (uds *updateDatasetSuite) TestExecutor() {
 }
 
 func (uds *updateDatasetSuite) TestSetError() {
-
 	err1 := errors.New("error #1")
 	err2 := errors.New("error #2")
 	err3 := errors.New("error #3")

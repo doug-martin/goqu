@@ -1,4 +1,4 @@
-// nolint:lll
+// nolint:lll // SQL statements are long
 package goqu_test
 
 import (
@@ -161,7 +161,6 @@ func ExampleInsertDataset_Executor_recordReturning() {
 		for _, u := range insertedUsers {
 			fmt.Printf("Inserted user: [ID=%d], [FirstName=%+s] [LastName=%s]\n", u.ID.Int64, u.FirstName, u.LastName)
 		}
-
 	}
 
 	// Output:
@@ -203,7 +202,6 @@ func ExampleInsertDataset_Executor_scanStructs() {
 		for _, u := range insertedUsers {
 			fmt.Printf("Inserted user: [ID=%d], [FirstName=%+s] [LastName=%s]\n", u.ID.Int64, u.FirstName, u.LastName)
 		}
-
 	}
 
 	// Output:
