@@ -174,6 +174,16 @@ func (ges *goquExpressionsSuite) TestLateral() {
 	ges.Equal(exp.NewLateralExpression(ds), Lateral(ds))
 }
 
+func (ges *goquExpressionsSuite) TestAny() {
+	ds := From("test").Select("id")
+	ges.Equal(exp.NewSQLFunctionExpression("ANY ", ds), Any(ds))
+}
+
+func (ges *goquExpressionsSuite) TestAll() {
+	ds := From("test").Select("id")
+	ges.Equal(exp.NewSQLFunctionExpression("ALL ", ds), All(ds))
+}
+
 func TestGoquExpressions(t *testing.T) {
 	suite.Run(t, new(goquExpressionsSuite))
 }
