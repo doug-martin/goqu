@@ -1,3 +1,7 @@
+# v9.8.0
+
+* [ADDED] Support for ANY and ALL operators. [#196](https://github.com/doug-martin/goqu/issues/196)
+
 # v9.7.1
 
 * Fix all formatting for golangci-lint
