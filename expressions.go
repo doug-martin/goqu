@@ -287,3 +287,13 @@ func Default() exp.LiteralExpression {
 func Lateral(table exp.AppendableExpression) exp.LateralExpression {
 	return exp.NewLateralExpression(table)
 }
+
+// Create a new ANY comparison
+func Any(val interface{}) exp.SQLFunctionExpression {
+	return Func("ANY ", val)
+}
+
+// Create a new ALL comparison
+func All(val interface{}) exp.SQLFunctionExpression {
+	return Func("ALL ", val)
+}

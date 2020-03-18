@@ -1793,3 +1793,31 @@ func ExampleLateral_join() {
 	// SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER JOIN LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry" ON TRUE INNER JOIN LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" ON TRUE []
 	// SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER JOIN LATERAL (SELECT MAX("int") AS "max_int" FROM "entry" WHERE ("time" < "e"."time")) AS "max_entry" ON ? INNER JOIN LATERAL (SELECT "id" FROM "entry" WHERE ("int" = "max_entry"."max_int")) AS "max_id" ON ? [true true]
 }
+
+func ExampleAny() {
+	ds := goqu.From("test").Where(goqu.Ex{
+		"id": goqu.Any(goqu.From("other").Select("test_id")),
+	})
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "test" WHERE ("id" = ANY ((SELECT "test_id" FROM "other"))) []
+	// SELECT * FROM "test" WHERE ("id" = ANY ((SELECT "test_id" FROM "other"))) []
+}
+
+func ExampleAll() {
+	ds := goqu.From("test").Where(goqu.Ex{
+		"id": goqu.All(goqu.From("other").Select("test_id")),
+	})
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "test" WHERE ("id" = ALL ((SELECT "test_id" FROM "other"))) []
+	// SELECT * FROM "test" WHERE ("id" = ALL ((SELECT "test_id" FROM "other"))) []
+}
