@@ -38,6 +38,7 @@ var (
 		`a empty identifier was encountered, please specify a "schema", "table" or "column"`,
 	)
 	errUnexpectedNamedWindow = errors.New(`unexpected named window function`)
+	errEmptyCaseWhens        = errors.New(`when conditions not found for case statement`)
 )
 
 func errUnsupportedExpressionType(e exp.Expression) error {
@@ -180,6 +181,8 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 		esg.commonTableExpressionSQL(b, e)
 	case exp.CompoundExpression:
 		esg.compoundExpressionSQL(b, e)
+	case exp.CaseExpression:
+		esg.caseExpressionSQL(b, e)
 	case exp.Ex:
 		esg.expressionMapSQL(b, e)
 	case exp.ExOr:
@@ -630,6 +633,33 @@ func (esg *expressionSQLGenerator) compoundExpressionSQL(b sb.SQLBuilder, compou
 	} else {
 		compound.RHS().AppendSQL(b)
 	}
+}
+
+// Generates SQL for a CaseExpression
+func (esg *expressionSQLGenerator) caseExpressionSQL(b sb.SQLBuilder, caseExpression exp.CaseExpression) {
+	caseVal := caseExpression.GetValue()
+	whens := caseExpression.GetWhens()
+	elseResult := caseExpression.GetElse()
+
+	if len(whens) == 0 {
+		b.SetError(errEmptyCaseWhens)
+		return
+	}
+	b.Write(esg.dialectOptions.CaseFragment)
+	if caseVal != nil {
+		esg.Generate(b, caseVal)
+	}
+	for _, when := range whens {
+		b.Write(esg.dialectOptions.WhenFragment)
+		esg.Generate(b, when.Condition())
+		b.Write(esg.dialectOptions.ThenFragment)
+		esg.Generate(b, when.Result())
+	}
+	if elseResult != nil {
+		b.Write(esg.dialectOptions.ElseFragment)
+		esg.Generate(b, elseResult.Result())
+	}
+	b.Write(esg.dialectOptions.EndFragment)
 }
 
 func (esg *expressionSQLGenerator) expressionMapSQL(b sb.SQLBuilder, ex exp.Ex) {
