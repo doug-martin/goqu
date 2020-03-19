@@ -1,6 +1,7 @@
 # v9.8.0
 
 * [ADDED] Support for ANY and ALL operators. [#196](https://github.com/doug-martin/goqu/issues/196)
+* [ADDED] Support for CASE statements [#193](https://github.com/doug-martin/goqu/issues/193) 
 
 # v9.7.1
 
