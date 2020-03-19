@@ -1821,3 +1821,83 @@ func ExampleAll() {
 	// SELECT * FROM "test" WHERE ("id" = ALL ((SELECT "test_id" FROM "other"))) []
 	// SELECT * FROM "test" WHERE ("id" = ALL ((SELECT "test_id" FROM "other"))) []
 }
+
+func ExampleCase_search() {
+	ds := goqu.From("test").
+		Select(
+			goqu.C("col"),
+			goqu.Case().
+				When(goqu.C("col").Gt(0), true).
+				When(goqu.C("col").Lte(0), false).
+				As("is_gt_zero"),
+		)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT "col", CASE  WHEN ("col" > 0) THEN TRUE WHEN ("col" <= 0) THEN FALSE END AS "is_gt_zero" FROM "test" []
+	// SELECT "col", CASE  WHEN ("col" > ?) THEN ? WHEN ("col" <= ?) THEN ? END AS "is_gt_zero" FROM "test" [0 true 0 false]
+}
+
+func ExampleCase_searchElse() {
+	ds := goqu.From("test").
+		Select(
+			goqu.C("col"),
+			goqu.Case().
+				When(goqu.C("col").Gt(10), "Gt 10").
+				When(goqu.C("col").Gt(20), "Gt 20").
+				Else("Bad Val").
+				As("str_val"),
+		)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT "col", CASE  WHEN ("col" > 10) THEN 'Gt 10' WHEN ("col" > 20) THEN 'Gt 20' ELSE 'Bad Val' END AS "str_val" FROM "test" []
+	// SELECT "col", CASE  WHEN ("col" > ?) THEN ? WHEN ("col" > ?) THEN ? ELSE ? END AS "str_val" FROM "test" [10 Gt 10 20 Gt 20 Bad Val]
+}
+
+func ExampleCase_value() {
+	ds := goqu.From("test").
+		Select(
+			goqu.C("col"),
+			goqu.Case().
+				Value(goqu.C("str")).
+				When("foo", "FOO").
+				When("bar", "BAR").
+				As("foo_bar_upper"),
+		)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT "col", CASE "str" WHEN 'foo' THEN 'FOO' WHEN 'bar' THEN 'BAR' END AS "foo_bar_upper" FROM "test" []
+	// SELECT "col", CASE "str" WHEN ? THEN ? WHEN ? THEN ? END AS "foo_bar_upper" FROM "test" [foo FOO bar BAR]
+}
+
+func ExampleCase_valueElse() {
+	ds := goqu.From("test").
+		Select(
+			goqu.C("col"),
+			goqu.Case().
+				Value(goqu.C("str")).
+				When("foo", "FOO").
+				When("bar", "BAR").
+				Else("Baz").
+				As("foo_bar_upper"),
+		)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT "col", CASE "str" WHEN 'foo' THEN 'FOO' WHEN 'bar' THEN 'BAR' ELSE 'Baz' END AS "foo_bar_upper" FROM "test" []
+	// SELECT "col", CASE "str" WHEN ? THEN ? WHEN ? THEN ? ELSE ? END AS "foo_bar_upper" FROM "test" [foo FOO bar BAR Baz]
+}

@@ -432,6 +432,23 @@ type (
 		PartitionBy(cols ...interface{}) WindowExpression
 		OrderBy(cols ...interface{}) WindowExpression
 	}
+	CaseElse interface {
+		Result() interface{}
+	}
+	CaseWhen interface {
+		Condition() interface{}
+		Result() interface{}
+	}
+	CaseExpression interface {
+		Expression
+		Aliaseable
+		GetValue() interface{}
+		GetWhens() []CaseWhen
+		GetElse() CaseElse
+		Value(val interface{}) CaseExpression
+		When(condition, result interface{}) CaseExpression
+		Else(result interface{}) CaseExpression
+	}
 )
 
 const (

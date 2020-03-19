@@ -297,3 +297,7 @@ func Any(val interface{}) exp.SQLFunctionExpression {
 func All(val interface{}) exp.SQLFunctionExpression {
 	return Func("ALL ", val)
 }
+
+func Case() exp.CaseExpression {
+	return exp.NewCaseExpression()
+}
