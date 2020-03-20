@@ -36,3 +36,24 @@ func (ae aliasExpression) Aliased() Expression {
 func (ae aliasExpression) GetAs() IdentifierExpression {
 	return ae.alias
 }
+
+// Returns a new IdentifierExpression with the specified schema
+func (ae aliasExpression) Schema(schema string) IdentifierExpression {
+	return ae.alias.Schema(schema)
+}
+
+// Returns a new IdentifierExpression with the specified table
+func (ae aliasExpression) Table(table string) IdentifierExpression {
+	return ae.alias.Table(table)
+}
+
+// Returns a new IdentifierExpression with the specified column
+func (ae aliasExpression) Col(col interface{}) IdentifierExpression {
+	return ae.alias.Col(col)
+}
+
+// Returns a new IdentifierExpression with the column set to *
+//   I("my_table").As("t").All() //"t".*
+func (ae aliasExpression) All() IdentifierExpression {
+	return ae.alias.All()
+}
