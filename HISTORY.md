@@ -2,6 +2,7 @@
 
 * [ADDED] Support for ANY and ALL operators. [#196](https://github.com/doug-martin/goqu/issues/196)
 * [ADDED] Support for CASE statements [#193](https://github.com/doug-martin/goqu/issues/193) 
+* [ADDED] Support for getting column identifiers from AliasExpressions. [#203](https://github.com/doug-martin/goqu/issues/203)  
 
 # v9.7.1
 

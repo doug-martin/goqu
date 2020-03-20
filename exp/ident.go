@@ -1,6 +1,8 @@
 package exp
 
-import "strings"
+import (
+	"strings"
+)
 
 type (
 	identifier struct {
@@ -117,7 +119,21 @@ func (i identifier) GetCol() interface{} { return i.col }
 func (i identifier) Set(val interface{}) UpdateExpression { return set(i, val) }
 
 // Alias an identifier (e.g "my_col" AS "other_col")
-func (i identifier) As(val interface{}) AliasedExpression { return aliased(i, val) }
+func (i identifier) As(val interface{}) AliasedExpression {
+	if v, ok := val.(string); ok {
+		ident := ParseIdentifier(v)
+		if i.col != nil && i.col != "" {
+			return aliased(i, ident)
+		}
+		aliasCol := ident.GetCol()
+		if i.table != "" {
+			return aliased(i, NewIdentifierExpression("", aliasCol.(string), nil))
+		} else if i.schema != "" {
+			return aliased(i, NewIdentifierExpression(aliasCol.(string), "", nil))
+		}
+	}
+	return aliased(i, val)
+}
 
 // Returns a BooleanExpression for equality (e.g "my_col" = 1)
 func (i identifier) Eq(val interface{}) BooleanExpression { return eq(i, val) }

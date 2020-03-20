@@ -172,6 +172,16 @@ type (
 		Aliased() Expression
 		// Returns the alias value as an identiier expression
 		GetAs() IdentifierExpression
+
+		// Returns a new IdentifierExpression with the specified schema
+		Schema(string) IdentifierExpression
+		// Returns a new IdentifierExpression with the specified table
+		Table(string) IdentifierExpression
+		// Returns a new IdentifierExpression with the specified column
+		Col(interface{}) IdentifierExpression
+		// Returns a new IdentifierExpression with the column set to *
+		//   I("my_table").All() //"my_table".*
+		All() IdentifierExpression
 	}
 
 	BooleanOperation  int
