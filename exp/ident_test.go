@@ -165,6 +165,33 @@ func (ies *identifierExpressionSuite) TestIsEmpty() {
 	}
 }
 
+func (ies *identifierExpressionSuite) TestAs() {
+	cases := []struct {
+		Alias    AliasedExpression
+		Expected Expression
+	}{
+		{
+			Alias:    NewIdentifierExpression("", "", "col").As("c"),
+			Expected: aliased(NewIdentifierExpression("", "", "col"), NewIdentifierExpression("", "", "c")),
+		},
+		{
+			Alias:    NewIdentifierExpression("", "table", nil).As("t"),
+			Expected: aliased(NewIdentifierExpression("", "table", nil), NewIdentifierExpression("", "t", nil)),
+		},
+		{
+			Alias:    NewIdentifierExpression("", "table", nil).As("s.t"),
+			Expected: aliased(NewIdentifierExpression("", "table", nil), NewIdentifierExpression("", "t", nil)),
+		},
+		{
+			Alias:    NewIdentifierExpression("schema", "", nil).As("s"),
+			Expected: aliased(NewIdentifierExpression("schema", "", nil), NewIdentifierExpression("s", "", nil)),
+		},
+	}
+	for _, tc := range cases {
+		ies.Equal(tc.Expected, tc.Alias)
+	}
+}
+
 func (ies *identifierExpressionSuite) TestAllOthers() {
 	ident := NewIdentifierExpression("", "", "a")
 	rv := NewRangeVal(1, 2)

@@ -422,6 +422,34 @@ func (gis *githubIssuesSuite) TestIssue185() {
 	gis.Equal([]int{1, 2, 3, 4}, i)
 }
 
+// Test for https://github.com/doug-martin/goqu/issues/203
+func (gis *githubIssuesSuite) TestIssue203() {
+	// Schema definitions.
+	authSchema := goqu.S("company_auth")
+
+	// Table definitions
+	usersTable := authSchema.Table("users")
+
+	u := usersTable.As("u")
+
+	ds := goqu.From(u).Select(
+		u.Col("id"),
+		u.Col("name"),
+		u.Col("created_at"),
+		u.Col("updated_at"),
+	)
+
+	sql, args, err := ds.ToSQL()
+	gis.NoError(err)
+	gis.Equal(`SELECT "u"."id", "u"."name", "u"."created_at", "u"."updated_at" FROM "company_auth"."users" AS "u"`, sql)
+	gis.Empty(args, []interface{}{})
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	gis.NoError(err)
+	gis.Equal(`SELECT "u"."id", "u"."name", "u"."created_at", "u"."updated_at" FROM "company_auth"."users" AS "u"`, sql)
+	gis.Empty(args, []interface{}{})
+}
+
 func TestGithubIssuesSuite(t *testing.T) {
 	suite.Run(t, new(githubIssuesSuite))
 }
