@@ -1,6 +1,7 @@
 package sqlgen
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"reflect"
 	"strconv"
@@ -109,6 +110,8 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 			return
 		}
 		esg.Generate(b, dVal)
+	case sql.NamedArg:
+		esg.literalNamedArg(b, v)
 	default:
 		esg.reflectSQL(b, val)
 	}
@@ -195,6 +198,11 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 // Generates a placeholder (e.g. ?, $1)
 func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}) {
 	b.Write(esg.dialectOptions.PlaceHolderFragment)
+	if na, ok := i.(sql.NamedArg); ok {
+		position := b.WriteNamedArg(na.Name, na.Value)
+		b.WriteStrings(strconv.FormatInt(int64(position), 10))
+		return
+	}
 	if esg.dialectOptions.IncludePlaceholderNum {
 		b.WriteStrings(strconv.FormatInt(int64(b.CurrentArgPosition()), 10))
 	}
@@ -348,6 +356,15 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 		bs = bs[l:]
 	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
+}
+
+// Generates SQL for a string
+func (esg *expressionSQLGenerator) literalNamedArg(b sb.SQLBuilder, s sql.NamedArg) {
+	if b.IsPrepared() {
+		esg.placeHolderSQL(b, s)
+		return
+	}
+	panic("not implemented error")
 }
 
 // Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)

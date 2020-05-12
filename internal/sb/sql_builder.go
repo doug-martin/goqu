@@ -15,6 +15,7 @@ type (
 		WriteRunes(r ...rune) SQLBuilder
 		IsPrepared() bool
 		CurrentArgPosition() int
+		WriteNamedArg(name string, i interface{})int
 		ToSQL() (sql string, args []interface{}, err error)
 	}
 	sqlBuilder struct {
@@ -25,6 +26,8 @@ type (
 		currentArgPosition int
 		args               []interface{}
 		err                error
+		// Mapping from name of arg to position number
+		nameArgs map[string]int
 	}
 )
 
@@ -88,6 +91,21 @@ func (b *sqlBuilder) WriteArg(i ...interface{}) SQLBuilder {
 		b.args = append(b.args, i...)
 	}
 	return b
+}
+
+// Adds an argument to the builder, used when IsPrepared is false
+func (b *sqlBuilder) WriteNamedArg(name string, i interface{}) int {
+	if b.nameArgs == nil {
+		b.nameArgs = make(map[string]int)
+	}
+	position, ok := b.nameArgs[name]
+	if ok {
+		return position
+	}
+	b.nameArgs[name] = b.currentArgPosition
+	b.currentArgPosition++
+	b.args = append(b.args, i)
+	return b.currentArgPosition-1
 }
 
 // Returns the sql string, and arguments.
