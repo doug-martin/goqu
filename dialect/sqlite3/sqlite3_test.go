@@ -24,7 +24,7 @@ const (
 		"`bool` TINYINT NOT NULL ," +
 		"`bytes` BLOB NOT NULL" +
 		");"
-	insertDefaultReords = "INSERT INTO `entry` (`int`, `float`, `string`, `time`, `bool`, `bytes`) VALUES" +
+	insertDefaultRecords = "INSERT INTO `entry` (`int`, `float`, `string`, `time`, `bool`, `bytes`) VALUES" +
 		"(0, 0.000000, '0.000000', '2015-02-22 18:19:55', 1,  '0.000000')," +
 		"(1, 0.100000, '0.100000', '2015-02-22 19:19:55', 0, '0.100000')," +
 		"(2, 0.200000, '0.200000', '2015-02-22 20:19:55', 1,  '0.200000')," +
@@ -71,7 +71,7 @@ func (st *sqlite3Suite) SetupTest() {
 	if _, err := st.db.Exec(createTable); err != nil {
 		panic(err)
 	}
-	if _, err := st.db.Exec(insertDefaultReords); err != nil {
+	if _, err := st.db.Exec(insertDefaultRecords); err != nil {
 		panic(err)
 	}
 }

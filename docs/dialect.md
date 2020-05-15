@@ -121,6 +121,7 @@ if err != nil{
 Output:
 ```
 SELECT * FROM "test" WHERE "id" = 10 []
+```
 
 ### Executing Queries 
 

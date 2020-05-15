@@ -194,6 +194,17 @@ func (sds *sqlite3DialectSuite) TestBooleanOperations() {
 	sds.Equal("SELECT * FROM `test` WHERE (`a` NOT REGEXP '(a|b)')", sql)
 }
 
+func (sds *sqlite3DialectSuite) TestForUpdate() {
+	ds := sds.GetDs("test")
+	sql, _, err := ds.Where(goqu.C("a").Eq(1)).ForUpdate(goqu.Wait).ToSQL()
+	sds.NoError(err)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 1)", sql)
+
+	sql, _, err = ds.Where(goqu.C("a").Eq(1)).ForUpdate(goqu.NoWait).ToSQL()
+	sds.NoError(err)
+	sds.Equal("SELECT * FROM `test` WHERE (`a` = 1)", sql)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlite3DialectSuite))
 }
