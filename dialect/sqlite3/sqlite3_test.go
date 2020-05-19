@@ -456,6 +456,68 @@ func (st *sqlite3Suite) TestDelete() {
 	st.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlite3]")
 }
 
+func (st *sqlite3Suite) TestInsert_OnConflict() {
+	ds := st.db.From("entry")
+	now := time.Now()
+
+	// insert new record with ID = 11
+	e := entry{Int: 11, Float: 1.100000, String: "1.100000", Time: now, Bool: false, Bytes: []byte("1.100000")}
+	_, err := ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
+	st.NoError(err)
+
+	var entryActual entry
+	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
+	st.NoError(err)
+	st.Equal("1.100000", entryActual.String)
+
+	// duplicate with ON CONFLICT DO NOTHING should not be actually inserted
+	_, err = ds.Insert().Rows(
+		goqu.Record{
+			"id":     11,
+			"int":    99999999,
+			"float":  "0.99999999",
+			"string": "99999999",
+			"time":   now,
+			"bool":   true,
+			"bytes":  []byte("0.99999999"),
+		},
+	).OnConflict(goqu.DoNothing()).Executor().Exec()
+	st.NoError(err)
+
+	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
+	st.NoError(err)
+	st.Equal("1.100000", entryActual.String)
+
+	// UPSERT record with ID primary key value conflict
+	_, err = ds.Insert().Rows(
+		goqu.Record{
+			"id":     11,
+			"int":    11,
+			"float":  "1.100000",
+			"string": "1.100000",
+			"time":   now,
+			"bool":   true,
+			"bytes":  []byte("1.100000"),
+		},
+	).OnConflict(goqu.DoUpdate("id", goqu.Record{"string": "upsert"})).Executor().Exec()
+	st.NoError(err)
+
+	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
+	st.NoError(err)
+	st.Equal("upsert", entryActual.String)
+
+	// UPDATE ... ON CONFLICT (...) WHERE ... SET ... should result in error for now
+	entries := []entry{
+		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
+		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
+	}
+	_, err = ds.Insert().
+		Rows(entries).
+		OnConflict(goqu.DoUpdate("id", goqu.Record{"string": "upsert"}).Where(goqu.C("id").Eq(9))).
+		Executor().Exec()
+	st.EqualError(err, "goqu: dialect does not support upsert with where clause [dialect=sqlite3]")
+}
+
 func TestSqlite3Suite(t *testing.T) {
 	suite.Run(t, new(sqlite3Suite))
 }
