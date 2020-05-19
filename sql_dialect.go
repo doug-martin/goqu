@@ -2,6 +2,7 @@ package goqu
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/sb"
@@ -37,6 +38,7 @@ type (
 var (
 	dialects              = make(map[string]SQLDialect)
 	DefaultDialectOptions = sqlgen.DefaultDialectOptions
+	dialectsMu            sync.RWMutex
 )
 
 func init() {
@@ -44,11 +46,15 @@ func init() {
 }
 
 func RegisterDialect(name string, do *SQLDialectOptions) {
+	dialectsMu.Lock()
+	defer dialectsMu.Unlock()
 	lowerName := strings.ToLower(name)
 	dialects[lowerName] = newDialect(lowerName, do)
 }
 
 func DeregisterDialect(name string) {
+	dialectsMu.Lock()
+	defer dialectsMu.Unlock()
 	delete(dialects, strings.ToLower(name))
 }
 

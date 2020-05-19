@@ -3,6 +3,7 @@ package sqlite3
 import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"time"
 )
 
 func DialectOptions() *goqu.SQLDialectOptions {
@@ -15,7 +16,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsLimitOnDelete = true
 	opts.SupportsConflictUpdateWhere = false
 	opts.SupportsInsertIgnoreSyntax = true
-	opts.SupportsConflictTarget = false
+	opts.SupportsConflictTarget = true
 	opts.SupportsMultipleUpdateTables = false
 	opts.WrapCompoundsInParens = false
 	opts.SupportsDistinctOn = false
@@ -28,7 +29,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.DefaultValuesFragment = []byte("")
 	opts.True = []byte("1")
 	opts.False = []byte("0")
-	opts.TimeFormat = "2006-01-02 15:04:05"
+	opts.TimeFormat = time.RFC3339Nano
 	opts.BooleanOperatorLookup = map[exp.BooleanOperation][]byte{
 		exp.EqOp:             []byte("="),
 		exp.NeqOp:            []byte("!="),
@@ -53,10 +54,10 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.EscapedRunes = map[rune][]byte{
 		'\'': []byte("''"),
 	}
-	opts.InsertIgnoreClause = []byte("INSERT OR IGNORE")
-	opts.ConflictFragment = []byte("")
-	opts.ConflictDoUpdateFragment = []byte("")
-	opts.ConflictDoNothingFragment = []byte("")
+	opts.InsertIgnoreClause = []byte("INSERT OR IGNORE INTO ")
+	opts.ConflictFragment = []byte(" ON CONFLICT ")
+	opts.ConflictDoUpdateFragment = []byte(" DO UPDATE SET ")
+	opts.ConflictDoNothingFragment = []byte(" DO NOTHING ")
 	opts.ForUpdateFragment = []byte("")
 	opts.NowaitFragment = []byte("")
 	return opts
