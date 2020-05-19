@@ -25,16 +25,16 @@ const (
 		"`bytes` BLOB NOT NULL" +
 		");"
 	insertDefaultRecords = "INSERT INTO `entry` (`int`, `float`, `string`, `time`, `bool`, `bytes`) VALUES" +
-		"(0, 0.000000, '0.000000', '2015-02-22 18:19:55', 1,  '0.000000')," +
-		"(1, 0.100000, '0.100000', '2015-02-22 19:19:55', 0, '0.100000')," +
-		"(2, 0.200000, '0.200000', '2015-02-22 20:19:55', 1,  '0.200000')," +
-		"(3, 0.300000, '0.300000', '2015-02-22 21:19:55', 0, '0.300000')," +
-		"(4, 0.400000, '0.400000', '2015-02-22 22:19:55', 1,  '0.400000')," +
-		"(5, 0.500000, '0.500000', '2015-02-22 23:19:55', 0, '0.500000')," +
-		"(6, 0.600000, '0.600000', '2015-02-23 00:19:55', 1,  '0.600000')," +
-		"(7, 0.700000, '0.700000', '2015-02-23 01:19:55', 0, '0.700000')," +
-		"(8, 0.800000, '0.800000', '2015-02-23 02:19:55', 1,  '0.800000')," +
-		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', 0, '0.900000');"
+		"(0, 0.000000, '0.000000', '2015-02-22T18:19:55.000000000-00:00', 1,  '0.000000')," +
+		"(1, 0.100000, '0.100000', '2015-02-22T19:19:55.000000000-00:00', 0, '0.100000')," +
+		"(2, 0.200000, '0.200000', '2015-02-22T20:19:55.000000000-00:00', 1,  '0.200000')," +
+		"(3, 0.300000, '0.300000', '2015-02-22T21:19:55.000000000-00:00', 0, '0.300000')," +
+		"(4, 0.400000, '0.400000', '2015-02-22T22:19:55.000000000-00:00', 1,  '0.400000')," +
+		"(5, 0.500000, '0.500000', '2015-02-22T23:19:55.000000000-00:00', 0, '0.500000')," +
+		"(6, 0.600000, '0.600000', '2015-02-23T00:19:55.000000000-00:00', 1,  '0.600000')," +
+		"(7, 0.700000, '0.700000', '2015-02-23T01:19:55.000000000-00:00', 0, '0.700000')," +
+		"(8, 0.800000, '0.800000', '2015-02-23T02:19:55.000000000-00:00', 1,  '0.800000')," +
+		"(9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-00:00', 0, '0.900000');"
 )
 
 var dbURI = ":memory:"
@@ -118,7 +118,7 @@ func (st *sqlite3Suite) TestQuery() {
 	st.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	st.Len(entries, 10)
 	floatVal := float64(0)
-	baseDate, err := time.Parse(DialectOptions().TimeFormat, "2015-02-22 18:19:55")
+	baseDate, err := time.Parse(DialectOptions().TimeFormat, "2015-02-22T18:19:55.000000000-00:00")
 	st.NoError(err)
 	for i, entry := range entries {
 		f := fmt.Sprintf("%f", floatVal)
@@ -128,7 +128,7 @@ func (st *sqlite3Suite) TestQuery() {
 		st.Equal(f, entry.String)
 		st.Equal([]byte(f), entry.Bytes)
 		st.Equal(i%2 == 0, entry.Bool)
-		st.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
+		st.Equal(baseDate.Add(time.Duration(i)*time.Hour).Unix(), entry.Time.Unix())
 		floatVal += float64(0.1)
 	}
 	entries = entries[0:0]
@@ -215,7 +215,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 	st.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	st.Len(entries, 10)
 	floatVal := float64(0)
-	baseDate, err := time.Parse(DialectOptions().TimeFormat, "2015-02-22 18:19:55")
+	baseDate, err := time.Parse(DialectOptions().TimeFormat, "2015-02-22T18:19:55.000000000-00:00")
 	st.NoError(err)
 	for i, entry := range entries {
 		f := fmt.Sprintf("%f", floatVal)
@@ -225,7 +225,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 		st.Equal(f, entry.String)
 		st.Equal([]byte(f), entry.Bytes)
 		st.Equal(i%2 == 0, entry.Bool)
-		st.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
+		st.Equal(baseDate.Add(time.Duration(i)*time.Hour).Unix(), entry.Time.Unix())
 		floatVal += float64(0.1)
 	}
 	entries = entries[0:0]
@@ -311,7 +311,7 @@ func (st *sqlite3Suite) TestQuery_ValueExpressions() {
 		entry
 		BoolValue bool `db:"bool_value"`
 	}
-	expectedDate, err := time.Parse("2006-01-02 15:04:05", "2015-02-22 19:19:55")
+	expectedDate, err := time.Parse("2006-01-02T15:04:05.000000000-00:00", "2015-02-22T19:19:55.000000000-00:00")
 	st.NoError(err)
 	ds := st.db.From("entry").Select(goqu.Star(), goqu.V(true).As("bool_value")).Where(goqu.Ex{"int": 1})
 	var we wrappedEntry
