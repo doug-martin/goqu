@@ -1,3 +1,8 @@
+# v9.9.0
+
+* [FIXED] SQLite do not add FOR UPDATE in SELECT. [#218](https://github.com/doug-martin/goqu/pull/218) - [@vlanse](https://github.com/vlanse)
+* [ADDED] Support for INSERT ON CONFLICT in SQLite. [#218](https://github.com/doug-martin/goqu/pull/218) - [@vlanse](https://github.com/vlanse)
+
 # v9.8.0
 
 * [ADDED] Support for ANY and ALL operators. [#196](https://github.com/doug-martin/goqu/issues/196)
