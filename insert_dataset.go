@@ -1,6 +1,8 @@
 package goqu
 
 import (
+	"fmt"
+
 	"github.com/doug-martin/goqu/v9/exec"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
@@ -143,6 +145,17 @@ func (id *InsertDataset) ColsAppend(cols ...interface{}) *InsertDataset {
 
 // Adds a subquery to the insert. See examples.
 func (id *InsertDataset) FromQuery(from exp.AppendableExpression) *InsertDataset {
+	if sds, ok := from.(*SelectDataset); ok {
+		if sds.dialect != GetDialect("default") && id.Dialect() != sds.dialect {
+			panic(
+				fmt.Errorf(
+					"incompatible dialects for INSERT (%q) and SELECT (%q)",
+					id.dialect.Dialect(), sds.dialect.Dialect(),
+				),
+			)
+		}
+		sds.dialect = id.dialect
+	}
 	return id.copy(id.clauses.SetFrom(from))
 }
 

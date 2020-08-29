@@ -207,6 +207,43 @@ func (ids *insertDatasetSuite) TestFromQuery() {
 	)
 }
 
+func (ids *insertDatasetSuite) TestFromQueryDialectInheritance() {
+	md := new(mocks.SQLDialect)
+	md.On("Dialect").Return("dialect")
+
+	ids.Run("ok, default dialect is replaced with insert dialect", func() {
+		bd := Insert("items").SetDialect(md).FromQuery(From("other_items"))
+		ids.Require().Equal(md, bd.clauses.From().(*SelectDataset).Dialect())
+	})
+
+	ids.Run("ok, insert and select dialects coincide", func() {
+		bd := Insert("items").SetDialect(md).FromQuery(From("other_items").SetDialect(md))
+		ids.Require().Equal(md, bd.clauses.From().(*SelectDataset).Dialect())
+	})
+
+	ids.Run("ok, insert and select dialects are default", func() {
+		bd := Insert("items").FromQuery(From("other_items"))
+		ids.Require().Equal(GetDialect("default"), bd.clauses.From().(*SelectDataset).Dialect())
+	})
+
+	ids.Run("panic, insert and select dialects are different", func() {
+		defer func() {
+			r := recover()
+			if r == nil {
+				ids.Fail("there should be a panic")
+			}
+			ids.Require().Equal(
+				"incompatible dialects for INSERT (\"dialect\") and SELECT (\"other_dialect\")",
+				r.(error).Error(),
+			)
+		}()
+
+		otherDialect := new(mocks.SQLDialect)
+		otherDialect.On("Dialect").Return("other_dialect")
+		Insert("items").SetDialect(md).FromQuery(From("otherItems").SetDialect(otherDialect))
+	})
+}
+
 func (ids *insertDatasetSuite) TestVals() {
 	val1 := []interface{}{
 		"a", "b",
