@@ -45,6 +45,9 @@ type (
 		// Set to true if the dialect requires join tables in UPDATE to be in a FROM clause (DEFAULT=true).
 		UseFromClauseForMultipleUpdateTables bool
 
+		// Surround LIMIT parameter with parentheses, like in MSSQL: SELECT TOP (10) ...
+		SurroundLimitWithParentheses bool
+
 		// The UPDATE fragment to use when generating sql. (DEFAULT=[]byte("UPDATE"))
 		UpdateClause []byte
 		// The INSERT fragment to use when generating sql. (DEFAULT=[]byte("INSERT INTO"))
