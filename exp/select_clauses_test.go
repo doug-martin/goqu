@@ -20,6 +20,10 @@ func (tse testSQLExpression) ToSQL() (sql string, args []interface{}, err error)
 	return "", nil, nil
 }
 
+func (tse testSQLExpression) IsPrepared() bool {
+	return false
+}
+
 type selectClausesSuite struct {
 	suite.Suite
 }

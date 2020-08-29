@@ -151,6 +151,7 @@ type (
 	SQLExpression interface {
 		Expression
 		ToSQL() (string, []interface{}, error)
+		IsPrepared() bool
 	}
 
 	AppendableExpression interface {
