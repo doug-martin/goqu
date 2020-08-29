@@ -539,6 +539,27 @@ func (mt *mysqlTest) TestWindowFunction() {
 	mt.Error(ds.WithDialect("mysql").ScanStructs(&entries), "goqu: adapter does not support window function clause")
 }
 
+func (mt *mysqlTest) TestInsertFromSelect() {
+	ds := mt.db.From("entry")
+
+	subquery := goqu.Select(
+		goqu.V(11),
+		goqu.V(11),
+		goqu.C("float"),
+		goqu.C("string"),
+		goqu.C("time"),
+		goqu.C("bool"),
+		goqu.C("bytes"),
+	).From(goqu.T("entry")).Where(goqu.C("int").Eq(9))
+
+	query := ds.Insert().Cols().FromQuery(subquery)
+	_, _, err := query.ToSQL()
+
+	mt.NoError(err)
+	_, err = query.Executor().Exec()
+	mt.NoError(err)
+}
+
 func TestMysqlSuite(t *testing.T) {
 	suite.Run(t, new(mysqlTest))
 }
