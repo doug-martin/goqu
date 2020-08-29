@@ -358,6 +358,27 @@ func (mt *sqlserverTest) TestLimitOffset() {
 	mt.Equal(uint32(2), e.ID)
 }
 
+func (mt *sqlserverTest) TestLimitOffsetParameterized() {
+	ds := mt.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Limit(1)
+	var e entry
+	found, err := ds.ScanStruct(&e)
+	mt.NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(1), e.ID)
+
+	ds = mt.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Desc()).Limit(1)
+	found, err = ds.ScanStruct(&e)
+	mt.NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(10), e.ID)
+
+	ds = mt.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Asc()).Offset(1).Limit(1)
+	found, err = ds.ScanStruct(&e)
+	mt.NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(2), e.ID)
+}
+
 func (mt *sqlserverTest) TestInsert() {
 	ds := mt.db.From("entry")
 	now := time.Now()
