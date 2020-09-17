@@ -1,3 +1,9 @@
+# v9.10.0
+
+* [FIXED] SELECT inherits dialect from INSERT in INSERT FROM SELECT.  [#229](https://github.com/doug-martin/goqu/pull/229), [#223](https://github.com/doug-martin/goqu/issues/223) - [@vlanse](https://github.com/vlanse)
+* [FIXED] SQLServer dialect: support prepared statements with TOP.  [#230](https://github.com/doug-martin/goqu/pull/230), [#225](https://github.com/doug-martin/goqu/issues/225) - [@vlanse](https://github.com/vlanse)
+* [ADDED] IsPrepared to SQLExpression interface.  [#231](https://github.com/doug-martin/goqu/pull/231) - [@vlanse](https://github.com/vlanse)
+
 # v9.9.0
 
 * [FIXED] SQLite do not add FOR UPDATE in SELECT. [#218](https://github.com/doug-martin/goqu/pull/218) - [@vlanse](https://github.com/vlanse)
