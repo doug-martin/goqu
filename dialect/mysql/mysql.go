@@ -72,7 +72,14 @@ func DialectOptionsV8() *goqu.SQLDialectOptions {
 	return opts
 }
 
+func DialectOptionsMariaDB() *goqu.SQLDialectOptions {
+	opts := DialectOptions()
+	opts.SupportsReturn = true
+	return opts
+}
+
 func init() {
 	goqu.RegisterDialect("mysql", DialectOptions())
 	goqu.RegisterDialect("mysql8", DialectOptionsV8())
+	goqu.RegisterDialect("mariadb", DialectOptionsMariaDB())
 }
