@@ -121,9 +121,13 @@ func (mt *sqlserverTest) TestQuery() {
 	}
 	entries = entries[0:0]
 
-	mt.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+	mt.Run("unsupported bool data type IS operation", func() {
+		_, _, err = ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ToSQL()
+		mt.Equal("goqu: boolean data type is not supported by dialect \"sqlserver\"", err.Error())
+	})
+
+	mt.NoError(ds.Where(goqu.C("bool").Eq(1)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Bool)
 	}
@@ -131,7 +135,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int > 4)
 	}
@@ -139,7 +142,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int >= 5)
 	}
@@ -147,7 +149,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int < 5)
 	}
@@ -155,7 +156,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int <= 4)
 	}
@@ -163,7 +163,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 4)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int >= 3)
 		mt.True(entry.Int <= 6)
@@ -172,7 +171,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 1)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.Equal("0.100000", entry.String)
 	}
@@ -180,7 +178,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 1)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.Equal("0.100000", entry.String)
 	}
@@ -188,7 +185,6 @@ func (mt *sqlserverTest) TestQuery() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 9)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.NotEqual("0.100000", entry.String)
 	}
@@ -223,9 +219,14 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	}
 
 	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
+
+	mt.Run("unsupported bool data type IS operation", func() {
+		_, _, err = ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ToSQL()
+		mt.Equal("goqu: boolean data type is not supported by dialect \"sqlserver\"", err.Error())
+	})
+
+	mt.NoError(ds.Where(goqu.C("bool").Eq(1)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Bool)
 	}
@@ -233,7 +234,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int > 4)
 	}
@@ -241,7 +241,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int >= 5)
 	}
@@ -249,7 +248,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int < 5)
 	}
@@ -257,7 +255,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 5)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int <= 4)
 	}
@@ -265,7 +262,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 4)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.True(entry.Int >= 3)
 		mt.True(entry.Int <= 6)
@@ -274,7 +270,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 1)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.Equal("0.100000", entry.String)
 	}
@@ -282,7 +277,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 1)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.Equal("0.100000", entry.String)
 	}
@@ -290,7 +284,6 @@ func (mt *sqlserverTest) TestQuery_Prepared() {
 	entries = entries[0:0]
 	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
 	mt.Len(entries, 9)
-	mt.NoError(err)
 	for _, entry := range entries {
 		mt.NotEqual("0.100000", entry.String)
 	}
