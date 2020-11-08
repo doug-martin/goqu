@@ -382,6 +382,12 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		return
 	}
 	rhs := operator.RHS()
+
+	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && rhs != nil && !esg.dialectOptions.BooleanDataTypeSupported {
+		b.SetError(errors.New("boolean data type is not supported by dialect %q", esg.dialect))
+		return
+	}
+
 	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
 		// these values must be interpolated because preparing them generates invalid SQL
 		switch rhs {
@@ -394,7 +400,14 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		}
 	}
 	b.WriteRunes(esg.dialectOptions.SpaceRune)
-	esg.Generate(b, rhs)
+
+	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && rhs == nil && !esg.dialectOptions.BooleanDataTypeSupported {
+		// e.g. for SQL server dialect which does not support "IS @p1" for "IS NULL"
+		b.Write(esg.dialectOptions.Null)
+	} else {
+		esg.Generate(b, rhs)
+	}
+
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
 }
 
