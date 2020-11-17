@@ -113,6 +113,15 @@ func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.Sele
 	}
 }
 
+func (ssg *selectSQLGenerator) generateColumns(b sb.SQLBuilder, clauses exp.SelectClauses) {
+	cols := clauses.Select()
+	if clauses.IsDefaultSelect() || len(cols.Columns()) == 0 {
+		b.WriteRunes(ssg.dialectOptions.StarRune)
+	} else {
+		ssg.esg.Generate(b, cols)
+	}
+}
+
 // Adds the SELECT clause and columns to a sql statement
 func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	b.Write(ssg.dialectOptions.SelectClause).WriteRunes(ssg.dialectOptions.SpaceRune)
@@ -122,11 +131,29 @@ func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClau
 // Adds the SELECT clause along with LIMIT to a SQL statement (e.g. MSSQL dialect: SELECT TOP 10 ...)
 func (ssg *selectSQLGenerator) SelectWithLimitSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	b.Write(ssg.dialectOptions.SelectClause).WriteRunes(ssg.dialectOptions.SpaceRune)
+	dc := clauses.Distinct()
+	if dc != nil {
+		b.Write(ssg.dialectOptions.DistinctFragment)
+	}
 	if clauses.Offset() == 0 && clauses.Limit() != nil {
 		ssg.LimitSQL(b, clauses.Limit())
 		b.WriteRunes(ssg.dialectOptions.SpaceRune)
 	}
-	ssg.selectSQLCommon(b, clauses)
+	if dc != nil {
+		if !dc.IsEmpty() {
+			if ssg.dialectOptions.SupportsDistinctOn {
+				b.Write(ssg.dialectOptions.OnFragment).WriteRunes(ssg.dialectOptions.LeftParenRune)
+				ssg.esg.Generate(b, dc)
+				b.WriteRunes(ssg.dialectOptions.RightParenRune, ssg.dialectOptions.SpaceRune)
+			} else {
+				b.SetError(errDistinctOnNotSupported(ssg.dialect))
+				return
+			}
+		} else {
+			b.WriteRunes(ssg.dialectOptions.SpaceRune)
+		}
+	}
+	ssg.generateColumns(b, clauses)
 }
 
 // Generates the JOIN clauses for an SQL statement
