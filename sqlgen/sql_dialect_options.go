@@ -169,6 +169,8 @@ type (
 		EndFragment []byte
 		// The quote rune to use when quoting string literals (DEFAULT='\'')
 		StringQuote rune
+		// The quote rune to use when quoting string literals (DEFAULT='\'')
+		StartStringQuote []rune
 		// The operator to use when setting values in an update statement (DEFAULT='=')
 		SetOperatorRune rune
 		// The placeholder fragment to use when generating a non interpolated statement (DEFAULT=[]byte"?")
@@ -473,6 +475,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 
 		PlaceHolderFragment: []byte("?"),
 		QuoteRune:           '"',
+		StartStringQuote:    []rune{'\''},
 		StringQuote:         '\'',
 		SetOperatorRune:     '=',
 		CommaRune:           ',',

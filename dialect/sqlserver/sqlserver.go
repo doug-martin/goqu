@@ -11,6 +11,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 
 	opts.UseLiteralIsBools = false
 
+	opts.StartStringQuote = []rune{'N', '\''}
 	opts.SupportsReturn = false
 	opts.SupportsOrderByOnUpdate = false
 	opts.SupportsLimitOnUpdate = false
@@ -19,7 +20,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsConflictUpdateWhere = false
 	opts.SupportsInsertIgnoreSyntax = false
 	opts.SupportsConflictTarget = false
-	opts.SupportsWithCTE = false
+	opts.SupportsWithCTE = true
 	opts.SupportsWithCTERecursive = false
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
@@ -70,13 +71,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	}
 
 	opts.EscapedRunes = map[rune][]byte{
-		'\'': []byte("\\'"),
-		'"':  []byte("\\\""),
-		'\\': []byte("\\\\"),
-		'\n': []byte("\\n"),
-		'\r': []byte("\\r"),
-		0:    []byte("\\x00"),
-		0x1a: []byte("\\x1a"),
+		'\'': []byte("''"),
 	}
 
 	opts.ConflictFragment = []byte("")

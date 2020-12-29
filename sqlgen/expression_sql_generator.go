@@ -290,7 +290,18 @@ func (esg *expressionSQLGenerator) literalTime(b sb.SQLBuilder, t time.Time) {
 		esg.placeHolderSQL(b, t)
 		return
 	}
-	esg.Generate(b, t.In(timeLocation).Format(esg.dialectOptions.TimeFormat))
+	//esg.Generate(b, t.In(timeLocation).Format(esg.dialectOptions.TimeFormat))
+	s := t.In(timeLocation).Format(esg.dialectOptions.TimeFormat)
+	b.WriteRunes(esg.dialectOptions.StringQuote)
+	for _, char := range s {
+		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
+			b.Write(e)
+		} else {
+			b.WriteRunes(char)
+		}
+	}
+
+	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
 
 // Generates SQL for a Float Value
@@ -317,7 +328,7 @@ func (esg *expressionSQLGenerator) literalString(b sb.SQLBuilder, s string) {
 		esg.placeHolderSQL(b, s)
 		return
 	}
-	b.WriteRunes(esg.dialectOptions.StringQuote)
+	b.WriteRunes(esg.dialectOptions.StartStringQuote...)
 	for _, char := range s {
 		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
 			b.Write(e)
