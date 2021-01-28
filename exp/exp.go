@@ -394,6 +394,7 @@ type (
 		Aliaseable
 		Rangeable
 		Comparable
+		Orderable
 		Isable
 		Inable
 		Likeable
@@ -414,6 +415,7 @@ type (
 		Aliaseable
 		Rangeable
 		Comparable
+		Orderable
 		Isable
 		Inable
 		Likeable

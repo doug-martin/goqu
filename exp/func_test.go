@@ -70,6 +70,8 @@ func (sfes *sqlFunctionExpressionSuite) TestAllOthers() {
 		{Ex: fn.IsNotTrue(), Expected: NewBooleanExpression(IsNotOp, fn, true)},
 		{Ex: fn.IsFalse(), Expected: NewBooleanExpression(IsOp, fn, false)},
 		{Ex: fn.IsNotFalse(), Expected: NewBooleanExpression(IsNotOp, fn, false)},
+		{Ex: fn.Desc(), Expected: desc(fn)},
+		{Ex: fn.Asc(), Expected: asc(fn)},
 	}
 
 	for _, tc := range testCases {

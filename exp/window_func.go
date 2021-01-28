@@ -87,6 +87,9 @@ func (swfe sqlWindowFunctionExpression) IsNotTrue() BooleanExpression  { return 
 func (swfe sqlWindowFunctionExpression) IsFalse() BooleanExpression    { return is(swfe, false) }
 func (swfe sqlWindowFunctionExpression) IsNotFalse() BooleanExpression { return isNot(swfe, false) }
 
+func (swfe sqlWindowFunctionExpression) Asc() OrderedExpression  { return asc(swfe) }
+func (swfe sqlWindowFunctionExpression) Desc() OrderedExpression { return desc(swfe) }
+
 func (swfe sqlWindowFunctionExpression) Func() SQLFunctionExpression {
 	return swfe.fn
 }
