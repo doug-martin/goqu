@@ -551,6 +551,27 @@ func (pt *postgresTest) TestWindowFunction() {
 	}, entries)
 }
 
+func (pt *postgresTest) TestOrderByFunction() {
+	ds := pt.db.From("entry").
+		Select(goqu.ROW_NUMBER().Over(goqu.W()).As("id")).Window().Order(goqu.ROW_NUMBER().Over(goqu.W()).Desc())
+
+	var entries []entry
+	pt.NoError(ds.ScanStructs(&entries))
+
+	pt.Equal([]entry{
+		{ID: 10},
+		{ID: 9},
+		{ID: 8},
+		{ID: 7},
+		{ID: 6},
+		{ID: 5},
+		{ID: 4},
+		{ID: 3},
+		{ID: 2},
+		{ID: 1},
+	}, entries)
+}
+
 func TestPostgresSuite(t *testing.T) {
 	suite.Run(t, new(postgresTest))
 }

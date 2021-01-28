@@ -96,6 +96,8 @@ func (swfet *sqlWindowFunctionExpressionTest) TestAllOthers() {
 		{Ex: wf.IsNotTrue(), Expected: NewBooleanExpression(IsNotOp, wf, true)},
 		{Ex: wf.IsFalse(), Expected: NewBooleanExpression(IsOp, wf, false)},
 		{Ex: wf.IsNotFalse(), Expected: NewBooleanExpression(IsNotOp, wf, false)},
+		{Ex: wf.Desc(), Expected: desc(wf)},
+		{Ex: wf.Asc(), Expected: asc(wf)},
 	}
 
 	for _, tc := range testCases {
