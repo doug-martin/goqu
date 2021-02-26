@@ -302,6 +302,15 @@ func (ds *databaseSuite) TestWithTx() {
 			wantErr: true,
 			errStr:  "goqu: transaction rollback error",
 		},
+		{
+			expectf: func(mock sqlmock.Sqlmock) {
+				mock.ExpectBegin()
+				mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+			},
+			f:       func(_ *TxDatabase) error { return nil },
+			wantErr: true,
+			errStr:  "goqu: commit error",
+		},
 	}
 	for _, c := range cases {
 		c.expectf(mock)
