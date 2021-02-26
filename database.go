@@ -626,7 +626,8 @@ func (td *TxDatabase) Wrap(fn func() error) (err error) {
 		if p := recover(); p != nil {
 			_ = td.Rollback()
 			panic(p)
-		} else if err != nil {
+		}
+		if err != nil {
 			if rollbackErr := td.Rollback(); rollbackErr != nil {
 				err = rollbackErr
 			}
