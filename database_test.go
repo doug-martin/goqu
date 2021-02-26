@@ -314,6 +314,29 @@ func (ds *databaseSuite) TestWithTx() {
 	}
 }
 
+func (ds *databaseSuite) TestRollbackOnPanic() {
+	mDb, mock, err := sqlmock.New()
+
+	defer func() {
+		p := recover()
+		if p == nil {
+			ds.Fail("there should be a panic")
+		}
+		ds.Require().Equal("a problem has happened", p.(string))
+		ds.Require().NoError(mock.ExpectationsWereMet())
+	}()
+
+	ds.NoError(err)
+
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	db := newDatabase("mock", mDb)
+	_ = db.WithTx(func(_ *TxDatabase) error {
+		panic("a problem has happened")
+	})
+}
+
 func (ds *databaseSuite) TestDataRace() {
 	mDb, mock, err := sqlmock.New()
 	ds.NoError(err)
