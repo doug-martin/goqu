@@ -606,7 +606,7 @@ func (td *TxDatabase) Rollback() error {
 	return td.Tx.Rollback()
 }
 
-// A helper method that will automatically COMMIT or ROLLBACK once the  supplied function is done executing
+// A helper method that will automatically COMMIT or ROLLBACK once the supplied function is done executing
 //
 //      tx, err := db.Begin()
 //      if err != nil{
@@ -621,12 +621,20 @@ func (td *TxDatabase) Rollback() error {
 //      }); err != nil{
 //           panic(err.Error()) // you could gracefully handle the error also
 //      }
-func (td *TxDatabase) Wrap(fn func() error) error {
-	if err := fn(); err != nil {
-		if rollbackErr := td.Rollback(); rollbackErr != nil {
-			return rollbackErr
+func (td *TxDatabase) Wrap(fn func() error) (err error) {
+	defer func() {
+		if p := recover(); p != nil {
+			_ = td.Rollback()
+			panic(p)
+		} else if err != nil {
+			if rollbackErr := td.Rollback(); rollbackErr != nil {
+				err = rollbackErr
+			}
+		} else {
+			if commitErr := td.Commit(); commitErr != nil {
+				err = commitErr
+			}
 		}
-		return err
-	}
-	return td.Commit()
+	}()
+	return fn()
 }
