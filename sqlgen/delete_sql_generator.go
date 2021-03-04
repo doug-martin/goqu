@@ -46,7 +46,9 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 		case CommonTableSQLFragment:
 			dsg.esg.Generate(b, clauses.CommonTables())
 		case DeleteBeginSQLFragment:
-			dsg.DeleteBeginSQL(b)
+			dsg.DeleteBeginSQL(
+				b, exp.NewColumnListExpression(clauses.From()), !(clauses.HasLimit() || clauses.HasOrder()),
+			)
 		case FromSQLFragment:
 			dsg.FromSQL(b, exp.NewColumnListExpression(clauses.From()))
 		case WhereSQLFragment:
@@ -68,6 +70,9 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 }
 
 // Adds the correct fragment to being an DELETE statement
-func (dsg *deleteSQLGenerator) DeleteBeginSQL(b sb.SQLBuilder) {
+func (dsg *deleteSQLGenerator) DeleteBeginSQL(b sb.SQLBuilder, from exp.ColumnListExpression, multiTable bool) {
 	b.Write(dsg.dialectOptions.DeleteClause)
+	if multiTable && dsg.dialectOptions.SupportsDeleteTableHint {
+		dsg.SourcesSQL(b, from)
+	}
 }
