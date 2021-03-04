@@ -12,6 +12,8 @@ type (
 	SQLDialectOptions struct {
 		// Set to true if the dialect supports ORDER BY expressions in DELETE statements (DEFAULT=false)
 		SupportsOrderByOnDelete bool
+		// Set to true if the dialect supports table hint for DELETE statements (DELETE t FROM t ...), DEFAULT=false
+		SupportsDeleteTableHint bool
 		// Set to true if the dialect supports ORDER BY expressions in UPDATE statements (DEFAULT=false)
 		SupportsOrderByOnUpdate bool
 		// Set to true if the dialect supports LIMIT expressions in DELETE statements (DEFAULT=false)
@@ -395,6 +397,7 @@ func (sf SQLFragmentType) String() string {
 func DefaultDialectOptions() *SQLDialectOptions {
 	return &SQLDialectOptions{
 		SupportsOrderByOnDelete:     false,
+		SupportsDeleteTableHint:     false,
 		SupportsOrderByOnUpdate:     false,
 		SupportsLimitOnDelete:       false,
 		SupportsLimitOnUpdate:       false,
