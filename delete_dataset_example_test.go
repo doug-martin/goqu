@@ -231,7 +231,7 @@ func ExampleDeleteDataset_ClearLimit() {
 	sql, _, _ := ds.ClearLimit().ToSQL()
 	fmt.Println(sql)
 	// Output:
-	// DELETE FROM `test`
+	// DELETE `test` FROM `test`
 }
 
 func ExampleDeleteDataset_Order() {
