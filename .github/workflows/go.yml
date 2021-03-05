@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go_version: ["1.14", "1.15", "latest"]
+        go_version: ["1.15", "1.16", "latest"]
         db_versions:
           - mysql_version: 5
             postgres_version: 9.6
