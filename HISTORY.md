@@ -1,3 +1,9 @@
+# v9.11.0
+
+* [FIXED] Use valid 'IS' operator for sqlserver dialect [#240](https://github.com/doug-martin/goqu/pull/240), [#239](https://github.com/doug-martin/goqu/pull/229)  - [@vlanse](https://github.com/vlanse)
+* [ADDED] Implement Orderable interface for SQL Functions [#251](https://github.com/doug-martin/goqu/pull/251)  - [@GlebBeloded](https://github.com/GlebBeloded)
+* [ADDED] Support for table hint in multi-table MySQL DELETE queries [#252](https://github.com/doug-martin/goqu/pull/252) - [@vlanse](https://github.com/vlanse)
+
 # v9.10.0
 
 * [FIXED] SELECT inherits dialect from INSERT in INSERT FROM SELECT.  [#229](https://github.com/doug-martin/goqu/pull/229), [#223](https://github.com/doug-martin/goqu/issues/223) - [@vlanse](https://github.com/vlanse)
