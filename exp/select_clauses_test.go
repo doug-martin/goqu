@@ -160,21 +160,33 @@ func (scs *selectClausesSuite) TestJoins() {
 func (scs *selectClausesSuite) TestJoinsAppend() {
 	jc := NewConditionedJoinExpression(
 		LeftJoinType,
-		NewIdentifierExpression("", "test", ""),
+		NewIdentifierExpression("", "test1", ""),
 		nil,
 	)
 	jc2 := NewUnConditionedJoinExpression(
 		LeftJoinType,
-		NewIdentifierExpression("", "test", ""),
+		NewIdentifierExpression("", "test2", ""),
+	)
+	jc3 := NewUnConditionedJoinExpression(
+		InnerJoinType,
+		NewIdentifierExpression("", "test3", ""),
 	)
 	c := NewSelectClauses()
 	c2 := c.JoinsAppend(jc)
 	c3 := c2.JoinsAppend(jc2)
 
+	c4 := c3.JoinsAppend(jc2) // len(c4.joins) == 3, cap(c4.joins) == 4
+	// next two appends shouldn't affect one another
+	c5 := c4.JoinsAppend(jc2)
+	c6 := c4.JoinsAppend(jc3)
+
 	scs.Nil(c.Joins())
 
 	scs.Equal(JoinExpressions{jc}, c2.Joins())
 	scs.Equal(JoinExpressions{jc, jc2}, c3.Joins())
+	scs.Equal(JoinExpressions{jc, jc2, jc2}, c4.Joins())
+	scs.Equal(JoinExpressions{jc, jc2, jc2, jc2}, c5.Joins())
+	scs.Equal(JoinExpressions{jc, jc2, jc2, jc3}, c6.Joins())
 }
 
 func (scs *selectClausesSuite) TestWhere() {

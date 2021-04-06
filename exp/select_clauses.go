@@ -112,7 +112,7 @@ func (c *selectClauses) clone() *selectClauses {
 		selectColumns: c.selectColumns,
 		distinct:      c.distinct,
 		from:          c.from,
-		joins:         c.joins,
+		joins:         c.joins[0:len(c.joins):len(c.joins)],
 		where:         c.where,
 		alias:         c.alias,
 		groupBy:       c.groupBy,
