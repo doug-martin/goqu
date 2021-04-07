@@ -42,7 +42,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		exp.LteOp:            []byte("<="),
 		exp.InOp:             []byte("IN"),
 		exp.NotInOp:          []byte("NOT IN"),
-		exp.IsOp:             []byte("="),
+		exp.IsOp:             []byte("IS"),
 		exp.IsNotOp:          []byte("IS NOT"),
 		exp.LikeOp:           []byte("LIKE"),
 		exp.NotLikeOp:        []byte("NOT LIKE"),
