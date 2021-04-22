@@ -1,3 +1,7 @@
+# v9.11.1
+
+* [FIXED] Avoid mutation of join slice for separate datasets when joins slice capacity is not yet reached [#261](https://github.com/doug-martin/goqu/pull/261) - [@fhaifler](https://github.com/fhaifler)
+
 # v9.11.0
 
 * [FIXED] Use valid 'IS' operator for sqlserver dialect [#240](https://github.com/doug-martin/goqu/pull/240), [#239](https://github.com/doug-martin/goqu/pull/229)  - [@vlanse](https://github.com/vlanse)
