@@ -123,8 +123,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Invalid() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnsupportedType() {
-	type strct struct {
-	}
+	type strct struct{}
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}"},
@@ -328,22 +327,24 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Slice() {
 	)
 }
 
-type unknownExpression struct {
-}
+type unknownExpression struct{}
 
 func (ue unknownExpression) Expression() exp.Expression {
 	return ue
 }
+
 func (ue unknownExpression) Clone() exp.Expression {
 	return ue
 }
+
 func (esgs *expressionSQLGeneratorSuite) TestGenerateUnsupportedExpression() {
 	errMsg := "goqu: unsupported expression type sqlgen.unknownExpression"
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: unknownExpression{}, err: errMsg},
 		expressionTestCase{
-			val: unknownExpression{}, isPrepared: true, err: errMsg},
+			val: unknownExpression{}, isPrepared: true, err: errMsg,
+		},
 	)
 }
 
@@ -469,7 +470,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AliasedExpression() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 	ae := newTestAppendableExpression(`SELECT "id" FROM "test2"`, emptyArgs, nil, nil)
-	re := regexp.MustCompile("(a|b)")
+	re := regexp.MustCompile("[ab]")
 	ident := exp.NewIdentifierExpression("", "", "a")
 
 	esgs.assertCases(
@@ -563,26 +564,26 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 		expressionTestCase{val: ident.Like("a%"), sql: `("a" LIKE 'a%')`},
 		expressionTestCase{val: ident.Like("a%"), sql: `("a" LIKE ?)`, isPrepared: true, args: []interface{}{"a%"}},
 
-		expressionTestCase{val: ident.Like(re), sql: `("a" ~ '(a|b)')`},
-		expressionTestCase{val: ident.Like(re), sql: `("a" ~ ?)`, isPrepared: true, args: []interface{}{"(a|b)"}},
+		expressionTestCase{val: ident.Like(re), sql: `("a" ~ '[ab]')`},
+		expressionTestCase{val: ident.Like(re), sql: `("a" ~ ?)`, isPrepared: true, args: []interface{}{"[ab]"}},
 
 		expressionTestCase{val: ident.ILike("a%"), sql: `("a" ILIKE 'a%')`},
 		expressionTestCase{val: ident.ILike("a%"), sql: `("a" ILIKE ?)`, isPrepared: true, args: []interface{}{"a%"}},
 
-		expressionTestCase{val: ident.ILike(re), sql: `("a" ~* '(a|b)')`},
-		expressionTestCase{val: ident.ILike(re), sql: `("a" ~* ?)`, isPrepared: true, args: []interface{}{"(a|b)"}},
+		expressionTestCase{val: ident.ILike(re), sql: `("a" ~* '[ab]')`},
+		expressionTestCase{val: ident.ILike(re), sql: `("a" ~* ?)`, isPrepared: true, args: []interface{}{"[ab]"}},
 
 		expressionTestCase{val: ident.NotLike("a%"), sql: `("a" NOT LIKE 'a%')`},
 		expressionTestCase{val: ident.NotLike("a%"), sql: `("a" NOT LIKE ?)`, isPrepared: true, args: []interface{}{"a%"}},
 
-		expressionTestCase{val: ident.NotLike(re), sql: `("a" !~ '(a|b)')`},
-		expressionTestCase{val: ident.NotLike(re), sql: `("a" !~ ?)`, isPrepared: true, args: []interface{}{"(a|b)"}},
+		expressionTestCase{val: ident.NotLike(re), sql: `("a" !~ '[ab]')`},
+		expressionTestCase{val: ident.NotLike(re), sql: `("a" !~ ?)`, isPrepared: true, args: []interface{}{"[ab]"}},
 
 		expressionTestCase{val: ident.NotILike("a%"), sql: `("a" NOT ILIKE 'a%')`},
 		expressionTestCase{val: ident.NotILike("a%"), sql: `("a" NOT ILIKE ?)`, isPrepared: true, args: []interface{}{"a%"}},
 
-		expressionTestCase{val: ident.NotILike(re), sql: `("a" !~* '(a|b)')`},
-		expressionTestCase{val: ident.NotILike(re), sql: `("a" !~* ?)`, isPrepared: true, args: []interface{}{"(a|b)"}},
+		expressionTestCase{val: ident.NotILike(re), sql: `("a" !~* '[ab]')`},
+		expressionTestCase{val: ident.NotILike(re), sql: `("a" !~* ?)`, isPrepared: true, args: []interface{}{"[ab]"}},
 	)
 
 	opts := DefaultDialectOptions()
@@ -1241,21 +1242,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CaseExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
-	re := regexp.MustCompile("(a|b)")
 	esgs.assertCases(
 		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{}},
 		expressionTestCase{val: exp.Ex{}, isPrepared: true},
-
-		expressionTestCase{
-			val: exp.Ex{"a": exp.Op{"badOp": true}},
-			err: "goqu: unsupported expression type badOp",
-		},
-		expressionTestCase{
-			val:        exp.Ex{"a": exp.Op{"badOp": true}},
-			isPrepared: true,
-			err:        "goqu: unsupported expression type badOp",
-		},
 
 		expressionTestCase{val: exp.Ex{"a": 1}, sql: `("a" = 1)`},
 		expressionTestCase{val: exp.Ex{"a": 1}, sql: `("a" = ?)`, isPrepared: true, args: []interface{}{int64(1)}},
@@ -1276,35 +1266,86 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			isPrepared: true,
 			args:       []interface{}{"a", "b", "c"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithABadOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		expressionTestCase{
+			val: exp.Ex{"a": exp.Op{"badOp": true}},
+			err: "goqu: unsupported expression type badOp",
+		},
+		expressionTestCase{
+			val:        exp.Ex{"a": exp.Op{"badOp": true}},
+			isPrepared: true,
+			err:        "goqu: unsupported expression type badOp",
+		},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNeqOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"neq": 1}}, sql: `("a" != 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"neq": 1}}, sql: `("a" != ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
 		}},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithIsNotOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT TRUE)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT TRUE)`, isPrepared: true},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithGtOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gt": 1}}, sql: `("a" > 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gt": 1}}, sql: `("a" > ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
 		}},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithGteOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gte": 1}}, sql: `("a" >= 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gte": 1}}, sql: `("a" >= ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
 		}},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLtOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lt": 1}}, sql: `("a" < 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lt": 1}}, sql: `("a" < ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
 		}},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLteOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lte": 1}}, sql: `("a" <= 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lte": 1}}, sql: `("a" <= ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
 		}},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLikeOp() {
+	re := regexp.MustCompile("[ab]")
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"like": "a%"}}, sql: `("a" LIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"like": "a%"}},
@@ -1313,14 +1354,20 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			args:       []interface{}{"a%"},
 		},
 
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"like": re}}, sql: `("a" ~ '(a|b)')`},
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"like": re}}, sql: `("a" ~ '[ab]')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"like": re}},
 			sql:        `("a" ~ ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotLikeOp() {
+	re := regexp.MustCompile("[ab]")
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"notLike": "a%"}}, sql: `("a" NOT LIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"notLike": "a%"}},
@@ -1329,14 +1376,20 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			args:       []interface{}{"a%"},
 		},
 
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"notLike": re}}, sql: `("a" !~ '(a|b)')`},
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"notLike": re}}, sql: `("a" !~ '[ab]')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"notLike": re}},
 			sql:        `("a" !~ ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithILikeOp() {
+	re := regexp.MustCompile("[ab]")
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"iLike": "a%"}}, sql: `("a" ILIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"iLike": "a%"}},
@@ -1345,14 +1398,20 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			args:       []interface{}{"a%"},
 		},
 
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"iLike": re}}, sql: `("a" ~* '(a|b)')`},
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"iLike": re}}, sql: `("a" ~* '[ab]')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"iLike": re}},
 			sql:        `("a" ~* ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotILikeOp() {
+	re := regexp.MustCompile("[ab]")
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"notILike": "a%"}}, sql: `("a" NOT ILIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"notILike": "a%"}},
@@ -1361,45 +1420,59 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			args:       []interface{}{"a%"},
 		},
 
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"notILike": re}}, sql: `("a" !~* '(a|b)')`},
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"notILike": re}}, sql: `("a" !~* '[ab]')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"notILike": re}},
 			sql:        `("a" !~* ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
+	)
+}
 
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpLike": "(a|b)"}}, sql: `("a" ~ '(a|b)')`},
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpLikeOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpLike": "[ab]"}}, sql: `("a" ~ '[ab]')`},
 		expressionTestCase{
-			val:        exp.Ex{"a": exp.Op{"regexpLike": "(a|b)"}},
+			val:        exp.Ex{"a": exp.Op{"regexpLike": "[ab]"}},
 			sql:        `("a" ~ ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
+	)
+}
 
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpNotLike": "(a|b)"}}, sql: `("a" !~ '(a|b)')`},
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpILikeOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpILike": "[ab]"}}, sql: `("a" ~* '[ab]')`},
 		expressionTestCase{
-			val:        exp.Ex{"a": exp.Op{"regexpNotLike": "(a|b)"}},
-			sql:        `("a" !~ ?)`,
-			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
-		},
-
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpILike": "(a|b)"}}, sql: `("a" ~* '(a|b)')`},
-		expressionTestCase{
-			val:        exp.Ex{"a": exp.Op{"regexpILike": "(a|b)"}},
+			val:        exp.Ex{"a": exp.Op{"regexpILike": "[ab]"}},
 			sql:        `("a" ~* ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
-		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpNotILike": "(a|b)"}}, sql: `("a" !~* '(a|b)')`},
-		expressionTestCase{
-			val:        exp.Ex{"a": exp.Op{"regexpNotILike": "(a|b)"}},
-			sql:        `("a" !~* ?)`,
-			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
-		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpNotLikeOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpNotLike": "[ab]"}}, sql: `("a" !~ '[ab]')`},
+		expressionTestCase{
+			val:        exp.Ex{"a": exp.Op{"regexpNotLike": "[ab]"}},
+			sql:        `("a" !~ ?)`,
+			isPrepared: true,
+			args:       []interface{}{"[ab]"},
+		},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithInOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}}, sql: `("a" IN ('a', 'b', 'c'))`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}},
@@ -1407,7 +1480,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			isPrepared: true,
 			args:       []interface{}{"a", "b", "c"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotInOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"notIn": []string{"a", "b", "c"}}},
 			sql: `("a" NOT IN ('a', 'b', 'c'))`,
@@ -1418,7 +1496,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			isPrepared: true,
 			args:       []interface{}{"a", "b", "c"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapBetweenOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"between": exp.NewRangeVal("aaa", "zzz")}},
 			sql: `("a" BETWEEN 'aaa' AND 'zzz')`,
@@ -1429,7 +1512,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			isPrepared: true,
 			args:       []interface{}{"aaa", "zzz"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapNotBetweenOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"notBetween": exp.NewRangeVal("aaa", "zzz")}},
 			sql: `("a" NOT BETWEEN 'aaa' AND 'zzz')`,
@@ -1440,7 +1528,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 			isPrepared: true,
 			args:       []interface{}{"aaa", "zzz"},
 		},
+	)
+}
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapIsOp() {
+	esgs.assertCases(
+		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"is": nil, "eq": 10}},
 			sql: `(("a" = 10) OR ("a" IS NULL))`,
@@ -1460,35 +1553,35 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionOrMap() {
 		expressionTestCase{val: exp.ExOr{}},
 		expressionTestCase{val: exp.ExOr{}, isPrepared: true},
 
-		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpLike": "(a|b)"}}, sql: `("a" ~ '(a|b)')`},
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpLike": "[ab]"}}, sql: `("a" ~ '[ab]')`},
 		expressionTestCase{
-			val:        exp.ExOr{"a": exp.Op{"regexpLike": "(a|b)"}},
+			val:        exp.ExOr{"a": exp.Op{"regexpLike": "[ab]"}},
 			sql:        `("a" ~ ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
 
-		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpNotLike": "(a|b)"}}, sql: `("a" !~ '(a|b)')`},
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpNotLike": "[ab]"}}, sql: `("a" !~ '[ab]')`},
 		expressionTestCase{
-			val:        exp.ExOr{"a": exp.Op{"regexpNotLike": "(a|b)"}},
+			val:        exp.ExOr{"a": exp.Op{"regexpNotLike": "[ab]"}},
 			sql:        `("a" !~ ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
 
-		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpILike": "(a|b)"}}, sql: `("a" ~* '(a|b)')`},
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpILike": "[ab]"}}, sql: `("a" ~* '[ab]')`},
 		expressionTestCase{
-			val:        exp.ExOr{"a": exp.Op{"regexpILike": "(a|b)"}},
+			val:        exp.ExOr{"a": exp.Op{"regexpILike": "[ab]"}},
 			sql:        `("a" ~* ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
-		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpNotILike": "(a|b)"}}, sql: `("a" !~* '(a|b)')`},
+		expressionTestCase{val: exp.ExOr{"a": exp.Op{"regexpNotILike": "[ab]"}}, sql: `("a" !~* '[ab]')`},
 		expressionTestCase{
-			val:        exp.ExOr{"a": exp.Op{"regexpNotILike": "(a|b)"}},
+			val:        exp.ExOr{"a": exp.Op{"regexpNotILike": "[ab]"}},
 			sql:        `("a" !~* ?)`,
 			isPrepared: true,
-			args:       []interface{}{"(a|b)"},
+			args:       []interface{}{"[ab]"},
 		},
 
 		expressionTestCase{
@@ -1521,6 +1614,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionOrMap() {
 		},
 	)
 }
+
 func TestExpressionSQLGenerator(t *testing.T) {
 	suite.Run(t, new(expressionSQLGeneratorSuite))
 }

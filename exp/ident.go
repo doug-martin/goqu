@@ -12,12 +12,17 @@ type (
 	}
 )
 
+var (
+	tableAndColumnParts                 = 2
+	schemaTableAndColumnIdentifierParts = 3
+)
+
 func ParseIdentifier(ident string) IdentifierExpression {
 	parts := strings.Split(ident, ".")
 	switch len(parts) {
-	case 2:
+	case tableAndColumnParts:
 		return NewIdentifierExpression("", parts[0], parts[1])
-	case 3:
+	case schemaTableAndColumnIdentifierParts:
 		return NewIdentifierExpression(parts[0], parts[1], parts[2])
 	}
 	return NewIdentifierExpression("", "", ident)

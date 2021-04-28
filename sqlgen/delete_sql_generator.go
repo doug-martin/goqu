@@ -21,9 +21,7 @@ type (
 	}
 )
 
-var (
-	errNoSourceForDelete = errors.New("no source found when generating delete sql")
-)
+var errNoSourceForDelete = errors.New("no source found when generating delete sql")
 
 func NewDeleteSQLGenerator(dialect string, do *SQLDialectOptions) DeleteSQLGenerator {
 	return &deleteSQLGenerator{newCommonSQLGenerator(dialect, do)}

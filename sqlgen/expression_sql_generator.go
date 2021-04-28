@@ -440,6 +440,8 @@ func (esg *expressionSQLGenerator) orderedExpressionSQL(b sb.SQLBuilder, order e
 		b.Write(esg.dialectOptions.DescFragment)
 	}
 	switch order.NullSortType() {
+	case exp.NoNullsSortType:
+		return
 	case exp.NullsFirstSortType:
 		b.Write(esg.dialectOptions.NullsFirstFragment)
 	case exp.NullsLastSortType:

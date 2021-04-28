@@ -260,10 +260,10 @@ func (tds *truncateDatasetSuite) TestToSQL_withError() {
 }
 
 func (tds *truncateDatasetSuite) TestExecutor() {
-	mDb, _, err := sqlmock.New()
+	mDB, _, err := sqlmock.New()
 	tds.NoError(err)
 
-	ds := newTruncateDataset("mock", exec.NewQueryFactory(mDb)).
+	ds := newTruncateDataset("mock", exec.NewQueryFactory(mDB)).
 		Table("table1", "table2")
 
 	tsql, args, err := ds.Executor().ToSQL()
