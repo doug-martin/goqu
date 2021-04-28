@@ -19,10 +19,8 @@ type SelectDataset struct {
 	err          error
 }
 
-var (
-	errQueryFactoryNotFoundError = errors.New(
-		"unable to execute query did you use goqu.Database#From to create the dataset",
-	)
+var errQueryFactoryNotFoundError = errors.New(
+	"unable to execute query did you use goqu.Database#From to create the dataset",
 )
 
 // used internally by database to create a database with a specific adapter

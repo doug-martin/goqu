@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v9/exec"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
 	"github.com/doug-martin/goqu/v9/internal/sb"
@@ -154,7 +153,7 @@ func (dds *deleteDatasetSuite) TestFrom_withIdentifier() {
 		},
 	)
 
-	dds.PanicsWithValue(errBadFromArgument, func() {
+	dds.PanicsWithValue(ErrBadFromArgument, func() {
 		Delete("test").From(true)
 	})
 }
@@ -431,11 +430,10 @@ func (dds *deleteDatasetSuite) TestToSQL_WithError() {
 }
 
 func (dds *deleteDatasetSuite) TestExecutor() {
-	mDb, _, err := sqlmock.New()
+	mDB, _, err := sqlmock.New()
 	dds.NoError(err)
 
-	qf := exec.NewQueryFactory(mDb)
-	ds := newDeleteDataset("mock", qf).From("items").Where(Ex{"id": Op{"gt": 10}})
+	ds := New("mock", mDB).Delete("items").Where(Ex{"id": Op{"gt": 10}})
 
 	dsql, args, err := ds.Executor().ToSQL()
 	dds.NoError(err)

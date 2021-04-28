@@ -260,6 +260,7 @@ func (uds *updateDatasetSuite) TestOrderAppend() {
 		},
 	)
 }
+
 func (uds *updateDatasetSuite) TestOrderPrepend() {
 	bd := Update("items").Order(C("a").Desc())
 	uds.assertCases(
@@ -326,6 +327,7 @@ func (uds *updateDatasetSuite) TestLimitAll() {
 		},
 	)
 }
+
 func (uds *updateDatasetSuite) TestClearLimit() {
 	bd := Update("items")
 	uds.assertCases(
@@ -431,9 +433,9 @@ func (uds *updateDatasetSuite) TestToSQL_WithError() {
 }
 
 func (uds *updateDatasetSuite) TestExecutor() {
-	mDb, _, err := sqlmock.New()
+	mDB, _, err := sqlmock.New()
 	uds.NoError(err)
-	ds := newUpdateDataset("mock", exec.NewQueryFactory(mDb)).
+	ds := newUpdateDataset("mock", exec.NewQueryFactory(mDB)).
 		Table("items").
 		Set(Record{"address": "111 Test Addr", "name": "Test1"}).
 		Where(C("name").IsNull())

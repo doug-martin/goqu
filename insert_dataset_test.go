@@ -425,10 +425,10 @@ func (ids *insertDatasetSuite) TestReturnsColumns() {
 }
 
 func (ids *insertDatasetSuite) TestExecutor() {
-	mDb, _, err := sqlmock.New()
+	mDB, _, err := sqlmock.New()
 	ids.NoError(err)
 
-	ds := newInsertDataset("mock", exec.NewQueryFactory(mDb)).
+	ds := newInsertDataset("mock", exec.NewQueryFactory(mDB)).
 		Into("items").
 		Rows(Record{"address": "111 Test Addr", "name": "Test1"})
 

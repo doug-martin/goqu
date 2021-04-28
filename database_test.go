@@ -33,7 +33,7 @@ type databaseSuite struct {
 }
 
 func (ds *databaseSuite) TestLogger() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -44,7 +44,7 @@ func (ds *databaseSuite) TestLogger() {
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
-	db := New("db-mock", mDb)
+	db := New("db-mock", mDB)
 	logger := new(dbTestMockLogger)
 	db.Logger(logger)
 	var items []testActionItem
@@ -60,7 +60,7 @@ func (ds *databaseSuite) TestLogger() {
 }
 
 func (ds *databaseSuite) TestScanStructs() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -71,7 +71,7 @@ func (ds *databaseSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	db := New("db-mock", mDb)
+	db := New("db-mock", mDB)
 	var items []testActionItem
 	ds.NoError(db.ScanStructs(&items, `SELECT * FROM "items"`))
 	ds.Len(items, 2)
@@ -91,7 +91,7 @@ func (ds *databaseSuite) TestScanStructs() {
 }
 
 func (ds *databaseSuite) TestScanStruct() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
 		WithArgs().
@@ -101,7 +101,7 @@ func (ds *databaseSuite) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	var item testActionItem
 	found, err := db.ScanStruct(&item, `SELECT * FROM "items" LIMIT 1`)
 	ds.NoError(err)
@@ -118,13 +118,13 @@ func (ds *databaseSuite) TestScanStruct() {
 }
 
 func (ds *databaseSuite) TestScanVals() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	var ids []uint32
 	ds.NoError(db.ScanVals(&ids, `SELECT "id" FROM "items"`))
 	ds.Len(ids, 5)
@@ -136,13 +136,13 @@ func (ds *databaseSuite) TestScanVals() {
 }
 
 func (ds *databaseSuite) TestScanVal() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	var id int64
 	found, err := db.ScanVal(&id, `SELECT "id" FROM "items"`)
 	ds.NoError(err)
@@ -158,7 +158,7 @@ func (ds *databaseSuite) TestScanVal() {
 }
 
 func (ds *databaseSuite) TestExec() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
 		WithArgs().
@@ -168,7 +168,7 @@ func (ds *databaseSuite) TestExec() {
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
 	ds.NoError(err)
 	_, err = db.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
@@ -176,7 +176,7 @@ func (ds *databaseSuite) TestExec() {
 }
 
 func (ds *databaseSuite) TestQuery() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -187,7 +187,7 @@ func (ds *databaseSuite) TestQuery() {
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	_, err = db.Query(`SELECT * FROM "items"`)
 	ds.NoError(err, "goqu - mock error")
 
@@ -196,7 +196,7 @@ func (ds *databaseSuite) TestQuery() {
 }
 
 func (ds *databaseSuite) TestQueryRow() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
@@ -207,7 +207,7 @@ func (ds *databaseSuite) TestQueryRow() {
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	rows := db.QueryRow(`SELECT * FROM "items"`)
 	var address string
 	var name string
@@ -218,21 +218,21 @@ func (ds *databaseSuite) TestQueryRow() {
 }
 
 func (ds *databaseSuite) TestPrepare() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectPrepare("SELECT \\* FROM test WHERE id = \\?")
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	stmt, err := db.Prepare("SELECT * FROM test WHERE id = ?")
 	ds.NoError(err)
 	ds.NotNil(stmt)
 }
 
 func (ds *databaseSuite) TestBegin() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectBegin().WillReturnError(errors.New("transaction error"))
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	tx, err := db.Begin()
 	ds.NoError(err)
 	ds.Equal("mock", tx.Dialect())
@@ -243,11 +243,11 @@ func (ds *databaseSuite) TestBegin() {
 
 func (ds *databaseSuite) TestBeginTx() {
 	ctx := context.Background()
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectBegin().WillReturnError(errors.New("transaction error"))
-	db := New("mock", mDb)
+	db := New("mock", mDB)
 	tx, err := db.BeginTx(ctx, nil)
 	ds.NoError(err)
 	ds.Equal("mock", tx.Dialect())
@@ -257,10 +257,10 @@ func (ds *databaseSuite) TestBeginTx() {
 }
 
 func (ds *databaseSuite) TestWithTx() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
 
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 
 	cases := []struct {
 		expectf func(sqlmock.Sqlmock)
@@ -324,7 +324,7 @@ func (ds *databaseSuite) TestWithTx() {
 }
 
 func (ds *databaseSuite) TestRollbackOnPanic() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 
 	defer func() {
 		p := recover()
@@ -340,16 +340,16 @@ func (ds *databaseSuite) TestRollbackOnPanic() {
 	mock.ExpectBegin()
 	mock.ExpectRollback()
 
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	_ = db.WithTx(func(_ *TxDatabase) error {
 		panic("a problem has happened")
 	})
 }
 
 func (ds *databaseSuite) TestDataRace() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 
 	const concurrency = 10
 
@@ -388,7 +388,7 @@ type txdatabaseSuite struct {
 }
 
 func (tds *txdatabaseSuite) TestLogger() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -401,7 +401,7 @@ func (tds *txdatabaseSuite) TestLogger() {
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
-	tx, err := newDatabase("db-mock", mDb).Begin()
+	tx, err := newDatabase("db-mock", mDB).Begin()
 	tds.NoError(err)
 	logger := new(dbTestMockLogger)
 	tx.Logger(logger)
@@ -418,7 +418,7 @@ func (tds *txdatabaseSuite) TestLogger() {
 }
 
 func (tds *txdatabaseSuite) TestLogger_FromDb() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -431,7 +431,7 @@ func (tds *txdatabaseSuite) TestLogger_FromDb() {
 		WillReturnResult(sqlmock.NewResult(0, 0))
 	mock.ExpectCommit()
 
-	db := New("db-mock", mDb)
+	db := New("db-mock", mDB)
 	logger := new(dbTestMockLogger)
 	db.Logger(logger)
 	tx, err := db.Begin()
@@ -450,33 +450,33 @@ func (tds *txdatabaseSuite) TestLogger_FromDb() {
 }
 
 func (tds *txdatabaseSuite) TestCommit() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	tds.NoError(tx.Commit())
 }
 
 func (tds *txdatabaseSuite) TestRollback() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectRollback()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	tds.NoError(tx.Rollback())
 }
 
 func (tds *txdatabaseSuite) TestFrom() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	tds.NotNil(From("test"))
@@ -484,7 +484,7 @@ func (tds *txdatabaseSuite) TestFrom() {
 }
 
 func (tds *txdatabaseSuite) TestScanStructs() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -496,7 +496,7 @@ func (tds *txdatabaseSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	var items []testActionItem
@@ -519,7 +519,7 @@ func (tds *txdatabaseSuite) TestScanStructs() {
 }
 
 func (tds *txdatabaseSuite) TestScanStruct() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items" LIMIT 1`).
@@ -530,7 +530,7 @@ func (tds *txdatabaseSuite) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	var item testActionItem
@@ -550,14 +550,14 @@ func (tds *txdatabaseSuite) TestScanStruct() {
 }
 
 func (tds *txdatabaseSuite) TestScanVals() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	var ids []uint32
@@ -572,14 +572,14 @@ func (tds *txdatabaseSuite) TestScanVals() {
 }
 
 func (tds *txdatabaseSuite) TestScanVal() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	var id int64
@@ -598,7 +598,7 @@ func (tds *txdatabaseSuite) TestScanVal() {
 }
 
 func (tds *txdatabaseSuite) TestExec() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectExec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE \("name" IS NULL\)`).
@@ -609,7 +609,7 @@ func (tds *txdatabaseSuite) TestExec() {
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	_, err = tx.Exec(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`)
@@ -620,7 +620,7 @@ func (tds *txdatabaseSuite) TestExec() {
 }
 
 func (tds *txdatabaseSuite) TestQuery() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -632,7 +632,7 @@ func (tds *txdatabaseSuite) TestQuery() {
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	_, err = tx.Query(`SELECT * FROM "items"`)
@@ -644,7 +644,7 @@ func (tds *txdatabaseSuite) TestQuery() {
 }
 
 func (tds *txdatabaseSuite) TestQueryRow() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
@@ -656,7 +656,7 @@ func (tds *txdatabaseSuite) TestQueryRow() {
 		WithArgs().
 		WillReturnError(errors.New("mock error"))
 	mock.ExpectCommit()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	rows := tx.QueryRow(`SELECT * FROM "items"`)
@@ -670,13 +670,13 @@ func (tds *txdatabaseSuite) TestQueryRow() {
 }
 
 func (tds *txdatabaseSuite) TestWrap() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 	mock.ExpectBegin()
 	mock.ExpectRollback()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 	tds.NoError(tx.Wrap(func() error {
@@ -690,10 +690,10 @@ func (tds *txdatabaseSuite) TestWrap() {
 }
 
 func (tds *txdatabaseSuite) TestDataRace() {
-	mDb, mock, err := sqlmock.New()
+	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
-	db := newDatabase("mock", mDb)
+	db := newDatabase("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
 

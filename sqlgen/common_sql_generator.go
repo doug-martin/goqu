@@ -6,13 +6,12 @@ import (
 	"github.com/doug-martin/goqu/v9/internal/sb"
 )
 
-var (
-	errNoUpdatedValuesProvided = errors.New("no update values provided")
-)
+var errNoUpdatedValuesProvided = errors.New("no update values provided")
 
 func errCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH clause [dialect=%s]", dialect)
 }
+
 func errRecursiveCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH RECURSIVE clause [dialect=%s]", dialect)
 }

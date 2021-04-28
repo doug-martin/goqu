@@ -402,14 +402,14 @@ func (gis *githubIssuesSuite) TestIssue184() {
 
 // Test for https://github.com/doug-martin/goqu/issues/185
 func (gis *githubIssuesSuite) TestIssue185() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	gis.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT \* FROM \(SELECT "id" FROM "table" ORDER BY "id" ASC\) AS "t1" UNION 
 \(SELECT \* FROM \(SELECT "id" FROM "table" ORDER BY "id" ASC\) AS "t1"\)`,
 	).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n"))
-	db := goqu.New("mock", mDb)
+	db := goqu.New("mock", mDB)
 
 	ds := db.Select("id").From("table").Order(goqu.C("id").Asc()).
 		Union(
