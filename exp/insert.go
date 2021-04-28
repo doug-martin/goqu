@@ -55,9 +55,11 @@ func (i *insert) IsEmpty() bool {
 func (i *insert) IsInsertFrom() bool {
 	return i.from != nil
 }
+
 func (i *insert) From() AppendableExpression {
 	return i.from
 }
+
 func (i *insert) Cols() ColumnListExpression {
 	return i.cols
 }

@@ -1135,7 +1135,7 @@ func (sds *selectDatasetSuite) TestAppendSQL() {
 }
 
 func (sds *selectDatasetSuite) TestScanStructs() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
 		WithArgs().
@@ -1151,7 +1151,7 @@ func (sds *selectDatasetSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var items []dsTestActionItem
 	sds.NoError(ds.From("items").ScanStructs(&items))
@@ -1180,7 +1180,7 @@ func (sds *selectDatasetSuite) TestScanStructs() {
 }
 
 func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`,
@@ -1195,7 +1195,7 @@ func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var items []dsTestActionItem
 	sds.NoError(ds.From("items").Prepared(true).Where(Ex{
@@ -1220,7 +1220,7 @@ func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
 }
 
 func (sds *selectDatasetSuite) TestScanStruct() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items" LIMIT 1`).
 		WithArgs().
@@ -1234,7 +1234,7 @@ func (sds *selectDatasetSuite) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var item dsTestActionItem
 	found, err := ds.From("items").ScanStruct(&item)
@@ -1263,7 +1263,7 @@ func (sds *selectDatasetSuite) TestScanStruct() {
 }
 
 func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT "address", "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT \?`,
@@ -1275,7 +1275,7 @@ func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var item dsTestActionItem
 	found, err := ds.From("items").Prepared(true).Where(Ex{
@@ -1300,13 +1300,13 @@ func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
 }
 
 func (sds *selectDatasetSuite) TestScanVals() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var ids []uint32
 	sds.NoError(ds.From("items").Select("id").ScanVals(&ids))
@@ -1323,7 +1323,7 @@ func (sds *selectDatasetSuite) TestScanVals() {
 }
 
 func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT "id" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`,
@@ -1331,7 +1331,7 @@ func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var ids []uint32
 	sds.NoError(ds.From("items").
@@ -1348,13 +1348,13 @@ func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
 }
 
 func (sds *selectDatasetSuite) TestScanVal() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(`SELECT "id" FROM "items" LIMIT 1`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var id int64
 	found, err := ds.From("items").Select("id").ScanVal(&id)
@@ -1375,7 +1375,7 @@ func (sds *selectDatasetSuite) TestScanVal() {
 }
 
 func (sds *selectDatasetSuite) TestScanVal_WithPreparedStatement() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT "id" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\) LIMIT ?`,
@@ -1383,7 +1383,7 @@ func (sds *selectDatasetSuite) TestScanVal_WithPreparedStatement() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var id int64
 	found, err := ds.From("items").
@@ -1404,13 +1404,13 @@ func (sds *selectDatasetSuite) TestScanVal_WithPreparedStatement() {
 }
 
 func (sds *selectDatasetSuite) TestCount() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(`SELECT COUNT\(\*\) AS "count" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	count, err := ds.From("items").Count()
 	sds.NoError(err)
@@ -1418,7 +1418,7 @@ func (sds *selectDatasetSuite) TestCount() {
 }
 
 func (sds *selectDatasetSuite) TestCount_WithPreparedStatement() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT COUNT\(\*\) AS "count" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`,
@@ -1426,7 +1426,7 @@ func (sds *selectDatasetSuite) TestCount_WithPreparedStatement() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	count, err := ds.From("items").
 		Prepared(true).
@@ -1437,13 +1437,13 @@ func (sds *selectDatasetSuite) TestCount_WithPreparedStatement() {
 }
 
 func (sds *selectDatasetSuite) TestPluck() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(`SELECT "name" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("test1\ntest2\ntest3\ntest4\ntest5"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var names []string
 	sds.NoError(ds.From("items").Pluck(&names, "name"))
@@ -1451,7 +1451,7 @@ func (sds *selectDatasetSuite) TestPluck() {
 }
 
 func (sds *selectDatasetSuite) TestPluck_WithPreparedStatement() {
-	mDb, sqlMock, err := sqlmock.New()
+	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
 		`SELECT "name" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`,
@@ -1459,7 +1459,7 @@ func (sds *selectDatasetSuite) TestPluck_WithPreparedStatement() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("Bob\nSally\nBilly"))
 
-	qf := exec.NewQueryFactory(mDb)
+	qf := exec.NewQueryFactory(mDB)
 	ds := newDataset("mock", qf)
 	var names []string
 	sds.NoError(ds.From("items").

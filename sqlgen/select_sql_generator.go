@@ -28,6 +28,7 @@ func errNotSupportedJoinType(j exp.JoinExpression) error {
 func errJoinConditionRequired(j exp.JoinExpression) error {
 	return errors.New("join condition required for conditioned join %v", j.JoinType())
 }
+
 func errDistinctOnNotSupported(dialect string) error {
 	return errors.New("dialect does not support DISTINCT ON clause [dialect=%s]", dialect)
 }
@@ -202,6 +203,8 @@ func (ssg *selectSQLGenerator) ForSQL(b sb.SQLBuilder, lockingClause exp.Lock) {
 	// the WAIT case is the default in Postgres, and is what you get if you don't specify NOWAIT or
 	// SKIP LOCKED.  There's no special syntax for it in PG, so we don't do anything for it here
 	switch lockingClause.WaitOption() {
+	case exp.Wait:
+		return
 	case exp.NoWait:
 		b.Write(ssg.dialectOptions.NowaitFragment)
 	case exp.SkipLocked:

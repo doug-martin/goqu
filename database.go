@@ -27,9 +27,10 @@ type (
 	Database struct {
 		logger  Logger
 		dialect string
-		Db      SQLDatabase
-		qf      exec.QueryFactory
-		qfOnce  sync.Once
+		// nolint: stylecheck // keep for backwards compatibility
+		Db     SQLDatabase
+		qf     exec.QueryFactory
+		qfOnce sync.Once
 	}
 )
 
@@ -62,7 +63,13 @@ type (
 //          }
 //          fmt.Printf("%+v", ids)
 func newDatabase(dialect string, db SQLDatabase) *Database {
-	return &Database{dialect: dialect, Db: db}
+	return &Database{
+		logger:  nil,
+		dialect: dialect,
+		Db:      db,
+		qf:      nil,
+		qfOnce:  sync.Once{},
+	}
 }
 
 // returns this databases dialect

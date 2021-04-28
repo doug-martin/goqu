@@ -103,7 +103,7 @@ func ExampleInsert_colsAndVals() {
 }
 
 func ExampleInsertDataset_Executor_withRecord() {
-	db := getDb()
+	db := getDB()
 	insert := db.Insert("goqu_user").Rows(
 		goqu.Record{"first_name": "Jed", "last_name": "Riley", "created": time.Now()},
 	).Executor()
@@ -130,7 +130,7 @@ func ExampleInsertDataset_Executor_withRecord() {
 }
 
 func ExampleInsertDataset_Executor_recordReturning() {
-	db := getDb()
+	db := getDB()
 
 	type User struct {
 		ID        sql.NullInt64 `db:"id"`
@@ -171,7 +171,7 @@ func ExampleInsertDataset_Executor_recordReturning() {
 }
 
 func ExampleInsertDataset_Executor_scanStructs() {
-	db := getDb()
+	db := getDB()
 
 	type User struct {
 		ID        sql.NullInt64 `db:"id" goqu:"skipinsert"`

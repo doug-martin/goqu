@@ -39,7 +39,7 @@ const (
 		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', 0, CONVERT(BINARY(8), '0.900000'));"
 )
 
-const defaultDbURI = "sqlserver://sa:qwe123QWE@127.0.0.1:1433?database=master&connection+timeout=30"
+const defaultDBURI = "sqlserver://sa:qwe123QWE@127.0.0.1:1433?database=master&connection+timeout=30"
 
 type (
 	sqlserverTest struct {
@@ -55,325 +55,261 @@ type (
 		Bool   bool      `db:"bool"`
 		Bytes  []byte    `db:"bytes"`
 	}
+	entryTestCase struct {
+		ds    *goqu.SelectDataset
+		len   int
+		check func(entry entry, index int)
+		err   string
+	}
 )
 
-func (mt *sqlserverTest) SetupSuite() {
+func (sst *sqlserverTest) assertEntries(cases ...entryTestCase) {
+	for i, c := range cases {
+		var entries []entry
+		err := c.ds.ScanStructs(&entries)
+		if c.err == "" {
+			sst.NoError(err, "test case %d failed", i)
+		} else {
+			sst.EqualError(err, c.err, "test case %d failed", i)
+		}
+		sst.Len(entries, c.len)
+		for index, entry := range entries {
+			c.check(entry, index)
+		}
+	}
+}
+
+func (sst *sqlserverTest) SetupSuite() {
 	dbURI := os.Getenv("SQLSERVER_URI")
 	if dbURI == "" {
-		dbURI = defaultDbURI
+		dbURI = defaultDBURI
 	}
 	db, err := sql.Open("sqlserver", dbURI)
 	if err != nil {
 		panic(err.Error())
 	}
-	mt.db = goqu.New("sqlserver", db)
+	sst.db = goqu.New("sqlserver", db)
 }
 
-func (mt *sqlserverTest) SetupTest() {
-	if _, err := mt.db.Exec(dropTable); err != nil {
+func (sst *sqlserverTest) SetupTest() {
+	if _, err := sst.db.Exec(dropTable); err != nil {
 		panic(err)
 	}
-	if _, err := mt.db.Exec(createTable); err != nil {
+	if _, err := sst.db.Exec(createTable); err != nil {
 		panic(err)
 	}
-	if _, err := mt.db.Exec(insertDefaultRecords); err != nil {
+	if _, err := sst.db.Exec(insertDefaultRecords); err != nil {
 		panic(err)
 	}
 }
 
-func (mt *sqlserverTest) TestToSQL() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestToSQL() {
+	ds := sst.db.From("entry")
 	s, _, err := ds.Select("id", "float", "string", "time", "bool").ToSQL()
-	mt.NoError(err)
-	mt.Equal("SELECT \"id\", \"float\", \"string\", \"time\", \"bool\" FROM \"entry\"", s)
+	sst.NoError(err)
+	sst.Equal("SELECT \"id\", \"float\", \"string\", \"time\", \"bool\" FROM \"entry\"", s)
 
 	s, _, err = ds.Where(goqu.C("int").Eq(10)).ToSQL()
-	mt.NoError(err)
-	mt.Equal("SELECT * FROM \"entry\" WHERE (\"int\" = 10)", s)
+	sst.NoError(err)
+	sst.Equal("SELECT * FROM \"entry\" WHERE (\"int\" = 10)", s)
 
 	s, args, err := ds.Prepared(true).Where(goqu.L("? = ?", goqu.C("int"), 10)).ToSQL()
-	mt.NoError(err)
-	mt.Equal([]interface{}{int64(10)}, args)
-	mt.Equal("SELECT * FROM \"entry\" WHERE \"int\" = @p1", s)
+	sst.NoError(err)
+	sst.Equal([]interface{}{int64(10)}, args)
+	sst.Equal("SELECT * FROM \"entry\" WHERE \"int\" = @p1", s)
 }
 
-func (mt *sqlserverTest) TestQuery() {
-	var entries []entry
-	ds := mt.db.From("entry")
-	mt.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 10)
+func (sst *sqlserverTest) TestQuery() {
+	ds := sst.db.From("entry")
 	floatVal := float64(0)
 	baseDate, err := time.Parse(
 		"2006-01-02 15:04:05",
 		"2015-02-22 18:19:55",
 	)
-	mt.NoError(err)
-	for i, entry := range entries {
-		f := fmt.Sprintf("%f", floatVal)
-		mt.Equal(uint32(i+1), entry.ID)
-		mt.Equal(i, entry.Int)
-		mt.Equal(f, fmt.Sprintf("%f", entry.Float))
-		mt.Equal(f, entry.String)
-		mt.Equal([]byte(f), entry.Bytes)
-		mt.Equal(i%2 == 0, entry.Bool)
-		mt.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
-		floatVal += float64(0.1)
-	}
-	entries = entries[0:0]
-
-	mt.Run("unsupported bool data type IS operation", func() {
-		_, _, err = ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ToSQL()
-		mt.Equal("goqu: boolean data type is not supported by dialect \"sqlserver\"", err.Error())
-	})
-
-	mt.NoError(ds.Where(goqu.C("bool").Eq(1)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Bool)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int > 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int < 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int <= 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 4)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 3)
-		mt.True(entry.Int <= 6)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 9)
-	for _, entry := range entries {
-		mt.NotEqual("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 0)
+	sst.NoError(err)
+	sst.assertEntries(
+		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
+			f := fmt.Sprintf("%f", floatVal)
+			sst.Equal(uint32(index+1), entry.ID)
+			sst.Equal(index, entry.Int)
+			sst.Equal(f, fmt.Sprintf("%f", entry.Float))
+			sst.Equal(f, entry.String)
+			sst.Equal([]byte(f), entry.Bytes)
+			sst.Equal(index%2 == 0, entry.Bool)
+			sst.Equal(baseDate.Add(time.Duration(index)*time.Hour).Unix(), entry.Time.Unix())
+			floatVal += float64(0.1)
+		}},
+		entryTestCase{
+			ds:  ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()),
+			err: "goqu: boolean data type is not supported by dialect \"sqlserver\"",
+		},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int > 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int >= 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int < 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int <= 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()), len: 4, check: func(entry entry, _ int) {
+			sst.True(entry.Int >= 3)
+			sst.True(entry.Int <= 6)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			sst.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			sst.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
+			sst.NotEqual(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+			sst.Fail("Should not have returned any records")
+		}},
+	)
 }
 
-func (mt *sqlserverTest) TestQuery_Prepared() {
-	var entries []entry
-	ds := mt.db.From("entry").Prepared(true)
-
-	mt.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 10)
+func (sst *sqlserverTest) TestQuery_Prepared() {
+	ds := sst.db.From("entry").Prepared(true)
 	floatVal := float64(0)
 	baseDate, err := time.Parse(
 		"2006-01-02 15:04:05",
 		"2015-02-22 18:19:55",
 	)
-	mt.NoError(err)
-	for i, entry := range entries {
-		f := fmt.Sprintf("%f", floatVal)
-		mt.Equal(uint32(i+1), entry.ID)
-		mt.Equal(i, entry.Int)
-		mt.Equal(f, fmt.Sprintf("%f", entry.Float))
-		mt.Equal(f, entry.String)
-		mt.Equal([]byte(f), entry.Bytes)
-		mt.Equal(i%2 == 0, entry.Bool)
-		mt.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
-		floatVal += float64(0.1)
-	}
-
-	entries = entries[0:0]
-
-	mt.Run("unsupported bool data type IS operation", func() {
-		_, _, err = ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ToSQL()
-		mt.Equal("goqu: boolean data type is not supported by dialect \"sqlserver\"", err.Error())
-	})
-
-	mt.NoError(ds.Where(goqu.C("bool").Eq(1)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Bool)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int > 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int < 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	for _, entry := range entries {
-		mt.True(entry.Int <= 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 4)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 3)
-		mt.True(entry.Int <= 6)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 9)
-	for _, entry := range entries {
-		mt.NotEqual("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 0)
+	sst.NoError(err)
+	sst.assertEntries(
+		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
+			f := fmt.Sprintf("%f", floatVal)
+			sst.Equal(uint32(index+1), entry.ID)
+			sst.Equal(index, entry.Int)
+			sst.Equal(f, fmt.Sprintf("%f", entry.Float))
+			sst.Equal(f, entry.String)
+			sst.Equal([]byte(f), entry.Bytes)
+			sst.Equal(index%2 == 0, entry.Bool)
+			sst.Equal(baseDate.Add(time.Duration(index)*time.Hour).Unix(), entry.Time.Unix())
+			floatVal += float64(0.1)
+		}},
+		entryTestCase{
+			ds:  ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()),
+			err: "goqu: boolean data type is not supported by dialect \"sqlserver\"",
+		},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int > 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int >= 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int < 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			sst.True(entry.Int <= 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()), len: 4, check: func(entry entry, _ int) {
+			sst.True(entry.Int >= 3)
+			sst.True(entry.Int <= 6)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			sst.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			sst.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
+			sst.NotEqual(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+			sst.Fail("Should not have returned any records")
+		}},
+	)
 }
 
-func (mt *sqlserverTest) TestQuery_ValueExpressions() {
+func (sst *sqlserverTest) TestQuery_ValueExpressions() {
 	type wrappedEntry struct {
 		entry
 		BoolValue bool `db:"bool_value"`
 	}
 	expectedDate, err := time.Parse("2006-01-02 15:04:05", "2015-02-22 19:19:55")
-	mt.NoError(err)
-	ds := mt.db.From("entry").Select(goqu.Star(), goqu.V(true).As("bool_value")).Where(goqu.Ex{"int": 1})
+	sst.NoError(err)
+	ds := sst.db.From("entry").Select(goqu.Star(), goqu.V(true).As("bool_value")).Where(goqu.Ex{"int": 1})
 	var we wrappedEntry
 	found, err := ds.ScanStruct(&we)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(wrappedEntry{
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(wrappedEntry{
 		entry{2, 1, 0.100000, "0.100000", expectedDate, false, []byte("0.100000")},
 		true,
 	}, we)
 }
 
-func (mt *sqlserverTest) TestCount() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestCount() {
+	ds := sst.db.From("entry")
 	count, err := ds.Count()
-	mt.NoError(err)
-	mt.Equal(int64(10), count)
+	sst.NoError(err)
+	sst.Equal(int64(10), count)
 	count, err = ds.Where(goqu.C("int").Gt(4)).Count()
-	mt.NoError(err)
-	mt.Equal(int64(5), count)
+	sst.NoError(err)
+	sst.Equal(int64(5), count)
 	count, err = ds.Where(goqu.C("int").Gte(4)).Count()
-	mt.NoError(err)
-	mt.Equal(int64(6), count)
+	sst.NoError(err)
+	sst.Equal(int64(6), count)
 	count, err = ds.Where(goqu.C("string").Like("0.1%")).Count()
-	mt.NoError(err)
-	mt.Equal(int64(1), count)
+	sst.NoError(err)
+	sst.Equal(int64(1), count)
 	count, err = ds.Where(goqu.C("string").IsNull()).Count()
-	mt.NoError(err)
-	mt.Equal(int64(0), count)
+	sst.NoError(err)
+	sst.Equal(int64(0), count)
 }
 
-func (mt *sqlserverTest) TestLimitOffset() {
-	ds := mt.db.From("entry").Where(goqu.C("id").Gte(1)).Limit(1)
+func (sst *sqlserverTest) TestLimitOffset() {
+	ds := sst.db.From("entry").Where(goqu.C("id").Gte(1)).Limit(1)
 	var e entry
 	found, err := ds.ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(uint32(1), e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(1), e.ID)
 
-	ds = mt.db.From("entry").Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Desc()).Limit(1)
+	ds = sst.db.From("entry").Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Desc()).Limit(1)
 	found, err = ds.ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(uint32(10), e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(10), e.ID)
 
-	ds = mt.db.From("entry").Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Asc()).Offset(1).Limit(1)
+	ds = sst.db.From("entry").Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Asc()).Offset(1).Limit(1)
 	found, err = ds.ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(uint32(2), e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(2), e.ID)
 }
 
-func (mt *sqlserverTest) TestLimitOffsetParameterized() {
-	ds := mt.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Limit(1)
+func (sst *sqlserverTest) TestLimitOffsetParameterized() {
+	ds := sst.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Limit(1)
 	var e entry
 	found, err := ds.ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(uint32(1), e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(1), e.ID)
 
-	ds = mt.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Desc()).Limit(1)
+	ds = sst.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Desc()).Limit(1)
 	found, err = ds.ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(uint32(10), e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(10), e.ID)
 
-	ds = mt.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Asc()).Offset(1).Limit(1)
+	ds = sst.db.From("entry").Prepared(true).Where(goqu.C("id").Gte(1)).Order(goqu.C("id").Asc()).Offset(1).Limit(1)
 	found, err = ds.ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.Equal(uint32(2), e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(2), e.ID)
 }
 
-func (mt *sqlserverTest) TestInsert() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestInsert() {
+	ds := sst.db.From("entry")
 	now := time.Now()
 	_, err := ds.Insert().Rows(goqu.Record{
 		"Int":    10,
@@ -383,13 +319,13 @@ func (mt *sqlserverTest) TestInsert() {
 		"Bool":   true,
 		"Bytes":  goqu.Cast(goqu.V([]byte("1.000000")), "BINARY(8)"),
 	}).Executor().Exec()
-	mt.NoError(err)
+	sst.NoError(err)
 
 	var insertedEntry entry
 	found, err := ds.Where(goqu.C("int").Eq(10)).ScanStruct(&insertedEntry)
-	mt.NoError(err)
-	mt.True(found)
-	mt.True(insertedEntry.ID > 0)
+	sst.NoError(err)
+	sst.True(found)
+	sst.True(insertedEntry.ID > 0)
 
 	entries := []goqu.Record{
 		{
@@ -410,21 +346,21 @@ func (mt *sqlserverTest) TestInsert() {
 		},
 	}
 	_, err = ds.Insert().Rows(entries).Executor().Exec()
-	mt.NoError(err)
+	sst.NoError(err)
 
 	var newEntries []entry
-	mt.NoError(ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
-	mt.Len(newEntries, 4)
+	sst.NoError(ds.Where(goqu.C("int").In([]uint32{11, 12, 13, 14})).ScanStructs(&newEntries))
+	sst.Len(newEntries, 4)
 	for i, e := range newEntries {
-		mt.Equal(entries[i]["Int"], e.Int)
-		mt.Equal(entries[i]["Float"], e.Float)
-		mt.Equal(entries[i]["String"], e.String)
-		mt.Equal(
+		sst.Equal(entries[i]["Int"], e.Int)
+		sst.Equal(entries[i]["Float"], e.Float)
+		sst.Equal(entries[i]["String"], e.String)
+		sst.Equal(
 			entries[i]["Time"].(time.Time).UTC().Format(mysql.DialectOptions().TimeFormat),
 			e.Time.Format(mysql.DialectOptions().TimeFormat),
 		)
-		mt.Equal(entries[i]["Bool"], e.Bool)
-		mt.Equal([]byte(entries[i]["String"].(string)), e.Bytes)
+		sst.Equal(entries[i]["Bool"], e.Bool)
+		sst.Equal([]byte(entries[i]["String"].(string)), e.Bytes)
 	}
 
 	_, err = ds.Insert().Rows(
@@ -445,79 +381,79 @@ func (mt *sqlserverTest) TestInsert() {
 			"Bool": true, "Bytes": goqu.Cast(goqu.V([]byte("1.800000")), "BINARY(8)"),
 		},
 	).Executor().Exec()
-	mt.NoError(err)
+	sst.NoError(err)
 
 	newEntries = newEntries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
-	mt.Len(newEntries, 4)
+	sst.NoError(ds.Where(goqu.C("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
+	sst.Len(newEntries, 4)
 }
 
-func (mt *sqlserverTest) TestInsertReturningProducesError() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestInsertReturningProducesError() {
+	ds := sst.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
 	_, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
-	mt.Error(err)
+	sst.Error(err)
 }
 
-func (mt *sqlserverTest) TestUpdate() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestUpdate() {
+	ds := sst.db.From("entry")
 	var e entry
 	found, err := ds.Where(goqu.C("int").Eq(9)).Select("id").ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
+	sst.NoError(err)
+	sst.True(found)
 	e.Int = 11
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Update().Set(goqu.Record{"Int": e.Int}).Executor().Exec()
-	mt.NoError(err)
+	sst.NoError(err)
 
 	count, err := ds.Where(goqu.C("int").Eq(11)).Count()
-	mt.NoError(err)
-	mt.Equal(int64(1), count)
+	sst.NoError(err)
+	sst.Equal(int64(1), count)
 }
 
-func (mt *sqlserverTest) TestUpdateReturning() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestUpdateReturning() {
+	ds := sst.db.From("entry")
 	var id uint32
 	_, err := ds.Where(goqu.C("int").Eq(11)).
 		Update().
 		Set(goqu.Record{"int": 9}).
 		Returning("id").
 		Executor().ScanVal(&id)
-	mt.Error(err)
-	mt.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlserver]")
+	sst.Error(err)
+	sst.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlserver]")
 }
 
-func (mt *sqlserverTest) TestDelete() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestDelete() {
+	ds := sst.db.From("entry")
 	var e entry
 	found, err := ds.Where(goqu.C("int").Eq(9)).Select("id").ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
+	sst.NoError(err)
+	sst.True(found)
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Executor().Exec()
-	mt.NoError(err)
+	sst.NoError(err)
 
 	count, err := ds.Count()
-	mt.NoError(err)
-	mt.Equal(int64(9), count)
+	sst.NoError(err)
+	sst.Equal(int64(9), count)
 
 	var id uint32
 	found, err = ds.Where(goqu.C("id").Eq(e.ID)).ScanVal(&id)
-	mt.NoError(err)
-	mt.False(found)
+	sst.NoError(err)
+	sst.False(found)
 
 	e = entry{}
 	found, err = ds.Where(goqu.C("int").Eq(8)).Select("id").ScanStruct(&e)
-	mt.NoError(err)
-	mt.True(found)
-	mt.NotEqual(0, e.ID)
+	sst.NoError(err)
+	sst.True(found)
+	sst.NotEqual(0, e.ID)
 
 	id = 0
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Returning("id").Executor().ScanVal(&id)
-	mt.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlserver]")
+	sst.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlserver]")
 }
 
-func (mt *sqlserverTest) TestInsertIgnoreNotSupported() {
-	ds := mt.db.From("entry")
+func (sst *sqlserverTest) TestInsertIgnoreNotSupported() {
+	ds := sst.db.From("entry")
 	now := time.Now()
 
 	// insert one
@@ -536,12 +472,12 @@ func (mt *sqlserverTest) TestInsertIgnoreNotSupported() {
 		},
 	}
 	_, err := ds.Insert().Rows(entries).OnConflict(goqu.DoNothing()).Executor().Exec()
-	mt.Error(err)
-	mt.Contains(err.Error(), "Cannot insert duplicate key in object 'dbo.entry'. The duplicate key value is (8)")
+	sst.Error(err)
+	sst.Contains(err.Error(), "Cannot insert duplicate key in object 'dbo.entry'. The duplicate key value is (8)")
 
 	count, err := ds.Count()
-	mt.NoError(err)
-	mt.Equal(count, int64(10))
+	sst.NoError(err)
+	sst.Equal(count, int64(10))
 }
 
 func TestSqlServerSuite(t *testing.T) {

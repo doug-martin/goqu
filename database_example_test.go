@@ -10,7 +10,7 @@ import (
 )
 
 func ExampleDatabase_Begin() {
-	db := getDb()
+	db := getDB()
 
 	tx, err := db.Begin()
 	if err != nil {
@@ -43,7 +43,7 @@ func ExampleDatabase_Begin() {
 }
 
 func ExampleDatabase_BeginTx() {
-	db := getDb()
+	db := getDB()
 
 	ctx := context.Background()
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelReadCommitted})
@@ -77,7 +77,7 @@ func ExampleDatabase_BeginTx() {
 }
 
 func ExampleDatabase_WithTx() {
-	db := getDb()
+	db := getDB()
 	var ids []int64
 	if err := db.WithTx(func(tx *goqu.TxDatabase) error {
 		// use tx.From to get a dataset that will execute within this transaction
@@ -98,7 +98,7 @@ func ExampleDatabase_WithTx() {
 }
 
 func ExampleDatabase_Dialect() {
-	db := getDb()
+	db := getDB()
 
 	fmt.Println(db.Dialect())
 
@@ -107,7 +107,7 @@ func ExampleDatabase_Dialect() {
 }
 
 func ExampleDatabase_Exec() {
-	db := getDb()
+	db := getDB()
 
 	_, err := db.Exec(`DROP TABLE "user_role"; DROP TABLE "goqu_user"`)
 	if err != nil {
@@ -119,7 +119,7 @@ func ExampleDatabase_Exec() {
 }
 
 func ExampleDatabase_ExecContext() {
-	db := getDb()
+	db := getDB()
 	d := time.Now().Add(50 * time.Millisecond)
 	ctx, cancel := context.WithDeadline(context.Background(), d)
 	defer cancel()
@@ -133,7 +133,7 @@ func ExampleDatabase_ExecContext() {
 }
 
 func ExampleDatabase_From() {
-	db := getDb()
+	db := getDB()
 	var names []string
 
 	if err := db.From("goqu_user").Select("first_name").ScanVals(&names); err != nil {

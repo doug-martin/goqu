@@ -49,10 +49,10 @@ func (dws *dialectWrapperSuite) TestTruncate() {
 }
 
 func (dws *dialectWrapperSuite) TestDB() {
-	mDb, _, err := sqlmock.New()
+	mDB, _, err := sqlmock.New()
 	dws.Require().NoError(err)
 	dw := Dialect("test")
-	dws.Equal(New("test", mDb), dw.DB(mDb))
+	dws.Equal(New("test", mDB), dw.DB(mDB))
 }
 
 func TestDialectWrapper(t *testing.T) {

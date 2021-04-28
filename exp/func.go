@@ -45,15 +45,19 @@ func (sfe sqlFunctionExpression) ILike(val interface{}) BooleanExpression   { re
 func (sfe sqlFunctionExpression) NotILike(val interface{}) BooleanExpression {
 	return notILike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpLike(val interface{}) BooleanExpression {
 	return regexpLike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpNotLike(val interface{}) BooleanExpression {
 	return regexpNotLike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpILike(val interface{}) BooleanExpression {
 	return regexpILike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpNotILike(val interface{}) BooleanExpression {
 	return regexpNotILike(sfe, val)
 }

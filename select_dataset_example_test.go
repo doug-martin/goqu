@@ -29,15 +29,15 @@ const schema = `
 		); 
     `
 
-const defaultDbURI = "postgres://postgres:@localhost:5435/goqupostgres?sslmode=disable"
+const defaultDBURI = "postgres://postgres:@localhost:5435/goqupostgres?sslmode=disable"
 
-var goquDb *goqu.Database
+var goquDB *goqu.Database
 
-func getDb() *goqu.Database {
-	if goquDb == nil {
+func getDB() *goqu.Database {
+	if goquDB == nil {
 		dbURI := os.Getenv("PG_URI")
 		if dbURI == "" {
-			dbURI = defaultDbURI
+			dbURI = defaultDBURI
 		}
 		uri, err := pq.ParseURL(dbURI)
 		if err != nil {
@@ -47,10 +47,10 @@ func getDb() *goqu.Database {
 		if err != nil {
 			panic(err)
 		}
-		goquDb = goqu.New("postgres", pdb)
+		goquDB = goqu.New("postgres", pdb)
 	}
 	// reset the db
-	if _, err := goquDb.Exec(schema); err != nil {
+	if _, err := goquDB.Exec(schema); err != nil {
 		panic(err)
 	}
 	type goquUser struct {
@@ -60,14 +60,14 @@ func getDb() *goqu.Database {
 		Created   time.Time `db:"created" goqu:"skipupdate"`
 	}
 
-	var users = []goquUser{
+	users := []goquUser{
 		{FirstName: "Bob", LastName: "Yukon"},
 		{FirstName: "Sally", LastName: "Yukon"},
 		{FirstName: "Vinita", LastName: "Yukon"},
 		{FirstName: "John", LastName: "Doe"},
 	}
 	var userIds []int64
-	err := goquDb.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIds)
+	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIds)
 	if err != nil {
 		panic(err)
 	}
@@ -78,17 +78,17 @@ func getDb() *goqu.Database {
 		Created time.Time `db:"created" goqu:"skipupdate"`
 	}
 
-	var roles = []userRole{
+	roles := []userRole{
 		{UserID: userIds[0], Name: "Admin"},
 		{UserID: userIds[1], Name: "Manager"},
 		{UserID: userIds[2], Name: "Manager"},
 		{UserID: userIds[3], Name: "User"},
 	}
-	_, err = goquDb.Insert("user_role").Rows(roles).Executor().Exec()
+	_, err = goquDB.Insert("user_role").Rows(roles).Executor().Exec()
 	if err != nil {
 		panic(err)
 	}
-	return goquDb
+	return goquDB
 }
 
 func ExampleSelectDataset() {
@@ -99,7 +99,7 @@ func ExampleSelectDataset() {
 		Where(
 			goqu.Ex{
 				"test.name": goqu.Op{
-					"like": regexp.MustCompile("^(a|b)"),
+					"like": regexp.MustCompile("^[ab]"),
 				},
 				"test2.amount": goqu.Op{
 					"isNot": nil,
@@ -120,8 +120,8 @@ func ExampleSelectDataset() {
 	fmt.Println(sql, args)
 	// nolint:lll // SQL statements are long
 	// Output:
-	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ '^(a|b)') AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN ('passed', 'active', 'registered')))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > 10) ORDER BY "test"."created" DESC NULLS LAST []
-	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^(a|b) passed active registered 10]
+	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ '^[ab]') AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN ('passed', 'active', 'registered')))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > 10) ORDER BY "test"."created" DESC NULLS LAST []
+	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^[ab] passed active registered 10]
 }
 
 func ExampleSelect() {
@@ -1237,7 +1237,7 @@ func ExampleSelectDataset_ScanStructs() {
 		FirstName string `db:"first_name"`
 		LastName  string `db:"last_name"`
 	}
-	db := getDb()
+	db := getDB()
 	var users []User
 	if err := db.From("goqu_user").ScanStructs(&users); err != nil {
 		fmt.Println(err.Error())
@@ -1262,7 +1262,7 @@ func ExampleSelectDataset_ScanStructs_prepared() {
 		FirstName string `db:"first_name"`
 		LastName  string `db:"last_name"`
 	}
-	db := getDb()
+	db := getDB()
 
 	ds := db.From("goqu_user").
 		Prepared(true).
@@ -1297,7 +1297,7 @@ func ExampleSelectDataset_ScanStructs_withJoinAutoSelect() {
 		User User `db:"goqu_user"` // tag as the "goqu_user" table
 		Role Role `db:"user_role"` // tag as "user_role" table
 	}
-	db := getDb()
+	db := getDB()
 
 	ds := db.
 		From("goqu_user").
@@ -1331,7 +1331,7 @@ func ExampleSelectDataset_ScanStructs_withJoinManualSelect() {
 		LastName  string `db:"last_name"`
 		Role      Role   `db:"user_role"` // tag as "user_role" table
 	}
-	db := getDb()
+	db := getDB()
 
 	ds := db.
 		Select(
@@ -1365,7 +1365,7 @@ func ExampleSelectDataset_ScanStruct() {
 		FirstName string `db:"first_name"`
 		LastName  string `db:"last_name"`
 	}
-	db := getDb()
+	db := getDB()
 	findUserByName := func(name string) {
 		var user User
 		ds := db.From("goqu_user").Where(goqu.C("first_name").Eq(name))
@@ -1404,7 +1404,7 @@ func ExampleSelectDataset_ScanStruct_withJoinAutoSelect() {
 		User User `db:"goqu_user"` // tag as the "goqu_user" table
 		Role Role `db:"user_role"` // tag as "user_role" table
 	}
-	db := getDb()
+	db := getDB()
 	findUserAndRoleByName := func(name string) {
 		var userAndRole UserAndRole
 		ds := db.
@@ -1445,7 +1445,7 @@ func ExampleSelectDataset_ScanStruct_withJoinManualSelect() {
 		LastName  string `db:"last_name"`
 		Role      Role   `db:"user_role"` // tag as "user_role" table
 	}
-	db := getDb()
+	db := getDB()
 	findUserByName := func(name string) {
 		var userAndRole User
 		ds := db.
@@ -1484,7 +1484,7 @@ func ExampleSelectDataset_ScanStruct_withJoinManualSelect() {
 
 func ExampleSelectDataset_ScanVals() {
 	var ids []int64
-	if err := getDb().From("goqu_user").Select("id").ScanVals(&ids); err != nil {
+	if err := getDB().From("goqu_user").Select("id").ScanVals(&ids); err != nil {
 		fmt.Println(err.Error())
 		return
 	}
@@ -1495,7 +1495,7 @@ func ExampleSelectDataset_ScanVals() {
 }
 
 func ExampleSelectDataset_ScanVal() {
-	db := getDb()
+	db := getDB()
 	findUserIDByName := func(name string) {
 		var id int64
 		ds := db.From("goqu_user").
@@ -1521,26 +1521,27 @@ func ExampleSelectDataset_ScanVal() {
 }
 
 func ExampleSelectDataset_Count() {
-	if count, err := getDb().From("goqu_user").Count(); err != nil {
+	count, err := getDB().From("goqu_user").Count()
+	if err != nil {
 		fmt.Println(err.Error())
-	} else {
-		fmt.Printf("\nCount:= %d", count)
+		return
 	}
+	fmt.Printf("Count is %d", count)
 
 	// Output:
-	// Count:= 4
+	// Count is 4
 }
 
 func ExampleSelectDataset_Pluck() {
 	var lastNames []string
-	if err := getDb().From("goqu_user").Pluck(&lastNames, "last_name"); err != nil {
+	if err := getDB().From("goqu_user").Pluck(&lastNames, "last_name"); err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	fmt.Printf("LastNames := %+v", lastNames)
+	fmt.Printf("LastNames = %+v", lastNames)
 
 	// Output:
-	// LastNames := [Yukon Yukon Yukon Doe]
+	// LastNames = [Yukon Yukon Yukon Doe]
 }
 
 func ExampleSelectDataset_Executor_scannerScanStruct() {
@@ -1548,7 +1549,7 @@ func ExampleSelectDataset_Executor_scannerScanStruct() {
 		FirstName string `db:"first_name"`
 		LastName  string `db:"last_name"`
 	}
-	db := getDb()
+	db := getDB()
 
 	scanner, err := db.
 		From("goqu_user").
@@ -1558,7 +1559,6 @@ func ExampleSelectDataset_Executor_scannerScanStruct() {
 		}).
 		Executor().
 		Scanner()
-
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -1589,7 +1589,7 @@ func ExampleSelectDataset_Executor_scannerScanStruct() {
 }
 
 func ExampleSelectDataset_Executor_scannerScanVal() {
-	db := getDb()
+	db := getDB()
 
 	scanner, err := db.
 		From("goqu_user").
@@ -1599,7 +1599,6 @@ func ExampleSelectDataset_Executor_scannerScanVal() {
 		}).
 		Executor().
 		Scanner()
-
 	if err != nil {
 		fmt.Println(err.Error())
 		return
