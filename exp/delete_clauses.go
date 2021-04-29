@@ -64,6 +64,7 @@ func (dc *deleteClauses) clone() *deleteClauses {
 func (dc *deleteClauses) CommonTables() []CommonTableExpression {
 	return dc.commonTables
 }
+
 func (dc *deleteClauses) CommonTablesAppend(cte CommonTableExpression) DeleteClauses {
 	ret := dc.clone()
 	ret.commonTables = append(ret.commonTables, cte)
@@ -73,6 +74,7 @@ func (dc *deleteClauses) CommonTablesAppend(cte CommonTableExpression) DeleteCla
 func (dc *deleteClauses) From() IdentifierExpression {
 	return dc.from
 }
+
 func (dc *deleteClauses) SetFrom(table IdentifierExpression) DeleteClauses {
 	ret := dc.clone()
 	ret.from = table
@@ -90,8 +92,7 @@ func (dc *deleteClauses) ClearWhere() DeleteClauses {
 }
 
 func (dc *deleteClauses) WhereAppend(expressions ...Expression) DeleteClauses {
-	expLen := len(expressions)
-	if expLen == 0 {
+	if len(expressions) == 0 {
 		return dc
 	}
 	ret := dc.clone()
