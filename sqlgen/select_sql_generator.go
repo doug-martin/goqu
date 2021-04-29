@@ -106,8 +106,8 @@ func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.Sele
 			b.WriteRunes(ssg.dialectOptions.SpaceRune)
 		}
 	}
-	cols := clauses.Select()
-	if clauses.IsDefaultSelect() || len(cols.Columns()) == 0 {
+
+	if cols := clauses.Select(); clauses.IsDefaultSelect() || len(cols.Columns()) == 0 {
 		b.WriteRunes(ssg.dialectOptions.StarRune)
 	} else {
 		ssg.esg.Generate(b, cols)

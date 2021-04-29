@@ -48,17 +48,17 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 }
 
 func NewOrderedColumnList(vals ...OrderedExpression) ColumnListExpression {
-	exps := make([]interface{}, len(vals))
-	for i, col := range vals {
-		exps[i] = col.Expression()
+	exps := make([]interface{}, 0, len(vals))
+	for _, col := range vals {
+		exps = append(exps, col.Expression())
 	}
 	return NewColumnListExpression(exps...)
 }
 
 func (cl columnList) Clone() Expression {
-	newExps := make([]Expression, len(cl.columns))
-	for i, exp := range cl.columns {
-		newExps[i] = exp.Clone()
+	newExps := make([]Expression, 0, len(cl.columns))
+	for _, exp := range cl.columns {
+		newExps = append(newExps, exp.Clone())
 	}
 	return columnList{columns: newExps}
 }

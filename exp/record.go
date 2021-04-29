@@ -27,7 +27,7 @@ func NewRecordFromStruct(i interface{}, forInsert, forUpdate bool) (r Record, er
 			return nil, err
 		}
 		cols := cm.Cols()
-		r = make(map[string]interface{})
+		r = make(map[string]interface{}, len(cols))
 		for _, col := range cols {
 			f := cm[col]
 			switch {

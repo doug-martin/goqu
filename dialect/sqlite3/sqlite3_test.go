@@ -63,7 +63,6 @@ type (
 )
 
 func (st *sqlite3Suite) SetupSuite() {
-	fmt.Println(dbURI)
 	db, err := sql.Open("sqlite3", dbURI)
 	if err != nil {
 		panic(err.Error())

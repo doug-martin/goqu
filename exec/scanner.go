@@ -65,19 +65,18 @@ func (s *scanner) ScanStruct(i interface{}) error {
 		s.columns = cols
 	}
 
-	scans := make([]interface{}, len(s.columns))
-	for idx, col := range s.columns {
+	scans := make([]interface{}, 0, len(s.columns))
+	for _, col := range s.columns {
 		data, ok := s.columnMap[col]
 		switch {
 		case !ok:
 			return unableToFindFieldError(col)
 		default:
-			scans[idx] = reflect.New(data.GoType).Interface()
+			scans = append(scans, reflect.New(data.GoType).Interface())
 		}
 	}
 
-	err := s.rows.Scan(scans...)
-	if err != nil {
+	if err := s.rows.Scan(scans...); err != nil {
 		return err
 	}
 
@@ -93,8 +92,7 @@ func (s *scanner) ScanStruct(i interface{}) error {
 
 // ScanVal will scan the current row and column into i.
 func (s *scanner) ScanVal(i interface{}) error {
-	err := s.rows.Scan(i)
-	if err != nil {
+	if err := s.rows.Scan(i); err != nil {
 		return err
 	}
 
