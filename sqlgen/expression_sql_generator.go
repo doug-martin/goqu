@@ -462,8 +462,7 @@ func (esg *expressionSQLGenerator) expressionListSQL(b sb.SQLBuilder, expression
 	}
 	exps := expressionList.Expressions()
 	expLen := len(exps) - 1
-	needsAppending := expLen > 0
-	if needsAppending {
+	if expLen > 0 {
 		b.WriteRunes(esg.dialectOptions.LeftParenRune)
 	} else {
 		esg.Generate(b, exps[0])
@@ -503,8 +502,7 @@ func (esg *expressionSQLGenerator) updateExpressionSQL(b sb.SQLBuilder, update e
 func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal exp.LiteralExpression) {
 	l := literal.Literal()
 	args := literal.Args()
-	argsLen := len(args)
-	if argsLen > 0 {
+	if argsLen := len(args); argsLen > 0 {
 		currIndex := 0
 		for _, char := range l {
 			if char == replacementRune && currIndex < argsLen {
@@ -514,9 +512,9 @@ func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal
 				b.WriteRunes(char)
 			}
 		}
-	} else {
-		b.WriteStrings(l)
+		return
 	}
+	b.WriteStrings(l)
 }
 
 // Generates SQL for a SQLFunctionExpression
@@ -595,31 +593,33 @@ func (esg *expressionSQLGenerator) castExpressionSQL(b sb.SQLBuilder, cast exp.C
 
 // Generates the sql for the WITH clauses for common table expressions (CTE)
 func (esg *expressionSQLGenerator) commonTablesSliceSQL(b sb.SQLBuilder, ctes []exp.CommonTableExpression) {
-	if l := len(ctes); l > 0 {
-		if !esg.dialectOptions.SupportsWithCTE {
-			b.SetError(errCTENotSupported(esg.dialect))
+	l := len(ctes)
+	if l == 0 {
+		return
+	}
+	if !esg.dialectOptions.SupportsWithCTE {
+		b.SetError(errCTENotSupported(esg.dialect))
+		return
+	}
+	b.Write(esg.dialectOptions.WithFragment)
+	anyRecursive := false
+	for _, cte := range ctes {
+		anyRecursive = anyRecursive || cte.IsRecursive()
+	}
+	if anyRecursive {
+		if !esg.dialectOptions.SupportsWithCTERecursive {
+			b.SetError(errRecursiveCTENotSupported(esg.dialect))
 			return
 		}
-		b.Write(esg.dialectOptions.WithFragment)
-		anyRecursive := false
-		for _, cte := range ctes {
-			anyRecursive = anyRecursive || cte.IsRecursive()
-		}
-		if anyRecursive {
-			if !esg.dialectOptions.SupportsWithCTERecursive {
-				b.SetError(errRecursiveCTENotSupported(esg.dialect))
-				return
-			}
-			b.Write(esg.dialectOptions.RecursiveFragment)
-		}
-		for i, cte := range ctes {
-			esg.Generate(b, cte)
-			if i < l-1 {
-				b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
-			}
-		}
-		b.WriteRunes(esg.dialectOptions.SpaceRune)
+		b.Write(esg.dialectOptions.RecursiveFragment)
 	}
+	for i, cte := range ctes {
+		esg.Generate(b, cte)
+		if i < l-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.SpaceRune)
 }
 
 // Generates SQL for a CommonTableExpression

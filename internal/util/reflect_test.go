@@ -2,7 +2,6 @@ package util
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -379,7 +378,7 @@ func (rt *reflectTest) TestColumnRename() {
 	lowerColumnMap, lowerErr := GetColumnMap(&lowerAnon)
 	rt.NoError(lowerErr)
 
-	var lowerKeys []string
+	lowerKeys := make([]string, 0, len(lowerColumnMap))
 	for key := range lowerColumnMap {
 		lowerKeys = append(lowerKeys, key)
 	}
@@ -396,7 +395,7 @@ func (rt *reflectTest) TestColumnRename() {
 	upperColumnMap, upperErr := GetColumnMap(&upperAnon)
 	rt.NoError(upperErr)
 
-	var upperKeys []string
+	upperKeys := make([]string, 0, len(upperColumnMap))
 	for key := range upperColumnMap {
 		upperKeys = append(upperKeys, key)
 	}
@@ -917,7 +916,6 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStruct() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
@@ -964,7 +962,6 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStructPointer() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
@@ -1010,7 +1007,6 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructField() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
@@ -1057,7 +1053,6 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructPointerField() {
 	var ts TestStruct
 	cm, err := GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
 	rt.Equal(ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",

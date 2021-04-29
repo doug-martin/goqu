@@ -67,7 +67,10 @@ linters:
     - errcheck
     - exportloopref
     - exhaustive
+    - errorlint
     - funlen
+    - forbidigo
+    - forcetypeassert
     - goconst
     - gocritic
     - gocyclo
@@ -79,12 +82,17 @@ linters:
     - gosec
     - gosimple
     - govet
+    - ifshort
     - ineffassign
     - lll
+    - makezero
     - misspell
     - nakedret
+    - nilerr
     - noctx
     - nolintlint
+    - prealloc
+    - predeclared
     - rowserrcheck
     - staticcheck
     - structcheck
@@ -107,7 +115,6 @@ linters:
   # - interfacer
   # - maligned
   # - nestif
-  # - prealloc
   # - testpackage
   # - revive
   # - wsl
