@@ -17,44 +17,40 @@ type (
 	// either override methods, or more typically update default values.
 	// See (github.com/doug-martin/goqu/adapters/postgres)
 	selectSQLGenerator struct {
-		*commonSQLGenerator
+		CommonSQLGenerator
 	}
 )
 
-func errNotSupportedJoinType(j exp.JoinExpression) error {
+func ErrNotSupportedJoinType(j exp.JoinExpression) error {
 	return errors.New("dialect does not support %v", j.JoinType())
 }
 
-func errJoinConditionRequired(j exp.JoinExpression) error {
+func ErrJoinConditionRequired(j exp.JoinExpression) error {
 	return errors.New("join condition required for conditioned join %v", j.JoinType())
 }
 
-func errDistinctOnNotSupported(dialect string) error {
+func ErrDistinctOnNotSupported(dialect string) error {
 	return errors.New("dialect does not support DISTINCT ON clause [dialect=%s]", dialect)
 }
 
-func errWindowNotSupported(dialect string) error {
+func ErrWindowNotSupported(dialect string) error {
 	return errors.New("dialect does not support WINDOW clause [dialect=%s]", dialect)
 }
 
-var errNoWindowName = errors.New("window expresion has no valid name")
+var ErrNoWindowName = errors.New("window expresion has no valid name")
 
 func NewSelectSQLGenerator(dialect string, do *SQLDialectOptions) SelectSQLGenerator {
-	return &selectSQLGenerator{newCommonSQLGenerator(dialect, do)}
-}
-
-func (ssg *selectSQLGenerator) Dialect() string {
-	return ssg.dialect
+	return &selectSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
 
 func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClauses) {
-	for _, f := range ssg.dialectOptions.SelectSQLOrder {
+	for _, f := range ssg.DialectOptions().SelectSQLOrder {
 		if b.Error() != nil {
 			return
 		}
 		switch f {
 		case CommonTableSQLFragment:
-			ssg.esg.Generate(b, clauses.CommonTables())
+			ssg.ExpressionSQLGenerator().Generate(b, clauses.CommonTables())
 		case SelectSQLFragment:
 			ssg.SelectSQL(b, clauses)
 		case SelectWithLimitSQLFragment:
@@ -84,7 +80,7 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 		case ForSQLFragment:
 			ssg.ForSQL(b, clauses.Lock())
 		default:
-			b.SetError(errNotSupportedFragment("SELECT", f))
+			b.SetError(ErrNotSupportedFragment("SELECT", f))
 		}
 	}
 }
@@ -92,40 +88,40 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	dc := clauses.Distinct()
 	if dc != nil {
-		b.Write(ssg.dialectOptions.DistinctFragment)
+		b.Write(ssg.DialectOptions().DistinctFragment)
 		if !dc.IsEmpty() {
-			if ssg.dialectOptions.SupportsDistinctOn {
-				b.Write(ssg.dialectOptions.OnFragment).WriteRunes(ssg.dialectOptions.LeftParenRune)
-				ssg.esg.Generate(b, dc)
-				b.WriteRunes(ssg.dialectOptions.RightParenRune, ssg.dialectOptions.SpaceRune)
+			if ssg.DialectOptions().SupportsDistinctOn {
+				b.Write(ssg.DialectOptions().OnFragment).WriteRunes(ssg.DialectOptions().LeftParenRune)
+				ssg.ExpressionSQLGenerator().Generate(b, dc)
+				b.WriteRunes(ssg.DialectOptions().RightParenRune, ssg.DialectOptions().SpaceRune)
 			} else {
-				b.SetError(errDistinctOnNotSupported(ssg.dialect))
+				b.SetError(ErrDistinctOnNotSupported(ssg.Dialect()))
 				return
 			}
 		} else {
-			b.WriteRunes(ssg.dialectOptions.SpaceRune)
+			b.WriteRunes(ssg.DialectOptions().SpaceRune)
 		}
 	}
 
 	if cols := clauses.Select(); clauses.IsDefaultSelect() || len(cols.Columns()) == 0 {
-		b.WriteRunes(ssg.dialectOptions.StarRune)
+		b.WriteRunes(ssg.DialectOptions().StarRune)
 	} else {
-		ssg.esg.Generate(b, cols)
+		ssg.ExpressionSQLGenerator().Generate(b, cols)
 	}
 }
 
 // Adds the SELECT clause and columns to a sql statement
 func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
-	b.Write(ssg.dialectOptions.SelectClause).WriteRunes(ssg.dialectOptions.SpaceRune)
+	b.Write(ssg.DialectOptions().SelectClause).WriteRunes(ssg.DialectOptions().SpaceRune)
 	ssg.selectSQLCommon(b, clauses)
 }
 
 // Adds the SELECT clause along with LIMIT to a SQL statement (e.g. MSSQL dialect: SELECT TOP 10 ...)
 func (ssg *selectSQLGenerator) SelectWithLimitSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
-	b.Write(ssg.dialectOptions.SelectClause).WriteRunes(ssg.dialectOptions.SpaceRune)
+	b.Write(ssg.DialectOptions().SelectClause).WriteRunes(ssg.DialectOptions().SpaceRune)
 	if clauses.Offset() == 0 && clauses.Limit() != nil {
 		ssg.LimitSQL(b, clauses.Limit())
-		b.WriteRunes(ssg.dialectOptions.SpaceRune)
+		b.WriteRunes(ssg.DialectOptions().SpaceRune)
 	}
 	ssg.selectSQLCommon(b, clauses)
 }
@@ -134,16 +130,16 @@ func (ssg *selectSQLGenerator) SelectWithLimitSQL(b sb.SQLBuilder, clauses exp.S
 func (ssg *selectSQLGenerator) JoinSQL(b sb.SQLBuilder, joins exp.JoinExpressions) {
 	if len(joins) > 0 {
 		for _, j := range joins {
-			joinType, ok := ssg.dialectOptions.JoinTypeLookup[j.JoinType()]
+			joinType, ok := ssg.DialectOptions().JoinTypeLookup[j.JoinType()]
 			if !ok {
-				b.SetError(errNotSupportedJoinType(j))
+				b.SetError(ErrNotSupportedJoinType(j))
 				return
 			}
 			b.Write(joinType)
-			ssg.esg.Generate(b, j.Table())
+			ssg.ExpressionSQLGenerator().Generate(b, j.Table())
 			if t, ok := j.(exp.ConditionedJoinExpression); ok {
 				if t.IsConditionEmpty() {
-					b.SetError(errJoinConditionRequired(j))
+					b.SetError(ErrJoinConditionRequired(j))
 					return
 				}
 				ssg.joinConditionSQL(b, t.Condition())
@@ -155,31 +151,31 @@ func (ssg *selectSQLGenerator) JoinSQL(b sb.SQLBuilder, joins exp.JoinExpression
 // Generates the GROUP BY clause for an SQL statement
 func (ssg *selectSQLGenerator) GroupBySQL(b sb.SQLBuilder, groupBy exp.ColumnListExpression) {
 	if groupBy != nil && len(groupBy.Columns()) > 0 {
-		b.Write(ssg.dialectOptions.GroupByFragment)
-		ssg.esg.Generate(b, groupBy)
+		b.Write(ssg.DialectOptions().GroupByFragment)
+		ssg.ExpressionSQLGenerator().Generate(b, groupBy)
 	}
 }
 
 // Generates the HAVING clause for an SQL statement
 func (ssg *selectSQLGenerator) HavingSQL(b sb.SQLBuilder, having exp.ExpressionList) {
 	if having != nil && len(having.Expressions()) > 0 {
-		b.Write(ssg.dialectOptions.HavingFragment)
-		ssg.esg.Generate(b, having)
+		b.Write(ssg.DialectOptions().HavingFragment)
+		ssg.ExpressionSQLGenerator().Generate(b, having)
 	}
 }
 
 // Generates the OFFSET clause for an SQL statement
 func (ssg *selectSQLGenerator) OffsetSQL(b sb.SQLBuilder, offset uint) {
 	if offset > 0 {
-		b.Write(ssg.dialectOptions.OffsetFragment)
-		ssg.esg.Generate(b, offset)
+		b.Write(ssg.DialectOptions().OffsetFragment)
+		ssg.ExpressionSQLGenerator().Generate(b, offset)
 	}
 }
 
 // Generates the compound sql clause for an SQL statement (e.g. UNION, INTERSECT)
 func (ssg *selectSQLGenerator) CompoundsSQL(b sb.SQLBuilder, compounds []exp.CompoundExpression) {
 	for _, compound := range compounds {
-		ssg.esg.Generate(b, compound)
+		ssg.ExpressionSQLGenerator().Generate(b, compound)
 	}
 }
 
@@ -192,13 +188,13 @@ func (ssg *selectSQLGenerator) ForSQL(b sb.SQLBuilder, lockingClause exp.Lock) {
 	case exp.ForNolock:
 		return
 	case exp.ForUpdate:
-		b.Write(ssg.dialectOptions.ForUpdateFragment)
+		b.Write(ssg.DialectOptions().ForUpdateFragment)
 	case exp.ForNoKeyUpdate:
-		b.Write(ssg.dialectOptions.ForNoKeyUpdateFragment)
+		b.Write(ssg.DialectOptions().ForNoKeyUpdateFragment)
 	case exp.ForShare:
-		b.Write(ssg.dialectOptions.ForShareFragment)
+		b.Write(ssg.DialectOptions().ForShareFragment)
 	case exp.ForKeyShare:
-		b.Write(ssg.dialectOptions.ForKeyShareFragment)
+		b.Write(ssg.DialectOptions().ForKeyShareFragment)
 	}
 	// the WAIT case is the default in Postgres, and is what you get if you don't specify NOWAIT or
 	// SKIP LOCKED.  There's no special syntax for it in PG, so we don't do anything for it here
@@ -206,9 +202,9 @@ func (ssg *selectSQLGenerator) ForSQL(b sb.SQLBuilder, lockingClause exp.Lock) {
 	case exp.Wait:
 		return
 	case exp.NoWait:
-		b.Write(ssg.dialectOptions.NowaitFragment)
+		b.Write(ssg.DialectOptions().NowaitFragment)
 	case exp.SkipLocked:
-		b.Write(ssg.dialectOptions.SkipLockedFragment)
+		b.Write(ssg.DialectOptions().SkipLockedFragment)
 	}
 }
 
@@ -217,18 +213,18 @@ func (ssg *selectSQLGenerator) WindowSQL(b sb.SQLBuilder, windows []exp.WindowEx
 	if weLen == 0 {
 		return
 	}
-	if !ssg.dialectOptions.SupportsWindowFunction {
-		b.SetError(errWindowNotSupported(ssg.dialect))
+	if !ssg.DialectOptions().SupportsWindowFunction {
+		b.SetError(ErrWindowNotSupported(ssg.Dialect()))
 		return
 	}
-	b.Write(ssg.dialectOptions.WindowFragment)
+	b.Write(ssg.DialectOptions().WindowFragment)
 	for i, we := range windows {
 		if !we.HasName() {
-			b.SetError(errNoWindowName)
+			b.SetError(ErrNoWindowName)
 		}
-		ssg.esg.Generate(b, we)
+		ssg.ExpressionSQLGenerator().Generate(b, we)
 		if i < weLen-1 {
-			b.WriteRunes(ssg.dialectOptions.CommaRune, ssg.dialectOptions.SpaceRune)
+			b.WriteRunes(ssg.DialectOptions().CommaRune, ssg.DialectOptions().SpaceRune)
 		}
 	}
 }
@@ -243,13 +239,13 @@ func (ssg *selectSQLGenerator) joinConditionSQL(b sb.SQLBuilder, jc exp.JoinCond
 }
 
 func (ssg *selectSQLGenerator) joinUsingConditionSQL(b sb.SQLBuilder, jc exp.JoinUsingCondition) {
-	b.Write(ssg.dialectOptions.UsingFragment).
-		WriteRunes(ssg.dialectOptions.LeftParenRune)
-	ssg.esg.Generate(b, jc.Using())
-	b.WriteRunes(ssg.dialectOptions.RightParenRune)
+	b.Write(ssg.DialectOptions().UsingFragment).
+		WriteRunes(ssg.DialectOptions().LeftParenRune)
+	ssg.ExpressionSQLGenerator().Generate(b, jc.Using())
+	b.WriteRunes(ssg.DialectOptions().RightParenRune)
 }
 
 func (ssg *selectSQLGenerator) joinOnConditionSQL(b sb.SQLBuilder, jc exp.JoinOnCondition) {
-	b.Write(ssg.dialectOptions.OnFragment)
-	ssg.esg.Generate(b, jc.On())
+	b.Write(ssg.DialectOptions().OnFragment)
+	ssg.ExpressionSQLGenerator().Generate(b, jc.On())
 }

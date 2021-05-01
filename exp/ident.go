@@ -128,16 +128,16 @@ func (i identifier) As(val interface{}) AliasedExpression {
 	if v, ok := val.(string); ok {
 		ident := ParseIdentifier(v)
 		if i.col != nil && i.col != "" {
-			return aliased(i, ident)
+			return NewAliasExpression(i, ident)
 		}
 		aliasCol := ident.GetCol()
 		if i.table != "" {
-			return aliased(i, NewIdentifierExpression("", aliasCol.(string), nil))
+			return NewAliasExpression(i, NewIdentifierExpression("", aliasCol.(string), nil))
 		} else if i.schema != "" {
-			return aliased(i, NewIdentifierExpression(aliasCol.(string), "", nil))
+			return NewAliasExpression(i, NewIdentifierExpression(aliasCol.(string), "", nil))
 		}
 	}
-	return aliased(i, val)
+	return NewAliasExpression(i, val)
 }
 
 // Returns a BooleanExpression for equality (e.g "my_col" = 1)

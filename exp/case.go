@@ -44,7 +44,7 @@ func (c caseExpression) Clone() Expression {
 }
 
 func (c caseExpression) As(alias interface{}) AliasedExpression {
-	return aliased(c, alias)
+	return NewAliasExpression(c, alias)
 }
 
 func (c caseExpression) GetValue() interface{} {

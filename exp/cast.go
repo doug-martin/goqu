@@ -24,7 +24,7 @@ func (c cast) Clone() Expression {
 }
 
 func (c cast) Expression() Expression                           { return c }
-func (c cast) As(val interface{}) AliasedExpression             { return aliased(c, val) }
+func (c cast) As(val interface{}) AliasedExpression             { return NewAliasExpression(c, val) }
 func (c cast) Eq(val interface{}) BooleanExpression             { return eq(c, val) }
 func (c cast) Neq(val interface{}) BooleanExpression            { return neq(c, val) }
 func (c cast) Gt(val interface{}) BooleanExpression             { return gt(c, val) }

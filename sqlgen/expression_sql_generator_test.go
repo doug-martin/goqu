@@ -1,4 +1,4 @@
-package sqlgen
+package sqlgen_test
 
 import (
 	"database/sql/driver"
@@ -10,6 +10,7 @@ import (
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
 	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/doug-martin/goqu/v9/sqlgen"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -71,7 +72,7 @@ type (
 	}
 )
 
-func (esgs *expressionSQLGeneratorSuite) assertCases(esg ExpressionSQLGenerator, cases ...expressionTestCase) {
+func (esgs *expressionSQLGeneratorSuite) assertCases(esg sqlgen.ExpressionSQLGenerator, cases ...expressionTestCase) {
 	for i, c := range cases {
 		b := sb.NewSQLBuilder(c.isPrepared)
 		esg.Generate(b, c.val)
@@ -91,12 +92,12 @@ func (esgs *expressionSQLGeneratorSuite) assertCases(esg ExpressionSQLGenerator,
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestDialect() {
-	esg := NewExpressionSQLGenerator("test", DefaultDialectOptions())
+	esg := sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions())
 	esgs.Equal("test", esg.Dialect())
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ErroredBuilder() {
-	esg := NewExpressionSQLGenerator("test", DefaultDialectOptions())
+	esg := sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions())
 	expectedErr := errors.New("test error")
 	b := sb.NewSQLBuilder(false).SetError(expectedErr)
 	esg.Generate(b, 1)
@@ -116,7 +117,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ErroredBuilder() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_Invalid() {
 	var b *bool
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: b, sql: "NULL"},
 		expressionTestCase{val: b, sql: "?", isPrepared: true, args: []interface{}{nil}},
 	)
@@ -125,14 +126,14 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Invalid() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnsupportedType() {
 	type strct struct{}
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}"},
 		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}", isPrepared: true},
 	)
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.IncludePlaceholderNum = true
 	opts.PlaceHolderFragment = []byte("$")
 	ex := exp.Ex{
@@ -142,7 +143,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {
 		"d": []string{"a", "b", "c"},
 	}
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{
 			val: ex,
 			sql: `(("a" = 1) AND ("b" IS TRUE) AND ("c" IS FALSE) AND ("d" IN ('a', 'b', 'c')))`,
@@ -159,7 +160,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_FloatTypes() {
 	var float float64
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: float32(10.01), sql: "10.010000228881836"},
 		expressionTestCase{val: float32(10.01), sql: "?", isPrepared: true, args: []interface{}{float64(float32(10.01))}},
 
@@ -185,13 +186,13 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 	}
 	for _, i := range ints {
 		esgs.assertCases(
-			NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 			expressionTestCase{val: i, sql: "10"},
 			expressionTestCase{val: i, sql: "?", isPrepared: true, args: []interface{}{int64(10)}},
 		)
 	}
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: &i, sql: "0"},
 		expressionTestCase{val: &i, sql: "?", isPrepared: true, args: []interface{}{i}},
 	)
@@ -200,7 +201,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_StringTypes() {
 	var str string
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: "Hello", sql: "'Hello'"},
 		expressionTestCase{val: "Hello", sql: "?", isPrepared: true, args: []interface{}{"Hello"}},
 
@@ -214,7 +215,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_StringTypes() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_BytesTypes() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: []byte("Hello"), sql: "'Hello'"},
 		expressionTestCase{val: []byte("Hello"), sql: "?", isPrepared: true, args: []interface{}{[]byte("Hello")}},
 
@@ -226,7 +227,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BytesTypes() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_BoolTypes() {
 	var bl bool
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: true, sql: "TRUE"},
 		expressionTestCase{val: true, sql: "?", isPrepared: true, args: []interface{}{true}},
 
@@ -243,25 +244,25 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_TimeTypes() {
 
 	ts, err := time.Parse(time.RFC3339, "2019-10-01T15:01:00Z")
 	esgs.Require().NoError(err)
-	originalLoc := timeLocation
+	originalLoc := sqlgen.GetTimeLocation()
 
 	loc, err := time.LoadLocation("Asia/Shanghai")
 	esgs.Require().NoError(err)
 
-	SetTimeLocation(loc)
+	sqlgen.SetTimeLocation(loc)
 	// non time
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: ts, sql: "'2019-10-01T23:01:00+08:00'"},
 		expressionTestCase{val: ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
 
 		expressionTestCase{val: &ts, sql: "'2019-10-01T23:01:00+08:00'"},
 		expressionTestCase{val: &ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
 	)
-	SetTimeLocation(time.UTC)
+	sqlgen.SetTimeLocation(time.UTC)
 	// utc time
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: ts, sql: "'2019-10-01T15:01:00Z'"},
 		expressionTestCase{val: ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
 
@@ -269,16 +270,16 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_TimeTypes() {
 		expressionTestCase{val: &ts, sql: "?", isPrepared: true, args: []interface{}{ts}},
 	)
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: nt, sql: "NULL"},
 		expressionTestCase{val: nt, sql: "?", isPrepared: true, args: []interface{}{nil}},
 	)
-	SetTimeLocation(originalLoc)
+	sqlgen.SetTimeLocation(originalLoc)
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_NilTypes() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: nil, sql: "NULL"},
 		expressionTestCase{val: nil, sql: "?", isPrepared: true, args: []interface{}{nil}},
 	)
@@ -299,7 +300,7 @@ func (j datasetValuerType) Value() (driver.Value, error) {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_Valuer() {
 	err := errors.New("valuer error")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: datasetValuerType{int: 10}, sql: "'Hello World 10'"},
 		expressionTestCase{
 			val: datasetValuerType{int: 10}, sql: "?", isPrepared: true, args: []interface{}{[]byte("Hello World 10")},
@@ -314,7 +315,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Valuer() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_Slice() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: []string{"a", "b", "c"}, sql: `('a', 'b', 'c')`},
 		expressionTestCase{
 			val: []string{"a", "b", "c"}, sql: "(?, ?, ?)", isPrepared: true, args: []interface{}{"a", "b", "c"},
@@ -338,9 +339,9 @@ func (ue unknownExpression) Clone() exp.Expression {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerateUnsupportedExpression() {
-	errMsg := "goqu: unsupported expression type sqlgen.unknownExpression"
+	errMsg := "goqu: unsupported expression type sqlgen_test.unknownExpression"
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: unknownExpression{}, err: errMsg},
 		expressionTestCase{
 			val: unknownExpression{}, isPrepared: true, err: errMsg,
@@ -356,7 +357,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AppendableExpression() {
 	ae := newTestAppendableExpression(`select * from "a"`, emptyArgs, errors.New("expected error"), nil)
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: a, sql: `(select * from "a")`},
 		expressionTestCase{val: a, sql: `(select * from "a")`, isPrepared: true},
 
@@ -374,7 +375,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AppendableExpression() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ColumnList() {
 	cl := exp.NewColumnListExpression("a", exp.NewLiteralExpression("true"))
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: cl, sql: `"a", true`},
 		expressionTestCase{val: cl, sql: `"a", true`, isPrepared: true},
 	)
@@ -402,7 +403,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionList() {
 	)
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: andEl, sql: `(("a" = 'b') AND ("c" != 1))`},
 		expressionTestCase{
 			val: andEl, sql: `(("a" = ?) AND ("c" != ?))`, isPrepared: true, args: []interface{}{"b", int64(1)},
@@ -428,7 +429,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_LiteralExpression() {
 	argsL := exp.NewLiteralExpression(`"b" = ? or "c" = ? or d IN ?`, "a", 1, []int{1, 2, 3, 4})
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: noArgsL, sql: `"b"::DATE = '2010-09-02'`},
 		expressionTestCase{val: noArgsL, sql: `"b"::DATE = '2010-09-02'`, isPrepared: true},
 
@@ -456,7 +457,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AliasedExpression() {
 	aliasedL := exp.NewLiteralExpression("count(*)").As("count")
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: aliasedI, sql: `"a" AS "b"`},
 		expressionTestCase{val: aliasedI, sql: `"a" AS "b"`, isPrepared: true},
 
@@ -474,7 +475,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 	ident := exp.NewIdentifierExpression("", "", "a")
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: ident.Eq(1), sql: `("a" = 1)`},
 		expressionTestCase{val: ident.Eq(1), sql: `("a" = ?)`, isPrepared: true, args: []interface{}{int64(1)}},
 
@@ -586,10 +587,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 		expressionTestCase{val: ident.NotILike(re), sql: `("a" !~* ?)`, isPrepared: true, args: []interface{}{"[ab]"}},
 	)
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.BooleanOperatorLookup = map[exp.BooleanOperation][]byte{}
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: ident.Eq(1), err: "goqu: boolean operator 'eq' not supported"},
 		expressionTestCase{val: ident.Neq(1), err: "goqu: boolean operator 'neq' not supported"},
 		expressionTestCase{val: ident.Is(true), err: "goqu: boolean operator 'is' not supported"},
@@ -622,7 +623,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_RangeExpression() {
 	notBetweenStr := exp.NewIdentifierExpression("", "", "a").
 		NotBetween(exp.NewRangeVal("aaa", "zzz"))
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: betweenNum, sql: `("a" BETWEEN 1 AND 2)`},
 		expressionTestCase{val: betweenNum, sql: `("a" BETWEEN ? AND ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
@@ -648,10 +649,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_RangeExpression() {
 		}},
 	)
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.RangeOperatorLookup = map[exp.RangeOperation][]byte{}
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: betweenNum, err: "goqu: range operator between not supported"},
 		expressionTestCase{val: betweenNum, err: "goqu: range operator between not supported"},
 
@@ -676,7 +677,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderedExpression() {
 	descNl := exp.NewIdentifierExpression("", "", "a").Desc().NullsLast()
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: asc, sql: `"a" ASC`},
 		expressionTestCase{val: asc, sql: `"a" ASC`, isPrepared: true},
 
@@ -700,7 +701,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderedExpression() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_UpdateExpression() {
 	ue := exp.NewIdentifierExpression("", "", "a").Set(1)
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: ue, sql: `"a"=1`},
 		expressionTestCase{val: ue, sql: `"a"=?`, isPrepared: true, args: []interface{}{int64(1)}},
 	)
@@ -710,7 +711,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLFunctionExpression() {
 	min := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
 	coalesce := exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: min, sql: `MIN("a")`},
 		expressionTestCase{val: min, sql: `MIN("a")`, isPrepared: true},
 
@@ -752,7 +753,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLWindowFunctionExpressio
 		),
 	)
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: sqlWinFunc, sql: `some_func() OVER ("win")`},
 		expressionTestCase{val: sqlWinFunc, sql: `some_func() OVER ("win")`, isPrepared: true},
 
@@ -762,20 +763,20 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLWindowFunctionExpressio
 		expressionTestCase{val: emptyWinFunc, sql: `some_func() OVER ()`},
 		expressionTestCase{val: emptyWinFunc, sql: `some_func() OVER ()`, isPrepared: true},
 
-		expressionTestCase{val: badNamedSQLWinFuncInherit, err: errUnexpectedNamedWindow.Error()},
-		expressionTestCase{val: badNamedSQLWinFuncInherit, err: errUnexpectedNamedWindow.Error(), isPrepared: true},
+		expressionTestCase{val: badNamedSQLWinFuncInherit, err: sqlgen.ErrUnexpectedNamedWindow.Error()},
+		expressionTestCase{val: badNamedSQLWinFuncInherit, err: sqlgen.ErrUnexpectedNamedWindow.Error(), isPrepared: true},
 	)
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.SupportsWindowFunction = false
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
-		expressionTestCase{val: sqlWinFunc, err: errWindowNotSupported("test").Error()},
-		expressionTestCase{val: sqlWinFunc, err: errWindowNotSupported("test").Error(), isPrepared: true},
+		sqlgen.NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: sqlWinFunc, err: sqlgen.ErrWindowNotSupported("test").Error()},
+		expressionTestCase{val: sqlWinFunc, err: sqlgen.ErrWindowNotSupported("test").Error(), isPrepared: true},
 	)
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_WindowExpression() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.WindowPartitionByFragment = []byte("partition by ")
 	opts.WindowOrderByFragment = []byte("order by ")
 
@@ -807,7 +808,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_WindowExpression() {
 	)
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: emptySQLWinFunc, sql: `()`},
 		expressionTestCase{val: emptySQLWinFunc, sql: `()`, isPrepared: true},
 
@@ -834,19 +835,19 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_WindowExpression() {
 		},
 	)
 
-	opts = DefaultDialectOptions()
+	opts = sqlgen.DefaultDialectOptions()
 	opts.SupportsWindowFunction = false
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
-		expressionTestCase{val: emptySQLWinFunc, err: errWindowNotSupported("test").Error()},
-		expressionTestCase{val: emptySQLWinFunc, err: errWindowNotSupported("test").Error(), isPrepared: true},
+		sqlgen.NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: emptySQLWinFunc, err: sqlgen.ErrWindowNotSupported("test").Error()},
+		expressionTestCase{val: emptySQLWinFunc, err: sqlgen.ErrWindowNotSupported("test").Error(), isPrepared: true},
 	)
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_CastExpression() {
 	cast := exp.NewIdentifierExpression("", "", "a").Cast("DATE")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: cast, sql: `CAST("a" AS DATE)`},
 		expressionTestCase{val: cast, sql: `CAST("a" AS DATE)`, isPrepared: true},
 	)
@@ -881,7 +882,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpressionSlice
 	}
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: cteNoArgs, sql: `WITH a AS (SELECT * FROM "b") `},
 		expressionTestCase{val: cteNoArgs, sql: `WITH a AS (SELECT * FROM "b") `, isPrepared: true},
 
@@ -904,10 +905,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpressionSlice
 			isPrepared: true,
 		},
 	)
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.SupportsWithCTE = false
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: cteNoArgs, err: "goqu: dialect does not support CTE WITH clause [dialect=test]"},
 		expressionTestCase{val: cteNoArgs, err: "goqu: dialect does not support CTE WITH clause [dialect=test]", isPrepared: true},
 
@@ -920,10 +921,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpressionSlice
 		expressionTestCase{val: cteRecursiveArgs, err: "goqu: dialect does not support CTE WITH clause [dialect=test]"},
 		expressionTestCase{val: cteRecursiveArgs, err: "goqu: dialect does not support CTE WITH clause [dialect=test]", isPrepared: true},
 	)
-	opts = DefaultDialectOptions()
+	opts = sqlgen.DefaultDialectOptions()
 	opts.SupportsWithCTERecursive = false
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: cteNoArgs, sql: `WITH a AS (SELECT * FROM "b") `},
 		expressionTestCase{val: cteNoArgs, sql: `WITH a AS (SELECT * FROM "b") `, isPrepared: true},
 
@@ -962,7 +963,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpression() {
 	cteRecursiveArgs := exp.NewCommonTableExpression(true, "a(x,y)", ae)
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: cteNoArgs, sql: `a AS (SELECT * FROM "b")`},
 		expressionTestCase{val: cteNoArgs, sql: `a AS (SELECT * FROM "b")`, isPrepared: true},
 
@@ -987,7 +988,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CompoundExpression() {
 	ia := exp.NewCompoundExpression(exp.IntersectAllCompoundType, ae)
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: u, sql: ` UNION (SELECT * FROM "b")`},
 		expressionTestCase{val: u, sql: ` UNION (SELECT * FROM "b")`, isPrepared: true},
 
@@ -1001,10 +1002,10 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CompoundExpression() {
 		expressionTestCase{val: ia, sql: ` INTERSECT ALL (SELECT * FROM "b")`, isPrepared: true},
 	)
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.WrapCompoundsInParens = false
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: u, sql: ` UNION SELECT * FROM "b"`},
 		expressionTestCase{val: u, sql: ` UNION SELECT * FROM "b"`, isPrepared: true},
 
@@ -1032,7 +1033,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IdentifierExpression() {
 	parsedSchemaTableCol := exp.ParseIdentifier("schema.table.col")
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.NewIdentifierExpression("", "", ""),
 			err: `goqu: a empty identifier was encountered, please specify a "schema", "table" or "column"`,
@@ -1114,24 +1115,24 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IdentifierExpression() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_LateralExpression() {
 	lateralExp := exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, emptyArgs, nil, nil))
 
-	do := DefaultDialectOptions()
+	do := sqlgen.DefaultDialectOptions()
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", do),
+		sqlgen.NewExpressionSQLGenerator("test", do),
 		expressionTestCase{val: lateralExp, sql: `LATERAL (SELECT * FROM "test")`},
 		expressionTestCase{val: lateralExp, sql: `LATERAL (SELECT * FROM "test")`, isPrepared: true},
 	)
 
-	do = DefaultDialectOptions()
+	do = sqlgen.DefaultDialectOptions()
 	do.LateralFragment = []byte("lateral ")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", do),
+		sqlgen.NewExpressionSQLGenerator("test", do),
 		expressionTestCase{val: lateralExp, sql: `lateral (SELECT * FROM "test")`},
 		expressionTestCase{val: lateralExp, sql: `lateral (SELECT * FROM "test")`, isPrepared: true},
 	)
-	do = DefaultDialectOptions()
+	do = sqlgen.DefaultDialectOptions()
 	do.SupportsLateral = false
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", do),
+		sqlgen.NewExpressionSQLGenerator("test", do),
 		expressionTestCase{val: lateralExp, err: "goqu: dialect does not support lateral expressions [dialect=test]"},
 		expressionTestCase{val: lateralExp, err: "goqu: dialect does not support lateral expressions [dialect=test]", isPrepared: true},
 	)
@@ -1157,7 +1158,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CaseExpression() {
 		Else(ident)
 
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: valueCase, sql: `CASE "col" WHEN TRUE THEN 'one' WHEN FALSE THEN 'two' END`},
 		expressionTestCase{
 			val:        valueCase,
@@ -1195,14 +1196,14 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CaseExpression() {
 		},
 	)
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.CaseFragment = []byte("case ")
 	opts.WhenFragment = []byte(" when ")
 	opts.ThenFragment = []byte(" then ")
 	opts.ElseFragment = []byte(" else ")
 	opts.EndFragment = []byte(" end")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", opts),
+		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{val: valueCase, sql: `case "col" when TRUE then 'one' when FALSE then 'two' end`},
 		expressionTestCase{
 			val:        valueCase,
@@ -1243,7 +1244,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CaseExpression() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{}},
 		expressionTestCase{val: exp.Ex{}, isPrepared: true},
 
@@ -1271,7 +1272,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMap() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithABadOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"badOp": true}},
 			err: "goqu: unsupported expression type badOp",
@@ -1286,7 +1287,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithABadOp() 
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNeqOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"neq": 1}}, sql: `("a" != 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"neq": 1}}, sql: `("a" != ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
@@ -1296,7 +1297,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNeqOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithIsNotOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT TRUE)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"isnot": true}}, sql: `("a" IS NOT TRUE)`, isPrepared: true},
 	)
@@ -1304,7 +1305,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithIsNotOp()
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithGtOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gt": 1}}, sql: `("a" > 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gt": 1}}, sql: `("a" > ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
@@ -1314,7 +1315,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithGtOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithGteOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gte": 1}}, sql: `("a" >= 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"gte": 1}}, sql: `("a" >= ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
@@ -1324,7 +1325,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithGteOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLtOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lt": 1}}, sql: `("a" < 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lt": 1}}, sql: `("a" < ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
@@ -1334,7 +1335,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLtOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLteOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lte": 1}}, sql: `("a" <= 1)`},
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"lte": 1}}, sql: `("a" <= ?)`, isPrepared: true, args: []interface{}{
 			int64(1),
@@ -1345,7 +1346,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLteOp() {
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLikeOp() {
 	re := regexp.MustCompile("[ab]")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"like": "a%"}}, sql: `("a" LIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"like": "a%"}},
@@ -1367,7 +1368,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithLikeOp() 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotLikeOp() {
 	re := regexp.MustCompile("[ab]")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"notLike": "a%"}}, sql: `("a" NOT LIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"notLike": "a%"}},
@@ -1389,7 +1390,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotLikeOp
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithILikeOp() {
 	re := regexp.MustCompile("[ab]")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"iLike": "a%"}}, sql: `("a" ILIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"iLike": "a%"}},
@@ -1411,7 +1412,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithILikeOp()
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotILikeOp() {
 	re := regexp.MustCompile("[ab]")
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"notILike": "a%"}}, sql: `("a" NOT ILIKE 'a%')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"notILike": "a%"}},
@@ -1432,7 +1433,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotILikeO
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpLikeOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpLike": "[ab]"}}, sql: `("a" ~ '[ab]')`},
 		expressionTestCase{
@@ -1446,7 +1447,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpLik
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpILikeOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpILike": "[ab]"}}, sql: `("a" ~* '[ab]')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"regexpILike": "[ab]"}},
@@ -1459,7 +1460,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpILi
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpNotLikeOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"regexpNotLike": "[ab]"}}, sql: `("a" !~ '[ab]')`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"regexpNotLike": "[ab]"}},
@@ -1472,7 +1473,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithRegExpNot
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithInOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}}, sql: `("a" IN ('a', 'b', 'c'))`},
 		expressionTestCase{
 			val:        exp.Ex{"a": exp.Op{"in": []string{"a", "b", "c"}}},
@@ -1485,7 +1486,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithInOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotInOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"notIn": []string{"a", "b", "c"}}},
 			sql: `("a" NOT IN ('a', 'b', 'c'))`,
@@ -1501,7 +1502,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapWithNotInOp()
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapBetweenOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"between": exp.NewRangeVal("aaa", "zzz")}},
 			sql: `("a" BETWEEN 'aaa' AND 'zzz')`,
@@ -1517,7 +1518,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapBetweenOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapNotBetweenOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"notBetween": exp.NewRangeVal("aaa", "zzz")}},
 			sql: `("a" NOT BETWEEN 'aaa' AND 'zzz')`,
@@ -1533,7 +1534,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapNotBetweenOp(
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapIsOp() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{
 			val: exp.Ex{"a": exp.Op{"is": nil, "eq": 10}},
 			sql: `(("a" = 10) OR ("a" IS NULL))`,
@@ -1549,7 +1550,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionMapIsOp() {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionOrMap() {
 	esgs.assertCases(
-		NewExpressionSQLGenerator("default", DefaultDialectOptions()),
+		sqlgen.NewExpressionSQLGenerator("default", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: exp.ExOr{}},
 		expressionTestCase{val: exp.ExOr{}, isPrepared: true},
 

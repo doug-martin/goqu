@@ -1,10 +1,11 @@
-package sqlgen
+package sqlgen_test
 
 import (
 	"testing"
 
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/doug-martin/goqu/v9/sqlgen"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,7 +22,7 @@ type (
 	}
 )
 
-func (igs *insertSQLGeneratorSuite) assertCases(isg InsertSQLGenerator, testCases ...insertTestCase) {
+func (igs *insertSQLGeneratorSuite) assertCases(isg sqlgen.InsertSQLGenerator, testCases ...insertTestCase) {
 	for _, tc := range testCases {
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		isg.Generate(b, tc.clause)
@@ -37,19 +38,19 @@ func (igs *insertSQLGeneratorSuite) assertCases(isg InsertSQLGenerator, testCase
 }
 
 func (igs *insertSQLGeneratorSuite) TestDialect() {
-	opts := DefaultDialectOptions()
-	d := NewInsertSQLGenerator("test", opts)
+	opts := sqlgen.DefaultDialectOptions()
+	d := sqlgen.NewInsertSQLGenerator("test", opts)
 	igs.Equal("test", d.Dialect())
 
-	opts2 := DefaultDialectOptions()
-	d2 := NewInsertSQLGenerator("test2", opts2)
+	opts2 := sqlgen.DefaultDialectOptions()
+	d2 := sqlgen.NewInsertSQLGenerator("test2", opts2)
 	igs.Equal("test2", d2.Dialect())
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_UnsupportedFragment() {
-	opts := DefaultDialectOptions()
-	opts.InsertSQLOrder = []SQLFragmentType{UpdateBeginSQLFragment}
-	d := NewInsertSQLGenerator("test", opts)
+	opts := sqlgen.DefaultDialectOptions()
+	opts.InsertSQLOrder = []sqlgen.SQLFragmentType{sqlgen.UpdateBeginSQLFragment}
+	d := sqlgen.NewInsertSQLGenerator("test", opts)
 
 	b := sb.NewSQLBuilder(true)
 	ic := exp.NewInsertClauses().
@@ -63,16 +64,16 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_empty() {
 		SetInto(exp.NewIdentifierExpression("", "test", ""))
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" DEFAULT VALUES`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" DEFAULT VALUES`, isPrepared: true},
 	)
 
-	opts2 := DefaultDialectOptions()
+	opts2 := sqlgen.DefaultDialectOptions()
 	opts2.DefaultValuesFragment = []byte(" default values")
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts2),
+		sqlgen.NewInsertSQLGenerator("test", opts2),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" default values`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" default values`, isPrepared: true},
 	)
@@ -87,14 +88,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_nilValues() {
 		})
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a") VALUES (NULL)`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a") VALUES (?)`, isPrepared: true, args: []interface{}{nil}},
 	)
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_colsAndVals() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
 	opts.ValuesFragment = []byte(" values ")
@@ -120,7 +121,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_colsAndVals() {
 		})
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" {"a"; "b"} values {#; #}; {#; #}; {#; #}`, isPrepared: true, args: []interface{}{
 			"a1", "b1", "a2", "b2", "a3", "b3",
@@ -132,7 +133,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_colsAndVals() {
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_withNoInto() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
 	opts.ValuesFragment = []byte(" values ")
@@ -150,13 +151,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withNoInto() {
 		})
 	expectedErr := "goqu: no source found when generating insert sql"
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: ic, err: expectedErr},
 		insertTestCase{clause: ic, err: expectedErr, isPrepared: true},
 	)
 }
+
 func (igs *insertSQLGeneratorSuite) TestGenerate_withRows() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.LeftParenRune = '{'
 	opts.RightParenRune = '}'
 	opts.ValuesFragment = []byte(" values ")
@@ -180,7 +182,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withRows() {
 	})
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" {"a"; "b"} values {'a1'; 'b1'}; {'a2'; 'b2'}; {'a3'; 'b3'}`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" {"a"; "b"} values {#; #}; {#; #}; {#; #}`, isPrepared: true, args: []interface{}{
 			"a1", "b1", "a2", "b2", "a3", "b3",
@@ -197,16 +199,16 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withEmptyRows() {
 		SetRows([]interface{}{exp.Record{}})
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" DEFAULT VALUES`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" DEFAULT VALUES`, isPrepared: true},
 	)
 
-	opts2 := DefaultDialectOptions()
+	opts2 := sqlgen.DefaultDialectOptions()
 	opts2.DefaultValuesFragment = []byte(" default values")
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts2),
+		sqlgen.NewInsertSQLGenerator("test", opts2),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" default values`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" default values`, isPrepared: true},
 	)
@@ -218,7 +220,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withRowsAppendableExpression() 
 		SetRows([]interface{}{newTestAppendableExpression(`select * from "other"`, emptyArgs, nil, nil)})
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" select * from "other"`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" select * from "other"`, isPrepared: true},
 	)
@@ -231,7 +233,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withFrom() {
 
 	icCols := ic.SetCols(exp.NewColumnListExpression("a", "b"))
 	igs.assertCases(
-		NewInsertSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" select c, d from test where a = 'b'`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" select c, d from test where a = 'b'`, isPrepared: true},
 
@@ -241,7 +243,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withFrom() {
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.ConflictFragment = []byte(" on conflict")
 	opts.ConflictDoNothingFragment = []byte(" do nothing")
@@ -264,7 +266,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 	icDuBad := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("test", true))
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icDn, sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict do nothing`},
 		insertTestCase{
 			clause:     icDn,
@@ -300,8 +302,8 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 			args:       []interface{}{"a1", "b"},
 		},
 
-		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error()},
-		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error(), isPrepared: true},
+		insertTestCase{clause: icDuNil, err: sqlgen.ErrConflictUpdateValuesRequired.Error()},
+		insertTestCase{clause: icDuNil, err: sqlgen.ErrConflictUpdateValuesRequired.Error(), isPrepared: true},
 
 		insertTestCase{clause: icDuBad, err: "goqu: unsupported update interface type bool"},
 		insertTestCase{clause: icDuBad, err: "goqu: unsupported update interface type bool", isPrepared: true},
@@ -309,7 +311,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 	opts.SupportsInsertIgnoreSyntax = true
 	opts.InsertIgnoreClause = []byte("insert ignore into")
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icDn, sql: `insert ignore into "test" ("a") VALUES ('a1') on conflict do nothing`},
 		insertTestCase{
 			clause:     icDn,
@@ -318,8 +320,9 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 			args:       []interface{}{"a1"},
 		},
 
-		insertTestCase{clause: icDu,
-			sql: `insert ignore into "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b'`,
+		insertTestCase{
+			clause: icDu,
+			sql:    `insert ignore into "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b'`,
 		},
 		insertTestCase{
 			clause:     icDu,
@@ -350,8 +353,8 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 			args:       []interface{}{"a1", "b"},
 		},
 
-		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error()},
-		insertTestCase{clause: icDuNil, err: errConflictUpdateValuesRequired.Error(), isPrepared: true},
+		insertTestCase{clause: icDuNil, err: sqlgen.ErrConflictUpdateValuesRequired.Error()},
+		insertTestCase{clause: icDuNil, err: sqlgen.ErrConflictUpdateValuesRequired.Error(), isPrepared: true},
 
 		insertTestCase{clause: icDuBad, err: "goqu: unsupported update interface type bool"},
 		insertTestCase{clause: icDuBad, err: "goqu: unsupported update interface type bool", isPrepared: true},
@@ -360,14 +363,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 	opts.SupportsConflictUpdateWhere = false
 	expectedErr := "goqu: dialect does not support upsert with where clause [dialect=test]"
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icDuw, err: expectedErr},
 		insertTestCase{clause: icDuw, err: expectedErr, isPrepared: true},
 	)
 }
 
 func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.WithFragment = []byte("with ")
 	opts.RecursiveFragment = []byte("recursive ")
 
@@ -378,7 +381,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
 	icCte2 := ic.CommonTablesAppend(exp.NewCommonTableExpression(true, "test_cte", tse))
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{
 			clause: icCte1,
 			sql:    `with test_cte AS (select * from foo) INSERT INTO "test_cte" DEFAULT VALUES`,
@@ -396,13 +399,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
 		insertTestCase{
 			clause:     icCte2,
 			sql:        `with recursive test_cte AS (select * from foo) INSERT INTO "test_cte" DEFAULT VALUES`,
-			isPrepared: true},
+			isPrepared: true,
+		},
 	)
 
 	opts.SupportsWithCTE = false
 	expectedErr := "goqu: dialect does not support CTE WITH clause [dialect=test]"
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icCte1, err: expectedErr},
 		insertTestCase{clause: icCte1, err: expectedErr, isPrepared: true},
 
@@ -414,7 +418,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
 	opts.SupportsWithCTERecursive = false
 	expectedErr = "goqu: dialect does not support CTE WITH RECURSIVE clause [dialect=test]"
 	igs.assertCases(
-		NewInsertSQLGenerator("test", opts),
+		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{
 			clause: icCte1,
 			sql:    `with test_cte AS (select * from foo) INSERT INTO "test_cte" DEFAULT VALUES`,
@@ -440,7 +444,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withReturning() {
 		SetReturning(exp.NewColumnListExpression("a", "b"))
 
 	igs.assertCases(
-		NewInsertSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a", "b") VALUES ('a1', 'b1') RETURNING "a", "b"`},
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" ("a", "b") VALUES (?, ?) RETURNING "a", "b"`, isPrepared: true, args: []interface{}{
 			"a1", "b1",

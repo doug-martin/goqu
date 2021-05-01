@@ -1,10 +1,10 @@
-package goqu
+package goqu_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v9/exec"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
 	"github.com/doug-martin/goqu/v9/internal/sb"
@@ -15,7 +15,7 @@ import (
 
 type (
 	selectTestCase struct {
-		ds      *SelectDataset
+		ds      *goqu.SelectDataset
 		clauses exp.SelectClauses
 	}
 	dsTestActionItem struct {
@@ -34,111 +34,111 @@ func (sds *selectDatasetSuite) assertCases(cases ...selectTestCase) {
 }
 
 func (sds *selectDatasetSuite) TestReturnsColumns() {
-	ds := Select(L("NOW()"))
+	ds := goqu.Select(goqu.L("NOW()"))
 	sds.True(ds.ReturnsColumns())
 }
 
 func (sds *selectDatasetSuite) TestClone() {
-	ds := From("test")
+	ds := goqu.From("test")
 	sds.Equal(ds, ds.Clone())
 }
 
 func (sds *selectDatasetSuite) TestExpression() {
-	ds := From("test")
+	ds := goqu.From("test")
 	sds.Equal(ds, ds.Expression())
 }
 
 func (sds *selectDatasetSuite) TestDialect() {
-	ds := From("test")
+	ds := goqu.From("test")
 	sds.NotNil(ds.Dialect())
 }
 
 func (sds *selectDatasetSuite) TestWithDialect() {
-	ds := From("test")
+	ds := goqu.From("test")
 	md := new(mocks.SQLDialect)
 	ds = ds.SetDialect(md)
 
-	dialect := GetDialect("default")
+	dialect := goqu.GetDialect("default")
 	dialectDs := ds.WithDialect("default")
 	sds.Equal(md, ds.Dialect())
 	sds.Equal(dialect, dialectDs.Dialect())
 }
 
 func (sds *selectDatasetSuite) TestPrepared() {
-	ds := From("test")
+	ds := goqu.From("test")
 	preparedDs := ds.Prepared(true)
 	sds.True(preparedDs.IsPrepared())
 	sds.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
-	sds.True(preparedDs.Where(Ex{"a": 1}).IsPrepared())
+	sds.True(preparedDs.Where(goqu.Ex{"a": 1}).IsPrepared())
 }
 
 func (sds *selectDatasetSuite) TestGetClauses() {
-	ds := From("test")
-	ce := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression(I("test")))
+	ds := goqu.From("test")
+	ce := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression(goqu.I("test")))
 	sds.Equal(ce, ds.GetClauses())
 }
 
 func (sds *selectDatasetSuite) TestUpdate() {
-	where := Ex{"a": 1}
-	from := From("cte")
+	where := goqu.Ex{"a": 1}
+	from := goqu.From("cte")
 	limit := uint(1)
-	order := []exp.OrderedExpression{C("a").Asc(), C("b").Desc()}
-	ds := From("test").
+	order := []exp.OrderedExpression{goqu.C("a").Asc(), goqu.C("b").Desc()}
+	ds := goqu.From("test").
 		With("test-cte", from).
 		Where(where).
 		Limit(limit).
 		Order(order...)
 	ec := exp.NewUpdateClauses().
-		SetTable(C("test")).
+		SetTable(goqu.C("test")).
 		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)).
-		WhereAppend(ds.clauses.Where()).
+		WhereAppend(ds.GetClauses().Where()).
 		SetLimit(limit).
 		SetOrder(order...)
 	sds.Equal(ec, ds.Update().GetClauses())
 }
 
 func (sds *selectDatasetSuite) TestInsert() {
-	where := Ex{"a": 1}
-	from := From("cte")
+	where := goqu.Ex{"a": 1}
+	from := goqu.From("cte")
 	limit := uint(1)
-	order := []exp.OrderedExpression{C("a").Asc(), C("b").Desc()}
-	ds := From("test").
+	order := []exp.OrderedExpression{goqu.C("a").Asc(), goqu.C("b").Desc()}
+	ds := goqu.From("test").
 		With("test-cte", from).
 		Where(where).
 		Limit(limit).
 		Order(order...)
 	ec := exp.NewInsertClauses().
-		SetInto(C("test")).
+		SetInto(goqu.C("test")).
 		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from))
 	sds.Equal(ec, ds.Insert().GetClauses())
 }
 
 func (sds *selectDatasetSuite) TestDelete() {
-	where := Ex{"a": 1}
-	from := From("cte")
+	where := goqu.Ex{"a": 1}
+	from := goqu.From("cte")
 	limit := uint(1)
-	order := []exp.OrderedExpression{C("a").Asc(), C("b").Desc()}
-	ds := From("test").
+	order := []exp.OrderedExpression{goqu.C("a").Asc(), goqu.C("b").Desc()}
+	ds := goqu.From("test").
 		With("test-cte", from).
 		Where(where).
 		Limit(limit).
 		Order(order...)
 	ec := exp.NewDeleteClauses().
-		SetFrom(C("test")).
+		SetFrom(goqu.C("test")).
 		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)).
-		WhereAppend(ds.clauses.Where()).
+		WhereAppend(ds.GetClauses().Where()).
 		SetLimit(limit).
 		SetOrder(order...)
 	sds.Equal(ec, ds.Delete().GetClauses())
 }
 
 func (sds *selectDatasetSuite) TestTruncate() {
-	where := Ex{"a": 1}
-	from := From("cte")
+	where := goqu.Ex{"a": 1}
+	from := goqu.From("cte")
 	limit := uint(1)
-	order := []exp.OrderedExpression{C("a").Asc(), C("b").Desc()}
-	ds := From("test").
+	order := []exp.OrderedExpression{goqu.C("a").Asc(), goqu.C("b").Desc()}
+	ds := goqu.From("test").
 		With("test-cte", from).
 		Where(where).
 		Limit(limit).
@@ -149,8 +149,8 @@ func (sds *selectDatasetSuite) TestTruncate() {
 }
 
 func (sds *selectDatasetSuite) TestWith() {
-	from := From("cte")
-	bd := From("test")
+	from := goqu.From("cte")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.With("test-cte", from),
@@ -166,8 +166,8 @@ func (sds *selectDatasetSuite) TestWith() {
 }
 
 func (sds *selectDatasetSuite) TestWithRecursive() {
-	from := From("cte")
-	bd := From("test")
+	from := goqu.From("cte")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.WithRecursive("test-cte", from),
@@ -183,7 +183,7 @@ func (sds *selectDatasetSuite) TestWithRecursive() {
 }
 
 func (sds *selectDatasetSuite) TestSelect() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Select("a", "b"),
@@ -210,7 +210,7 @@ func (sds *selectDatasetSuite) TestSelect() {
 }
 
 func (sds *selectDatasetSuite) TestSelectDistinct() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.SelectDistinct("a", "b"),
@@ -237,14 +237,14 @@ func (sds *selectDatasetSuite) TestSelectDistinct() {
 			ds: bd.Select("a").SelectDistinct(),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetSelect(exp.NewColumnListExpression(Star())).
+				SetSelect(exp.NewColumnListExpression(goqu.Star())).
 				SetDistinct(nil),
 		},
 		selectTestCase{
 			ds: bd.SelectDistinct("a").SelectDistinct(),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetSelect(exp.NewColumnListExpression(Star())).
+				SetSelect(exp.NewColumnListExpression(goqu.Star())).
 				SetDistinct(nil),
 		},
 		selectTestCase{
@@ -255,7 +255,7 @@ func (sds *selectDatasetSuite) TestSelectDistinct() {
 }
 
 func (sds *selectDatasetSuite) TestClearSelect() {
-	bd := From("test").Select("a")
+	bd := goqu.From("test").Select("a")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.ClearSelect(),
@@ -272,7 +272,7 @@ func (sds *selectDatasetSuite) TestClearSelect() {
 }
 
 func (sds *selectDatasetSuite) TestSelectAppend() {
-	bd := From("test").Select("a")
+	bd := goqu.From("test").Select("a")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.SelectAppend("b"),
@@ -290,7 +290,7 @@ func (sds *selectDatasetSuite) TestSelectAppend() {
 }
 
 func (sds *selectDatasetSuite) TestDistinct() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Distinct("a", "b"),
@@ -312,17 +312,17 @@ func (sds *selectDatasetSuite) TestDistinct() {
 }
 
 func (sds *selectDatasetSuite) TestFrom() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.From(T("test2")),
+			ds: bd.From(goqu.T("test2")),
 			clauses: exp.NewSelectClauses().
-				SetFrom(exp.NewColumnListExpression(T("test2"))),
+				SetFrom(exp.NewColumnListExpression(goqu.T("test2"))),
 		},
 		selectTestCase{
-			ds: bd.From(From("test")),
+			ds: bd.From(goqu.From("test")),
 			clauses: exp.NewSelectClauses().
-				SetFrom(exp.NewColumnListExpression(From("test").As("t1"))),
+				SetFrom(exp.NewColumnListExpression(goqu.From("test").As("t1"))),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -332,7 +332,7 @@ func (sds *selectDatasetSuite) TestFrom() {
 }
 
 func (sds *selectDatasetSuite) TestFromSelf() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.FromSelf(),
@@ -352,7 +352,7 @@ func (sds *selectDatasetSuite) TestFromSelf() {
 }
 
 func (sds *selectDatasetSuite) TestCompoundFromSelf() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds:      bd.CompoundFromSelf(),
@@ -363,9 +363,9 @@ func (sds *selectDatasetSuite) TestCompoundFromSelf() {
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression(bd.Limit(10).As("t1"))),
 		},
 		selectTestCase{
-			ds: bd.Order(C("a").Asc()).CompoundFromSelf(),
+			ds: bd.Order(goqu.C("a").Asc()).CompoundFromSelf(),
 			clauses: exp.NewSelectClauses().
-				SetFrom(exp.NewColumnListExpression(bd.Order(C("a").Asc()).As("t1"))),
+				SetFrom(exp.NewColumnListExpression(bd.Order(goqu.C("a").Asc()).As("t1"))),
 		},
 		selectTestCase{
 			ds: bd.As("alias").FromSelf(),
@@ -380,14 +380,14 @@ func (sds *selectDatasetSuite) TestCompoundFromSelf() {
 }
 
 func (sds *selectDatasetSuite) TestJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.Join(T("foo"), On(C("a").IsNull())),
+			ds: bd.Join(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.InnerJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.InnerJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -398,14 +398,14 @@ func (sds *selectDatasetSuite) TestJoin() {
 }
 
 func (sds *selectDatasetSuite) TestInnerJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.InnerJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.InnerJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.InnerJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.InnerJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -416,14 +416,14 @@ func (sds *selectDatasetSuite) TestInnerJoin() {
 }
 
 func (sds *selectDatasetSuite) TestFullOuterJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.FullOuterJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.FullOuterJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.FullOuterJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.FullOuterJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -434,14 +434,14 @@ func (sds *selectDatasetSuite) TestFullOuterJoin() {
 }
 
 func (sds *selectDatasetSuite) TestRightOuterJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.RightOuterJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.RightOuterJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.RightOuterJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.RightOuterJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -452,14 +452,14 @@ func (sds *selectDatasetSuite) TestRightOuterJoin() {
 }
 
 func (sds *selectDatasetSuite) TestLeftOuterJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.LeftOuterJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.LeftOuterJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.LeftOuterJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.LeftOuterJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -470,14 +470,14 @@ func (sds *selectDatasetSuite) TestLeftOuterJoin() {
 }
 
 func (sds *selectDatasetSuite) TestFullJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.FullJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.FullJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.FullJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.FullJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -488,14 +488,14 @@ func (sds *selectDatasetSuite) TestFullJoin() {
 }
 
 func (sds *selectDatasetSuite) TestRightJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.RightJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.RightJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.RightJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.RightJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -506,14 +506,14 @@ func (sds *selectDatasetSuite) TestRightJoin() {
 }
 
 func (sds *selectDatasetSuite) TestLeftJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.LeftJoin(T("foo"), On(C("a").IsNull())),
+			ds: bd.LeftJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewConditionedJoinExpression(exp.LeftJoinType, T("foo"), On(C("a").IsNull())),
+					exp.NewConditionedJoinExpression(exp.LeftJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
 				),
 		},
 		selectTestCase{
@@ -524,14 +524,14 @@ func (sds *selectDatasetSuite) TestLeftJoin() {
 }
 
 func (sds *selectDatasetSuite) TestNaturalJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.NaturalJoin(T("foo")),
+			ds: bd.NaturalJoin(goqu.T("foo")),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewUnConditionedJoinExpression(exp.NaturalJoinType, T("foo")),
+					exp.NewUnConditionedJoinExpression(exp.NaturalJoinType, goqu.T("foo")),
 				),
 		},
 		selectTestCase{
@@ -542,14 +542,14 @@ func (sds *selectDatasetSuite) TestNaturalJoin() {
 }
 
 func (sds *selectDatasetSuite) TestNaturalLeftJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.NaturalLeftJoin(T("foo")),
+			ds: bd.NaturalLeftJoin(goqu.T("foo")),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewUnConditionedJoinExpression(exp.NaturalLeftJoinType, T("foo")),
+					exp.NewUnConditionedJoinExpression(exp.NaturalLeftJoinType, goqu.T("foo")),
 				),
 		},
 		selectTestCase{
@@ -560,14 +560,14 @@ func (sds *selectDatasetSuite) TestNaturalLeftJoin() {
 }
 
 func (sds *selectDatasetSuite) TestNaturalRightJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.NaturalRightJoin(T("foo")),
+			ds: bd.NaturalRightJoin(goqu.T("foo")),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewUnConditionedJoinExpression(exp.NaturalRightJoinType, T("foo")),
+					exp.NewUnConditionedJoinExpression(exp.NaturalRightJoinType, goqu.T("foo")),
 				),
 		},
 		selectTestCase{
@@ -578,14 +578,14 @@ func (sds *selectDatasetSuite) TestNaturalRightJoin() {
 }
 
 func (sds *selectDatasetSuite) TestNaturalFullJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.NaturalFullJoin(T("foo")),
+			ds: bd.NaturalFullJoin(goqu.T("foo")),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewUnConditionedJoinExpression(exp.NaturalFullJoinType, T("foo")),
+					exp.NewUnConditionedJoinExpression(exp.NaturalFullJoinType, goqu.T("foo")),
 				),
 		},
 		selectTestCase{
@@ -596,14 +596,14 @@ func (sds *selectDatasetSuite) TestNaturalFullJoin() {
 }
 
 func (sds *selectDatasetSuite) TestCrossJoin() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.CrossJoin(T("foo")),
+			ds: bd.CrossJoin(goqu.T("foo")),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				JoinsAppend(
-					exp.NewUnConditionedJoinExpression(exp.CrossJoinType, T("foo")),
+					exp.NewUnConditionedJoinExpression(exp.CrossJoinType, goqu.T("foo")),
 				),
 		},
 		selectTestCase{
@@ -614,9 +614,9 @@ func (sds *selectDatasetSuite) TestCrossJoin() {
 }
 
 func (sds *selectDatasetSuite) TestWhere() {
-	w := Ex{"a": 1}
-	w2 := Ex{"b": "c"}
-	bd := From("test")
+	w := goqu.Ex{"a": 1}
+	w2 := goqu.Ex{"b": "c"}
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Where(w),
@@ -638,8 +638,8 @@ func (sds *selectDatasetSuite) TestWhere() {
 }
 
 func (sds *selectDatasetSuite) TestClearWhere() {
-	w := Ex{"a": 1}
-	bd := From("test").Where(w)
+	w := goqu.Ex{"a": 1}
+	bd := goqu.From("test").Where(w)
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.ClearWhere(),
@@ -654,13 +654,13 @@ func (sds *selectDatasetSuite) TestClearWhere() {
 }
 
 func (sds *selectDatasetSuite) TestForUpdate() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.ForUpdate(NoWait),
+			ds: bd.ForUpdate(goqu.NoWait),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetLock(exp.NewLock(exp.ForUpdate, NoWait)),
+				SetLock(exp.NewLock(exp.ForUpdate, goqu.NoWait)),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -670,13 +670,13 @@ func (sds *selectDatasetSuite) TestForUpdate() {
 }
 
 func (sds *selectDatasetSuite) TestForNoKeyUpdate() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.ForNoKeyUpdate(NoWait),
+			ds: bd.ForNoKeyUpdate(goqu.NoWait),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetLock(exp.NewLock(exp.ForNoKeyUpdate, NoWait)),
+				SetLock(exp.NewLock(exp.ForNoKeyUpdate, goqu.NoWait)),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -686,13 +686,13 @@ func (sds *selectDatasetSuite) TestForNoKeyUpdate() {
 }
 
 func (sds *selectDatasetSuite) TestForKeyShare() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.ForKeyShare(NoWait),
+			ds: bd.ForKeyShare(goqu.NoWait),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetLock(exp.NewLock(exp.ForKeyShare, NoWait)),
+				SetLock(exp.NewLock(exp.ForKeyShare, goqu.NoWait)),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -702,13 +702,13 @@ func (sds *selectDatasetSuite) TestForKeyShare() {
 }
 
 func (sds *selectDatasetSuite) TestForShare() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.ForShare(NoWait),
+			ds: bd.ForShare(goqu.NoWait),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetLock(exp.NewLock(exp.ForShare, NoWait)),
+				SetLock(exp.NewLock(exp.ForShare, goqu.NoWait)),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -718,7 +718,7 @@ func (sds *selectDatasetSuite) TestForShare() {
 }
 
 func (sds *selectDatasetSuite) TestGroupBy() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.GroupBy("a"),
@@ -740,10 +740,10 @@ func (sds *selectDatasetSuite) TestGroupBy() {
 }
 
 func (sds *selectDatasetSuite) TestWindow() {
-	w1 := W("w1").PartitionBy("a").OrderBy("b")
-	w2 := W("w2").PartitionBy("a").OrderBy("b")
+	w1 := goqu.W("w1").PartitionBy("a").OrderBy("b")
+	w2 := goqu.W("w2").PartitionBy("a").OrderBy("b")
 
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Window(w1),
@@ -771,10 +771,10 @@ func (sds *selectDatasetSuite) TestWindow() {
 }
 
 func (sds *selectDatasetSuite) TestWindowAppend() {
-	w1 := W("w1").PartitionBy("a").OrderBy("b")
-	w2 := W("w2").PartitionBy("a").OrderBy("b")
+	w1 := goqu.W("w1").PartitionBy("a").OrderBy("b")
+	w2 := goqu.W("w2").PartitionBy("a").OrderBy("b")
 
-	bd := From("test").Window(w1)
+	bd := goqu.From("test").Window(w1)
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.WindowAppend(w2),
@@ -792,9 +792,9 @@ func (sds *selectDatasetSuite) TestWindowAppend() {
 }
 
 func (sds *selectDatasetSuite) TestClearWindow() {
-	w1 := W("w1").PartitionBy("a").OrderBy("b")
+	w1 := goqu.W("w1").PartitionBy("a").OrderBy("b")
 
-	bd := From("test").Window(w1)
+	bd := goqu.From("test").Window(w1)
 	sds.assertCases(
 		selectTestCase{
 			ds:      bd.ClearWindow(),
@@ -810,19 +810,19 @@ func (sds *selectDatasetSuite) TestClearWindow() {
 }
 
 func (sds *selectDatasetSuite) TestHaving() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.Having(C("a").Gt(1)),
+			ds: bd.Having(goqu.C("a").Gt(1)),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				HavingAppend(C("a").Gt(1)),
+				HavingAppend(goqu.C("a").Gt(1)),
 		},
 		selectTestCase{
-			ds: bd.Having(C("a").Gt(1)).Having(Ex{"b": "c"}),
+			ds: bd.Having(goqu.C("a").Gt(1)).Having(goqu.Ex{"b": "c"}),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				HavingAppend(C("a").Gt(1)).HavingAppend(Ex{"b": "c"}),
+				HavingAppend(goqu.C("a").Gt(1)).HavingAppend(goqu.Ex{"b": "c"}),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -832,19 +832,19 @@ func (sds *selectDatasetSuite) TestHaving() {
 }
 
 func (sds *selectDatasetSuite) TestOrder() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.Order(C("a").Asc()),
+			ds: bd.Order(goqu.C("a").Asc()),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("a").Asc()),
+				SetOrder(goqu.C("a").Asc()),
 		},
 		selectTestCase{
-			ds: bd.Order(C("a").Asc()).Order(C("b").Asc()),
+			ds: bd.Order(goqu.C("a").Asc()).Order(goqu.C("b").Asc()),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("b").Asc()),
+				SetOrder(goqu.C("b").Asc()),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -854,41 +854,41 @@ func (sds *selectDatasetSuite) TestOrder() {
 }
 
 func (sds *selectDatasetSuite) TestOrderAppend() {
-	bd := From("test").Order(C("a").Asc())
+	bd := goqu.From("test").Order(goqu.C("a").Asc())
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.OrderAppend(C("b").Asc()),
+			ds: bd.OrderAppend(goqu.C("b").Asc()),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("a").Asc(), C("b").Asc()),
+				SetOrder(goqu.C("a").Asc(), goqu.C("b").Asc()),
 		},
 		selectTestCase{
 			ds: bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("a").Asc()),
+				SetOrder(goqu.C("a").Asc()),
 		},
 	)
 }
 
 func (sds *selectDatasetSuite) TestOrderPrepend() {
-	bd := From("test").Order(C("a").Asc())
+	bd := goqu.From("test").Order(goqu.C("a").Asc())
 	sds.assertCases(
 		selectTestCase{
-			ds: bd.OrderPrepend(C("b").Asc()),
+			ds: bd.OrderPrepend(goqu.C("b").Asc()),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("b").Asc(), C("a").Asc()),
+				SetOrder(goqu.C("b").Asc(), goqu.C("a").Asc()),
 		},
 		selectTestCase{
 			ds: bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("a").Asc()),
+				SetOrder(goqu.C("a").Asc()),
 		},
 	)
 }
 
 func (sds *selectDatasetSuite) TestClearOrder() {
-	bd := From("test").Order(C("a").Asc())
+	bd := goqu.From("test").Order(goqu.C("a").Asc())
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.ClearOrder(),
@@ -898,13 +898,13 @@ func (sds *selectDatasetSuite) TestClearOrder() {
 		selectTestCase{
 			ds: bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")).
-				SetOrder(C("a").Asc()),
+				SetOrder(goqu.C("a").Asc()),
 		},
 	)
 }
 
 func (sds *selectDatasetSuite) TestLimit() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Limit(10),
@@ -936,19 +936,19 @@ func (sds *selectDatasetSuite) TestLimit() {
 }
 
 func (sds *selectDatasetSuite) TestLimitAll() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.LimitAll(),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetLimit(L("ALL")),
+				SetLimit(goqu.L("ALL")),
 		},
 		selectTestCase{
 			ds: bd.Limit(10).LimitAll(),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				SetLimit(L("ALL")),
+				SetLimit(goqu.L("ALL")),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -958,7 +958,7 @@ func (sds *selectDatasetSuite) TestLimitAll() {
 }
 
 func (sds *selectDatasetSuite) TestClearLimit() {
-	bd := From("test").Limit(10)
+	bd := goqu.From("test").Limit(10)
 	sds.assertCases(
 		selectTestCase{
 			ds:      bd.ClearLimit(),
@@ -974,7 +974,7 @@ func (sds *selectDatasetSuite) TestClearLimit() {
 }
 
 func (sds *selectDatasetSuite) TestOffset() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds:      bd.Offset(10),
@@ -988,7 +988,7 @@ func (sds *selectDatasetSuite) TestOffset() {
 }
 
 func (sds *selectDatasetSuite) TestClearOffset() {
-	bd := From("test").Offset(10)
+	bd := goqu.From("test").Offset(10)
 	sds.assertCases(
 		selectTestCase{
 			ds:      bd.ClearOffset(),
@@ -1002,8 +1002,8 @@ func (sds *selectDatasetSuite) TestClearOffset() {
 }
 
 func (sds *selectDatasetSuite) TestUnion() {
-	uds := From("union_test")
-	bd := From("test")
+	uds := goqu.From("union_test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Union(uds),
@@ -1018,8 +1018,8 @@ func (sds *selectDatasetSuite) TestUnion() {
 }
 
 func (sds *selectDatasetSuite) TestUnionAll() {
-	uds := From("union_test")
-	bd := From("test")
+	uds := goqu.From("union_test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.UnionAll(uds),
@@ -1034,8 +1034,8 @@ func (sds *selectDatasetSuite) TestUnionAll() {
 }
 
 func (sds *selectDatasetSuite) TestIntersect() {
-	uds := From("union_test")
-	bd := From("test")
+	uds := goqu.From("union_test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.Intersect(uds),
@@ -1050,8 +1050,8 @@ func (sds *selectDatasetSuite) TestIntersect() {
 }
 
 func (sds *selectDatasetSuite) TestIntersectAll() {
-	uds := From("union_test")
-	bd := From("test")
+	uds := goqu.From("union_test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.IntersectAll(uds),
@@ -1066,12 +1066,12 @@ func (sds *selectDatasetSuite) TestIntersectAll() {
 }
 
 func (sds *selectDatasetSuite) TestAs() {
-	bd := From("test")
+	bd := goqu.From("test")
 	sds.assertCases(
 		selectTestCase{
 			ds: bd.As("t"),
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")).
-				SetAlias(T("t")),
+				SetAlias(goqu.T("t")),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -1082,7 +1082,7 @@ func (sds *selectDatasetSuite) TestAs() {
 
 func (sds *selectDatasetSuite) TestToSQL() {
 	md := new(mocks.SQLDialect)
-	ds := From("test").SetDialect(md)
+	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
@@ -1095,7 +1095,7 @@ func (sds *selectDatasetSuite) TestToSQL() {
 
 func (sds *selectDatasetSuite) TestToSQL_prepared() {
 	md := new(mocks.SQLDialect)
-	ds := From("test").Prepared(true).SetDialect(md)
+	ds := goqu.From("test").Prepared(true).SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
 	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
@@ -1108,7 +1108,7 @@ func (sds *selectDatasetSuite) TestToSQL_prepared() {
 
 func (sds *selectDatasetSuite) TestToSQL_ReturnedError() {
 	md := new(mocks.SQLDialect)
-	ds := From("test").SetDialect(md)
+	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	ee := errors.New("expected error")
@@ -1125,7 +1125,7 @@ func (sds *selectDatasetSuite) TestToSQL_ReturnedError() {
 
 func (sds *selectDatasetSuite) TestAppendSQL() {
 	md := new(mocks.SQLDialect)
-	ds := From("test").SetDialect(md)
+	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
@@ -1151,32 +1151,30 @@ func (sds *selectDatasetSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var items []dsTestActionItem
-	sds.NoError(ds.From("items").ScanStructs(&items))
+	sds.NoError(db.From("items").ScanStructs(&items))
 	sds.Equal([]dsTestActionItem{
 		{Address: "111 Test Addr", Name: "Test1"},
 		{Address: "211 Test Addr", Name: "Test2"},
 	}, items)
 
 	items = items[0:0]
-	sds.NoError(ds.From("items").Select("name").Distinct().ScanStructs(&items))
+	sds.NoError(db.From("items").Select("name").Distinct().ScanStructs(&items))
 	sds.Equal([]dsTestActionItem{
 		{Address: "111 Test Addr", Name: "Test1"},
 		{Address: "211 Test Addr", Name: "Test2"},
 	}, items)
 
 	items = items[0:0]
-	sds.EqualError(ds.From("items").ScanStructs(items),
+	sds.EqualError(db.From("items").ScanStructs(items),
 		"goqu: type must be a pointer to a slice when scanning into structs")
-	sds.EqualError(ds.From("items").ScanStructs(&dsTestActionItem{}),
+	sds.EqualError(db.From("items").ScanStructs(&dsTestActionItem{}),
 		"goqu: type must be a pointer to a slice when scanning into structs")
-	sds.EqualError(ds.From("items").Select("test").ScanStructs(&items),
+	sds.EqualError(db.From("items").Select("test").ScanStructs(&items),
 		`goqu: unable to find corresponding field to column "test" returned by query`)
 
-	ds = newDataset("mock", nil)
-	sds.Equal(errQueryFactoryNotFoundError, ds.From("items").ScanStructs(items))
+	sds.Equal(goqu.ErrQueryFactoryNotFoundError, goqu.From("items").ScanStructs(items))
 }
 
 func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
@@ -1195,10 +1193,9 @@ func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var items []dsTestActionItem
-	sds.NoError(ds.From("items").Prepared(true).Where(Ex{
+	sds.NoError(db.From("items").Prepared(true).Where(goqu.Ex{
 		"name":    []string{"Bob", "Sally", "Billy"},
 		"address": "111 Test Addr",
 	}).ScanStructs(&items))
@@ -1208,14 +1205,14 @@ func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
 	})
 
 	items = items[0:0]
-	sds.EqualError(ds.From("items").ScanStructs(items),
+	sds.EqualError(db.From("items").ScanStructs(items),
 		"goqu: type must be a pointer to a slice when scanning into structs")
-	sds.EqualError(ds.From("items").ScanStructs(&dsTestActionItem{}),
+	sds.EqualError(db.From("items").ScanStructs(&dsTestActionItem{}),
 		"goqu: type must be a pointer to a slice when scanning into structs")
-	sds.EqualError(ds.From("items").
+	sds.EqualError(db.From("items").
 		Prepared(true).
 		Select("test").
-		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
+		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		ScanStructs(&items), `goqu: unable to find corresponding field to column "test" returned by query`)
 }
 
@@ -1234,32 +1231,30 @@ func (sds *selectDatasetSuite) TestScanStruct() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var item dsTestActionItem
-	found, err := ds.From("items").ScanStruct(&item)
+	found, err := db.From("items").ScanStruct(&item)
 	sds.NoError(err)
 	sds.True(found)
 	sds.Equal("111 Test Addr", item.Address)
 	sds.Equal("Test1", item.Name)
 
 	item = dsTestActionItem{}
-	found, err = ds.From("items").Select("name").Distinct().ScanStruct(&item)
+	found, err = db.From("items").Select("name").Distinct().ScanStruct(&item)
 	sds.NoError(err)
 	sds.True(found)
 	sds.Equal("111 Test Addr", item.Address)
 	sds.Equal("Test1", item.Name)
 
-	_, err = ds.From("items").ScanStruct(item)
+	_, err = db.From("items").ScanStruct(item)
 	sds.EqualError(err, "goqu: type must be a pointer to a struct when scanning into a struct")
-	_, err = ds.From("items").ScanStruct([]dsTestActionItem{})
+	_, err = db.From("items").ScanStruct([]dsTestActionItem{})
 	sds.EqualError(err, "goqu: type must be a pointer to a struct when scanning into a struct")
-	_, err = ds.From("items").Select("test").ScanStruct(&item)
+	_, err = db.From("items").Select("test").ScanStruct(&item)
 	sds.EqualError(err, `goqu: unable to find corresponding field to column "test" returned by query`)
 
-	ds = newDataset("mock", nil)
-	_, err = ds.From("items").ScanStruct(item)
-	sds.Equal(errQueryFactoryNotFoundError, err)
+	_, err = goqu.From("items").ScanStruct(item)
+	sds.Equal(goqu.ErrQueryFactoryNotFoundError, err)
 }
 
 func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
@@ -1275,10 +1270,9 @@ func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var item dsTestActionItem
-	found, err := ds.From("items").Prepared(true).Where(Ex{
+	found, err := db.From("items").Prepared(true).Where(goqu.Ex{
 		"name":    []string{"Bob", "Sally", "Billy"},
 		"address": "111 Test Addr",
 	}).ScanStruct(&item)
@@ -1287,14 +1281,14 @@ func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
 	sds.Equal("111 Test Addr", item.Address)
 	sds.Equal("Test1", item.Name)
 
-	_, err = ds.From("items").ScanStruct(item)
+	_, err = db.From("items").ScanStruct(item)
 	sds.EqualError(err, "goqu: type must be a pointer to a struct when scanning into a struct")
-	_, err = ds.From("items").ScanStruct([]dsTestActionItem{})
+	_, err = db.From("items").ScanStruct([]dsTestActionItem{})
 	sds.EqualError(err, "goqu: type must be a pointer to a struct when scanning into a struct")
-	_, err = ds.From("items").
+	_, err = db.From("items").
 		Prepared(true).
 		Select("test").
-		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
+		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		ScanStruct(&item)
 	sds.EqualError(err, `goqu: unable to find corresponding field to column "test" returned by query`)
 }
@@ -1306,20 +1300,18 @@ func (sds *selectDatasetSuite) TestScanVals() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var ids []uint32
-	sds.NoError(ds.From("items").Select("id").ScanVals(&ids))
+	sds.NoError(db.From("items").Select("id").ScanVals(&ids))
 	sds.Equal(ids, []uint32{1, 2, 3, 4, 5})
 
-	sds.EqualError(ds.From("items").ScanVals([]uint32{}),
+	sds.EqualError(db.From("items").ScanVals([]uint32{}),
 		"goqu: type must be a pointer to a slice when scanning into vals")
-	sds.EqualError(ds.From("items").ScanVals(dsTestActionItem{}),
+	sds.EqualError(db.From("items").ScanVals(dsTestActionItem{}),
 		"goqu: type must be a pointer to a slice when scanning into vals")
 
-	ds = newDataset("mock", nil)
-	err = ds.From("items").ScanVals(&ids)
-	sds.Equal(errQueryFactoryNotFoundError, err)
+	err = goqu.From("items").ScanVals(&ids)
+	sds.Equal(goqu.ErrQueryFactoryNotFoundError, err)
 }
 
 func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
@@ -1331,19 +1323,18 @@ func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var ids []uint32
-	sds.NoError(ds.From("items").
+	sds.NoError(db.From("items").
 		Prepared(true).
 		Select("id").
-		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
+		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		ScanVals(&ids))
 	sds.Equal([]uint32{1, 2, 3, 4, 5}, ids)
 
-	sds.EqualError(ds.From("items").ScanVals([]uint32{}),
+	sds.EqualError(db.From("items").ScanVals([]uint32{}),
 		"goqu: type must be a pointer to a slice when scanning into vals")
-	sds.EqualError(ds.From("items").ScanVals(dsTestActionItem{}),
+	sds.EqualError(db.From("items").ScanVals(dsTestActionItem{}),
 		"goqu: type must be a pointer to a slice when scanning into vals")
 }
 
@@ -1354,24 +1345,22 @@ func (sds *selectDatasetSuite) TestScanVal() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var id int64
-	found, err := ds.From("items").Select("id").ScanVal(&id)
+	found, err := db.From("items").Select("id").ScanVal(&id)
 	sds.NoError(err)
 	sds.Equal(id, int64(10))
 	sds.True(found)
 
-	found, err = ds.From("items").ScanVal([]int64{})
+	found, err = db.From("items").ScanVal([]int64{})
 	sds.False(found)
 	sds.EqualError(err, "goqu: type must be a pointer when scanning into val")
-	found, err = ds.From("items").ScanVal(10)
+	found, err = db.From("items").ScanVal(10)
 	sds.False(found)
 	sds.EqualError(err, "goqu: type must be a pointer when scanning into val")
 
-	ds = newDataset("mock", nil)
-	_, err = ds.From("items").ScanVal(&id)
-	sds.Equal(errQueryFactoryNotFoundError, err)
+	_, err = goqu.From("items").ScanVal(&id)
+	sds.Equal(goqu.ErrQueryFactoryNotFoundError, err)
 }
 
 func (sds *selectDatasetSuite) TestScanVal_WithPreparedStatement() {
@@ -1383,22 +1372,21 @@ func (sds *selectDatasetSuite) TestScanVal_WithPreparedStatement() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var id int64
-	found, err := ds.From("items").
+	found, err := db.From("items").
 		Prepared(true).
 		Select("id").
-		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
+		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		ScanVal(&id)
 	sds.NoError(err)
 	sds.Equal(int64(10), id)
 	sds.True(found)
 
-	found, err = ds.From("items").ScanVal([]int64{})
+	found, err = db.From("items").ScanVal([]int64{})
 	sds.False(found)
 	sds.EqualError(err, "goqu: type must be a pointer when scanning into val")
-	found, err = ds.From("items").ScanVal(10)
+	found, err = db.From("items").ScanVal(10)
 	sds.False(found)
 	sds.EqualError(err, "goqu: type must be a pointer when scanning into val")
 }
@@ -1410,9 +1398,8 @@ func (sds *selectDatasetSuite) TestCount() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
-	count, err := ds.From("items").Count()
+	db := goqu.New("mock", mDB)
+	count, err := db.From("items").Count()
 	sds.NoError(err)
 	sds.Equal(count, int64(10))
 }
@@ -1426,11 +1413,10 @@ func (sds *selectDatasetSuite) TestCount_WithPreparedStatement() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).FromCSVString("10"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	ds := goqu.New("mock", mDB)
 	count, err := ds.From("items").
 		Prepared(true).
-		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
+		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		Count()
 	sds.NoError(err)
 	sds.Equal(int64(10), count)
@@ -1443,10 +1429,9 @@ func (sds *selectDatasetSuite) TestPluck() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("test1\ntest2\ntest3\ntest4\ntest5"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var names []string
-	sds.NoError(ds.From("items").Pluck(&names, "name"))
+	sds.NoError(db.From("items").Pluck(&names, "name"))
 	sds.Equal([]string{"test1", "test2", "test3", "test4", "test5"}, names)
 }
 
@@ -1459,12 +1444,11 @@ func (sds *selectDatasetSuite) TestPluck_WithPreparedStatement() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"name"}).FromCSVString("Bob\nSally\nBilly"))
 
-	qf := exec.NewQueryFactory(mDB)
-	ds := newDataset("mock", qf)
+	db := goqu.New("mock", mDB)
 	var names []string
-	sds.NoError(ds.From("items").
+	sds.NoError(db.From("items").
 		Prepared(true).
-		Where(Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
+		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		Pluck(&names, "name"))
 	sds.Equal([]string{"Bob", "Sally", "Billy"}, names)
 }
@@ -1476,7 +1460,7 @@ func (sds *selectDatasetSuite) TestSetError() {
 
 	// Verify initial error set/get works properly
 	md := new(mocks.SQLDialect)
-	ds := From("test").SetDialect(md)
+	ds := goqu.From("test").SetDialect(md)
 	ds = ds.SetError(err1)
 	sds.Equal(err1, ds.Error())
 	sql, args, err := ds.ToSQL()

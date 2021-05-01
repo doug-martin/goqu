@@ -17,32 +17,28 @@ type (
 	// either override methods, or more typically update default values.
 	// See (github.com/doug-martin/goqu/adapters/postgres)
 	deleteSQLGenerator struct {
-		*commonSQLGenerator
+		CommonSQLGenerator
 	}
 )
 
-var errNoSourceForDelete = errors.New("no source found when generating delete sql")
+var ErrNoSourceForDelete = errors.New("no source found when generating delete sql")
 
 func NewDeleteSQLGenerator(dialect string, do *SQLDialectOptions) DeleteSQLGenerator {
-	return &deleteSQLGenerator{newCommonSQLGenerator(dialect, do)}
-}
-
-func (dsg *deleteSQLGenerator) Dialect() string {
-	return dsg.dialect
+	return &deleteSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
 
 func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClauses) {
 	if !clauses.HasFrom() {
-		b.SetError(errNoSourceForDelete)
+		b.SetError(ErrNoSourceForDelete)
 		return
 	}
-	for _, f := range dsg.dialectOptions.DeleteSQLOrder {
+	for _, f := range dsg.DialectOptions().DeleteSQLOrder {
 		if b.Error() != nil {
 			return
 		}
 		switch f {
 		case CommonTableSQLFragment:
-			dsg.esg.Generate(b, clauses.CommonTables())
+			dsg.ExpressionSQLGenerator().Generate(b, clauses.CommonTables())
 		case DeleteBeginSQLFragment:
 			dsg.DeleteBeginSQL(
 				b, exp.NewColumnListExpression(clauses.From()), !(clauses.HasLimit() || clauses.HasOrder()),
@@ -52,25 +48,25 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 		case WhereSQLFragment:
 			dsg.WhereSQL(b, clauses.Where())
 		case OrderSQLFragment:
-			if dsg.dialectOptions.SupportsOrderByOnDelete {
+			if dsg.DialectOptions().SupportsOrderByOnDelete {
 				dsg.OrderSQL(b, clauses.Order())
 			}
 		case LimitSQLFragment:
-			if dsg.dialectOptions.SupportsLimitOnDelete {
+			if dsg.DialectOptions().SupportsLimitOnDelete {
 				dsg.LimitSQL(b, clauses.Limit())
 			}
 		case ReturningSQLFragment:
 			dsg.ReturningSQL(b, clauses.Returning())
 		default:
-			b.SetError(errNotSupportedFragment("DELETE", f))
+			b.SetError(ErrNotSupportedFragment("DELETE", f))
 		}
 	}
 }
 
 // Adds the correct fragment to being an DELETE statement
 func (dsg *deleteSQLGenerator) DeleteBeginSQL(b sb.SQLBuilder, from exp.ColumnListExpression, multiTable bool) {
-	b.Write(dsg.dialectOptions.DeleteClause)
-	if multiTable && dsg.dialectOptions.SupportsDeleteTableHint {
+	b.Write(dsg.DialectOptions().DeleteClause)
+	if multiTable && dsg.DialectOptions().SupportsDeleteTableHint {
 		dsg.SourcesSQL(b, from)
 	}
 }
