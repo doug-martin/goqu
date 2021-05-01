@@ -22,15 +22,22 @@ jobs:
           - mysql_version: 8
             postgres_version: 11.5
             sqlserver_version: "2017-CU8-ubuntu"
+    env:
+      GO_VERSION: ${{ matrix.go_version }}
+      MYSQL_VERSION: ${{ matrix.db_versions.mysql_version }}
+      POSTGRES_VERSION: ${{ matrix.db_versions.postgres_version }}
+      SQLSERVER_VERSION: ${{ matrix.db_versions.sqlserver_version }}
     steps:
     - name: checkout
       uses: actions/checkout@v2
     - name: Test
-      env:
-        GO_VERSION: ${{ matrix.go_version }}
-        MYSQL_VERSION: ${{ matrix.db_versions.mysql_version }}
-        POSTGRES_VERSION: ${{ matrix.db_versions.postgres_version }}
-        SQLSERVER_VERSION: ${{ matrix.db_versions.sqlserver_version }}
       run: docker-compose run goqu-coverage
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        flags: unittests
+        env_vars: OS,MYSQL_VERSION,POSTGRES_VERSION,SQLSERVER_VERSION
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: true
