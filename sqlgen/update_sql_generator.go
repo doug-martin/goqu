@@ -17,47 +17,43 @@ type (
 	// either override methods, or more typically update default values.
 	// See (github.com/doug-martin/goqu/adapters/postgres)
 	updateSQLGenerator struct {
-		*commonSQLGenerator
+		CommonSQLGenerator
 	}
 )
 
 var (
-	errNoSourceForUpdate    = errors.New("no source found when generating update sql")
-	errNoSetValuesForUpdate = errors.New("no set values found when generating UPDATE sql")
+	ErrNoSourceForUpdate    = errors.New("no source found when generating update sql")
+	ErrNoSetValuesForUpdate = errors.New("no set values found when generating UPDATE sql")
 )
 
 func NewUpdateSQLGenerator(dialect string, do *SQLDialectOptions) UpdateSQLGenerator {
-	return &updateSQLGenerator{newCommonSQLGenerator(dialect, do)}
-}
-
-func (usg *updateSQLGenerator) Dialect() string {
-	return usg.dialect
+	return &updateSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
 
 func (usg *updateSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.UpdateClauses) {
 	if !clauses.HasTable() {
-		b.SetError(errNoSourceForUpdate)
+		b.SetError(ErrNoSourceForUpdate)
 		return
 	}
 	if !clauses.HasSetValues() {
-		b.SetError(errNoSetValuesForUpdate)
+		b.SetError(ErrNoSetValuesForUpdate)
 		return
 	}
-	if !usg.dialectOptions.SupportsMultipleUpdateTables && clauses.HasFrom() {
-		b.SetError(errors.New("%s dialect does not support multiple tables in UPDATE", usg.dialect))
+	if !usg.DialectOptions().SupportsMultipleUpdateTables && clauses.HasFrom() {
+		b.SetError(errors.New("%s dialect does not support multiple tables in UPDATE", usg.Dialect()))
 	}
 	updates, err := exp.NewUpdateExpressions(clauses.SetValues())
 	if err != nil {
 		b.SetError(err)
 		return
 	}
-	for _, f := range usg.dialectOptions.UpdateSQLOrder {
+	for _, f := range usg.DialectOptions().UpdateSQLOrder {
 		if b.Error() != nil {
 			return
 		}
 		switch f {
 		case CommonTableSQLFragment:
-			usg.esg.Generate(b, clauses.CommonTables())
+			usg.ExpressionSQLGenerator().Generate(b, clauses.CommonTables())
 		case UpdateBeginSQLFragment:
 			usg.UpdateBeginSQL(b)
 		case SourcesSQLFragment:
@@ -69,39 +65,39 @@ func (usg *updateSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.UpdateClaus
 		case WhereSQLFragment:
 			usg.WhereSQL(b, clauses.Where())
 		case OrderSQLFragment:
-			if usg.dialectOptions.SupportsOrderByOnUpdate {
+			if usg.DialectOptions().SupportsOrderByOnUpdate {
 				usg.OrderSQL(b, clauses.Order())
 			}
 		case LimitSQLFragment:
-			if usg.dialectOptions.SupportsLimitOnUpdate {
+			if usg.DialectOptions().SupportsLimitOnUpdate {
 				usg.LimitSQL(b, clauses.Limit())
 			}
 		case ReturningSQLFragment:
 			usg.ReturningSQL(b, clauses.Returning())
 		default:
-			b.SetError(errNotSupportedFragment("UPDATE", f))
+			b.SetError(ErrNotSupportedFragment("UPDATE", f))
 		}
 	}
 }
 
 // Adds the correct fragment to being an UPDATE statement
 func (usg *updateSQLGenerator) UpdateBeginSQL(b sb.SQLBuilder) {
-	b.Write(usg.dialectOptions.UpdateClause)
+	b.Write(usg.DialectOptions().UpdateClause)
 }
 
 // Adds column setters in an update SET clause
 func (usg *updateSQLGenerator) UpdateExpressionsSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression) {
-	b.Write(usg.dialectOptions.SetFragment)
+	b.Write(usg.DialectOptions().SetFragment)
 	usg.UpdateExpressionSQL(b, updates...)
 }
 
 func (usg *updateSQLGenerator) updateTableSQL(b sb.SQLBuilder, uc exp.UpdateClauses) {
-	b.WriteRunes(usg.dialectOptions.SpaceRune)
-	usg.esg.Generate(b, uc.Table())
+	b.WriteRunes(usg.DialectOptions().SpaceRune)
+	usg.ExpressionSQLGenerator().Generate(b, uc.Table())
 	if uc.HasFrom() {
-		if !usg.dialectOptions.UseFromClauseForMultipleUpdateTables {
-			b.WriteRunes(usg.dialectOptions.CommaRune)
-			usg.esg.Generate(b, uc.From())
+		if !usg.DialectOptions().UseFromClauseForMultipleUpdateTables {
+			b.WriteRunes(usg.DialectOptions().CommaRune)
+			usg.ExpressionSQLGenerator().Generate(b, uc.From())
 		}
 	}
 }
@@ -110,7 +106,7 @@ func (usg *updateSQLGenerator) updateFromSQL(b sb.SQLBuilder, ce exp.ColumnListE
 	if ce == nil || ce.IsEmpty() {
 		return
 	}
-	if usg.dialectOptions.UseFromClauseForMultipleUpdateTables {
+	if usg.DialectOptions().UseFromClauseForMultipleUpdateTables {
 		usg.FromSQL(b, ce)
 	}
 }

@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -11,26 +12,26 @@ type updateExpressionTestSuite struct {
 }
 
 func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withInvalidValue() {
-	_, err := NewUpdateExpressions(true)
+	_, err := exp.NewUpdateExpressions(true)
 	uets.EqualError(err, "goqu: unsupported update interface type bool")
 }
 
 func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withRecords() {
-	ie, err := NewUpdateExpressions(Record{"c": "a", "b": "d"})
+	ie, err := exp.NewUpdateExpressions(exp.Record{"c": "a", "b": "d"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("b"), val: "d"},
-		update{col: ParseIdentifier("c"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "b").Set("d"),
+		exp.NewIdentifierExpression("", "", "c").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
 
 func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withMap() {
-	ie, err := NewUpdateExpressions(map[string]interface{}{"c": "a", "b": "d"})
+	ie, err := exp.NewUpdateExpressions(map[string]interface{}{"c": "a", "b": "d"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("b"), val: "d"},
-		update{col: ParseIdentifier("c"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "b").Set("d"),
+		exp.NewIdentifierExpression("", "", "c").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -40,11 +41,11 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructs() {
 		C string `db:"c"`
 		B string `db:"b"`
 	}
-	ie, err := NewUpdateExpressions(testRecord{C: "a", B: "d"})
+	ie, err := exp.NewUpdateExpressions(testRecord{C: "a", B: "d"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("b"), val: "d"},
-		update{col: ParseIdentifier("c"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "b").Set("d"),
+		exp.NewIdentifierExpression("", "", "c").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -55,12 +56,12 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructsWitho
 		FieldB bool
 		FieldC string
 	}
-	ie, err := NewUpdateExpressions(testRecord{FieldA: 1, FieldB: true, FieldC: "a"})
+	ie, err := exp.NewUpdateExpressions(testRecord{FieldA: 1, FieldB: true, FieldC: "a"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("fielda"), val: int64(1)},
-		update{col: ParseIdentifier("fieldb"), val: true},
-		update{col: ParseIdentifier("fieldc"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "fielda").Set(int64(1)),
+		exp.NewIdentifierExpression("", "", "fieldb").Set(true),
+		exp.NewIdentifierExpression("", "", "fieldc").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -71,11 +72,11 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructsIgnor
 		FieldB bool
 		FieldC string
 	}
-	ie, err := NewUpdateExpressions(testRecord{FieldA: 1, FieldB: true, FieldC: "a"})
+	ie, err := exp.NewUpdateExpressions(testRecord{FieldA: 1, FieldB: true, FieldC: "a"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("fieldb"), val: true},
-		update{col: ParseIdentifier("fieldc"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "fieldb").Set(true),
+		exp.NewIdentifierExpression("", "", "fieldc").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -86,11 +87,11 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructsWithG
 		FieldB bool   `goqu:"skipupdate"`
 		FieldC string `goqu:"skipinsert"`
 	}
-	ie, err := NewUpdateExpressions(testRecord{FieldA: 1, FieldB: true, FieldC: "a"})
+	ie, err := exp.NewUpdateExpressions(testRecord{FieldA: 1, FieldB: true, FieldC: "a"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("fielda"), val: int64(1)},
-		update{col: ParseIdentifier("fieldc"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "fielda").Set(int64(1)),
+		exp.NewIdentifierExpression("", "", "fieldc").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -100,11 +101,11 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructPointe
 		C string `db:"c"`
 		B string `db:"b"`
 	}
-	ie, err := NewUpdateExpressions(&testRecord{C: "a", B: "d"})
+	ie, err := exp.NewUpdateExpressions(&testRecord{C: "a", B: "d"})
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("b"), val: "d"},
-		update{col: ParseIdentifier("c"), val: "a"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "b").Set("d"),
+		exp.NewIdentifierExpression("", "", "c").Set("a"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -119,15 +120,15 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructsWithE
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	ie, err := NewUpdateExpressions(
+	ie, err := exp.NewUpdateExpressions(
 		item{Address: "111 Test Addr", Name: "Test1", Phone: Phone{Home: "123123", Primary: "456456"}},
 	)
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("address"), val: "111 Test Addr"},
-		update{col: ParseIdentifier("home_phone"), val: "123123"},
-		update{col: ParseIdentifier("name"), val: "Test1"},
-		update{col: ParseIdentifier("primary_phone"), val: "456456"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "address").Set("111 Test Addr"),
+		exp.NewIdentifierExpression("", "", "home_phone").Set("123123"),
+		exp.NewIdentifierExpression("", "", "name").Set("Test1"),
+		exp.NewIdentifierExpression("", "", "primary_phone").Set("456456"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -142,15 +143,15 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withStructsWithE
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	ie, err := NewUpdateExpressions(
+	ie, err := exp.NewUpdateExpressions(
 		item{Address: "111 Test Addr", Name: "Test1", Phone: &Phone{Home: "123123", Primary: "456456"}},
 	)
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("address"), val: "111 Test Addr"},
-		update{col: ParseIdentifier("home_phone"), val: "123123"},
-		update{col: ParseIdentifier("name"), val: "Test1"},
-		update{col: ParseIdentifier("primary_phone"), val: "456456"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "address").Set("111 Test Addr"),
+		exp.NewIdentifierExpression("", "", "home_phone").Set("123123"),
+		exp.NewIdentifierExpression("", "", "name").Set("Test1"),
+		exp.NewIdentifierExpression("", "", "primary_phone").Set("456456"),
 	}
 	uets.Equal(eie, ie)
 }
@@ -165,13 +166,13 @@ func (uets *updateExpressionTestSuite) TestNewUpdateExpressions_withNilEmbeddedS
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
-	ie, err := NewUpdateExpressions(
+	ie, err := exp.NewUpdateExpressions(
 		item{Address: "111 Test Addr", Name: "Test1"},
 	)
 	uets.NoError(err)
-	eie := []UpdateExpression{
-		update{col: ParseIdentifier("address"), val: "111 Test Addr"},
-		update{col: ParseIdentifier("name"), val: "Test1"},
+	eie := []exp.UpdateExpression{
+		exp.NewIdentifierExpression("", "", "address").Set("111 Test Addr"),
+		exp.NewIdentifierExpression("", "", "name").Set("Test1"),
 	}
 	uets.Equal(eie, ie)
 }

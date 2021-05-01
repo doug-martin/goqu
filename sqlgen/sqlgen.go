@@ -9,3 +9,7 @@ var timeLocation = time.UTC
 func SetTimeLocation(loc *time.Location) {
 	timeLocation = loc
 }
+
+func GetTimeLocation() *time.Location {
+	return timeLocation
+}

@@ -19,13 +19,13 @@ type (
 	// either override methods, or more typically update default values.
 	// See (github.com/doug-martin/goqu/adapters/postgres)
 	insertSQLGenerator struct {
-		*commonSQLGenerator
+		CommonSQLGenerator
 	}
 )
 
 var (
-	errConflictUpdateValuesRequired = errors.New("values are required for on conflict update expression")
-	errNoSourceForInsert            = errors.New("no source found when generating insert sql")
+	ErrConflictUpdateValuesRequired = errors.New("values are required for on conflict update expression")
+	ErrNoSourceForInsert            = errors.New("no source found when generating insert sql")
 )
 
 func errMisMatchedRowLength(expectedL, actualL int) error {
@@ -37,11 +37,7 @@ func errUpsertWithWhereNotSupported(dialect string) error {
 }
 
 func NewInsertSQLGenerator(dialect string, do *SQLDialectOptions) InsertSQLGenerator {
-	return &insertSQLGenerator{newCommonSQLGenerator(dialect, do)}
-}
-
-func (isg *insertSQLGenerator) Dialect() string {
-	return isg.dialect
+	return &insertSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
 
 func (isg *insertSQLGenerator) Generate(
@@ -49,37 +45,37 @@ func (isg *insertSQLGenerator) Generate(
 	clauses exp.InsertClauses,
 ) {
 	if !clauses.HasInto() {
-		b.SetError(errNoSourceForInsert)
+		b.SetError(ErrNoSourceForInsert)
 		return
 	}
-	for _, f := range isg.dialectOptions.InsertSQLOrder {
+	for _, f := range isg.DialectOptions().InsertSQLOrder {
 		if b.Error() != nil {
 			return
 		}
 		switch f {
 		case CommonTableSQLFragment:
-			isg.esg.Generate(b, clauses.CommonTables())
+			isg.ExpressionSQLGenerator().Generate(b, clauses.CommonTables())
 		case InsertBeingSQLFragment:
 			isg.InsertBeginSQL(b, clauses.OnConflict())
 		case IntoSQLFragment:
-			b.WriteRunes(isg.dialectOptions.SpaceRune)
-			isg.esg.Generate(b, clauses.Into())
+			b.WriteRunes(isg.DialectOptions().SpaceRune)
+			isg.ExpressionSQLGenerator().Generate(b, clauses.Into())
 		case InsertSQLFragment:
 			isg.InsertSQL(b, clauses)
 		case ReturningSQLFragment:
 			isg.ReturningSQL(b, clauses.Returning())
 		default:
-			b.SetError(errNotSupportedFragment("INSERT", f))
+			b.SetError(ErrNotSupportedFragment("INSERT", f))
 		}
 	}
 }
 
 // Adds the correct fragment to being an INSERT statement
 func (isg *insertSQLGenerator) InsertBeginSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
-	if isg.dialectOptions.SupportsInsertIgnoreSyntax && o != nil {
-		b.Write(isg.dialectOptions.InsertIgnoreClause)
+	if isg.DialectOptions().SupportsInsertIgnoreSyntax && o != nil {
+		b.Write(isg.DialectOptions().InsertIgnoreClause)
 	} else {
-		b.Write(isg.dialectOptions.InsertClause)
+		b.Write(isg.DialectOptions().InsertClause)
 	}
 }
 
@@ -121,24 +117,24 @@ func (isg *insertSQLGenerator) InsertExpressionSQL(b sb.SQLBuilder, ie exp.Inser
 
 // Adds the DefaultValuesFragment to an SQL statement
 func (isg *insertSQLGenerator) defaultValuesSQL(b sb.SQLBuilder) {
-	b.Write(isg.dialectOptions.DefaultValuesFragment)
+	b.Write(isg.DialectOptions().DefaultValuesFragment)
 }
 
 func (isg *insertSQLGenerator) insertFromSQL(b sb.SQLBuilder, ae exp.AppendableExpression) {
-	b.WriteRunes(isg.dialectOptions.SpaceRune)
+	b.WriteRunes(isg.DialectOptions().SpaceRune)
 	ae.AppendSQL(b)
 }
 
 // Adds the columns list to an insert statement
 func (isg *insertSQLGenerator) insertColumnsSQL(b sb.SQLBuilder, cols exp.ColumnListExpression) {
-	b.WriteRunes(isg.dialectOptions.SpaceRune, isg.dialectOptions.LeftParenRune)
-	isg.esg.Generate(b, cols)
-	b.WriteRunes(isg.dialectOptions.RightParenRune)
+	b.WriteRunes(isg.DialectOptions().SpaceRune, isg.DialectOptions().LeftParenRune)
+	isg.ExpressionSQLGenerator().Generate(b, cols)
+	b.WriteRunes(isg.DialectOptions().RightParenRune)
 }
 
 // Adds the values clause to an SQL statement
 func (isg *insertSQLGenerator) insertValuesSQL(b sb.SQLBuilder, values [][]interface{}) {
-	b.Write(isg.dialectOptions.ValuesFragment)
+	b.Write(isg.DialectOptions().ValuesFragment)
 	rowLen := len(values[0])
 	valueLen := len(values)
 	for i, row := range values {
@@ -146,9 +142,9 @@ func (isg *insertSQLGenerator) insertValuesSQL(b sb.SQLBuilder, values [][]inter
 			b.SetError(errMisMatchedRowLength(rowLen, len(row)))
 			return
 		}
-		isg.esg.Generate(b, row)
+		isg.ExpressionSQLGenerator().Generate(b, row)
 		if i < valueLen-1 {
-			b.WriteRunes(isg.dialectOptions.CommaRune, isg.dialectOptions.SpaceRune)
+			b.WriteRunes(isg.DialectOptions().CommaRune, isg.DialectOptions().SpaceRune)
 		}
 	}
 }
@@ -158,33 +154,33 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 	if o == nil {
 		return
 	}
-	b.Write(isg.dialectOptions.ConflictFragment)
+	b.Write(isg.DialectOptions().ConflictFragment)
 	switch t := o.(type) {
 	case exp.ConflictUpdateExpression:
 		target := t.TargetColumn()
-		if isg.dialectOptions.SupportsConflictTarget && target != "" {
+		if isg.DialectOptions().SupportsConflictTarget && target != "" {
 			wrapParens := !strings.HasPrefix(strings.ToLower(target), "on constraint")
 
-			b.WriteRunes(isg.dialectOptions.SpaceRune)
+			b.WriteRunes(isg.DialectOptions().SpaceRune)
 			if wrapParens {
-				b.WriteRunes(isg.dialectOptions.LeftParenRune).
+				b.WriteRunes(isg.DialectOptions().LeftParenRune).
 					WriteStrings(target).
-					WriteRunes(isg.dialectOptions.RightParenRune)
+					WriteRunes(isg.DialectOptions().RightParenRune)
 			} else {
 				b.Write([]byte(target))
 			}
 		}
 		isg.onConflictDoUpdateSQL(b, t)
 	default:
-		b.Write(isg.dialectOptions.ConflictDoNothingFragment)
+		b.Write(isg.DialectOptions().ConflictDoNothingFragment)
 	}
 }
 
 func (isg *insertSQLGenerator) onConflictDoUpdateSQL(b sb.SQLBuilder, o exp.ConflictUpdateExpression) {
-	b.Write(isg.dialectOptions.ConflictDoUpdateFragment)
+	b.Write(isg.DialectOptions().ConflictDoUpdateFragment)
 	update := o.Update()
 	if update == nil {
-		b.SetError(errConflictUpdateValuesRequired)
+		b.SetError(ErrConflictUpdateValuesRequired)
 		return
 	}
 	ue, err := exp.NewUpdateExpressions(update)
@@ -194,8 +190,8 @@ func (isg *insertSQLGenerator) onConflictDoUpdateSQL(b sb.SQLBuilder, o exp.Conf
 	}
 	isg.UpdateExpressionSQL(b, ue...)
 	if b.Error() == nil && o.WhereClause() != nil {
-		if !isg.dialectOptions.SupportsConflictUpdateWhere {
-			b.SetError(errUpsertWithWhereNotSupported(isg.dialect))
+		if !isg.DialectOptions().SupportsConflictUpdateWhere {
+			b.SetError(errUpsertWithWhereNotSupported(isg.Dialect()))
 			return
 		}
 		isg.WhereSQL(b, o.WhereClause())

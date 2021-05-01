@@ -15,7 +15,7 @@ type UpdateDataset struct {
 	err          error
 }
 
-var errUnsupportedUpdateTableType = errors.New("unsupported table type, a string or identifier expression is required")
+var ErrUnsupportedUpdateTableType = errors.New("unsupported table type, a string or identifier expression is required")
 
 // used internally by database to create a database with a specific adapter
 func newUpdateDataset(d string, queryFactory exec.QueryFactory) *UpdateDataset {
@@ -117,7 +117,7 @@ func (ud *UpdateDataset) Table(table interface{}) *UpdateDataset {
 	case string:
 		return ud.copy(ud.clauses.SetTable(exp.ParseIdentifier(t)))
 	default:
-		panic(errUnsupportedUpdateTableType)
+		panic(ErrUnsupportedUpdateTableType)
 	}
 }
 

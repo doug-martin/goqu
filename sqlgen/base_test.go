@@ -1,4 +1,4 @@
-package sqlgen
+package sqlgen_test
 
 import (
 	"github.com/doug-martin/goqu/v9/internal/sb"
