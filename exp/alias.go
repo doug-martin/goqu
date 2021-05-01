@@ -9,8 +9,8 @@ type (
 	}
 )
 
-// used internally by other expressions to create a new aliased expression
-func aliased(exp Expression, alias interface{}) AliasedExpression {
+// Creates a new AliasedExpression for the Expression and alias
+func NewAliasExpression(exp Expression, alias interface{}) AliasedExpression {
 	switch v := alias.(type) {
 	case string:
 		return aliasExpression{aliased: exp, alias: ParseIdentifier(v)}
@@ -22,7 +22,7 @@ func aliased(exp Expression, alias interface{}) AliasedExpression {
 }
 
 func (ae aliasExpression) Clone() Expression {
-	return aliasExpression{aliased: ae.aliased, alias: ae.alias.Clone().(IdentifierExpression)}
+	return NewAliasExpression(ae.aliased, ae.alias.Clone())
 }
 
 func (ae aliasExpression) Expression() Expression {

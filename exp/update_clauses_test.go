@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,8 +16,8 @@ func TestUpdateClausesSuite(t *testing.T) {
 }
 
 func (ucs *updateClausesSuite) TestHasTable() {
-	c := NewUpdateClauses()
-	c2 := c.SetTable(NewIdentifierExpression("", "test", ""))
+	c := exp.NewUpdateClauses()
+	c2 := c.SetTable(exp.NewIdentifierExpression("", "test", ""))
 
 	ucs.False(c.HasTable())
 
@@ -24,8 +25,8 @@ func (ucs *updateClausesSuite) TestHasTable() {
 }
 
 func (ucs *updateClausesSuite) TestTable() {
-	c := NewUpdateClauses()
-	ti := NewIdentifierExpression("", "a", "")
+	c := exp.NewUpdateClauses()
+	ti := exp.NewIdentifierExpression("", "a", "")
 	c2 := c.SetTable(ti)
 
 	ucs.Nil(c.Table())
@@ -34,8 +35,8 @@ func (ucs *updateClausesSuite) TestTable() {
 }
 
 func (ucs *updateClausesSuite) TestSetTable() {
-	c := NewUpdateClauses()
-	ti := NewIdentifierExpression("", "a", "")
+	c := exp.NewUpdateClauses()
+	ti := exp.NewIdentifierExpression("", "a", "")
 	c2 := c.SetTable(ti)
 
 	ucs.Nil(c.Table())
@@ -44,8 +45,8 @@ func (ucs *updateClausesSuite) TestSetTable() {
 }
 
 func (ucs *updateClausesSuite) TestSetValues() {
-	c := NewUpdateClauses()
-	r := Record{"a": "a1", "b": "b1"}
+	c := exp.NewUpdateClauses()
+	r := exp.Record{"a": "a1", "b": "b1"}
 	c2 := c.SetSetValues(r)
 
 	ucs.Nil(c.SetValues())
@@ -54,9 +55,9 @@ func (ucs *updateClausesSuite) TestSetValues() {
 }
 
 func (ucs *updateClausesSuite) TestSetSetValues() {
-	r := Record{"a": "a1", "b": "b1"}
-	c := NewUpdateClauses().SetSetValues(r)
-	r2 := Record{"a": "a2", "b": "b2"}
+	r := exp.Record{"a": "a1", "b": "b1"}
+	c := exp.NewUpdateClauses().SetSetValues(r)
+	r2 := exp.Record{"a": "a2", "b": "b2"}
 	c2 := c.SetSetValues(r2)
 
 	ucs.Equal(r, c.SetValues())
@@ -65,8 +66,8 @@ func (ucs *updateClausesSuite) TestSetSetValues() {
 }
 
 func (ucs *updateClausesSuite) TestFrom() {
-	c := NewUpdateClauses()
-	ce := NewColumnListExpression("a", "b")
+	c := exp.NewUpdateClauses()
+	ce := exp.NewColumnListExpression("a", "b")
 	c2 := c.SetFrom(ce)
 
 	ucs.Nil(c.From())
@@ -75,9 +76,9 @@ func (ucs *updateClausesSuite) TestFrom() {
 }
 
 func (ucs *updateClausesSuite) TestSetFrom() {
-	ce1 := NewColumnListExpression("a", "b")
-	c := NewUpdateClauses().SetFrom(ce1)
-	ce2 := NewColumnListExpression("a", "b")
+	ce1 := exp.NewColumnListExpression("a", "b")
+	c := exp.NewUpdateClauses().SetFrom(ce1)
+	ce2 := exp.NewColumnListExpression("a", "b")
 	c2 := c.SetFrom(ce2)
 
 	ucs.Equal(ce1, c.From())
@@ -86,32 +87,32 @@ func (ucs *updateClausesSuite) TestSetFrom() {
 }
 
 func (ucs *updateClausesSuite) TestWhere() {
-	w := Ex{"a": 1}
+	w := exp.Ex{"a": 1}
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.WhereAppend(w)
 
 	ucs.Nil(c.Where())
 
-	ucs.Equal(NewExpressionList(AndType, w), c2.Where())
+	ucs.Equal(exp.NewExpressionList(exp.AndType, w), c2.Where())
 }
 
 func (ucs *updateClausesSuite) TestClearWhere() {
-	w := Ex{"a": 1}
+	w := exp.Ex{"a": 1}
 
-	c := NewUpdateClauses().WhereAppend(w)
+	c := exp.NewUpdateClauses().WhereAppend(w)
 	c2 := c.ClearWhere()
 
-	ucs.Equal(NewExpressionList(AndType, w), c.Where())
+	ucs.Equal(exp.NewExpressionList(exp.AndType, w), c.Where())
 
 	ucs.Nil(c2.Where())
 }
 
 func (ucs *updateClausesSuite) TestWhereAppend() {
-	w := Ex{"a": 1}
-	w2 := Ex{"b": 2}
+	w := exp.Ex{"a": 1}
+	w2 := exp.Ex{"b": 2}
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.WhereAppend(w)
 
 	c3 := c.WhereAppend(w).WhereAppend(w2)
@@ -120,26 +121,26 @@ func (ucs *updateClausesSuite) TestWhereAppend() {
 
 	ucs.Nil(c.Where())
 
-	ucs.Equal(NewExpressionList(AndType, w), c2.Where())
-	ucs.Equal(NewExpressionList(AndType, w).Append(w2), c3.Where())
-	ucs.Equal(NewExpressionList(AndType, w, w2), c4.Where())
+	ucs.Equal(exp.NewExpressionList(exp.AndType, w), c2.Where())
+	ucs.Equal(exp.NewExpressionList(exp.AndType, w).Append(w2), c3.Where())
+	ucs.Equal(exp.NewExpressionList(exp.AndType, w, w2), c4.Where())
 }
 
 func (ucs *updateClausesSuite) TestOrder() {
-	oe := NewIdentifierExpression("", "", "a").Desc()
+	oe := exp.NewIdentifierExpression("", "", "a").Desc()
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.SetOrder(oe)
 
 	ucs.Nil(c.Order())
 
-	ucs.Equal(NewColumnListExpression(oe), c2.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe), c2.Order())
 }
 
 func (ucs *updateClausesSuite) TestHasOrder() {
-	oe := NewIdentifierExpression("", "", "a").Desc()
+	oe := exp.NewIdentifierExpression("", "", "a").Desc()
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.SetOrder(oe)
 
 	ucs.False(c.HasOrder())
@@ -148,56 +149,56 @@ func (ucs *updateClausesSuite) TestHasOrder() {
 }
 
 func (ucs *updateClausesSuite) TestClearOrder() {
-	oe := NewIdentifierExpression("", "", "a").Desc()
+	oe := exp.NewIdentifierExpression("", "", "a").Desc()
 
-	c := NewUpdateClauses().SetOrder(oe)
+	c := exp.NewUpdateClauses().SetOrder(oe)
 	c2 := c.ClearOrder()
 
-	ucs.Equal(NewColumnListExpression(oe), c.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe), c.Order())
 
 	ucs.Nil(c2.Order())
 }
 
 func (ucs *updateClausesSuite) TestSetOrder() {
-	oe := NewIdentifierExpression("", "", "a").Desc()
-	oe2 := NewIdentifierExpression("", "", "b").Desc()
+	oe := exp.NewIdentifierExpression("", "", "a").Desc()
+	oe2 := exp.NewIdentifierExpression("", "", "b").Desc()
 
-	c := NewUpdateClauses().SetOrder(oe)
+	c := exp.NewUpdateClauses().SetOrder(oe)
 	c2 := c.SetOrder(oe2)
 
-	ucs.Equal(NewColumnListExpression(oe), c.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe), c.Order())
 
-	ucs.Equal(NewColumnListExpression(oe2), c2.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe2), c2.Order())
 }
 
 func (ucs *updateClausesSuite) TestOrderAppend() {
-	oe := NewIdentifierExpression("", "", "a").Desc()
-	oe2 := NewIdentifierExpression("", "", "b").Desc()
+	oe := exp.NewIdentifierExpression("", "", "a").Desc()
+	oe2 := exp.NewIdentifierExpression("", "", "b").Desc()
 
-	c := NewUpdateClauses().SetOrder(oe)
+	c := exp.NewUpdateClauses().SetOrder(oe)
 	c2 := c.OrderAppend(oe2)
 
-	ucs.Equal(NewColumnListExpression(oe), c.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe), c.Order())
 
-	ucs.Equal(NewColumnListExpression(oe, oe2), c2.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe, oe2), c2.Order())
 }
 
 func (ucs *updateClausesSuite) TestOrderPrepend() {
-	oe := NewIdentifierExpression("", "", "a").Desc()
-	oe2 := NewIdentifierExpression("", "", "b").Desc()
+	oe := exp.NewIdentifierExpression("", "", "a").Desc()
+	oe2 := exp.NewIdentifierExpression("", "", "b").Desc()
 
-	c := NewUpdateClauses().SetOrder(oe)
+	c := exp.NewUpdateClauses().SetOrder(oe)
 	c2 := c.OrderPrepend(oe2)
 
-	ucs.Equal(NewColumnListExpression(oe), c.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe), c.Order())
 
-	ucs.Equal(NewColumnListExpression(oe2, oe), c2.Order())
+	ucs.Equal(exp.NewColumnListExpression(oe2, oe), c2.Order())
 }
 
 func (ucs *updateClausesSuite) TestLimit() {
 	l := 1
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.SetLimit(l)
 
 	ucs.Nil(c.Limit())
@@ -208,7 +209,7 @@ func (ucs *updateClausesSuite) TestLimit() {
 func (ucs *updateClausesSuite) TestHasLimit() {
 	l := 1
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.SetLimit(l)
 
 	ucs.False(c.HasLimit())
@@ -219,7 +220,7 @@ func (ucs *updateClausesSuite) TestHasLimit() {
 func (ucs *updateClausesSuite) TestCLearLimit() {
 	l := 1
 
-	c := NewUpdateClauses().SetLimit(l)
+	c := exp.NewUpdateClauses().SetLimit(l)
 	c2 := c.ClearLimit()
 
 	ucs.True(c.HasLimit())
@@ -231,7 +232,7 @@ func (ucs *updateClausesSuite) TestSetLimit() {
 	l := 1
 	l2 := 2
 
-	c := NewUpdateClauses().SetLimit(l)
+	c := exp.NewUpdateClauses().SetLimit(l)
 	c2 := c.SetLimit(2)
 
 	ucs.Equal(l, c.Limit())
@@ -240,32 +241,32 @@ func (ucs *updateClausesSuite) TestSetLimit() {
 }
 
 func (ucs *updateClausesSuite) TestCommonTables() {
-	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
+	cte := exp.NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.CommonTablesAppend(cte)
 
 	ucs.Nil(c.CommonTables())
 
-	ucs.Equal([]CommonTableExpression{cte}, c2.CommonTables())
+	ucs.Equal([]exp.CommonTableExpression{cte}, c2.CommonTables())
 }
 
 func (ucs *updateClausesSuite) TestAddCommonTablesAppend() {
-	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
-	cte2 := NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
+	cte := exp.NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
+	cte2 := exp.NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
 
-	c := NewUpdateClauses().CommonTablesAppend(cte)
+	c := exp.NewUpdateClauses().CommonTablesAppend(cte)
 	c2 := c.CommonTablesAppend(cte2)
 
-	ucs.Equal([]CommonTableExpression{cte}, c.CommonTables())
+	ucs.Equal([]exp.CommonTableExpression{cte}, c.CommonTables())
 
-	ucs.Equal([]CommonTableExpression{cte, cte2}, c2.CommonTables())
+	ucs.Equal([]exp.CommonTableExpression{cte, cte2}, c2.CommonTables())
 }
 
 func (ucs *updateClausesSuite) TestReturning() {
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.SetReturning(cl)
 
 	ucs.Nil(c.Returning())
@@ -274,9 +275,9 @@ func (ucs *updateClausesSuite) TestReturning() {
 }
 
 func (ucs *updateClausesSuite) TestHasReturning() {
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
 
-	c := NewUpdateClauses()
+	c := exp.NewUpdateClauses()
 	c2 := c.SetReturning(cl)
 
 	ucs.False(c.HasReturning())
@@ -285,10 +286,10 @@ func (ucs *updateClausesSuite) TestHasReturning() {
 }
 
 func (ucs *updateClausesSuite) TestSetReturning() {
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
-	cl2 := NewColumnListExpression(NewIdentifierExpression("", "", "col2"))
+	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
+	cl2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col2"))
 
-	c := NewUpdateClauses().SetReturning(cl)
+	c := exp.NewUpdateClauses().SetReturning(cl)
 	c2 := c.SetReturning(cl2)
 
 	ucs.Equal(cl, c.Returning())

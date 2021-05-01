@@ -28,11 +28,13 @@ func (swfe sqlWindowFunctionExpression) clone() sqlWindowFunctionExpression {
 func (swfe sqlWindowFunctionExpression) Clone() Expression {
 	return swfe.clone()
 }
+
 func (swfe sqlWindowFunctionExpression) Expression() Expression {
 	return swfe
 }
+
 func (swfe sqlWindowFunctionExpression) As(val interface{}) AliasedExpression {
-	return aliased(swfe, val)
+	return NewAliasExpression(swfe, val)
 }
 func (swfe sqlWindowFunctionExpression) Eq(val interface{}) BooleanExpression  { return eq(swfe, val) }
 func (swfe sqlWindowFunctionExpression) Neq(val interface{}) BooleanExpression { return neq(swfe, val) }
@@ -43,36 +45,47 @@ func (swfe sqlWindowFunctionExpression) Lte(val interface{}) BooleanExpression {
 func (swfe sqlWindowFunctionExpression) Between(val RangeVal) RangeExpression {
 	return between(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) NotBetween(val RangeVal) RangeExpression {
 	return notBetween(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) Like(val interface{}) BooleanExpression {
 	return like(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) NotLike(val interface{}) BooleanExpression {
 	return notLike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) ILike(val interface{}) BooleanExpression {
 	return iLike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) NotILike(val interface{}) BooleanExpression {
 	return notILike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) RegexpLike(val interface{}) BooleanExpression {
 	return regexpLike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) RegexpNotLike(val interface{}) BooleanExpression {
 	return regexpNotLike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) RegexpILike(val interface{}) BooleanExpression {
 	return regexpILike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) RegexpNotILike(val interface{}) BooleanExpression {
 	return regexpNotILike(swfe, val)
 }
+
 func (swfe sqlWindowFunctionExpression) In(vals ...interface{}) BooleanExpression {
 	return in(swfe, vals...)
 }
+
 func (swfe sqlWindowFunctionExpression) NotIn(vals ...interface{}) BooleanExpression {
 	return notIn(swfe, vals...)
 }

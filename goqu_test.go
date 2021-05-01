@@ -1,9 +1,10 @@
-package goqu
+package goqu_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -14,45 +15,45 @@ type (
 )
 
 func (dws *dialectWrapperSuite) SetupSuite() {
-	testDialect := DefaultDialectOptions()
+	testDialect := goqu.DefaultDialectOptions()
 	// override to some value to ensure correct dialect is set
-	RegisterDialect("test", testDialect)
+	goqu.RegisterDialect("test", testDialect)
 }
 
 func (dws *dialectWrapperSuite) TearDownSuite() {
-	DeregisterDialect("test")
+	goqu.DeregisterDialect("test")
 }
 
 func (dws *dialectWrapperSuite) TestFrom() {
-	dw := Dialect("test")
-	dws.Equal(From("table").WithDialect("test"), dw.From("table"))
+	dw := goqu.Dialect("test")
+	dws.Equal(goqu.From("table").WithDialect("test"), dw.From("table"))
 }
 
 func (dws *dialectWrapperSuite) TestSelect() {
-	dw := Dialect("test")
-	dws.Equal(Select("col").WithDialect("test"), dw.Select("col"))
+	dw := goqu.Dialect("test")
+	dws.Equal(goqu.Select("col").WithDialect("test"), dw.Select("col"))
 }
 
 func (dws *dialectWrapperSuite) TestInsert() {
-	dw := Dialect("test")
-	dws.Equal(Insert("table").WithDialect("test"), dw.Insert("table"))
+	dw := goqu.Dialect("test")
+	dws.Equal(goqu.Insert("table").WithDialect("test"), dw.Insert("table"))
 }
 
 func (dws *dialectWrapperSuite) TestDelete() {
-	dw := Dialect("test")
-	dws.Equal(Delete("table").WithDialect("test"), dw.Delete("table"))
+	dw := goqu.Dialect("test")
+	dws.Equal(goqu.Delete("table").WithDialect("test"), dw.Delete("table"))
 }
 
 func (dws *dialectWrapperSuite) TestTruncate() {
-	dw := Dialect("test")
-	dws.Equal(Truncate("table").WithDialect("test"), dw.Truncate("table"))
+	dw := goqu.Dialect("test")
+	dws.Equal(goqu.Truncate("table").WithDialect("test"), dw.Truncate("table"))
 }
 
 func (dws *dialectWrapperSuite) TestDB() {
 	mDB, _, err := sqlmock.New()
 	dws.Require().NoError(err)
-	dw := Dialect("test")
-	dws.Equal(New("test", mDB), dw.DB(mDB))
+	dw := goqu.Dialect("test")
+	dws.Equal(goqu.New("test", mDB), dw.DB(mDB))
 }
 
 func TestDialectWrapper(t *testing.T) {

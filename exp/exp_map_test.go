@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,137 +16,137 @@ func TestExSuite(t *testing.T) {
 }
 
 func (ets *exTestSuite) TestExpression() {
-	ex := Ex{"a": "b"}
+	ex := exp.Ex{"a": "b"}
 	ets.Equal(ex, ex.Expression())
 }
 
 func (ets *exTestSuite) TestClone() {
-	ex := Ex{"a": "b"}
+	ex := exp.Ex{"a": "b"}
 	ets.Equal(ex, ex.Clone())
 }
 
 func (ets *exTestSuite) TestIsEmpty() {
-	ets.False(Ex{"a": "b"}.IsEmpty())
-	ets.True(Ex{}.IsEmpty())
+	ets.False(exp.Ex{"a": "b"}.IsEmpty())
+	ets.True(exp.Ex{}.IsEmpty())
 }
 
 func (ets *exTestSuite) TestToExpression() {
-	ident := NewIdentifierExpression("", "", "a")
+	ident := exp.NewIdentifierExpression("", "", "a")
 	testCases := []struct {
-		ExMap Ex
-		El    ExpressionList
+		ExMap exp.Ex
+		El    exp.ExpressionList
 		Err   string
 	}{
 		{
-			ExMap: Ex{"a": "b"},
-			El:    NewExpressionList(AndType, ident.Eq("b")),
+			ExMap: exp.Ex{"a": "b"},
+			El:    exp.NewExpressionList(exp.AndType, ident.Eq("b")),
 		},
 		{
-			ExMap: Ex{"a": "b", "b": "c"},
-			El: NewExpressionList(
-				AndType,
+			ExMap: exp.Ex{"a": "b", "b": "c"},
+			El: exp.NewExpressionList(
+				exp.AndType,
 				ident.Eq("b"),
-				NewIdentifierExpression("", "", "b").Eq("c"),
+				exp.NewIdentifierExpression("", "", "b").Eq("c"),
 			),
 		},
 		{
-			ExMap: Ex{"a": Op{"eq": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Eq("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"eq": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Eq("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"neq": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Neq("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"neq": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Neq("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"is": nil}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Is(nil))),
+			ExMap: exp.Ex{"a": exp.Op{"is": nil}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Is(nil))),
 		},
 		{
-			ExMap: Ex{"a": Op{"isNot": nil}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.IsNot(nil))),
+			ExMap: exp.Ex{"a": exp.Op{"isNot": nil}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.IsNot(nil))),
 		},
 		{
-			ExMap: Ex{"a": Op{"gt": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Gt("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"gt": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Gt("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"gte": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Gte("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"gte": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Gte("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"lt": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Lt("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"lt": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Lt("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"lte": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Lte("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"lte": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Lte("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"in": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.In("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"in": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.In("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"notIn": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.NotIn("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"notIn": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.NotIn("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"like": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Like("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"like": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Like("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"notLike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.NotLike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"notLike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.NotLike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"iLike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.ILike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"iLike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.ILike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"notILike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.NotILike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"notILike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.NotILike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"regexpLike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.RegexpLike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"regexpLike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.RegexpLike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"regexpNotLike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.RegexpNotLike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"regexpNotLike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.RegexpNotLike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"regexpILike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.RegexpILike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"regexpILike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.RegexpILike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"regexpNotILike": "b"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.RegexpNotILike("b"))),
+			ExMap: exp.Ex{"a": exp.Op{"regexpNotILike": "b"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.RegexpNotILike("b"))),
 		},
 		{
-			ExMap: Ex{"a": Op{"between": NewRangeVal("a", "z")}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Between(NewRangeVal("a", "z")))),
+			ExMap: exp.Ex{"a": exp.Op{"between": exp.NewRangeVal("a", "z")}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Between(exp.NewRangeVal("a", "z")))),
 		},
 		{
-			ExMap: Ex{"a": Op{"notBetween": NewRangeVal("a", "z")}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.NotBetween(NewRangeVal("a", "z")))),
+			ExMap: exp.Ex{"a": exp.Op{"notBetween": exp.NewRangeVal("a", "z")}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.NotBetween(exp.NewRangeVal("a", "z")))),
 		},
 		{
-			ExMap: Ex{"a": Op{"foo": "z"}},
+			ExMap: exp.Ex{"a": exp.Op{"foo": "z"}},
 			Err:   "goqu: unsupported expression type foo",
 		},
 		{
-			ExMap: Ex{"a": Op{"eq": "b", "neq": "c", "gt": "m"}},
-			El:    NewExpressionList(AndType, NewExpressionList(OrType, ident.Eq("b"), ident.Gt("m"), ident.Neq("c"))),
+			ExMap: exp.Ex{"a": exp.Op{"eq": "b", "neq": "c", "gt": "m"}},
+			El:    exp.NewExpressionList(exp.AndType, exp.NewExpressionList(exp.OrType, ident.Eq("b"), ident.Gt("m"), ident.Neq("c"))),
 		},
 
 		{
-			ExMap: Ex{
+			ExMap: exp.Ex{
 				"a": "b",
 				"c": "d",
 			},
-			El: NewExpressionList(
-				AndType,
+			El: exp.NewExpressionList(
+				exp.AndType,
 				ident.Eq("b"),
-				NewIdentifierExpression("", "", "c").Eq("d"),
+				exp.NewIdentifierExpression("", "", "c").Eq("d"),
 			),
 		},
 	}
@@ -171,137 +172,137 @@ func TestExOrSuite(t *testing.T) {
 }
 
 func (ets *exOrTestSuite) TestExpression() {
-	ex := ExOr{"a": "b"}
+	ex := exp.ExOr{"a": "b"}
 	ets.Equal(ex, ex.Expression())
 }
 
 func (ets *exOrTestSuite) TestClone() {
-	ex := ExOr{"a": "b"}
+	ex := exp.ExOr{"a": "b"}
 	ets.Equal(ex, ex.Clone())
 }
 
 func (ets *exOrTestSuite) TestIsEmpty() {
-	ets.False(ExOr{"a": "b"}.IsEmpty())
-	ets.True(ExOr{}.IsEmpty())
+	ets.False(exp.ExOr{"a": "b"}.IsEmpty())
+	ets.True(exp.ExOr{}.IsEmpty())
 }
 
 func (ets *exOrTestSuite) TestToExpression() {
-	ident := NewIdentifierExpression("", "", "a")
+	ident := exp.NewIdentifierExpression("", "", "a")
 	testCases := []struct {
-		ExMap ExOr
-		El    ExpressionList
+		ExMap exp.ExOr
+		El    exp.ExpressionList
 		Err   string
 	}{
 		{
-			ExMap: ExOr{"a": "b"},
-			El:    NewExpressionList(OrType, ident.Eq("b")),
+			ExMap: exp.ExOr{"a": "b"},
+			El:    exp.NewExpressionList(exp.OrType, ident.Eq("b")),
 		},
 		{
-			ExMap: ExOr{"a": "b", "b": "c"},
-			El: NewExpressionList(
-				OrType,
+			ExMap: exp.ExOr{"a": "b", "b": "c"},
+			El: exp.NewExpressionList(
+				exp.OrType,
 				ident.Eq("b"),
-				NewIdentifierExpression("", "", "b").Eq("c"),
+				exp.NewIdentifierExpression("", "", "b").Eq("c"),
 			),
 		},
 		{
-			ExMap: ExOr{"a": Op{"eq": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Eq("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"eq": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Eq("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"neq": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Neq("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"neq": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Neq("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"is": nil}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Is(nil))),
+			ExMap: exp.ExOr{"a": exp.Op{"is": nil}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Is(nil))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"isNot": nil}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.IsNot(nil))),
+			ExMap: exp.ExOr{"a": exp.Op{"isNot": nil}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.IsNot(nil))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"gt": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Gt("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"gt": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Gt("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"gte": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Gte("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"gte": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Gte("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"lt": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Lt("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"lt": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Lt("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"lte": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Lte("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"lte": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Lte("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"in": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.In("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"in": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.In("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"notIn": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.NotIn("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"notIn": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.NotIn("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"like": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Like("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"like": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Like("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"notLike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.NotLike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"notLike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.NotLike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"iLike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.ILike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"iLike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.ILike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"notILike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.NotILike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"notILike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.NotILike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"regexpLike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.RegexpLike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"regexpLike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.RegexpLike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"regexpNotLike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.RegexpNotLike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"regexpNotLike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.RegexpNotLike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"regexpILike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.RegexpILike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"regexpILike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.RegexpILike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"regexpNotILike": "b"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.RegexpNotILike("b"))),
+			ExMap: exp.ExOr{"a": exp.Op{"regexpNotILike": "b"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.RegexpNotILike("b"))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"between": NewRangeVal("a", "z")}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Between(NewRangeVal("a", "z")))),
+			ExMap: exp.ExOr{"a": exp.Op{"between": exp.NewRangeVal("a", "z")}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Between(exp.NewRangeVal("a", "z")))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"notBetween": NewRangeVal("a", "z")}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.NotBetween(NewRangeVal("a", "z")))),
+			ExMap: exp.ExOr{"a": exp.Op{"notBetween": exp.NewRangeVal("a", "z")}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.NotBetween(exp.NewRangeVal("a", "z")))),
 		},
 		{
-			ExMap: ExOr{"a": Op{"foo": "z"}},
+			ExMap: exp.ExOr{"a": exp.Op{"foo": "z"}},
 			Err:   "goqu: unsupported expression type foo",
 		},
 		{
-			ExMap: ExOr{"a": Op{"eq": "b", "neq": "c", "gt": "m"}},
-			El:    NewExpressionList(OrType, NewExpressionList(OrType, ident.Eq("b"), ident.Gt("m"), ident.Neq("c"))),
+			ExMap: exp.ExOr{"a": exp.Op{"eq": "b", "neq": "c", "gt": "m"}},
+			El:    exp.NewExpressionList(exp.OrType, exp.NewExpressionList(exp.OrType, ident.Eq("b"), ident.Gt("m"), ident.Neq("c"))),
 		},
 
 		{
-			ExMap: ExOr{
+			ExMap: exp.ExOr{
 				"a": "b",
 				"c": "d",
 			},
-			El: NewExpressionList(
-				OrType,
+			El: exp.NewExpressionList(
+				exp.OrType,
 				ident.Eq("b"),
-				NewIdentifierExpression("", "", "c").Eq("d"),
+				exp.NewIdentifierExpression("", "", "c").Eq("d"),
 			),
 		},
 	}

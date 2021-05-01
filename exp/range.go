@@ -14,16 +14,20 @@ type (
 
 // used internally to create an BETWEEN comparison RangeExpression
 func between(lhs Expression, rhs RangeVal) RangeExpression {
-	return ranged{op: BetweenOp, lhs: lhs, rhs: rhs}
+	return NewRangeExpression(BetweenOp, lhs, rhs)
 }
 
 // used internally to create an NOT BETWEEN comparison RangeExpression
 func notBetween(lhs Expression, rhs RangeVal) RangeExpression {
-	return ranged{op: NotBetweenOp, lhs: lhs, rhs: rhs}
+	return NewRangeExpression(NotBetweenOp, lhs, rhs)
+}
+
+func NewRangeExpression(op RangeOperation, lhs Expression, rhs RangeVal) RangeExpression {
+	return ranged{op: op, lhs: lhs, rhs: rhs}
 }
 
 func (r ranged) Clone() Expression {
-	return ranged{op: r.op, lhs: r.lhs.Clone(), rhs: r.rhs}
+	return NewRangeExpression(r.op, r.lhs.Clone(), r.rhs)
 }
 
 func (r ranged) Expression() Expression {

@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,21 +16,21 @@ func TestLateralExpressionSuite(t *testing.T) {
 }
 
 func (les *lateralExpressionSuite) TestClone() {
-	le := NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
-	les.Equal(NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{})), le.Clone())
+	le := exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
+	les.Equal(exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{})), le.Clone())
 }
 
 func (les *lateralExpressionSuite) TestExpression() {
-	le := NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
+	le := exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
 	les.Equal(le, le.Expression())
 }
 
 func (les *lateralExpressionSuite) TestLateral() {
-	le := NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
+	le := exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
 	les.Equal(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}), le.Table())
 }
 
 func (les *lateralExpressionSuite) TestAs() {
-	le := NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
-	les.Equal(aliased(le, "foo"), le.As("foo"))
+	le := exp.NewLateralExpression(newTestAppendableExpression(`SELECT * FROM "test"`, []interface{}{}))
+	les.Equal(exp.NewAliasExpression(le, "foo"), le.As("foo"))
 }

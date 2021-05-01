@@ -19,18 +19,14 @@ type (
 	// either override methods, or more typically update default values.
 	// See (github.com/doug-martin/goqu/adapters/postgres)
 	truncateSQLGenerator struct {
-		*commonSQLGenerator
+		CommonSQLGenerator
 	}
 )
 
 var errNoSourceForTruncate = errors.New("no source found when generating truncate sql")
 
 func NewTruncateSQLGenerator(dialect string, do *SQLDialectOptions) TruncateSQLGenerator {
-	return &truncateSQLGenerator{newCommonSQLGenerator(dialect, do)}
-}
-
-func (tsg *truncateSQLGenerator) Dialect() string {
-	return tsg.dialect
+	return &truncateSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
 
 func (tsg *truncateSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.TruncateClauses) {
@@ -38,7 +34,7 @@ func (tsg *truncateSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.TruncateC
 		b.SetError(errNoSourceForTruncate)
 		return
 	}
-	for _, f := range tsg.dialectOptions.TruncateSQLOrder {
+	for _, f := range tsg.DialectOptions().TruncateSQLOrder {
 		if b.Error() != nil {
 			return
 		}
@@ -46,23 +42,23 @@ func (tsg *truncateSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.TruncateC
 		case TruncateSQLFragment:
 			tsg.TruncateSQL(b, clauses.Table(), clauses.Options())
 		default:
-			b.SetError(errNotSupportedFragment("TRUNCATE", f))
+			b.SetError(ErrNotSupportedFragment("TRUNCATE", f))
 		}
 	}
 }
 
 // Generates a TRUNCATE statement
 func (tsg *truncateSQLGenerator) TruncateSQL(b sb.SQLBuilder, from exp.ColumnListExpression, opts exp.TruncateOptions) {
-	b.Write(tsg.dialectOptions.TruncateClause)
+	b.Write(tsg.DialectOptions().TruncateClause)
 	tsg.SourcesSQL(b, from)
-	if opts.Identity != tsg.dialectOptions.EmptyString {
-		b.WriteRunes(tsg.dialectOptions.SpaceRune).
+	if opts.Identity != tsg.DialectOptions().EmptyString {
+		b.WriteRunes(tsg.DialectOptions().SpaceRune).
 			WriteStrings(strings.ToUpper(opts.Identity)).
-			Write(tsg.dialectOptions.IdentityFragment)
+			Write(tsg.DialectOptions().IdentityFragment)
 	}
 	if opts.Cascade {
-		b.Write(tsg.dialectOptions.CascadeFragment)
+		b.Write(tsg.DialectOptions().CascadeFragment)
 	} else if opts.Restrict {
-		b.Write(tsg.dialectOptions.RestrictFragment)
+		b.Write(tsg.DialectOptions().RestrictFragment)
 	}
 }

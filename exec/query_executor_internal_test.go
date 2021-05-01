@@ -23,6 +23,10 @@ var (
 	testAge1             int64 = 10
 	testAge2             int64 = 20
 	testByteSliceContent       = "byte slice result"
+	otherAddr1                 = "111 Test Addr Other"
+	otherAddr2                 = "211 Test Addr Other"
+	otherName1                 = "Test1 Other"
+	otherName2                 = "Test2 Other"
 )
 
 type queryExecutorSuite struct {
@@ -136,7 +140,7 @@ func (qes *queryExecutorSuite) TestScanStructs_withPointerFields() {
 	str1, str2 := "str1", "str2"
 	t := true
 	var i1, i2 int64 = 1, 2
-	var f1, f2 = 1.1, 2.1
+	f1, f2 := 1.1, 2.1
 	mock.ExpectQuery(`SELECT \* FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"str", "time", "bool", "int", "float"}).
@@ -313,9 +317,6 @@ func (qes *queryExecutorSuite) TestScanStructs_pointersWithEmbeddedStructDuplica
 		Name    string `db:"other_name"`
 	}
 
-	var otherAddr1, otherAddr2 = "111 Test Addr Other", "211 Test Addr Other"
-	var otherName1, otherName2 = "Test1 Other", "Test2 Other"
-
 	db, mock, err := sqlmock.New()
 	qes.NoError(err)
 
@@ -355,9 +356,6 @@ func (qes *queryExecutorSuite) TestScanStructs_pointersWithEmbeddedPointerDuplic
 		Address string `db:"other_address"`
 		Name    string `db:"other_name"`
 	}
-
-	var otherAddr1, otherAddr2 = "111 Test Addr Other", "211 Test Addr Other"
-	var otherName1, otherName2 = "Test1 Other", "Test2 Other"
 
 	db, mock, err := sqlmock.New()
 	qes.NoError(err)

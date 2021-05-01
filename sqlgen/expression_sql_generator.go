@@ -34,11 +34,11 @@ var (
 	TrueLiteral     = exp.NewLiteralExpression("TRUE")
 	FalseLiteral    = exp.NewLiteralExpression("FALSE")
 
-	errEmptyIdentifier = errors.New(
+	ErrEmptyIdentifier = errors.New(
 		`a empty identifier was encountered, please specify a "schema", "table" or "column"`,
 	)
-	errUnexpectedNamedWindow = errors.New(`unexpected named window function`)
-	errEmptyCaseWhens        = errors.New(`when conditions not found for case statement`)
+	ErrUnexpectedNamedWindow = errors.New(`unexpected named window function`)
+	ErrEmptyCaseWhens        = errors.New(`when conditions not found for case statement`)
 )
 
 func errUnsupportedExpressionType(e exp.Expression) error {
@@ -215,7 +215,7 @@ func (esg *expressionSQLGenerator) appendableExpressionSQL(b sb.SQLBuilder, a ex
 // Quotes an identifier (e.g. "col", "table"."col"
 func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, ident exp.IdentifierExpression) {
 	if ident.IsEmpty() {
-		b.SetError(errEmptyIdentifier)
+		b.SetError(ErrEmptyIdentifier)
 		return
 	}
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
@@ -526,7 +526,7 @@ func (esg *expressionSQLGenerator) sqlFunctionExpressionSQL(b sb.SQLBuilder, sql
 
 func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, sqlWinFunc exp.SQLWindowFunctionExpression) {
 	if !esg.dialectOptions.SupportsWindowFunction {
-		b.SetError(errWindowNotSupported(esg.dialect))
+		b.SetError(ErrWindowNotSupported(esg.dialect))
 		return
 	}
 	esg.Generate(b, sqlWinFunc.Func())
@@ -536,7 +536,7 @@ func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, 
 		esg.Generate(b, sqlWinFunc.WindowName())
 	case sqlWinFunc.HasWindow():
 		if sqlWinFunc.Window().HasName() {
-			b.SetError(errUnexpectedNamedWindow)
+			b.SetError(ErrUnexpectedNamedWindow)
 			return
 		}
 		esg.Generate(b, sqlWinFunc.Window())
@@ -547,7 +547,7 @@ func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, 
 
 func (esg *expressionSQLGenerator) windowExpressionSQL(b sb.SQLBuilder, we exp.WindowExpression) {
 	if !esg.dialectOptions.SupportsWindowFunction {
-		b.SetError(errWindowNotSupported(esg.dialect))
+		b.SetError(ErrWindowNotSupported(esg.dialect))
 		return
 	}
 	if we.HasName() {
@@ -598,7 +598,7 @@ func (esg *expressionSQLGenerator) commonTablesSliceSQL(b sb.SQLBuilder, ctes []
 		return
 	}
 	if !esg.dialectOptions.SupportsWithCTE {
-		b.SetError(errCTENotSupported(esg.dialect))
+		b.SetError(ErrCTENotSupported(esg.dialect))
 		return
 	}
 	b.Write(esg.dialectOptions.WithFragment)
@@ -608,7 +608,7 @@ func (esg *expressionSQLGenerator) commonTablesSliceSQL(b sb.SQLBuilder, ctes []
 	}
 	if anyRecursive {
 		if !esg.dialectOptions.SupportsWithCTERecursive {
-			b.SetError(errRecursiveCTENotSupported(esg.dialect))
+			b.SetError(ErrRecursiveCTENotSupported(esg.dialect))
 			return
 		}
 		b.Write(esg.dialectOptions.RecursiveFragment)
@@ -657,7 +657,7 @@ func (esg *expressionSQLGenerator) caseExpressionSQL(b sb.SQLBuilder, caseExpres
 	elseResult := caseExpression.GetElse()
 
 	if len(whens) == 0 {
-		b.SetError(errEmptyCaseWhens)
+		b.SetError(ErrEmptyCaseWhens)
 		return
 	}
 	b.Write(esg.dialectOptions.CaseFragment)

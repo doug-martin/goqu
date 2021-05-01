@@ -17,7 +17,7 @@ type InsertDataset struct {
 	err          error
 }
 
-var errUnsupportedIntoType = errors.New("unsupported table type, a string or identifier expression is required")
+var ErrUnsupportedIntoType = errors.New("unsupported table type, a string or identifier expression is required")
 
 // used internally by database to create a database with a specific adapter
 func newInsertDataset(d string, queryFactory exec.QueryFactory) *InsertDataset {
@@ -124,7 +124,7 @@ func (id *InsertDataset) Into(into interface{}) *InsertDataset {
 	case string:
 		return id.copy(id.clauses.SetInto(exp.ParseIdentifier(t)))
 	default:
-		panic(errUnsupportedIntoType)
+		panic(ErrUnsupportedIntoType)
 	}
 }
 

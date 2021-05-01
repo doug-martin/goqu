@@ -89,8 +89,8 @@ var (
 )
 
 var (
-	defaultColumnRenameFunction = strings.ToLower
-	columnRenameFunction        = defaultColumnRenameFunction
+	DefaultColumnRenameFunction = strings.ToLower
+	columnRenameFunction        = DefaultColumnRenameFunction
 )
 
 func SetColumnRenameFunction(newFunction func(string) string) {

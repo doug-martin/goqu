@@ -1,8 +1,9 @@
-package sqlgen
+package sqlgen_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/sqlgen"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -12,32 +13,32 @@ type sqlFragmentTypeSuite struct {
 
 func (sfts *sqlFragmentTypeSuite) TestOptions_SQLFragmentType() {
 	for _, tt := range []struct {
-		typ         SQLFragmentType
+		typ         sqlgen.SQLFragmentType
 		expectedStr string
 	}{
-		{typ: CommonTableSQLFragment, expectedStr: "CommonTableSQLFragment"},
-		{typ: SelectSQLFragment, expectedStr: "SelectSQLFragment"},
-		{typ: FromSQLFragment, expectedStr: "FromSQLFragment"},
-		{typ: JoinSQLFragment, expectedStr: "JoinSQLFragment"},
-		{typ: WhereSQLFragment, expectedStr: "WhereSQLFragment"},
-		{typ: GroupBySQLFragment, expectedStr: "GroupBySQLFragment"},
-		{typ: HavingSQLFragment, expectedStr: "HavingSQLFragment"},
-		{typ: CompoundsSQLFragment, expectedStr: "CompoundsSQLFragment"},
-		{typ: OrderSQLFragment, expectedStr: "OrderSQLFragment"},
-		{typ: LimitSQLFragment, expectedStr: "LimitSQLFragment"},
-		{typ: OffsetSQLFragment, expectedStr: "OffsetSQLFragment"},
-		{typ: ForSQLFragment, expectedStr: "ForSQLFragment"},
-		{typ: UpdateBeginSQLFragment, expectedStr: "UpdateBeginSQLFragment"},
-		{typ: SourcesSQLFragment, expectedStr: "SourcesSQLFragment"},
-		{typ: IntoSQLFragment, expectedStr: "IntoSQLFragment"},
-		{typ: UpdateSQLFragment, expectedStr: "UpdateSQLFragment"},
-		{typ: UpdateFromSQLFragment, expectedStr: "UpdateFromSQLFragment"},
-		{typ: ReturningSQLFragment, expectedStr: "ReturningSQLFragment"},
-		{typ: InsertBeingSQLFragment, expectedStr: "InsertBeingSQLFragment"},
-		{typ: DeleteBeginSQLFragment, expectedStr: "DeleteBeginSQLFragment"},
-		{typ: TruncateSQLFragment, expectedStr: "TruncateSQLFragment"},
-		{typ: WindowSQLFragment, expectedStr: "WindowSQLFragment"},
-		{typ: SQLFragmentType(10000), expectedStr: "10000"},
+		{typ: sqlgen.CommonTableSQLFragment, expectedStr: "CommonTableSQLFragment"},
+		{typ: sqlgen.SelectSQLFragment, expectedStr: "SelectSQLFragment"},
+		{typ: sqlgen.FromSQLFragment, expectedStr: "FromSQLFragment"},
+		{typ: sqlgen.JoinSQLFragment, expectedStr: "JoinSQLFragment"},
+		{typ: sqlgen.WhereSQLFragment, expectedStr: "WhereSQLFragment"},
+		{typ: sqlgen.GroupBySQLFragment, expectedStr: "GroupBySQLFragment"},
+		{typ: sqlgen.HavingSQLFragment, expectedStr: "HavingSQLFragment"},
+		{typ: sqlgen.CompoundsSQLFragment, expectedStr: "CompoundsSQLFragment"},
+		{typ: sqlgen.OrderSQLFragment, expectedStr: "OrderSQLFragment"},
+		{typ: sqlgen.LimitSQLFragment, expectedStr: "LimitSQLFragment"},
+		{typ: sqlgen.OffsetSQLFragment, expectedStr: "OffsetSQLFragment"},
+		{typ: sqlgen.ForSQLFragment, expectedStr: "ForSQLFragment"},
+		{typ: sqlgen.UpdateBeginSQLFragment, expectedStr: "UpdateBeginSQLFragment"},
+		{typ: sqlgen.SourcesSQLFragment, expectedStr: "SourcesSQLFragment"},
+		{typ: sqlgen.IntoSQLFragment, expectedStr: "IntoSQLFragment"},
+		{typ: sqlgen.UpdateSQLFragment, expectedStr: "UpdateSQLFragment"},
+		{typ: sqlgen.UpdateFromSQLFragment, expectedStr: "UpdateFromSQLFragment"},
+		{typ: sqlgen.ReturningSQLFragment, expectedStr: "ReturningSQLFragment"},
+		{typ: sqlgen.InsertBeingSQLFragment, expectedStr: "InsertBeingSQLFragment"},
+		{typ: sqlgen.DeleteBeginSQLFragment, expectedStr: "DeleteBeginSQLFragment"},
+		{typ: sqlgen.TruncateSQLFragment, expectedStr: "TruncateSQLFragment"},
+		{typ: sqlgen.WindowSQLFragment, expectedStr: "WindowSQLFragment"},
+		{typ: sqlgen.SQLFragmentType(10000), expectedStr: "10000"},
 	} {
 		sfts.Equal(tt.expectedStr, tt.typ.String())
 	}

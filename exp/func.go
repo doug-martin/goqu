@@ -22,7 +22,9 @@ func (sfe sqlFunctionExpression) Args() []interface{} { return sfe.args }
 
 func (sfe sqlFunctionExpression) Name() string { return sfe.name }
 
-func (sfe sqlFunctionExpression) As(val interface{}) AliasedExpression { return aliased(sfe, val) }
+func (sfe sqlFunctionExpression) As(val interface{}) AliasedExpression {
+	return NewAliasExpression(sfe, val)
+}
 
 func (sfe sqlFunctionExpression) Eq(val interface{}) BooleanExpression  { return eq(sfe, val) }
 func (sfe sqlFunctionExpression) Neq(val interface{}) BooleanExpression { return neq(sfe, val) }

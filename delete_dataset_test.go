@@ -1,9 +1,10 @@
-package goqu
+package goqu_test
 
 import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
 	"github.com/doug-martin/goqu/v9/internal/sb"
@@ -14,7 +15,7 @@ import (
 
 type (
 	deleteTestCase struct {
-		ds      *DeleteDataset
+		ds      *goqu.DeleteDataset
 		clauses exp.DeleteClauses
 	}
 	deleteDatasetSuite struct {
@@ -29,364 +30,364 @@ func (dds *deleteDatasetSuite) assertCases(cases ...deleteTestCase) {
 }
 
 func (dds *deleteDatasetSuite) SetupSuite() {
-	noReturn := DefaultDialectOptions()
+	noReturn := goqu.DefaultDialectOptions()
 	noReturn.SupportsReturn = false
-	RegisterDialect("no-return", noReturn)
+	goqu.RegisterDialect("no-return", noReturn)
 
-	limitOnDelete := DefaultDialectOptions()
+	limitOnDelete := goqu.DefaultDialectOptions()
 	limitOnDelete.SupportsLimitOnDelete = true
-	RegisterDialect("limit-on-delete", limitOnDelete)
+	goqu.RegisterDialect("limit-on-delete", limitOnDelete)
 
-	orderOnDelete := DefaultDialectOptions()
+	orderOnDelete := goqu.DefaultDialectOptions()
 	orderOnDelete.SupportsOrderByOnDelete = true
-	RegisterDialect("order-on-delete", orderOnDelete)
+	goqu.RegisterDialect("order-on-delete", orderOnDelete)
 }
 
 func (dds *deleteDatasetSuite) TearDownSuite() {
-	DeregisterDialect("no-return")
-	DeregisterDialect("limit-on-delete")
-	DeregisterDialect("order-on-delete")
+	goqu.DeregisterDialect("no-return")
+	goqu.DeregisterDialect("limit-on-delete")
+	goqu.DeregisterDialect("order-on-delete")
 }
 
 func (dds *deleteDatasetSuite) TestDelete() {
-	ds := Delete("test")
-	dds.IsType(&DeleteDataset{}, ds)
+	ds := goqu.Delete("test")
+	dds.IsType(&goqu.DeleteDataset{}, ds)
 	dds.Implements((*exp.Expression)(nil), ds)
 	dds.Implements((*exp.AppendableExpression)(nil), ds)
 }
 
 func (dds *deleteDatasetSuite) TestClone() {
-	ds := Delete("test")
+	ds := goqu.Delete("test")
 	dds.Equal(ds.Clone(), ds)
 }
 
 func (dds *deleteDatasetSuite) TestExpression() {
-	ds := Delete("test")
+	ds := goqu.Delete("test")
 	dds.Equal(ds.Expression(), ds)
 }
 
 func (dds *deleteDatasetSuite) TestDialect() {
-	ds := Delete("test")
+	ds := goqu.Delete("test")
 	dds.NotNil(ds.Dialect())
 }
 
 func (dds *deleteDatasetSuite) TestWithDialect() {
-	ds := Delete("test")
+	ds := goqu.Delete("test")
 	md := new(mocks.SQLDialect)
 	ds = ds.SetDialect(md)
 
-	dialect := GetDialect("default")
+	dialect := goqu.GetDialect("default")
 	dialectDs := ds.WithDialect("default")
 	dds.Equal(md, ds.Dialect())
 	dds.Equal(dialect, dialectDs.Dialect())
 }
 
 func (dds *deleteDatasetSuite) TestPrepared() {
-	ds := Delete("test")
+	ds := goqu.Delete("test")
 	preparedDs := ds.Prepared(true)
 	dds.True(preparedDs.IsPrepared())
 	dds.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
-	dds.True(preparedDs.Where(Ex{"a": 1}).IsPrepared())
+	dds.True(preparedDs.Where(goqu.Ex{"a": 1}).IsPrepared())
 }
 
 func (dds *deleteDatasetSuite) TestGetClauses() {
-	ds := Delete("test")
-	ce := exp.NewDeleteClauses().SetFrom(I("test"))
+	ds := goqu.Delete("test")
+	ce := exp.NewDeleteClauses().SetFrom(goqu.I("test"))
 	dds.Equal(ce, ds.GetClauses())
 }
 
 func (dds *deleteDatasetSuite) TestWith() {
-	from := From("cte")
-	bd := Delete("items")
+	from := goqu.From("cte")
+	bd := goqu.Delete("items")
 	dds.assertCases(
 		deleteTestCase{
 			ds: bd.With("test-cte", from),
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")).
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")).
 				CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestWithRecursive() {
-	from := From("cte")
-	bd := Delete("items")
+	from := goqu.From("cte")
+	bd := goqu.Delete("items")
 	dds.assertCases(
 		deleteTestCase{
 			ds: bd.WithRecursive("test-cte", from),
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")).
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")).
 				CommonTablesAppend(exp.NewCommonTableExpression(true, "test-cte", from)),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestFrom_withIdentifier() {
-	bd := Delete("items")
+	bd := goqu.Delete("items")
 	dds.assertCases(
 		deleteTestCase{
 			ds:      bd.From("items2"),
-			clauses: exp.NewDeleteClauses().SetFrom(C("items2")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items2")),
 		},
 		deleteTestCase{
-			ds:      bd.From(C("items2")),
-			clauses: exp.NewDeleteClauses().SetFrom(C("items2")),
+			ds:      bd.From(goqu.C("items2")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items2")),
 		},
 		deleteTestCase{
-			ds:      bd.From(T("items2")),
-			clauses: exp.NewDeleteClauses().SetFrom(T("items2")),
+			ds:      bd.From(goqu.T("items2")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.T("items2")),
 		},
 		deleteTestCase{
 			ds:      bd.From("schema.table"),
-			clauses: exp.NewDeleteClauses().SetFrom(I("schema.table")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.I("schema.table")),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 	)
 
-	dds.PanicsWithValue(ErrBadFromArgument, func() {
-		Delete("test").From(true)
+	dds.PanicsWithValue(goqu.ErrBadFromArgument, func() {
+		goqu.Delete("test").From(true)
 	})
 }
 
 func (dds *deleteDatasetSuite) TestWhere() {
-	bd := Delete("items")
+	bd := goqu.Delete("items")
 	dds.assertCases(
 		deleteTestCase{
-			ds: bd.Where(Ex{"a": 1}),
+			ds: bd.Where(goqu.Ex{"a": 1}),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				WhereAppend(Ex{"a": 1}),
+				SetFrom(goqu.C("items")).
+				WhereAppend(goqu.Ex{"a": 1}),
 		},
 		deleteTestCase{
-			ds: bd.Where(Ex{"a": 1}).Where(C("b").Eq("c")),
+			ds: bd.Where(goqu.Ex{"a": 1}).Where(goqu.C("b").Eq("c")),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				WhereAppend(Ex{"a": 1}).
-				WhereAppend(C("b").Eq("c")),
+				SetFrom(goqu.C("items")).
+				WhereAppend(goqu.Ex{"a": 1}).
+				WhereAppend(goqu.C("b").Eq("c")),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestClearWhere() {
-	bd := Delete("items").Where(Ex{"a": 1})
+	bd := goqu.Delete("items").Where(goqu.Ex{"a": 1})
 	dds.assertCases(
 		deleteTestCase{
 			ds: bd.ClearWhere(),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")),
+				SetFrom(goqu.C("items")),
 		},
 		deleteTestCase{
 			ds: bd,
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				WhereAppend(Ex{"a": 1}),
+				SetFrom(goqu.C("items")).
+				WhereAppend(goqu.Ex{"a": 1}),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestOrder() {
-	bd := Delete("items")
+	bd := goqu.Delete("items")
 	dds.assertCases(
 		deleteTestCase{
-			ds: bd.Order(C("a").Asc()),
+			ds: bd.Order(goqu.C("a").Asc()),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("a").Asc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("a").Asc()),
 		},
 		deleteTestCase{
-			ds: bd.Order(C("a").Asc()).Order(C("b").Desc()),
+			ds: bd.Order(goqu.C("a").Asc()).Order(goqu.C("b").Desc()),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("b").Desc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("b").Desc()),
 		},
 		deleteTestCase{
-			ds: bd.Order(C("a").Asc(), C("b").Desc()),
+			ds: bd.Order(goqu.C("a").Asc(), goqu.C("b").Desc()),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("a").Asc(), C("b").Desc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("a").Asc(), goqu.C("b").Desc()),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestOrderAppend() {
-	bd := Delete("items").Order(C("a").Asc())
+	bd := goqu.Delete("items").Order(goqu.C("a").Asc())
 	dds.assertCases(
 		deleteTestCase{
-			ds: bd.OrderAppend(C("b").Desc()),
+			ds: bd.OrderAppend(goqu.C("b").Desc()),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("a").Asc(), C("b").Desc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("a").Asc(), goqu.C("b").Desc()),
 		},
 		deleteTestCase{
 			ds: bd,
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("a").Asc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("a").Asc()),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestOrderPrepend() {
-	bd := Delete("items").Order(C("a").Asc())
+	bd := goqu.Delete("items").Order(goqu.C("a").Asc())
 	dds.assertCases(
 		deleteTestCase{
-			ds: bd.OrderPrepend(C("b").Desc()),
+			ds: bd.OrderPrepend(goqu.C("b").Desc()),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("b").Desc(), C("a").Asc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("b").Desc(), goqu.C("a").Asc()),
 		},
 		deleteTestCase{
 			ds: bd,
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("a").Asc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("a").Asc()),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestClearOrder() {
-	bd := Delete("items").Order(C("a").Asc())
+	bd := goqu.Delete("items").Order(goqu.C("a").Asc())
 	dds.assertCases(
 		deleteTestCase{
 			ds:      bd.ClearOrder(),
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 		deleteTestCase{
 			ds: bd,
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
-				SetOrder(C("a").Asc()),
+				SetFrom(goqu.C("items")).
+				SetOrder(goqu.C("a").Asc()),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestLimit() {
-	bd := Delete("test")
+	bd := goqu.Delete("test")
 	dds.assertCases(
 		deleteTestCase{
 			ds: bd.Limit(10),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("test")).
+				SetFrom(goqu.C("test")).
 				SetLimit(uint(10)),
 		},
 		deleteTestCase{
 			ds:      bd.Limit(0),
-			clauses: exp.NewDeleteClauses().SetFrom(C("test")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("test")),
 		},
 		deleteTestCase{
 			ds: bd.Limit(10).Limit(2),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("test")).
+				SetFrom(goqu.C("test")).
 				SetLimit(uint(2)),
 		},
 		deleteTestCase{
 			ds:      bd.Limit(10).Limit(0),
-			clauses: exp.NewDeleteClauses().SetFrom(C("test")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("test")),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("test")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("test")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestLimitAll() {
-	bd := Delete("test")
+	bd := goqu.Delete("test")
 	dds.assertCases(
 		deleteTestCase{
 			ds: bd.LimitAll(),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("test")).
-				SetLimit(L("ALL")),
+				SetFrom(goqu.C("test")).
+				SetLimit(goqu.L("ALL")),
 		},
 		deleteTestCase{
 			ds: bd.Limit(10).LimitAll(),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("test")).
-				SetLimit(L("ALL")),
+				SetFrom(goqu.C("test")).
+				SetLimit(goqu.L("ALL")),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("test")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("test")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestClearLimit() {
-	bd := Delete("test").Limit(10)
+	bd := goqu.Delete("test").Limit(10)
 	dds.assertCases(
 		deleteTestCase{
 			ds:      bd.ClearLimit(),
-			clauses: exp.NewDeleteClauses().SetFrom(C("test")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("test")),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("test")).SetLimit(uint(10)),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("test")).SetLimit(uint(10)),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestReturning() {
-	bd := Delete("items")
+	bd := goqu.Delete("items")
 	dds.assertCases(
 		deleteTestCase{
 			ds: bd.Returning("a"),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
+				SetFrom(goqu.C("items")).
 				SetReturning(exp.NewColumnListExpression("a")),
 		},
 		deleteTestCase{
 			ds: bd.Returning(),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
+				SetFrom(goqu.C("items")).
 				SetReturning(exp.NewColumnListExpression()),
 		},
 		deleteTestCase{
 			ds: bd.Returning(nil),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
+				SetFrom(goqu.C("items")).
 				SetReturning(exp.NewColumnListExpression()),
 		},
 		deleteTestCase{
 			ds: bd.Returning("a").Returning("b"),
 			clauses: exp.NewDeleteClauses().
-				SetFrom(C("items")).
+				SetFrom(goqu.C("items")).
 				SetReturning(exp.NewColumnListExpression("b")),
 		},
 		deleteTestCase{
 			ds:      bd,
-			clauses: exp.NewDeleteClauses().SetFrom(C("items")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")),
 		},
 	)
 }
 
 func (dds *deleteDatasetSuite) TestReturnsColumns() {
-	ds := Delete("test")
+	ds := goqu.Delete("test")
 	dds.False(ds.ReturnsColumns())
 	dds.True(ds.Returning("foo", "bar").ReturnsColumns())
 }
 
 func (dds *deleteDatasetSuite) TestToSQL() {
 	md := new(mocks.SQLDialect)
-	ds := Delete("test").SetDialect(md)
+	ds := goqu.Delete("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	md.On("ToDeleteSQL", sqlB, c).Return(nil).Once()
@@ -400,7 +401,7 @@ func (dds *deleteDatasetSuite) TestToSQL() {
 
 func (dds *deleteDatasetSuite) TestToSQL_Prepared() {
 	md := new(mocks.SQLDialect)
-	ds := Delete("test").Prepared(true).SetDialect(md)
+	ds := goqu.Delete("test").Prepared(true).SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
 	md.On("ToDeleteSQL", sqlB, c).Return(nil).Once()
@@ -414,7 +415,7 @@ func (dds *deleteDatasetSuite) TestToSQL_Prepared() {
 
 func (dds *deleteDatasetSuite) TestToSQL_WithError() {
 	md := new(mocks.SQLDialect)
-	ds := Delete("test").SetDialect(md)
+	ds := goqu.Delete("test").SetDialect(md)
 	c := ds.GetClauses()
 	ee := errors.New("expected error")
 	sqlB := sb.NewSQLBuilder(false)
@@ -433,7 +434,7 @@ func (dds *deleteDatasetSuite) TestExecutor() {
 	mDB, _, err := sqlmock.New()
 	dds.NoError(err)
 
-	ds := New("mock", mDB).Delete("items").Where(Ex{"id": Op{"gt": 10}})
+	ds := goqu.New("mock", mDB).Delete("items").Where(goqu.Ex{"id": goqu.Op{"gt": 10}})
 
 	dsql, args, err := ds.Executor().ToSQL()
 	dds.NoError(err)
@@ -453,7 +454,7 @@ func (dds *deleteDatasetSuite) TestSetError() {
 
 	// Verify initial error set/get works properly
 	md := new(mocks.SQLDialect)
-	ds := Delete("test").SetDialect(md)
+	ds := goqu.Delete("test").SetDialect(md)
 	ds = ds.SetError(err1)
 	dds.Equal(err1, ds.Error())
 	sql, args, err := ds.ToSQL()

@@ -1,8 +1,9 @@
-package goqu
+package goqu_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
@@ -14,174 +15,174 @@ type (
 )
 
 func (ges *goquExpressionsSuite) TestCast() {
-	ges.Equal(exp.NewCastExpression(C("test"), "string"), Cast(C("test"), "string"))
+	ges.Equal(exp.NewCastExpression(goqu.C("test"), "string"), goqu.Cast(goqu.C("test"), "string"))
 }
 
 func (ges *goquExpressionsSuite) TestDoNothing() {
-	ges.Equal(exp.NewDoNothingConflictExpression(), DoNothing())
+	ges.Equal(exp.NewDoNothingConflictExpression(), goqu.DoNothing())
 }
 
 func (ges *goquExpressionsSuite) TestDoUpdate() {
-	ges.Equal(exp.NewDoUpdateConflictExpression("test", Record{"a": "b"}), DoUpdate("test", Record{"a": "b"}))
+	ges.Equal(exp.NewDoUpdateConflictExpression("test", goqu.Record{"a": "b"}), goqu.DoUpdate("test", goqu.Record{"a": "b"}))
 }
 
 func (ges *goquExpressionsSuite) TestOr() {
-	e1 := C("a").Eq("b")
-	e2 := C("b").Eq(2)
-	ges.Equal(exp.NewExpressionList(exp.OrType, e1, e2), Or(e1, e2))
+	e1 := goqu.C("a").Eq("b")
+	e2 := goqu.C("b").Eq(2)
+	ges.Equal(exp.NewExpressionList(exp.OrType, e1, e2), goqu.Or(e1, e2))
 }
 
 func (ges *goquExpressionsSuite) TestAnd() {
-	e1 := C("a").Eq("b")
-	e2 := C("b").Eq(2)
-	ges.Equal(exp.NewExpressionList(exp.AndType, e1, e2), And(e1, e2))
+	e1 := goqu.C("a").Eq("b")
+	e2 := goqu.C("b").Eq(2)
+	ges.Equal(exp.NewExpressionList(exp.AndType, e1, e2), goqu.And(e1, e2))
 }
 
 func (ges *goquExpressionsSuite) TestFunc() {
-	ges.Equal(exp.NewSQLFunctionExpression("count", L("*")), Func("count", L("*")))
+	ges.Equal(exp.NewSQLFunctionExpression("count", goqu.L("*")), goqu.Func("count", goqu.L("*")))
 }
 
 func (ges *goquExpressionsSuite) TestDISTINCT() {
-	ges.Equal(exp.NewSQLFunctionExpression("DISTINCT", I("col")), DISTINCT("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("DISTINCT", goqu.I("col")), goqu.DISTINCT("col"))
 }
 
 func (ges *goquExpressionsSuite) TestCOUNT() {
-	ges.Equal(exp.NewSQLFunctionExpression("COUNT", I("col")), COUNT("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("COUNT", goqu.I("col")), goqu.COUNT("col"))
 }
 
 func (ges *goquExpressionsSuite) TestMIN() {
-	ges.Equal(exp.NewSQLFunctionExpression("MIN", I("col")), MIN("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("MIN", goqu.I("col")), goqu.MIN("col"))
 }
 
 func (ges *goquExpressionsSuite) TestMAX() {
-	ges.Equal(exp.NewSQLFunctionExpression("MAX", I("col")), MAX("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("MAX", goqu.I("col")), goqu.MAX("col"))
 }
 
 func (ges *goquExpressionsSuite) TestAVG() {
-	ges.Equal(exp.NewSQLFunctionExpression("AVG", I("col")), AVG("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("AVG", goqu.I("col")), goqu.AVG("col"))
 }
 
 func (ges *goquExpressionsSuite) TestFIRST() {
-	ges.Equal(exp.NewSQLFunctionExpression("FIRST", I("col")), FIRST("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("FIRST", goqu.I("col")), goqu.FIRST("col"))
 }
 
 func (ges *goquExpressionsSuite) TestLAST() {
-	ges.Equal(exp.NewSQLFunctionExpression("LAST", I("col")), LAST("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("LAST", goqu.I("col")), goqu.LAST("col"))
 }
 
 func (ges *goquExpressionsSuite) TestSUM() {
-	ges.Equal(exp.NewSQLFunctionExpression("SUM", I("col")), SUM("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("SUM", goqu.I("col")), goqu.SUM("col"))
 }
 
 func (ges *goquExpressionsSuite) TestCOALESCE() {
-	ges.Equal(exp.NewSQLFunctionExpression("COALESCE", I("col"), nil), COALESCE(I("col"), nil))
+	ges.Equal(exp.NewSQLFunctionExpression("COALESCE", goqu.I("col"), nil), goqu.COALESCE(goqu.I("col"), nil))
 }
 
 func (ges *goquExpressionsSuite) TestROW_NUMBER() {
-	ges.Equal(exp.NewSQLFunctionExpression("ROW_NUMBER"), ROW_NUMBER())
+	ges.Equal(exp.NewSQLFunctionExpression("ROW_NUMBER"), goqu.ROW_NUMBER())
 }
 
 func (ges *goquExpressionsSuite) TestRANK() {
-	ges.Equal(exp.NewSQLFunctionExpression("RANK"), RANK())
+	ges.Equal(exp.NewSQLFunctionExpression("RANK"), goqu.RANK())
 }
 
 func (ges *goquExpressionsSuite) TestDENSE_RANK() {
-	ges.Equal(exp.NewSQLFunctionExpression("DENSE_RANK"), DENSE_RANK())
+	ges.Equal(exp.NewSQLFunctionExpression("DENSE_RANK"), goqu.DENSE_RANK())
 }
 
 func (ges *goquExpressionsSuite) TestPERCENT_RANK() {
-	ges.Equal(exp.NewSQLFunctionExpression("PERCENT_RANK"), PERCENT_RANK())
+	ges.Equal(exp.NewSQLFunctionExpression("PERCENT_RANK"), goqu.PERCENT_RANK())
 }
 
 func (ges *goquExpressionsSuite) TestCUME_DIST() {
-	ges.Equal(exp.NewSQLFunctionExpression("CUME_DIST"), CUME_DIST())
+	ges.Equal(exp.NewSQLFunctionExpression("CUME_DIST"), goqu.CUME_DIST())
 }
 
 func (ges *goquExpressionsSuite) TestNTILE() {
-	ges.Equal(exp.NewSQLFunctionExpression("NTILE", 1), NTILE(1))
+	ges.Equal(exp.NewSQLFunctionExpression("NTILE", 1), goqu.NTILE(1))
 }
 
 func (ges *goquExpressionsSuite) TestFIRST_VALUE() {
-	ges.Equal(exp.NewSQLFunctionExpression("FIRST_VALUE", I("col")), FIRST_VALUE("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("FIRST_VALUE", goqu.I("col")), goqu.FIRST_VALUE("col"))
 }
 
 func (ges *goquExpressionsSuite) TestLAST_VALUE() {
-	ges.Equal(exp.NewSQLFunctionExpression("LAST_VALUE", I("col")), LAST_VALUE("col"))
+	ges.Equal(exp.NewSQLFunctionExpression("LAST_VALUE", goqu.I("col")), goqu.LAST_VALUE("col"))
 }
 
 func (ges *goquExpressionsSuite) TestNTH_VALUE() {
-	ges.Equal(exp.NewSQLFunctionExpression("NTH_VALUE", I("col"), 1), NTH_VALUE("col", 1))
-	ges.Equal(exp.NewSQLFunctionExpression("NTH_VALUE", I("col"), 1), NTH_VALUE(C("col"), 1))
+	ges.Equal(exp.NewSQLFunctionExpression("NTH_VALUE", goqu.I("col"), 1), goqu.NTH_VALUE("col", 1))
+	ges.Equal(exp.NewSQLFunctionExpression("NTH_VALUE", goqu.I("col"), 1), goqu.NTH_VALUE(goqu.C("col"), 1))
 }
 
 func (ges *goquExpressionsSuite) TestI() {
-	ges.Equal(exp.NewIdentifierExpression("s", "t", "c"), I("s.t.c"))
+	ges.Equal(exp.NewIdentifierExpression("s", "t", "c"), goqu.I("s.t.c"))
 }
 
 func (ges *goquExpressionsSuite) TestC() {
-	ges.Equal(exp.NewIdentifierExpression("", "", "c"), C("c"))
+	ges.Equal(exp.NewIdentifierExpression("", "", "c"), goqu.C("c"))
 }
 
 func (ges *goquExpressionsSuite) TestS() {
-	ges.Equal(exp.NewIdentifierExpression("s", "", ""), S("s"))
+	ges.Equal(exp.NewIdentifierExpression("s", "", ""), goqu.S("s"))
 }
 
 func (ges *goquExpressionsSuite) TestT() {
-	ges.Equal(exp.NewIdentifierExpression("", "t", ""), T("t"))
+	ges.Equal(exp.NewIdentifierExpression("", "t", ""), goqu.T("t"))
 }
 
 func (ges *goquExpressionsSuite) TestW() {
-	ges.Equal(emptyWindow, W())
-	ges.Equal(exp.NewWindowExpression(I("a"), nil, nil, nil), W("a"))
-	ges.Equal(exp.NewWindowExpression(I("a"), I("b"), nil, nil), W("a", "b"))
-	ges.Equal(exp.NewWindowExpression(I("a"), I("b"), nil, nil), W("a", "b", "c"))
+	ges.Equal(exp.NewWindowExpression(nil, nil, nil, nil), goqu.W())
+	ges.Equal(exp.NewWindowExpression(goqu.I("a"), nil, nil, nil), goqu.W("a"))
+	ges.Equal(exp.NewWindowExpression(goqu.I("a"), goqu.I("b"), nil, nil), goqu.W("a", "b"))
+	ges.Equal(exp.NewWindowExpression(goqu.I("a"), goqu.I("b"), nil, nil), goqu.W("a", "b", "c"))
 }
 
 func (ges *goquExpressionsSuite) TestOn() {
-	ges.Equal(exp.NewJoinOnCondition(Ex{"a": "b"}), On(Ex{"a": "b"}))
+	ges.Equal(exp.NewJoinOnCondition(goqu.Ex{"a": "b"}), goqu.On(goqu.Ex{"a": "b"}))
 }
 
 func (ges *goquExpressionsSuite) TestUsing() {
-	ges.Equal(exp.NewJoinUsingCondition("a", "b"), Using("a", "b"))
+	ges.Equal(exp.NewJoinUsingCondition("a", "b"), goqu.Using("a", "b"))
 }
 
 func (ges *goquExpressionsSuite) TestL() {
-	ges.Equal(exp.NewLiteralExpression("? + ?", 1, 2), L("? + ?", 1, 2))
+	ges.Equal(exp.NewLiteralExpression("? + ?", 1, 2), goqu.L("? + ?", 1, 2))
 }
 
 func (ges *goquExpressionsSuite) TestLiteral() {
-	ges.Equal(exp.NewLiteralExpression("? + ?", 1, 2), Literal("? + ?", 1, 2))
+	ges.Equal(exp.NewLiteralExpression("? + ?", 1, 2), goqu.Literal("? + ?", 1, 2))
 }
 
 func (ges *goquExpressionsSuite) TestV() {
-	ges.Equal(exp.NewLiteralExpression("?", "a"), V("a"))
+	ges.Equal(exp.NewLiteralExpression("?", "a"), goqu.V("a"))
 }
 
 func (ges *goquExpressionsSuite) TestRange() {
-	ges.Equal(exp.NewRangeVal("a", "b"), Range("a", "b"))
+	ges.Equal(exp.NewRangeVal("a", "b"), goqu.Range("a", "b"))
 }
 
 func (ges *goquExpressionsSuite) TestStar() {
-	ges.Equal(exp.NewLiteralExpression("*"), Star())
+	ges.Equal(exp.NewLiteralExpression("*"), goqu.Star())
 }
 
 func (ges *goquExpressionsSuite) TestDefault() {
-	ges.Equal(exp.Default(), Default())
+	ges.Equal(exp.Default(), goqu.Default())
 }
 
 func (ges *goquExpressionsSuite) TestLateral() {
-	ds := From("test")
-	ges.Equal(exp.NewLateralExpression(ds), Lateral(ds))
+	ds := goqu.From("test")
+	ges.Equal(exp.NewLateralExpression(ds), goqu.Lateral(ds))
 }
 
 func (ges *goquExpressionsSuite) TestAny() {
-	ds := From("test").Select("id")
-	ges.Equal(exp.NewSQLFunctionExpression("ANY ", ds), Any(ds))
+	ds := goqu.From("test").Select("id")
+	ges.Equal(exp.NewSQLFunctionExpression("ANY ", ds), goqu.Any(ds))
 }
 
 func (ges *goquExpressionsSuite) TestAll() {
-	ds := From("test").Select("id")
-	ges.Equal(exp.NewSQLFunctionExpression("ALL ", ds), All(ds))
+	ds := goqu.From("test").Select("id")
+	ges.Equal(exp.NewSQLFunctionExpression("ALL ", ds), goqu.All(ds))
 }
 
 func TestGoquExpressions(t *testing.T) {
