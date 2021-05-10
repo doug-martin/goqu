@@ -14,7 +14,9 @@ type (
 	Scanner interface {
 		Next() bool
 		ScanStruct(i interface{}) error
+		ScanStructs(i interface{}) error
 		ScanVal(i interface{}) error
+		ScanVals(i interface{}) error
 		Close() error
 		Err() error
 	}
@@ -90,6 +92,17 @@ func (s *scanner) ScanStruct(i interface{}) error {
 	return s.Err()
 }
 
+// ScanStructs scans results in slice of structs
+func (s *scanner) ScanStructs(i interface{}) error {
+	val, err := checkScanStructsTarget(i)
+	if err != nil {
+		return err
+	}
+	return s.scanIntoSlice(val, func(i interface{}) error {
+		return s.ScanStruct(i)
+	})
+}
+
 // ScanVal will scan the current row and column into i.
 func (s *scanner) ScanVal(i interface{}) error {
 	if err := s.rows.Scan(i); err != nil {
@@ -99,8 +112,57 @@ func (s *scanner) ScanVal(i interface{}) error {
 	return s.Err()
 }
 
+// ScanStructs scans results in slice of values
+func (s *scanner) ScanVals(i interface{}) error {
+	val, err := checkScanValsTarget(i)
+	if err != nil {
+		return err
+	}
+	return s.scanIntoSlice(val, func(i interface{}) error {
+		return s.ScanVal(i)
+	})
+}
+
 // Close closes the Rows, preventing further enumeration. See sql.Rows#Close
 // for more info.
 func (s *scanner) Close() error {
 	return s.rows.Close()
+}
+
+func (s *scanner) scanIntoSlice(val reflect.Value, it func(i interface{}) error) error {
+	elemType := util.GetSliceElementType(val)
+
+	for s.Next() {
+		row := reflect.New(elemType)
+		if rowErr := it(row.Interface()); rowErr != nil {
+			return rowErr
+		}
+		util.AppendSliceElement(val, row)
+	}
+
+	return s.Err()
+}
+
+func checkScanStructsTarget(i interface{}) (reflect.Value, error) {
+	val := reflect.ValueOf(i)
+	if !util.IsPointer(val.Kind()) {
+		return val, errUnsupportedScanStructsType
+	}
+	val = reflect.Indirect(val)
+	if !util.IsSlice(val.Kind()) {
+		return val, errUnsupportedScanStructsType
+	}
+	return val, nil
+}
+
+func checkScanValsTarget(i interface{}) (reflect.Value, error) {
+	val := reflect.ValueOf(i)
+	if !util.IsPointer(val.Kind()) {
+		return val, errUnsupportedScanValsType
+	}
+	val = reflect.Indirect(val)
+	if !util.IsSlice(val.Kind()) {
+		return val, errUnsupportedScanValsType
+	}
+	return val, nil
 }
