@@ -67,7 +67,14 @@ func (ds *databaseSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
@@ -121,6 +128,12 @@ func (ds *databaseSuite) TestScanStruct() {
 func (ds *databaseSuite) TestScanVals() {
 	mDB, mock, err := sqlmock.New()
 	ds.NoError(err)
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
@@ -492,7 +505,14 @@ func (tds *txdatabaseSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
 	mock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
@@ -554,6 +574,12 @@ func (tds *txdatabaseSuite) TestScanVals() {
 	mDB, mock, err := sqlmock.New()
 	tds.NoError(err)
 	mock.ExpectBegin()
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
+	mock.ExpectQuery(`SELECT "id" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 	mock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))

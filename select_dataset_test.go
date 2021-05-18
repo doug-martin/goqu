@@ -1146,7 +1146,12 @@ func (sds *selectDatasetSuite) TestScanStructs() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
-
+	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
+	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 	sqlMock.ExpectQuery(`SELECT "test" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
@@ -1186,6 +1191,13 @@ func (sds *selectDatasetSuite) TestScanStructs_WithPreparedStatements() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
 			FromCSVString("111 Test Addr,Test1\n211 Test Addr,Test2"))
+
+	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
+	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"test"}).FromCSVString("test1\ntest2"))
 
 	sqlMock.ExpectQuery(
 		`SELECT "test" FROM "items" WHERE \(\("address" = \?\) AND \("name" IN \(\?, \?, \?\)\)\)`,
@@ -1299,6 +1311,12 @@ func (sds *selectDatasetSuite) TestScanVals() {
 	sqlMock.ExpectQuery(`SELECT "id" FROM "items"`).
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
+	sqlMock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
+	sqlMock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
 	db := goqu.New("mock", mDB)
 	var ids []uint32
@@ -1323,6 +1341,13 @@ func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
 		WithArgs("111 Test Addr", "Bob", "Sally", "Billy").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
 
+	sqlMock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
+	sqlMock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).FromCSVString("1\n2\n3\n4\n5"))
+
 	db := goqu.New("mock", mDB)
 	var ids []uint32
 	sds.NoError(db.From("items").
@@ -1334,6 +1359,7 @@ func (sds *selectDatasetSuite) TestScanVals_WithPreparedStatment() {
 
 	sds.EqualError(db.From("items").ScanVals([]uint32{}),
 		"goqu: type must be a pointer to a slice when scanning into vals")
+
 	sds.EqualError(db.From("items").ScanVals(dsTestActionItem{}),
 		"goqu: type must be a pointer to a slice when scanning into vals")
 }

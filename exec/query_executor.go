@@ -79,9 +79,6 @@ func (q QueryExecutor) ScanStructs(i interface{}) error {
 //
 // i: A pointer to a slice of structs.
 func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) error {
-	if _, err := checkScanStructsTarget(i); err != nil {
-		return err
-	}
 	scanner, err := q.ScannerContext(ctx)
 	if err != nil {
 		return err
@@ -166,9 +163,6 @@ func (q QueryExecutor) ScanVals(i interface{}) error {
 //
 // i: Takes a pointer to a slice of primitive values.
 func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error {
-	if _, err := checkScanValsTarget(i); err != nil {
-		return err
-	}
 	scanner, err := q.ScannerContext(ctx)
 	if err != nil {
 		return err
