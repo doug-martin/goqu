@@ -486,14 +486,33 @@ func (qes *queryExecutorSuite) TestScanStructs_badValue() {
 		Name    string `db:"name"`
 	}
 
-	db, _, err := sqlmock.New()
-	qes.NoError(err)
-
-	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
-
-	var items []StructWithTags
-	qes.Equal(errUnsupportedScanStructsType, e.ScanStructs(items))
-	qes.Equal(errUnsupportedScanStructsType, e.ScanStructs(&StructWithTags{}))
+	tests := []struct {
+		name  string
+		items interface{}
+	}{
+		{
+			name:  "non-pointer items",
+			items: []StructWithTags{},
+		},
+		{
+			name:  "non-slice items",
+			items: &StructWithTags{},
+		},
+	}
+	for i := range tests {
+		test := tests[i]
+		qes.Run(test.name, func() {
+			db, mock, err := sqlmock.New()
+			qes.NoError(err)
+			mock.ExpectQuery(`SELECT \* FROM "items"`).
+				WithArgs().
+				WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+					AddRow(testAddr1, testName1).AddRow(testAddr2, testName2),
+				)
+			e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+			qes.Equal(errUnsupportedScanStructsType, e.ScanStructs(test.items))
+		})
+	}
 }
 
 func (qes *queryExecutorSuite) TestScanStructs_queryError() {
@@ -788,15 +807,33 @@ func (qes *queryExecutorSuite) TestScanStructsContext_badValue() {
 		Name    string `db:"name"`
 	}
 
-	ctx := context.Background()
-	db, _, err := sqlmock.New()
-	qes.NoError(err)
-
-	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
-
-	var items []StructWithTags
-	qes.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(ctx, items))
-	qes.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(ctx, &StructWithTags{}))
+	tests := []struct {
+		name  string
+		items interface{}
+	}{
+		{
+			name:  "non-pointer items",
+			items: []StructWithTags{},
+		},
+		{
+			name:  "non-slice items",
+			items: &StructWithTags{},
+		},
+	}
+	for i := range tests {
+		test := tests[i]
+		qes.Run(test.name, func() {
+			db, mock, err := sqlmock.New()
+			qes.NoError(err)
+			mock.ExpectQuery(`SELECT \* FROM "items"`).
+				WithArgs().
+				WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).
+					AddRow(testAddr1, testName1).AddRow(testAddr2, testName2),
+				)
+			e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+			qes.Equal(errUnsupportedScanStructsType, e.ScanStructsContext(context.Background(), test.items))
+		})
+	}
 }
 
 func (qes *queryExecutorSuite) TestScanStructsContext_queryError() {
@@ -1040,10 +1077,7 @@ func (qes *queryExecutorSuite) TestScanVals() {
 
 	e := newQueryExecutor(db, nil, `SELECT "id" FROM "items"`)
 
-	var id int64
 	var ids []int64
-	qes.Equal(errUnsupportedScanValsType, e.ScanVals(ids))
-	qes.Equal(errUnsupportedScanValsType, e.ScanVals(&id))
 	qes.EqualError(e.ScanVals(&ids), "queryExecutor error")
 	qes.EqualError(e.ScanVals(&ids), "row error")
 	qes.Error(e.ScanVals(&ids))
@@ -1057,6 +1091,37 @@ func (qes *queryExecutorSuite) TestScanVals() {
 	qes.Len(pointers, 2)
 	qes.Equal(&id1, pointers[0])
 	qes.Equal(&id2, pointers[1])
+}
+
+func (qes *queryExecutorSuite) TestScanValsError() {
+	var id int64
+
+	tests := []struct {
+		name  string
+		items interface{}
+	}{
+		{
+			name:  "non-pointer items",
+			items: []int64{},
+		},
+		{
+			name:  "non-slice items",
+			items: &id,
+		},
+	}
+	for i := range tests {
+		test := tests[i]
+		qes.Run(test.name, func() {
+			db, mock, err := sqlmock.New()
+			qes.NoError(err)
+			mock.ExpectQuery(`SELECT "id" FROM "items"`).
+				WithArgs().
+				WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1).AddRow(2))
+
+			e := newQueryExecutor(db, nil, `SELECT "id" FROM "items"`)
+			qes.Equal(errUnsupportedScanValsType, e.ScanVals(test.items))
+		})
+	}
 }
 
 func (qes *queryExecutorSuite) TestScanVal() {
