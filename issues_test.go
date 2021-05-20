@@ -2,6 +2,7 @@ package goqu_test
 
 import (
 	"context"
+	sql2 "database/sql"
 	"fmt"
 	"strings"
 	"sync"
@@ -448,6 +449,21 @@ func (gis *githubIssuesSuite) TestIssue203() {
 	gis.NoError(err)
 	gis.Equal(`SELECT "u"."id", "u"."name", "u"."created_at", "u"."updated_at" FROM "company_auth"."users" AS "u"`, sql)
 	gis.Empty(args, []interface{}{})
+}
+
+// Test for https://github.com/doug-martin/goqu/issues/216
+func (gis *githubIssuesSuite) TestIssue216() {
+	ds := goqu.Dialect("postgres").
+		From("b").
+		Select("a").
+		Where(goqu.L("c = ?", sql2.Named("val1", "xxx-1"))).
+		Where(goqu.L("d = ?", sql2.Named("val1", "xxx-2"))).
+		Where(goqu.L("e = ?", "xxx-3")).
+		Prepared(true)
+	sql, args, err := ds.ToSQL()
+	gis.NoError(err)
+	gis.Equal(`SELECT "a" FROM "b" WHERE (c = $1 AND d = $1 AND e = $2)`, sql)
+	gis.Equal(args, []interface{}{"xxx-1", "xxx-3"})
 }
 
 func TestGithubIssuesSuite(t *testing.T) {
