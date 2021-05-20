@@ -69,6 +69,8 @@ func (esg *expressionSQLGenerator) Dialect() string {
 	return esg.dialect
 }
 
+var valuerReflectType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+
 func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 	if b.Error() != nil {
 		return
@@ -103,6 +105,13 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		}
 		esg.literalTime(b, *v)
 	case driver.Valuer:
+		// See https://github.com/golang/go/commit/0ce1d79a6a771f7449ec493b993ed2a720917870
+		if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr &&
+			rv.IsNil() &&
+			rv.Type().Elem().Implements(valuerReflectType) {
+			esg.literalNil(b)
+			return
+		}
 		dVal, err := v.Value()
 		if err != nil {
 			b.SetError(err)
