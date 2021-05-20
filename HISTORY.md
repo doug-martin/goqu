@@ -1,3 +1,7 @@
+# v9.13.0
+
+* [ADDED] ScanStructs, ScanVals to Scanner interface [#273](https://github.com/doug-martin/goqu/issues/273) - [@vlanse](https://github.com/vlanse)
+
 # v9.12.0
 
 * Update golangci-lint and updates for all associated linters
