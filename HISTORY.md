@@ -1,3 +1,6 @@
+# v9.14.0
+* [ADDED] GroupByAppend to the SelectDataset and SelectClauses
+*
 # v9.13.0
 
 * [ADDED] ScanStructs, ScanVals to Scanner interface [#273](https://github.com/doug-martin/goqu/issues/273) - [@vlanse](https://github.com/vlanse)
