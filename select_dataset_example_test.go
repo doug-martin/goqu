@@ -420,7 +420,7 @@ func ExampleSelectDataset_GroupByAppend() {
 		GroupBy("age").
 		ToSQL()
 	fmt.Println(sql)
-	sql, _, _ := goqu.From("test").
+	sql, _, _ = goqu.From("test").
 		Select(goqu.SUM("income").As("income_sum")).
 		GroupByAppend("age").
 		ToSQL()
