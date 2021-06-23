@@ -6,33 +6,59 @@ import (
 	"github.com/doug-martin/goqu/v9/internal/sb"
 )
 
-var (
-	errNoUpdatedValuesProvided = errors.New("no update values provided")
-)
+var ErrNoUpdatedValuesProvided = errors.New("no update values provided")
 
-func errCTENotSupported(dialect string) error {
+func ErrCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH clause [dialect=%s]", dialect)
 }
-func errRecursiveCTENotSupported(dialect string) error {
+
+func ErrRecursiveCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH RECURSIVE clause [dialect=%s]", dialect)
 }
 
-func errReturnNotSupported(dialect string) error {
+func ErrReturnNotSupported(dialect string) error {
 	return errors.New("dialect does not support RETURNING clause [dialect=%s]", dialect)
 }
 
-func errNotSupportedFragment(sqlType string, f SQLFragmentType) error {
+func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {
 	return errors.New("unsupported %s SQL fragment %s", sqlType, f)
 }
 
-type commonSQLGenerator struct {
-	dialect        string
-	esg            ExpressionSQLGenerator
-	dialectOptions *SQLDialectOptions
+type (
+	CommonSQLGenerator interface {
+		Dialect() string
+		DialectOptions() *SQLDialectOptions
+		ExpressionSQLGenerator() ExpressionSQLGenerator
+		ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpression)
+		FromSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
+		SourcesSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
+		WhereSQL(b sb.SQLBuilder, where exp.ExpressionList)
+		OrderSQL(b sb.SQLBuilder, order exp.ColumnListExpression)
+		OrderWithOffsetFetchSQL(b sb.SQLBuilder, order exp.ColumnListExpression, offset uint, limit interface{})
+		LimitSQL(b sb.SQLBuilder, limit interface{})
+		UpdateExpressionSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression)
+	}
+	commonSQLGenerator struct {
+		dialect        string
+		esg            ExpressionSQLGenerator
+		dialectOptions *SQLDialectOptions
+	}
+)
+
+func NewCommonSQLGenerator(dialect string, do *SQLDialectOptions) CommonSQLGenerator {
+	return &commonSQLGenerator{dialect: dialect, esg: NewExpressionSQLGenerator(dialect, do), dialectOptions: do}
 }
 
-func newCommonSQLGenerator(dialect string, do *SQLDialectOptions) *commonSQLGenerator {
-	return &commonSQLGenerator{dialect: dialect, esg: NewExpressionSQLGenerator(dialect, do), dialectOptions: do}
+func (csg *commonSQLGenerator) Dialect() string {
+	return csg.dialect
+}
+
+func (csg *commonSQLGenerator) DialectOptions() *SQLDialectOptions {
+	return csg.dialectOptions
+}
+
+func (csg *commonSQLGenerator) ExpressionSQLGenerator() ExpressionSQLGenerator {
+	return csg.esg
 }
 
 func (csg *commonSQLGenerator) ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpression) {
@@ -41,7 +67,7 @@ func (csg *commonSQLGenerator) ReturningSQL(b sb.SQLBuilder, returns exp.ColumnL
 			b.Write(csg.dialectOptions.ReturningFragment)
 			csg.esg.Generate(b, returns)
 		} else {
-			b.SetError(errReturnNotSupported(csg.dialect))
+			b.SetError(ErrReturnNotSupported(csg.dialect))
 		}
 	}
 }
@@ -115,7 +141,7 @@ func (csg *commonSQLGenerator) LimitSQL(b sb.SQLBuilder, limit interface{}) {
 
 func (csg *commonSQLGenerator) UpdateExpressionSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression) {
 	if len(updates) == 0 {
-		b.SetError(errNoUpdatedValuesProvided)
+		b.SetError(ErrNoUpdatedValuesProvided)
 		return
 	}
 	updateLen := len(updates)

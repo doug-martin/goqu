@@ -11,7 +11,7 @@ import (
 	_ "github.com/doug-martin/goqu/v9/dialect/sqlite3"
 )
 
-// Creating a mysql dataset. Be sure to import the mysql adapter
+// Creating a mysql dataset. Be sure to import the mysql adapter.
 func ExampleDialect_datasetMysql() {
 	// import _ "github.com/doug-martin/goqu/v9/adapters/mysql"
 
@@ -32,7 +32,7 @@ func ExampleDialect_datasetMysql() {
 	// SELECT * FROM `test` WHERE ((`baz` IN (?, ?, ?)) AND (`foo` = ?)) LIMIT ? [1 2 3 bar 10]
 }
 
-// Creating a mysql database. Be sure to import the mysql adapter
+// Creating a mysql database. Be sure to import the mysql adapter.
 func ExampleDialect_dbMysql() {
 	// import _ "github.com/doug-martin/goqu/v9/adapters/mysql"
 
@@ -47,11 +47,11 @@ func ExampleDialect_dbMysql() {
 	// 	if err != nil {
 	// 		panic(err.Error())
 	// 	}
-	mDb, mock, _ := sqlmock.New()
+	mDB, mock, _ := sqlmock.New()
 
 	d := goqu.Dialect("mysql")
 
-	db := d.DB(mDb)
+	db := d.DB(mDB)
 
 	// use the db.From to get a dataset to execute queries
 	ds := db.From("items").Where(goqu.C("id").Eq(1))
@@ -118,11 +118,11 @@ func ExampleDialect_dbPostgres() {
 	// 	if err != nil {
 	// 		panic(err.Error())
 	// 	}
-	mDb, mock, _ := sqlmock.New()
+	mDB, mock, _ := sqlmock.New()
 
 	d := goqu.Dialect("postgres")
 
-	db := d.DB(mDb)
+	db := d.DB(mDB)
 
 	// use the db.From to get a dataset to execute queries
 	ds := db.From("items").Where(goqu.C("id").Eq(1))
@@ -188,11 +188,11 @@ func ExampleDialect_dbSqlite3() {
 	// 	if err != nil {
 	// 		panic(err.Error())
 	// 	}
-	mDb, mock, _ := sqlmock.New()
+	mDB, mock, _ := sqlmock.New()
 
 	d := goqu.Dialect("sqlite3")
 
-	db := d.DB(mDb)
+	db := d.DB(mDB)
 
 	// use the db.From to get a dataset to execute queries
 	ds := db.From("items").Where(goqu.C("id").Eq(1))

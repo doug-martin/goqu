@@ -21,4 +21,4 @@ func (l lateral) Table() AppendableExpression {
 }
 
 func (l lateral) Expression() Expression               { return l }
-func (l lateral) As(val interface{}) AliasedExpression { return aliased(l, val) }
+func (l lateral) As(val interface{}) AliasedExpression { return NewAliasExpression(l, val) }

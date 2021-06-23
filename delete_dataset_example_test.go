@@ -18,7 +18,7 @@ func ExampleDelete() {
 }
 
 func ExampleDeleteDataset_Executor() {
-	db := getDb()
+	db := getDB()
 
 	de := db.Delete("goqu_user").
 		Where(goqu.Ex{"first_name": "Bob"}).
@@ -35,7 +35,7 @@ func ExampleDeleteDataset_Executor() {
 }
 
 func ExampleDeleteDataset_Executor_returning() {
-	db := getDb()
+	db := getDB()
 
 	de := db.Delete("goqu_user").
 		Where(goqu.C("last_name").Eq("Yukon")).
@@ -231,7 +231,7 @@ func ExampleDeleteDataset_ClearLimit() {
 	sql, _, _ := ds.ClearLimit().ToSQL()
 	fmt.Println(sql)
 	// Output:
-	// DELETE FROM `test`
+	// DELETE `test` FROM `test`
 }
 
 func ExampleDeleteDataset_Order() {

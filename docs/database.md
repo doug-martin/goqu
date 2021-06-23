@@ -25,7 +25,7 @@ if err != nil{
 }
 //use tx.From to get a dataset that will execute within this transaction
 update := tx.From("user").
-    Where(goqu.Ex("password": nil}).
+    Where(goqu.Ex{"password": nil}).
     Update(goqu.Record{"status": "inactive"})
 if _, err = update.Exec(); err != nil{
     if rErr := tx.Rollback(); rErr != nil{
@@ -56,7 +56,7 @@ if err != nil{
 }
 err = tx.Wrap(func() error{
   update := tx.From("user").
-      Where(goqu.Ex("password": nil}).
+      Where(goqu.Ex{"password": nil}).
       Update(goqu.Record{"status": "inactive"})
   return update.Exec()
 })

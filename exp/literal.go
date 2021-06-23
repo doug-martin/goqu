@@ -40,7 +40,7 @@ func (l literal) Args() []interface{} {
 }
 
 func (l literal) Expression() Expression                           { return l }
-func (l literal) As(val interface{}) AliasedExpression             { return aliased(l, val) }
+func (l literal) As(val interface{}) AliasedExpression             { return NewAliasExpression(l, val) }
 func (l literal) Eq(val interface{}) BooleanExpression             { return eq(l, val) }
 func (l literal) Neq(val interface{}) BooleanExpression            { return neq(l, val) }
 func (l literal) Gt(val interface{}) BooleanExpression             { return gt(l, val) }

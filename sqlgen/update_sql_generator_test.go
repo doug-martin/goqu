@@ -1,10 +1,11 @@
-package sqlgen
+package sqlgen_test
 
 import (
 	"testing"
 
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/doug-martin/goqu/v9/sqlgen"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,7 +22,7 @@ type (
 	}
 )
 
-func (usgs *updateSQLGeneratorSuite) assertCases(usg UpdateSQLGenerator, testCases ...updateTestCase) {
+func (usgs *updateSQLGeneratorSuite) assertCases(usg sqlgen.UpdateSQLGenerator, testCases ...updateTestCase) {
 	for _, tc := range testCases {
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		usg.Generate(b, tc.clause)
@@ -37,25 +38,25 @@ func (usgs *updateSQLGeneratorSuite) assertCases(usg UpdateSQLGenerator, testCas
 }
 
 func (usgs *updateSQLGeneratorSuite) TestDialect() {
-	opts := DefaultDialectOptions()
-	d := NewUpdateSQLGenerator("test", opts)
+	opts := sqlgen.DefaultDialectOptions()
+	d := sqlgen.NewUpdateSQLGenerator("test", opts)
 	usgs.Equal("test", d.Dialect())
 
-	opts2 := DefaultDialectOptions()
-	d2 := NewUpdateSQLGenerator("test2", opts2)
+	opts2 := sqlgen.DefaultDialectOptions()
+	d2 := sqlgen.NewUpdateSQLGenerator("test2", opts2)
 	usgs.Equal("test2", d2.Dialect())
 }
 
 func (usgs *updateSQLGeneratorSuite) TestGenerate_unsupportedFragment() {
-	opts := DefaultDialectOptions()
-	opts.UpdateSQLOrder = []SQLFragmentType{InsertBeingSQLFragment}
+	opts := sqlgen.DefaultDialectOptions()
+	opts.UpdateSQLOrder = []sqlgen.SQLFragmentType{sqlgen.InsertBeingSQLFragment}
 
 	uc := exp.NewUpdateClauses().
 		SetTable(exp.NewIdentifierExpression("", "test", "")).
 		SetSetValues(exp.Record{"a": "b", "b": "c"})
 	expectedErr := "goqu: unsupported UPDATE SQL fragment InsertBeingSQLFragment"
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, err: expectedErr},
 		updateTestCase{clause: uc, err: expectedErr, isPrepared: true},
 	)
@@ -64,9 +65,9 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_unsupportedFragment() {
 func (usgs *updateSQLGeneratorSuite) TestGenerate_empty() {
 	uc := exp.NewUpdateClauses()
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", DefaultDialectOptions()),
-		updateTestCase{clause: uc, err: errNoSourceForUpdate.Error()},
-		updateTestCase{clause: uc, err: errNoSourceForUpdate.Error(), isPrepared: true},
+		sqlgen.NewUpdateSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		updateTestCase{clause: uc, err: sqlgen.ErrNoSourceForUpdate.Error()},
+		updateTestCase{clause: uc, err: sqlgen.ErrNoSourceForUpdate.Error(), isPrepared: true},
 	)
 }
 
@@ -77,7 +78,7 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withBadUpdateValues() {
 
 	expectedErr := "goqu: unsupported update interface type bool"
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewUpdateSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		updateTestCase{clause: uc, err: expectedErr},
 		updateTestCase{clause: uc, err: expectedErr, isPrepared: true},
 	)
@@ -86,9 +87,9 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withBadUpdateValues() {
 func (usgs *updateSQLGeneratorSuite) TestGenerate_noSetValues() {
 	uc := exp.NewUpdateClauses().SetTable(exp.NewIdentifierExpression("", "test", ""))
 
-	expectedErr := errNoSetValuesForUpdate.Error()
+	expectedErr := sqlgen.ErrNoSetValuesForUpdate.Error()
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewUpdateSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		updateTestCase{clause: uc, err: expectedErr},
 		updateTestCase{clause: uc, err: expectedErr, isPrepared: true},
 	)
@@ -105,9 +106,9 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 		SetSetValues(exp.Record{"foo": nil}).
 		SetFrom(exp.NewColumnListExpression("other_test"))
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "foo"='bar' FROM "other_test"`},
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "foo"=? FROM "other_test"`, isPrepared: true, args: []interface{}{"bar"}},
 
@@ -115,10 +116,10 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 		updateTestCase{clause: ucNullSet, sql: `UPDATE "test" SET "foo"=? FROM "other_test"`, isPrepared: true, args: []interface{}{nil}},
 	)
 
-	opts = DefaultDialectOptions()
+	opts = sqlgen.DefaultDialectOptions()
 	opts.UseFromClauseForMultipleUpdateTables = false
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test","other_test" SET "foo"='bar'`},
 		updateTestCase{clause: uc, sql: `UPDATE "test","other_test" SET "foo"=?`, isPrepared: true, args: []interface{}{"bar"}},
 
@@ -126,18 +127,18 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 		updateTestCase{clause: ucNullSet, sql: `UPDATE "test","other_test" SET "foo"=?`, isPrepared: true, args: []interface{}{nil}},
 	)
 
-	opts = DefaultDialectOptions()
+	opts = sqlgen.DefaultDialectOptions()
 	opts.SupportsMultipleUpdateTables = false
 	expectedErr := "goqu: test dialect does not support multiple tables in UPDATE"
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, err: expectedErr},
 		updateTestCase{clause: uc, err: expectedErr, isPrepared: true},
 	)
 }
 
 func (usgs *updateSQLGeneratorSuite) TestGenerate_withUpdateExpression() {
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	// make sure the fragments are used
 	opts.SetFragment = []byte(" set ")
 	uc := exp.NewUpdateClauses().
@@ -148,7 +149,7 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withUpdateExpression() {
 	ucEmptyRecord := uc.SetSetValues(exp.Record{})
 
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: ucRecord, sql: `UPDATE "test" set "a"='b',"b"='c'`},
 		updateTestCase{clause: ucRecord, sql: `UPDATE "test" set "a"=?,"b"=?`, isPrepared: true, args: []interface{}{"b", "c"}},
 
@@ -158,8 +159,8 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withUpdateExpression() {
 		updateTestCase{clause: ucRecordBoolVals, sql: `UPDATE "test" set "a"=TRUE,"b"=FALSE`},
 		updateTestCase{clause: ucRecordBoolVals, sql: `UPDATE "test" set "a"=?,"b"=?`, isPrepared: true, args: []interface{}{true, false}},
 
-		updateTestCase{clause: ucEmptyRecord, err: errNoUpdatedValuesProvided.Error()},
-		updateTestCase{clause: ucEmptyRecord, err: errNoUpdatedValuesProvided.Error(), isPrepared: true},
+		updateTestCase{clause: ucEmptyRecord, err: sqlgen.ErrNoUpdatedValuesProvided.Error()},
+		updateTestCase{clause: ucEmptyRecord, err: sqlgen.ErrNoUpdatedValuesProvided.Error(), isPrepared: true},
 	)
 }
 
@@ -172,11 +173,11 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withOrder() {
 			exp.NewIdentifierExpression("", "", "b").Desc(),
 		)
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.SupportsOrderByOnUpdate = true
 
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"='b',"b"='c' ORDER BY "a" ASC, "b" DESC`},
 		updateTestCase{
 			clause:     uc,
@@ -186,10 +187,10 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withOrder() {
 		},
 	)
 
-	opts = DefaultDialectOptions()
+	opts = sqlgen.DefaultDialectOptions()
 	opts.SupportsOrderByOnUpdate = false
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"='b',"b"='c'`},
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"=?,"b"=?`, isPrepared: true, args: []interface{}{"b", "c"}},
 	)
@@ -201,19 +202,19 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withLimit() {
 		SetSetValues(exp.Record{"a": "b", "b": "c"}).
 		SetLimit(10)
 
-	opts := DefaultDialectOptions()
+	opts := sqlgen.DefaultDialectOptions()
 	opts.SupportsLimitOnUpdate = true
 
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"='b',"b"='c' LIMIT 10`},
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"=?,"b"=? LIMIT ?`, isPrepared: true, args: []interface{}{"b", "c", int64(10)}},
 	)
 
-	opts = DefaultDialectOptions()
+	opts = sqlgen.DefaultDialectOptions()
 	opts.SupportsLimitOnUpdate = false
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", opts),
+		sqlgen.NewUpdateSQLGenerator("test", opts),
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"='b',"b"='c'`},
 		updateTestCase{clause: uc, sql: `UPDATE "test" SET "a"=?,"b"=?`, isPrepared: true, args: []interface{}{"b", "c"}},
 	)
@@ -228,7 +229,7 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withCommonTables() {
 	ucCte2 := uc.CommonTablesAppend(exp.NewCommonTableExpression(true, "test_cte", tse))
 
 	usgs.assertCases(
-		NewUpdateSQLGenerator("test", DefaultDialectOptions()),
+		sqlgen.NewUpdateSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		updateTestCase{
 			clause: ucCte1,
 			sql:    `WITH test_cte AS (select * from foo) UPDATE "test_cte" SET "a"='b',"b"='c'`,

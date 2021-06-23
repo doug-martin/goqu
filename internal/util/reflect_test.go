@@ -1,14 +1,14 @@
-package util
+package util_test
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/doug-martin/goqu/v9/internal/util"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -90,281 +90,281 @@ type reflectTest struct {
 
 func (rt *reflectTest) TestIsUint() {
 	for _, v := range uints {
-		rt.True(IsUint(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range ints {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsUint(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsUint(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsInt() {
 	for _, v := range ints {
-		rt.True(IsInt(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsInt(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInt(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsFloat() {
 	for _, v := range floats {
-		rt.True(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsFloat(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsFloat(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsString() {
 	for _, v := range strs {
-		rt.True(IsString(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsString(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsString(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsBool() {
 	for _, v := range bools {
-		rt.True(IsBool(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsBool(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsBool(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsStruct() {
 	for _, v := range structs {
-		rt.True(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsStruct(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsStruct(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsSlice() {
-	rt.True(IsSlice(reflect.ValueOf(uints).Kind()))
-	rt.True(IsSlice(reflect.ValueOf(ints).Kind()))
-	rt.True(IsSlice(reflect.ValueOf(floats).Kind()))
-	rt.True(IsSlice(reflect.ValueOf(structs).Kind()))
+	rt.True(util.IsSlice(reflect.ValueOf(uints).Kind()))
+	rt.True(util.IsSlice(reflect.ValueOf(ints).Kind()))
+	rt.True(util.IsSlice(reflect.ValueOf(floats).Kind()))
+	rt.True(util.IsSlice(reflect.ValueOf(structs).Kind()))
 
-	rt.False(IsSlice(reflect.ValueOf(structs[0]).Kind()))
+	rt.False(util.IsSlice(reflect.ValueOf(structs[0]).Kind()))
 }
 
 func (rt *reflectTest) TestIsInvalid() {
 	for _, v := range invalids {
-		rt.True(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range pointers {
-		rt.False(IsInvalid(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsInvalid(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsPointer() {
 	for _, v := range pointers {
-		rt.True(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.True(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 
 	for _, v := range uints {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range ints {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range floats {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range bools {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range strs {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range structs {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 	for _, v := range invalids {
-		rt.False(IsPointer(reflect.ValueOf(v).Kind()))
+		rt.False(util.IsPointer(reflect.ValueOf(v).Kind()))
 	}
 }
 
 func (rt *reflectTest) TestIsEmptyValue_emptyValues() {
 	ts := TestStruct{}
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.arr)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.slc)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.mp)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.str)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.bl)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.i)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.i8)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.i16)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.i32)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.i64)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui8)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui16)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui32)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.ui64)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.f32)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.f64)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.intr)))
-	rt.True(IsEmptyValue(reflect.ValueOf(ts.ptr)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.arr)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.slc)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.mp)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.str)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.bl)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.i)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.i8)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.i16)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.i32)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.i64)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ui)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ui8)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ui16)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ui32)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ui64)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.f32)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.f64)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ptr)))
 }
 
 func (rt *reflectTest) TestIsEmptyValue_validValues() {
 	ts := TestStruct{intr: TestInterfaceImpl{"hello"}}
-	rt.False(IsEmptyValue(reflect.ValueOf([1]string{"a"})))
-	rt.False(IsEmptyValue(reflect.ValueOf([]string{"a"})))
-	rt.False(IsEmptyValue(reflect.ValueOf(map[string]interface{}{"a": true})))
-	rt.False(IsEmptyValue(reflect.ValueOf("str")))
-	rt.False(IsEmptyValue(reflect.ValueOf(true)))
-	rt.False(IsEmptyValue(reflect.ValueOf(int(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(int8(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(int16(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(int32(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(int64(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(uint(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(uint8(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(uint16(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(uint32(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(uint64(1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(float32(0.1))))
-	rt.False(IsEmptyValue(reflect.ValueOf(float64(0.2))))
-	rt.False(IsEmptyValue(reflect.ValueOf(ts.intr)))
-	rt.False(IsEmptyValue(reflect.ValueOf(&TestStruct{str: "a"})))
+	rt.False(util.IsEmptyValue(reflect.ValueOf([1]string{"a"})))
+	rt.False(util.IsEmptyValue(reflect.ValueOf([]string{"a"})))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(map[string]interface{}{"a": true})))
+	rt.False(util.IsEmptyValue(reflect.ValueOf("str")))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(true)))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(int(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(int8(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(int16(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(int32(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(int64(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(uint(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(uint8(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(uint16(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(uint32(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(uint64(1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(float32(0.1))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(float64(0.2))))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(&TestStruct{str: "a"})))
 }
 
 func (rt *reflectTest) TestColumnRename() {
@@ -376,10 +376,10 @@ func (rt *reflectTest) TestColumnRename() {
 		FirstLower string
 		LastLower  string
 	}{}
-	lowerColumnMap, lowerErr := GetColumnMap(&lowerAnon)
+	lowerColumnMap, lowerErr := util.GetColumnMap(&lowerAnon)
 	rt.NoError(lowerErr)
 
-	var lowerKeys []string
+	lowerKeys := make([]string, 0, len(lowerColumnMap))
 	for key := range lowerColumnMap {
 		lowerKeys = append(lowerKeys, key)
 	}
@@ -387,23 +387,23 @@ func (rt *reflectTest) TestColumnRename() {
 	rt.Contains(lowerKeys, "lastlower")
 
 	// changing rename function
-	SetColumnRenameFunction(strings.ToUpper)
+	util.SetColumnRenameFunction(strings.ToUpper)
 
 	upperAnon := struct {
 		FirstUpper string
 		LastUpper  string
 	}{}
-	upperColumnMap, upperErr := GetColumnMap(&upperAnon)
+	upperColumnMap, upperErr := util.GetColumnMap(&upperAnon)
 	rt.NoError(upperErr)
 
-	var upperKeys []string
+	upperKeys := make([]string, 0, len(upperColumnMap))
 	for key := range upperColumnMap {
 		upperKeys = append(upperKeys, key)
 	}
 	rt.Contains(upperKeys, "FIRSTUPPER")
 	rt.Contains(upperKeys, "LASTUPPER")
 
-	SetColumnRenameFunction(defaultColumnRenameFunction)
+	util.SetColumnRenameFunction(util.DefaultColumnRenameFunction)
 }
 
 func (rt *reflectTest) TestParallelGetColumnMap() {
@@ -417,7 +417,7 @@ func (rt *reflectTest) TestParallelGetColumnMap() {
 	wg.Add(1)
 	go func() {
 		i := item{id: 1, name: "bob"}
-		m, err := GetColumnMap(i)
+		m, err := util.GetColumnMap(i)
 		rt.NoError(err)
 		rt.NotNil(m)
 		wg.Done()
@@ -426,7 +426,7 @@ func (rt *reflectTest) TestParallelGetColumnMap() {
 	wg.Add(1)
 	go func() {
 		i := item{id: 2, name: "sally"}
-		m, err := GetColumnMap(i)
+		m, err := util.GetColumnMap(i)
 		rt.NoError(err)
 		rt.NotNil(m)
 		wg.Done()
@@ -443,7 +443,7 @@ func (rt *reflectTest) TestAssignStructVals_withStruct() {
 		Valuer sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	data := map[string]interface{}{
 		"str":    "string",
@@ -452,7 +452,7 @@ func (rt *reflectTest) TestAssignStructVals_withStruct() {
 		"valuer": sql.NullString{String: "null_str", Valid: true},
 	}
 
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		Str:    "string",
 		Int:    10,
@@ -469,7 +469,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -478,7 +478,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithPointerVals() {
 		"bool":   true,
 		"valuer": &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		Str:    "string",
 		Int:    10,
@@ -498,7 +498,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -507,7 +507,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStruct() {
 		"bool":   true,
 		"valuer": &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		EmbeddedStruct: EmbeddedStruct{Str: "string"},
 		Int:            10,
@@ -527,7 +527,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -536,7 +536,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithEmbeddedStructPointer(
 		"bool":   true,
 		"valuer": &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		EmbeddedStruct: &EmbeddedStruct{Str: "string"},
 		Int:            10,
@@ -556,7 +556,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedStruct()
 		Valuer         *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -565,7 +565,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedStruct()
 		"bool":         true,
 		"valuer":       &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		EmbeddedStruct: EmbeddedStruct{Str: "string"},
 		Int:            10,
@@ -585,7 +585,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedPointer(
 		Valuer          *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -594,7 +594,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedEmbeddedPointer(
 		"bool":         true,
 		"valuer":       &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		EmbeddedStruct: &EmbeddedStruct{Str: "string"},
 		Int:            10,
@@ -614,7 +614,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructField() {
 		Valuer   *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -623,7 +623,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedStructField() {
 		"bool":         true,
 		"valuer":       &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		Embedded: EmbeddedStruct{Str: "string"},
 		Int:      10,
@@ -643,7 +643,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerField() {
 		Valuer   *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
 	ns := &sql.NullString{String: "null_str1", Valid: true}
 	data := map[string]interface{}{
@@ -652,7 +652,7 @@ func (rt *reflectTest) TestAssignStructVals_withStructWithTaggedPointerField() {
 		"bool":         true,
 		"valuer":       &ns,
 	}
-	AssignStructVals(&ts, data, cm)
+	util.AssignStructVals(&ts, data, cm)
 	rt.Equal(ts, TestStruct{
 		Embedded: &EmbeddedStruct{Str: "string"},
 		Int:      10,
@@ -669,9 +669,9 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -688,9 +688,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"str":  {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
 		"int":  {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool": {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
@@ -714,9 +714,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 		Valuer *sql.NullString `db:"v"`
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"s": {ColumnName: "s", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"i": {ColumnName: "i", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"b": {ColumnName: "b", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -732,9 +732,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTagAndGoquTag() {
 		Valuer *sql.NullString `db:"v"`
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"s": {ColumnName: "s", FieldIndex: []int{0}, ShouldInsert: false, ShouldUpdate: false, GoType: reflect.TypeOf("")},
 		"i": {ColumnName: "i", FieldIndex: []int{1}, ShouldInsert: false, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"b": {ColumnName: "b", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: false, GoType: reflect.TypeOf(true)},
@@ -750,9 +750,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithTransientFields() {
 		Valuer *sql.NullString `db:"-"`
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"str":  {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":  {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool": {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -767,9 +767,9 @@ func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
 		Valuer *sql.NullString
 	}
 	var ts []TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -779,7 +779,7 @@ func (rt *reflectTest) TestGetColumnMap_withSliceOfStructs() {
 
 func (rt *reflectTest) TestGetColumnMap_withNonStruct() {
 	var v int64
-	_, err := GetColumnMap(&v)
+	_, err := util.GetColumnMap(&v)
 	rt.EqualError(err, "goqu: cannot scan into this type: int64")
 }
 
@@ -794,9 +794,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStruct() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0, 0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -815,9 +815,9 @@ func (rt *reflectTest) TestGetColumnMap_withStructWithEmbeddedStructPointer() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"str":    {ColumnName: "str", FieldIndex: []int{0, 0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
@@ -836,9 +836,9 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedStruct() {
 		Valuer         *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -856,9 +856,9 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
 		Valuer          *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -873,9 +873,9 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{3}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -894,9 +894,9 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 		Valuer *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"int":    {ColumnName: "int", FieldIndex: []int{0, 1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
 		"bool":   {ColumnName: "bool", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(true)},
 		"valuer": {ColumnName: "valuer", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
@@ -915,10 +915,9 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStruct() {
 		Valuer       *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
 			FieldIndex:   []int{0, 0},
@@ -962,10 +961,9 @@ func (rt *reflectTest) TestGetColumnMap_withEmbeddedTaggedStructPointer() {
 		Valuer        *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
 			FieldIndex:   []int{0, 0},
@@ -1008,10 +1006,9 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructField() {
 		Valuer   *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
 			FieldIndex:   []int{0, 0},
@@ -1055,10 +1052,9 @@ func (rt *reflectTest) TestGetColumnMap_withTaggedStructPointerField() {
 		Valuer   *sql.NullString
 	}
 	var ts TestStruct
-	cm, err := GetColumnMap(&ts)
+	cm, err := util.GetColumnMap(&ts)
 	rt.NoError(err)
-	fmt.Println(cm)
-	rt.Equal(ColumnMap{
+	rt.Equal(util.ColumnMap{
 		"test_embedded.bool": {
 			ColumnName:   "test_embedded.bool",
 			FieldIndex:   []int{0, 0},
@@ -1095,15 +1091,15 @@ func (rt *reflectTest) TestGetTypeInfo() {
 	var b []int64
 	var c []*time.Time
 
-	t, k := GetTypeInfo(&a, reflect.ValueOf(a))
+	t, k := util.GetTypeInfo(&a, reflect.ValueOf(a))
 	rt.Equal(reflect.TypeOf(a), t)
 	rt.Equal(reflect.Int64, k)
 
-	t, k = GetTypeInfo(&b, reflect.ValueOf(a))
+	t, k = util.GetTypeInfo(&b, reflect.ValueOf(a))
 	rt.Equal(reflect.TypeOf(a), t)
 	rt.Equal(reflect.Int64, k)
 
-	t, k = GetTypeInfo(c, reflect.ValueOf(c))
+	t, k = util.GetTypeInfo(c, reflect.ValueOf(c))
 	rt.Equal(reflect.TypeOf(time.Time{}), t)
 	rt.Equal(reflect.Struct, k)
 }
@@ -1121,52 +1117,52 @@ func (rt *reflectTest) TestSafeGetFieldByIndex() {
 		FieldB string
 	}
 	v := reflect.ValueOf(TestEmbeddedPointerStruct{})
-	f, isAvailable := SafeGetFieldByIndex(v, []int{0, 0})
+	f, isAvailable := util.SafeGetFieldByIndex(v, []int{0, 0})
 	rt.False(isAvailable)
 	rt.False(f.IsValid())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{1})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
 	rt.Equal(reflect.String, f.Type().Kind())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{})
 	rt.True(isAvailable)
 	rt.Equal(v, f)
 
 	v = reflect.ValueOf(TestEmbeddedPointerStruct{TestEmbedded: &TestEmbedded{}})
-	f, isAvailable = SafeGetFieldByIndex(v, []int{0, 0})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{0, 0})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
 	rt.Equal(reflect.Int, f.Type().Kind())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{1})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
 	rt.Equal(reflect.String, f.Type().Kind())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{})
 	rt.True(isAvailable)
 	rt.Equal(v, f)
 
 	v = reflect.ValueOf(TestEmbeddedStruct{})
-	f, isAvailable = SafeGetFieldByIndex(v, []int{0, 0})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{0, 0})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
 	rt.Equal(reflect.Int, f.Type().Kind())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{1})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
 	rt.Equal(reflect.String, f.Type().Kind())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{})
 	rt.True(isAvailable)
 	rt.Equal(v, f)
 
 	v = reflect.ValueOf(TestEmbeddedStruct{TestEmbedded: TestEmbedded{}})
-	f, isAvailable = SafeGetFieldByIndex(v, []int{0, 0})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{0, 0})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{1})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{1})
 	rt.True(isAvailable)
 	rt.True(f.IsValid())
 	rt.Equal(reflect.String, f.Type().Kind())
-	f, isAvailable = SafeGetFieldByIndex(v, []int{})
+	f, isAvailable = util.SafeGetFieldByIndex(v, []int{})
 	rt.True(isAvailable)
 	rt.Equal(v, f)
 }
@@ -1185,15 +1181,15 @@ func (rt *reflectTest) TestSafeSetFieldByIndex() {
 	}
 	var teps TestEmbeddedPointerStruct
 	v := reflect.ValueOf(&teps)
-	f := SafeSetFieldByIndex(v, []int{}, nil)
+	f := util.SafeSetFieldByIndex(v, []int{}, nil)
 	rt.Equal(TestEmbeddedPointerStruct{}, f.Interface())
 
-	f = SafeSetFieldByIndex(v, []int{0, 0}, 1)
+	f = util.SafeSetFieldByIndex(v, []int{0, 0}, 1)
 	rt.Equal(TestEmbeddedPointerStruct{
 		TestEmbedded: &TestEmbedded{FieldA: 1},
 	}, f.Interface())
 
-	f = SafeSetFieldByIndex(v, []int{1}, "hello")
+	f = util.SafeSetFieldByIndex(v, []int{1}, "hello")
 	rt.Equal(TestEmbeddedPointerStruct{
 		TestEmbedded: &TestEmbedded{FieldA: 1},
 		FieldB:       "hello",
@@ -1205,15 +1201,15 @@ func (rt *reflectTest) TestSafeSetFieldByIndex() {
 
 	var tes TestEmbeddedStruct
 	v = reflect.ValueOf(&tes)
-	f = SafeSetFieldByIndex(v, []int{}, nil)
+	f = util.SafeSetFieldByIndex(v, []int{}, nil)
 	rt.Equal(TestEmbeddedStruct{}, f.Interface())
 
-	f = SafeSetFieldByIndex(v, []int{0, 0}, 1)
+	f = util.SafeSetFieldByIndex(v, []int{0, 0}, 1)
 	rt.Equal(TestEmbeddedStruct{
 		TestEmbedded: TestEmbedded{FieldA: 1},
 	}, f.Interface())
 
-	f = SafeSetFieldByIndex(v, []int{1}, "hello")
+	f = util.SafeSetFieldByIndex(v, []int{1}, "hello")
 	rt.Equal(TestEmbeddedStruct{
 		TestEmbedded: TestEmbedded{FieldA: 1},
 		FieldB:       "hello",
@@ -1251,7 +1247,7 @@ func (rt *reflectTest) TestGetSliceElementType() {
 
 	for _, tt := range tests {
 		sliceVal := reflect.ValueOf(tt.slice)
-		elementType := GetSliceElementType(sliceVal)
+		elementType := util.GetSliceElementType(sliceVal)
 
 		rt.Equal(tt.want, elementType)
 	}
@@ -1261,12 +1257,12 @@ func (rt *reflectTest) TestAppendSliceElement() {
 	type MyStruct struct{}
 
 	sliceVal := reflect.Indirect(reflect.ValueOf(&[]MyStruct{}))
-	AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
+	util.AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
 
 	rt.Equal([]MyStruct{{}}, sliceVal.Interface())
 
 	sliceVal = reflect.Indirect(reflect.ValueOf(&[]*MyStruct{}))
-	AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
+	util.AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
 
 	rt.Equal([]*MyStruct{{}}, sliceVal.Interface())
 }

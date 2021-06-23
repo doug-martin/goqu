@@ -171,6 +171,7 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 			case *regexp.Regexp:
 				return checkLikeExp(LikeOp, lhs, rhs, invert)
 			}
+		default:
 		}
 	}
 	if invert {

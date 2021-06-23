@@ -11,7 +11,7 @@ type (
 //    Or(I("a").Eq(10), I("b").Eq(11)) //(("a" = 10) OR ("b" = 11))
 func NewExpressionList(operator ExpressionListType, expressions ...Expression) ExpressionList {
 	el := expressionList{operator: operator}
-	exps := make([]Expression, len(el.expressions))
+	exps := make([]Expression, 0, len(el.expressions))
 	for _, e := range expressions {
 		switch t := e.(type) {
 		case ExpressionList:
@@ -35,9 +35,9 @@ func NewExpressionList(operator ExpressionListType, expressions ...Expression) E
 }
 
 func (el expressionList) Clone() Expression {
-	newExps := make([]Expression, len(el.expressions))
-	for i, exp := range el.expressions {
-		newExps[i] = exp.Clone()
+	newExps := make([]Expression, 0, len(el.expressions))
+	for _, exp := range el.expressions {
+		newExps = append(newExps, exp.Clone())
 	}
 	return expressionList{operator: el.operator, expressions: newExps}
 }
@@ -59,7 +59,8 @@ func (el expressionList) Expressions() []Expression {
 }
 
 func (el expressionList) Append(expressions ...Expression) ExpressionList {
-	exps := make([]Expression, len(el.expressions))
-	copy(exps, el.expressions)
-	return NewExpressionList(el.operator, append(exps, expressions...)...)
+	exps := make([]Expression, 0, len(el.expressions)+len(expressions))
+	exps = append(exps, el.expressions...)
+	exps = append(exps, expressions...)
+	return NewExpressionList(el.operator, exps...)
 }

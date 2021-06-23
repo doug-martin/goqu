@@ -12,6 +12,8 @@ type (
 	SQLDialectOptions struct {
 		// Set to true if the dialect supports ORDER BY expressions in DELETE statements (DEFAULT=false)
 		SupportsOrderByOnDelete bool
+		// Set to true if the dialect supports table hint for DELETE statements (DELETE t FROM t ...), DEFAULT=false
+		SupportsDeleteTableHint bool
 		// Set to true if the dialect supports ORDER BY expressions in UPDATE statements (DEFAULT=false)
 		SupportsOrderByOnUpdate bool
 		// Set to true if the dialect supports LIMIT expressions in DELETE statements (DEFAULT=false)
@@ -237,6 +239,8 @@ type (
 		// 		exp.CrossJoinType:        []byte(" CROSS JOIN "),
 		// 	})
 		JoinTypeLookup map[exp.JoinType][]byte
+		// Whether or not boolean data type is supported
+		BooleanDataTypeSupported bool
 		// Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
 		UseLiteralIsBools bool
 		// EscapedRunes is a map of a rune and the corresponding escape sequence in bytes. Used when escaping text
@@ -392,9 +396,11 @@ func (sf SQLFragmentType) String() string {
 	return fmt.Sprintf("%d", sf)
 }
 
+//nolint:funlen
 func DefaultDialectOptions() *SQLDialectOptions {
 	return &SQLDialectOptions{
 		SupportsOrderByOnDelete:     false,
+		SupportsDeleteTableHint:     false,
 		SupportsOrderByOnUpdate:     false,
 		SupportsLimitOnDelete:       false,
 		SupportsLimitOnUpdate:       false,
@@ -525,8 +531,10 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			exp.CrossJoinType:        []byte(" CROSS JOIN "),
 		},
 
-		TimeFormat:        time.RFC3339Nano,
-		UseLiteralIsBools: true,
+		TimeFormat: time.RFC3339Nano,
+
+		BooleanDataTypeSupported: true,
+		UseLiteralIsBools:        true,
 
 		EscapedRunes: map[rune][]byte{
 			'\'': []byte("''"),

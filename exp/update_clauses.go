@@ -75,6 +75,7 @@ func (uc *updateClauses) clone() *updateClauses {
 func (uc *updateClauses) CommonTables() []CommonTableExpression {
 	return uc.commonTables
 }
+
 func (uc *updateClauses) CommonTablesAppend(cte CommonTableExpression) UpdateClauses {
 	ret := uc.clone()
 	ret.commonTables = append(ret.commonTables, cte)
@@ -84,6 +85,7 @@ func (uc *updateClauses) CommonTablesAppend(cte CommonTableExpression) UpdateCla
 func (uc *updateClauses) Table() Expression {
 	return uc.table
 }
+
 func (uc *updateClauses) SetTable(table Expression) UpdateClauses {
 	ret := uc.clone()
 	ret.table = table
@@ -129,8 +131,7 @@ func (uc *updateClauses) ClearWhere() UpdateClauses {
 }
 
 func (uc *updateClauses) WhereAppend(expressions ...Expression) UpdateClauses {
-	expLen := len(expressions)
-	if expLen == 0 {
+	if len(expressions) == 0 {
 		return uc
 	}
 	ret := uc.clone()

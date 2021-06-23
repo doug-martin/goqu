@@ -19,10 +19,8 @@ type SelectDataset struct {
 	err          error
 }
 
-var (
-	errQueryFactoryNotFoundError = errors.New(
-		"unable to execute query did you use goqu.Database#From to create the dataset",
-	)
+var ErrQueryFactoryNotFoundError = errors.New(
+	"unable to execute query did you use goqu.Database#From to create the dataset",
 )
 
 // used internally by database to create a database with a specific adapter
@@ -579,7 +577,7 @@ func (sd *SelectDataset) ScanStructs(i interface{}) error {
 // i: A pointer to a slice of structs
 func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) error {
 	if sd.queryFactory == nil {
-		return errQueryFactoryNotFoundError
+		return ErrQueryFactoryNotFoundError
 	}
 	ds := sd
 	if sd.GetClauses().IsDefaultSelect() {
@@ -606,7 +604,7 @@ func (sd *SelectDataset) ScanStruct(i interface{}) (bool, error) {
 // i: A pointer to a structs
 func (sd *SelectDataset) ScanStructContext(ctx context.Context, i interface{}) (bool, error) {
 	if sd.queryFactory == nil {
-		return false, errQueryFactoryNotFoundError
+		return false, ErrQueryFactoryNotFoundError
 	}
 	ds := sd
 	if sd.GetClauses().IsDefaultSelect() {
@@ -628,7 +626,7 @@ func (sd *SelectDataset) ScanVals(i interface{}) error {
 // i: A pointer to a slice of primitive values
 func (sd *SelectDataset) ScanValsContext(ctx context.Context, i interface{}) error {
 	if sd.queryFactory == nil {
-		return errQueryFactoryNotFoundError
+		return ErrQueryFactoryNotFoundError
 	}
 	return sd.Executor().ScanValsContext(ctx, i)
 }
@@ -645,7 +643,7 @@ func (sd *SelectDataset) ScanVal(i interface{}) (bool, error) {
 // i: A pointer to a primitive value
 func (sd *SelectDataset) ScanValContext(ctx context.Context, i interface{}) (bool, error) {
 	if sd.queryFactory == nil {
-		return false, errQueryFactoryNotFoundError
+		return false, ErrQueryFactoryNotFoundError
 	}
 	return sd.Limit(1).Executor().ScanValContext(ctx, i)
 }

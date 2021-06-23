@@ -23,9 +23,9 @@ func NewInsertExpression(rows ...interface{}) (insertExpression InsertExpression
 	case 1:
 		val := reflect.ValueOf(rows[0])
 		if val.Kind() == reflect.Slice {
-			vals := make([]interface{}, val.Len())
+			vals := make([]interface{}, 0, val.Len())
 			for i := 0; i < val.Len(); i++ {
-				vals[i] = val.Index(i).Interface()
+				vals = append(vals, val.Index(i).Interface())
 			}
 			return NewInsertExpression(vals...)
 		}
@@ -55,9 +55,11 @@ func (i *insert) IsEmpty() bool {
 func (i *insert) IsInsertFrom() bool {
 	return i.from != nil
 }
+
 func (i *insert) From() AppendableExpression {
 	return i.from
 }
+
 func (i *insert) Cols() ColumnListExpression {
 	return i.cols
 }
@@ -87,9 +89,9 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 	if rowKind == reflect.Struct {
 		return createStructSliceInsert(rows...)
 	}
-	vals := make([][]interface{}, len(rows))
+	vals := make([][]interface{}, 0, len(rows))
 	var columns ColumnListExpression
-	for i, row := range rows {
+	for _, row := range rows {
 		if rowType != reflect.Indirect(reflect.ValueOf(row)).Type() {
 			return nil, errors.New(
 				"rows must be all the same type expected %+v got %+v",
@@ -103,9 +105,9 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 			if columns == nil {
 				mapKeys = util.ValueSlice(newRowValue.MapKeys())
 				sort.Sort(mapKeys)
-				colKeys := make([]interface{}, len(mapKeys))
-				for j, key := range mapKeys {
-					colKeys[j] = key.Interface()
+				colKeys := make([]interface{}, 0, len(mapKeys))
+				for _, key := range mapKeys {
+					colKeys = append(colKeys, key.Interface())
 				}
 				columns = NewColumnListExpression(colKeys...)
 			}
@@ -116,11 +118,11 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 			if !mapKeys.Equal(newMapKeys) {
 				return nil, errors.New("rows with different keys expected %s got %s", mapKeys.String(), newMapKeys.String())
 			}
-			rowVals := make([]interface{}, len(mapKeys))
-			for j, key := range mapKeys {
-				rowVals[j] = newRowValue.MapIndex(key).Interface()
+			rowVals := make([]interface{}, 0, len(mapKeys))
+			for _, key := range mapKeys {
+				rowVals = append(rowVals, newRowValue.MapIndex(key).Interface())
 			}
-			vals[i] = rowVals
+			vals = append(vals, rowVals)
 		default:
 			return nil, errors.New(
 				"unsupported insert must be map, goqu.Record, or struct type got: %T",

@@ -1,183 +1,128 @@
-package mysql
+package mysql_test
 
 import (
 	"regexp"
 	"testing"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
-type mysqlDialectSuite struct {
-	suite.Suite
-}
+type (
+	mysqlDialectSuite struct {
+		suite.Suite
+	}
+	sqlTestCase struct {
+		ds         exp.SQLExpression
+		sql        string
+		err        string
+		isPrepared bool
+		args       []interface{}
+	}
+)
 
 func (mds *mysqlDialectSuite) GetDs(table string) *goqu.SelectDataset {
 	return goqu.Dialect("mysql").From(table)
 }
 
+func (mds *mysqlDialectSuite) assertSQL(cases ...sqlTestCase) {
+	for i, c := range cases {
+		actualSQL, actualArgs, err := c.ds.ToSQL()
+		if c.err == "" {
+			mds.NoError(err, "test case %d failed", i)
+		} else {
+			mds.EqualError(err, c.err, "test case %d failed", i)
+		}
+		mds.Equal(c.sql, actualSQL, "test case %d failed", i)
+		if c.isPrepared && c.args != nil || len(c.args) > 0 {
+			mds.Equal(c.args, actualArgs, "test case %d failed", i)
+		} else {
+			mds.Empty(actualArgs, "test case %d failed", i)
+		}
+	}
+}
+
 func (mds *mysqlDialectSuite) TestIdentifiers() {
 	ds := mds.GetDs("test")
-	sql, _, err := ds.Select("a",
-		goqu.I("a.b.c"),
-		goqu.I("c.d"),
-		goqu.C("test").As("test"),
-	).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT `a`, `a`.`b`.`c`, `c`.`d`, `test` AS `test` FROM `test`", sql)
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Select(
+			"a",
+			goqu.I("a.b.c"),
+			goqu.I("c.d"),
+			goqu.C("test").As("test"),
+		), sql: "SELECT `a`, `a`.`b`.`c`, `c`.`d`, `test` AS `test` FROM `test`"},
+	)
 }
 
 func (mds *mysqlDialectSuite) TestLiteralString() {
 	ds := mds.GetDs("test")
 	col := goqu.C("a")
-	sql, _, err := ds.Where(col.Eq("test")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test')", sql)
-
-	sql, _, err = ds.Where(col.Eq("test'test")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\'test')", sql)
-
-	sql, _, err = ds.Where(col.Eq(`test"test`)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\"test')", sql)
-
-	sql, _, err = ds.Where(col.Eq(`test\test`)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\\test')", sql)
-
-	sql, _, err = ds.Where(col.Eq("test\ntest")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\ntest')", sql)
-
-	sql, _, err = ds.Where(col.Eq("test\rtest")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\rtest')", sql)
-
-	sql, _, err = ds.Where(col.Eq("test\x00test")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x00test')", sql)
-
-	sql, _, err = ds.Where(col.Eq("test\x1atest")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')", sql)
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Where(col.Eq("test")), sql: "SELECT * FROM `test` WHERE (`a` = 'test')"},
+		sqlTestCase{ds: ds.Where(col.Eq("test'test")), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\'test')"},
+		sqlTestCase{ds: ds.Where(col.Eq(`test"test`)), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\\"test')"},
+		sqlTestCase{ds: ds.Where(col.Eq(`test\test`)), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\\\test')"},
+		sqlTestCase{ds: ds.Where(col.Eq("test\ntest")), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\ntest')"},
+		sqlTestCase{ds: ds.Where(col.Eq("test\rtest")), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\rtest')"},
+		sqlTestCase{ds: ds.Where(col.Eq("test\x00test")), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\x00test')"},
+		sqlTestCase{ds: ds.Where(col.Eq("test\x1atest")), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')"},
+	)
 }
 
 func (mds *mysqlDialectSuite) TestLiteralBytes() {
 	col := goqu.C("a")
 	ds := mds.GetDs("test")
-	sql, _, err := ds.Where(col.Eq([]byte("test"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte("test'test"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\'test')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte(`test"test`))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\"test')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte(`test\test`))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\\\test')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte("test\ntest"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\ntest')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte("test\rtest"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\rtest')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte("test\x00test"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x00test')", sql)
-
-	sql, _, err = ds.Where(col.Eq([]byte("test\x1atest"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')", sql)
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Where(col.Eq([]byte("test"))), sql: "SELECT * FROM `test` WHERE (`a` = 'test')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte("test'test"))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\'test')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte(`test"test`))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\\"test')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte(`test\test`))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\\\test')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte("test\ntest"))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\ntest')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte("test\rtest"))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\rtest')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte("test\x00test"))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\x00test')"},
+		sqlTestCase{ds: ds.Where(col.Eq([]byte("test\x1atest"))), sql: "SELECT * FROM `test` WHERE (`a` = 'test\\x1atest')"},
+	)
 }
 
 func (mds *mysqlDialectSuite) TestBooleanOperations() {
 	col := goqu.C("a")
 	ds := mds.GetDs("test")
-	sql, _, err := ds.Where(col.Eq(true)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS TRUE)", sql)
-	sql, _, err = ds.Where(col.Eq(false)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS FALSE)", sql)
-	sql, _, err = ds.Where(col.Is(true)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS TRUE)", sql)
-	sql, _, err = ds.Where(col.Is(false)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS FALSE)", sql)
-	sql, _, err = ds.Where(col.IsTrue()).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS TRUE)", sql)
-	sql, _, err = ds.Where(col.IsFalse()).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS FALSE)", sql)
-
-	sql, _, err = ds.Where(col.Neq(true)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS NOT TRUE)", sql)
-	sql, _, err = ds.Where(col.Neq(false)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS NOT FALSE)", sql)
-	sql, _, err = ds.Where(col.IsNot(true)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS NOT TRUE)", sql)
-	sql, _, err = ds.Where(col.IsNot(false)).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS NOT FALSE)", sql)
-	sql, _, err = ds.Where(col.IsNotTrue()).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS NOT TRUE)", sql)
-	sql, _, err = ds.Where(col.IsNotFalse()).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` IS NOT FALSE)", sql)
-
-	sql, _, err = ds.Where(col.Like("a%")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` LIKE BINARY 'a%')", sql)
-
-	sql, _, err = ds.Where(col.NotLike("a%")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` NOT LIKE BINARY 'a%')", sql)
-
-	sql, _, err = ds.Where(col.ILike("a%")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` LIKE 'a%')", sql)
-	sql, _, err = ds.Where(col.NotILike("a%")).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` NOT LIKE 'a%')", sql)
-
-	sql, _, err = ds.Where(col.Like(regexp.MustCompile("(a|b)"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` REGEXP BINARY '(a|b)')", sql)
-	sql, _, err = ds.Where(col.NotLike(regexp.MustCompile("(a|b)"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` NOT REGEXP BINARY '(a|b)')", sql)
-	sql, _, err = ds.Where(col.ILike(regexp.MustCompile("(a|b)"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` REGEXP '(a|b)')", sql)
-	sql, _, err = ds.Where(col.NotILike(regexp.MustCompile("(a|b)"))).ToSQL()
-	mds.NoError(err)
-	mds.Equal("SELECT * FROM `test` WHERE (`a` NOT REGEXP '(a|b)')", sql)
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Where(col.Eq(true)), sql: "SELECT * FROM `test` WHERE (`a` IS TRUE)"},
+		sqlTestCase{ds: ds.Where(col.Eq(false)), sql: "SELECT * FROM `test` WHERE (`a` IS FALSE)"},
+		sqlTestCase{ds: ds.Where(col.Is(true)), sql: "SELECT * FROM `test` WHERE (`a` IS TRUE)"},
+		sqlTestCase{ds: ds.Where(col.Is(false)), sql: "SELECT * FROM `test` WHERE (`a` IS FALSE)"},
+		sqlTestCase{ds: ds.Where(col.IsTrue()), sql: "SELECT * FROM `test` WHERE (`a` IS TRUE)"},
+		sqlTestCase{ds: ds.Where(col.IsFalse()), sql: "SELECT * FROM `test` WHERE (`a` IS FALSE)"},
+		sqlTestCase{ds: ds.Where(col.Neq(true)), sql: "SELECT * FROM `test` WHERE (`a` IS NOT TRUE)"},
+		sqlTestCase{ds: ds.Where(col.Neq(false)), sql: "SELECT * FROM `test` WHERE (`a` IS NOT FALSE)"},
+		sqlTestCase{ds: ds.Where(col.IsNot(true)), sql: "SELECT * FROM `test` WHERE (`a` IS NOT TRUE)"},
+		sqlTestCase{ds: ds.Where(col.IsNot(false)), sql: "SELECT * FROM `test` WHERE (`a` IS NOT FALSE)"},
+		sqlTestCase{ds: ds.Where(col.IsNotTrue()), sql: "SELECT * FROM `test` WHERE (`a` IS NOT TRUE)"},
+		sqlTestCase{ds: ds.Where(col.IsNotFalse()), sql: "SELECT * FROM `test` WHERE (`a` IS NOT FALSE)"},
+		sqlTestCase{ds: ds.Where(col.Like("a%")), sql: "SELECT * FROM `test` WHERE (`a` LIKE BINARY 'a%')"},
+		sqlTestCase{ds: ds.Where(col.NotLike("a%")), sql: "SELECT * FROM `test` WHERE (`a` NOT LIKE BINARY 'a%')"},
+		sqlTestCase{ds: ds.Where(col.ILike("a%")), sql: "SELECT * FROM `test` WHERE (`a` LIKE 'a%')"},
+		sqlTestCase{ds: ds.Where(col.NotILike("a%")), sql: "SELECT * FROM `test` WHERE (`a` NOT LIKE 'a%')"},
+		sqlTestCase{ds: ds.Where(col.Like(regexp.MustCompile("[ab]"))), sql: "SELECT * FROM `test` WHERE (`a` REGEXP BINARY '[ab]')"},
+		sqlTestCase{ds: ds.Where(col.NotLike(regexp.MustCompile("[ab]"))), sql: "SELECT * FROM `test` WHERE (`a` NOT REGEXP BINARY '[ab]')"},
+		sqlTestCase{ds: ds.Where(col.ILike(regexp.MustCompile("[ab]"))), sql: "SELECT * FROM `test` WHERE (`a` REGEXP '[ab]')"},
+		sqlTestCase{ds: ds.Where(col.NotILike(regexp.MustCompile("[ab]"))), sql: "SELECT * FROM `test` WHERE (`a` NOT REGEXP '[ab]')"},
+	)
 }
 
 func (mds *mysqlDialectSuite) TestUpdateSQL() {
 	ds := mds.GetDs("test").Update()
-	sql, _, err := ds.
-		Set(goqu.Record{"foo": "bar"}).
-		From("test_2").
-		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))).
-		ToSQL()
-	mds.NoError(err)
-	mds.Equal("UPDATE `test`,`test_2` SET `foo`='bar' WHERE (`test`.`id` = `test_2`.`test_id`)", sql)
+	mds.assertSQL(
+		sqlTestCase{
+			ds: ds.
+				Set(goqu.Record{"foo": "bar"}).
+				From("test_2").
+				Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))),
+			sql: "UPDATE `test`,`test_2` SET `foo`='bar' WHERE (`test`.`id` = `test_2`.`test_id`)",
+		},
+	)
 }
 
 func TestDatasetAdapterSuite(t *testing.T) {

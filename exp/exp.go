@@ -351,8 +351,8 @@ type (
 		Args() []interface{}
 	}
 
-	nullSortType  int
-	sortDirection int
+	NullSortType  int
+	SortDirection int
 	// An expression for specifying sort order and options
 	OrderedExpression interface {
 		Expression
@@ -361,7 +361,7 @@ type (
 		// Sort direction (e.g. ASC, DESC)
 		IsAsc() bool
 		// If the adapter supports it null sort type (e.g. NULLS FIRST, NULLS LAST)
-		NullSortType() nullSortType
+		NullSortType() NullSortType
 		// Returns a new OrderedExpression with NullSortType set to NULLS_FIRST
 		NullsFirst() OrderedExpression
 		// Returns a new OrderedExpression with NullSortType set to NULLS_LAST
@@ -394,6 +394,7 @@ type (
 		Aliaseable
 		Rangeable
 		Comparable
+		Orderable
 		Isable
 		Inable
 		Likeable
@@ -414,6 +415,7 @@ type (
 		Aliaseable
 		Rangeable
 		Comparable
+		Orderable
 		Isable
 		Inable
 		Likeable
@@ -491,15 +493,15 @@ const (
 	OnJoinCondType
 
 	// Default null sort type with no null sort order
-	NoNullsSortType nullSortType = iota
+	NoNullsSortType NullSortType = iota
 	// NULLS FIRST
 	NullsFirstSortType
 	// NULLS LAST
 	NullsLastSortType
 	// ASC
-	ascDir sortDirection = iota
+	AscDir SortDirection = iota
 	// DESC
-	descSortDir
+	DescSortDir
 
 	// BETWEEN
 	BetweenOp RangeOperation = iota

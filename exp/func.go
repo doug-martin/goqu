@@ -22,7 +22,9 @@ func (sfe sqlFunctionExpression) Args() []interface{} { return sfe.args }
 
 func (sfe sqlFunctionExpression) Name() string { return sfe.name }
 
-func (sfe sqlFunctionExpression) As(val interface{}) AliasedExpression { return aliased(sfe, val) }
+func (sfe sqlFunctionExpression) As(val interface{}) AliasedExpression {
+	return NewAliasExpression(sfe, val)
+}
 
 func (sfe sqlFunctionExpression) Eq(val interface{}) BooleanExpression  { return eq(sfe, val) }
 func (sfe sqlFunctionExpression) Neq(val interface{}) BooleanExpression { return neq(sfe, val) }
@@ -45,15 +47,19 @@ func (sfe sqlFunctionExpression) ILike(val interface{}) BooleanExpression   { re
 func (sfe sqlFunctionExpression) NotILike(val interface{}) BooleanExpression {
 	return notILike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpLike(val interface{}) BooleanExpression {
 	return regexpLike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpNotLike(val interface{}) BooleanExpression {
 	return regexpNotLike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpILike(val interface{}) BooleanExpression {
 	return regexpILike(sfe, val)
 }
+
 func (sfe sqlFunctionExpression) RegexpNotILike(val interface{}) BooleanExpression {
 	return regexpNotILike(sfe, val)
 }
@@ -78,3 +84,6 @@ func (sfe sqlFunctionExpression) Over(we WindowExpression) SQLWindowFunctionExpr
 func (sfe sqlFunctionExpression) OverName(windowName IdentifierExpression) SQLWindowFunctionExpression {
 	return NewSQLWindowFunctionExpression(sfe, windowName, nil)
 }
+
+func (sfe sqlFunctionExpression) Asc() OrderedExpression  { return asc(sfe) }
+func (sfe sqlFunctionExpression) Desc() OrderedExpression { return desc(sfe) }

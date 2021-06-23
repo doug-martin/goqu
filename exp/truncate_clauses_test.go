@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,8 +16,8 @@ func TestTruncateClausesSuite(t *testing.T) {
 }
 
 func (tcs *truncateClausesSuite) TestHasTable() {
-	c := NewTruncateClauses()
-	cle := NewColumnListExpression("test1", "test2")
+	c := exp.NewTruncateClauses()
+	cle := exp.NewColumnListExpression("test1", "test2")
 	c2 := c.SetTable(cle)
 
 	tcs.False(c.HasTable())
@@ -25,8 +26,8 @@ func (tcs *truncateClausesSuite) TestHasTable() {
 }
 
 func (tcs *truncateClausesSuite) TestTable() {
-	c := NewTruncateClauses()
-	cle := NewColumnListExpression("test1", "test2")
+	c := exp.NewTruncateClauses()
+	cle := exp.NewColumnListExpression("test1", "test2")
 	c2 := c.SetTable(cle)
 
 	tcs.Nil(c.Table())
@@ -35,9 +36,9 @@ func (tcs *truncateClausesSuite) TestTable() {
 }
 
 func (tcs *truncateClausesSuite) TestSetTable() {
-	cle := NewColumnListExpression("test1", "test2")
-	c := NewTruncateClauses().SetTable(cle)
-	cle2 := NewColumnListExpression("test3", "test4")
+	cle := exp.NewColumnListExpression("test1", "test2")
+	c := exp.NewTruncateClauses().SetTable(cle)
+	cle2 := exp.NewColumnListExpression("test3", "test4")
 	c2 := c.SetTable(cle2)
 
 	tcs.Equal(cle, c.Table())
@@ -46,19 +47,19 @@ func (tcs *truncateClausesSuite) TestSetTable() {
 }
 
 func (tcs *truncateClausesSuite) TestOptions() {
-	c := NewTruncateClauses()
-	opts := TruncateOptions{Restrict: true, Identity: "RESTART", Cascade: true}
+	c := exp.NewTruncateClauses()
+	opts := exp.TruncateOptions{Restrict: true, Identity: "RESTART", Cascade: true}
 	c2 := c.SetOptions(opts)
 
-	tcs.Equal(TruncateOptions{}, c.Options())
+	tcs.Equal(exp.TruncateOptions{}, c.Options())
 
 	tcs.Equal(opts, c2.Options())
 }
 
 func (tcs *truncateClausesSuite) TestSetOptions() {
-	opts := TruncateOptions{Restrict: true, Identity: "RESTART", Cascade: true}
-	c := NewTruncateClauses().SetOptions(opts)
-	opts2 := TruncateOptions{Restrict: false, Identity: "RESTART", Cascade: false}
+	opts := exp.TruncateOptions{Restrict: true, Identity: "RESTART", Cascade: true}
+	c := exp.NewTruncateClauses().SetOptions(opts)
+	opts2 := exp.TruncateOptions{Restrict: false, Identity: "RESTART", Cascade: false}
 	c2 := c.SetOptions(opts2)
 
 	tcs.Equal(opts, c.Options())

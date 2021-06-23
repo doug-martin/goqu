@@ -9,6 +9,7 @@ import (
 func DialectOptions() *goqu.SQLDialectOptions {
 	opts := goqu.DefaultDialectOptions()
 
+	opts.BooleanDataTypeSupported = false
 	opts.UseLiteralIsBools = false
 
 	opts.StartStringQuote = []rune{'N', '\''}

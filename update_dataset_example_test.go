@@ -57,7 +57,7 @@ func ExampleUpdate_withSkipUpdateTag() {
 }
 
 func ExampleUpdateDataset_Executor() {
-	db := getDb()
+	db := getDB()
 	update := db.Update("goqu_user").
 		Where(goqu.C("first_name").Eq("Bob")).
 		Set(goqu.Record{"first_name": "Bobby"}).
@@ -75,7 +75,7 @@ func ExampleUpdateDataset_Executor() {
 }
 
 func ExampleUpdateDataset_Executor_returning() {
-	db := getDb()
+	db := getDB()
 	var ids []int64
 	update := db.Update("goqu_user").
 		Set(goqu.Record{"last_name": "ucon"}).
@@ -124,6 +124,7 @@ func ExampleUpdateDataset_With() {
 	// Output:
 	// WITH some_vals(val) AS (SELECT 123) UPDATE "test" SET "name"='Test' WHERE ("val" IN (SELECT "val" FROM "some_vals"))
 }
+
 func ExampleUpdateDataset_WithRecursive() {
 	sql, _, _ := goqu.Update("nums").
 		WithRecursive("nums(x)", goqu.From().Select(goqu.L("1").As("num")).
