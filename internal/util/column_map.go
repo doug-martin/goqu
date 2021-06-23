@@ -52,7 +52,7 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 }
 
 func (cm ColumnMap) Cols() []string {
-	var structCols []string
+	structCols := make([]string, 0, len(cm))
 	for key := range cm {
 		structCols = append(structCols, key)
 	}

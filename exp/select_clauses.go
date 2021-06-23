@@ -112,7 +112,7 @@ func (c *selectClauses) clone() *selectClauses {
 		selectColumns: c.selectColumns,
 		distinct:      c.distinct,
 		from:          c.from,
-		joins:         c.joins,
+		joins:         c.joins[0:len(c.joins):len(c.joins)],
 		where:         c.where,
 		alias:         c.alias,
 		groupBy:       c.groupBy,
@@ -129,6 +129,7 @@ func (c *selectClauses) clone() *selectClauses {
 func (c *selectClauses) CommonTables() []CommonTableExpression {
 	return c.commonTables
 }
+
 func (c *selectClauses) CommonTablesAppend(cte CommonTableExpression) SelectClauses {
 	ret := c.clone()
 	ret.commonTables = append(ret.commonTables, cte)
@@ -138,6 +139,7 @@ func (c *selectClauses) CommonTablesAppend(cte CommonTableExpression) SelectClau
 func (c *selectClauses) Select() ColumnListExpression {
 	return c.selectColumns
 }
+
 func (c *selectClauses) SelectAppend(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.selectColumns = ret.selectColumns.Append(cl.Columns()...)
@@ -153,6 +155,7 @@ func (c *selectClauses) SetSelect(cl ColumnListExpression) SelectClauses {
 func (c *selectClauses) Distinct() ColumnListExpression {
 	return c.distinct
 }
+
 func (c *selectClauses) SetDistinct(cle ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.distinct = cle
@@ -162,6 +165,7 @@ func (c *selectClauses) SetDistinct(cle ColumnListExpression) SelectClauses {
 func (c *selectClauses) From() ColumnListExpression {
 	return c.from
 }
+
 func (c *selectClauses) SetFrom(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.from = cl
@@ -185,6 +189,7 @@ func (c *selectClauses) SetAlias(ie IdentifierExpression) SelectClauses {
 func (c *selectClauses) Joins() JoinExpressions {
 	return c.joins
 }
+
 func (c *selectClauses) JoinsAppend(jc JoinExpression) SelectClauses {
 	ret := c.clone()
 	ret.joins = append(ret.joins, jc)
@@ -202,8 +207,7 @@ func (c *selectClauses) ClearWhere() SelectClauses {
 }
 
 func (c *selectClauses) WhereAppend(expressions ...Expression) SelectClauses {
-	expLen := len(expressions)
-	if expLen == 0 {
+	if len(expressions) == 0 {
 		return c
 	}
 	ret := c.clone()
@@ -226,8 +230,7 @@ func (c *selectClauses) ClearHaving() SelectClauses {
 }
 
 func (c *selectClauses) HavingAppend(expressions ...Expression) SelectClauses {
-	expLen := len(expressions)
-	if expLen == 0 {
+	if len(expressions) == 0 {
 		return c
 	}
 	ret := c.clone()
@@ -242,6 +245,7 @@ func (c *selectClauses) HavingAppend(expressions ...Expression) SelectClauses {
 func (c *selectClauses) Lock() Lock {
 	return c.lock
 }
+
 func (c *selectClauses) SetLock(l Lock) SelectClauses {
 	ret := c.clone()
 	ret.lock = l
@@ -289,6 +293,7 @@ func (c *selectClauses) OrderPrepend(oes ...OrderedExpression) SelectClauses {
 func (c *selectClauses) GroupBy() ColumnListExpression {
 	return c.groupBy
 }
+
 func (c *selectClauses) SetGroupBy(cl ColumnListExpression) SelectClauses {
 	ret := c.clone()
 	ret.groupBy = cl
@@ -324,6 +329,7 @@ func (c *selectClauses) ClearOffset() SelectClauses {
 	ret.offset = 0
 	return ret
 }
+
 func (c *selectClauses) SetOffset(offset uint) SelectClauses {
 	ret := c.clone()
 	ret.offset = offset
@@ -333,6 +339,7 @@ func (c *selectClauses) SetOffset(offset uint) SelectClauses {
 func (c *selectClauses) Compounds() []CompoundExpression {
 	return c.compounds
 }
+
 func (c *selectClauses) CompoundsAppend(ce CompoundExpression) SelectClauses {
 	ret := c.clone()
 	ret.compounds = append(ret.compounds, ce)

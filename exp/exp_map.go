@@ -63,7 +63,7 @@ func (eo ExOr) ToExpressions() (ExpressionList, error) {
 }
 
 func getExMapKeys(ex map[string]interface{}) []string {
-	var keys []string
+	keys := make([]string, 0, len(ex))
 	for key := range ex {
 		keys = append(keys, key)
 	}
@@ -73,8 +73,8 @@ func getExMapKeys(ex map[string]interface{}) []string {
 
 func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (ExpressionList, error) {
 	keys := getExMapKeys(ex)
-	ret := make([]Expression, len(keys))
-	for i, key := range keys {
+	ret := make([]Expression, 0, len(keys))
+	for _, key := range keys {
 		lhs := ParseIdentifier(key)
 		rhs := ex[key]
 		var exp Expression
@@ -87,7 +87,7 @@ func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (E
 		} else {
 			exp = lhs.Eq(rhs)
 		}
-		ret[i] = exp
+		ret = append(ret, exp)
 	}
 	if eType == OrType {
 		return NewExpressionList(OrType, ret...), nil
@@ -97,12 +97,12 @@ func mapToExpressionList(ex map[string]interface{}, eType ExpressionListType) (E
 
 func createOredExpressionFromMap(lhs IdentifierExpression, op Op) ([]Expression, error) {
 	opKeys := getExMapKeys(op)
-	ors := make([]Expression, len(opKeys))
-	for j, opKey := range opKeys {
+	ors := make([]Expression, 0, len(opKeys))
+	for _, opKey := range opKeys {
 		if exp, err := createExpressionFromOp(lhs, opKey, op); err != nil {
 			return nil, err
 		} else if exp != nil {
-			ors[j] = exp
+			ors = append(ors, exp)
 		}
 	}
 	return ors, nil

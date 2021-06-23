@@ -20,6 +20,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsWithCTERecursive = false
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
+	opts.SupportsDeleteTableHint = true
 
 	opts.UseFromClauseForMultipleUpdateTables = false
 

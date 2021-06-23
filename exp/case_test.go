@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,43 +16,43 @@ func TestCaseExpressionSuite(t *testing.T) {
 }
 
 func (ces *caseExpressionSuite) TestClone() {
-	ce := NewCaseExpression()
+	ce := exp.NewCaseExpression()
 	ces.Equal(ce, ce.Clone())
 }
 
 func (ces *caseExpressionSuite) TestExpression() {
-	ce := NewCaseExpression()
+	ce := exp.NewCaseExpression()
 	ces.Equal(ce, ce.Expression())
 }
 
 func (ces *caseExpressionSuite) TestAs() {
-	ce := NewCaseExpression()
-	ces.Equal(aliased(ce, "a"), ce.As("a"))
+	ce := exp.NewCaseExpression()
+	ces.Equal(exp.NewAliasExpression(ce, "a"), ce.As("a"))
 }
 
 func (ces *caseExpressionSuite) TestValue() {
-	ce := NewCaseExpression()
+	ce := exp.NewCaseExpression()
 	ces.Nil(ce.GetValue())
 
-	ce = NewCaseExpression().Value(NewIdentifierExpression("", "", "a"))
-	ces.Equal(NewIdentifierExpression("", "", "a"), ce.GetValue())
+	ce = exp.NewCaseExpression().Value(exp.NewIdentifierExpression("", "", "a"))
+	ces.Equal(exp.NewIdentifierExpression("", "", "a"), ce.GetValue())
 }
 
 func (ces *caseExpressionSuite) TestWhen() {
-	condition1 := NewIdentifierExpression("", "", "a").Eq(10)
-	condition2 := NewIdentifierExpression("", "", "b").Eq(20)
-	ce := NewCaseExpression()
-	ces.Equal([]CaseWhen{
-		NewCaseWhen(condition1, "a"),
-		NewCaseWhen(condition2, "b"),
+	condition1 := exp.NewIdentifierExpression("", "", "a").Eq(10)
+	condition2 := exp.NewIdentifierExpression("", "", "b").Eq(20)
+	ce := exp.NewCaseExpression()
+	ces.Equal([]exp.CaseWhen{
+		exp.NewCaseWhen(condition1, "a"),
+		exp.NewCaseWhen(condition2, "b"),
 	}, ce.When(condition1, "a").When(condition2, "b").GetWhens())
 
 	ces.Empty(ce.GetWhens())
 }
 
 func (ces *caseExpressionSuite) TestElse() {
-	ce := NewCaseExpression()
-	ces.Equal(NewCaseElse("a"), ce.Else("a").GetElse())
+	ce := exp.NewCaseExpression()
+	ces.Equal(exp.NewCaseElse("a"), ce.Else("a").GetElse())
 
 	ces.Nil(ce.GetElse())
 }
@@ -65,12 +66,12 @@ func TestCaseWhenSuite(t *testing.T) {
 }
 
 func (cws *caseWhenSuite) TestCondition() {
-	ce := NewCaseWhen(true, false)
+	ce := exp.NewCaseWhen(true, false)
 	cws.Equal(true, ce.Condition())
 }
 
 func (cws *caseWhenSuite) TestResult() {
-	ce := NewCaseWhen(true, false)
+	ce := exp.NewCaseWhen(true, false)
 	cws.Equal(false, ce.Result())
 }
 
@@ -83,6 +84,6 @@ func TestCaseElseSuite(t *testing.T) {
 }
 
 func (ces *caseElseSuite) TestResult() {
-	ce := NewCaseElse(false)
+	ce := exp.NewCaseElse(false)
 	ces.Equal(false, ce.Result())
 }

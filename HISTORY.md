@@ -1,3 +1,29 @@
+# v9.13.0
+
+* [ADDED] ScanStructs, ScanVals to Scanner interface [#273](https://github.com/doug-martin/goqu/issues/273) - [@vlanse](https://github.com/vlanse)
+
+# v9.12.0
+
+* Update golangci-lint and updates for all associated linters
+* Update dependencies
+  * github.com/DATA-DOG/go-sqlmock  v1.3.3 -> v1.5.0
+  * github.com/denisenkom/go-mssqldb v0.0.0-20200206145737-bbfc9a55622e -> v0.10.0
+  * github.com/go-sql-driver/mysql v1.4.1 -> v1.6.0
+  * github.com/lib/pq v1.2.0 -> v1.10.1
+  * github.com/mattn/go-sqlite3 v1.11.0 -> v1.14.7
+  * github.com/stretchr/testify -> v1.4.0 -> v1.7.0
+  
+
+# v9.11.1
+
+* [FIXED] Avoid mutation of join slice for separate datasets when joins slice capacity is not yet reached [#261](https://github.com/doug-martin/goqu/pull/261) - [@fhaifler](https://github.com/fhaifler)
+
+# v9.11.0
+
+* [FIXED] Use valid 'IS' operator for sqlserver dialect [#240](https://github.com/doug-martin/goqu/pull/240), [#239](https://github.com/doug-martin/goqu/pull/229)  - [@vlanse](https://github.com/vlanse)
+* [ADDED] Implement Orderable interface for SQL Functions [#251](https://github.com/doug-martin/goqu/pull/251)  - [@GlebBeloded](https://github.com/GlebBeloded)
+* [ADDED] Support for table hint in multi-table MySQL DELETE queries [#252](https://github.com/doug-martin/goqu/pull/252) - [@vlanse](https://github.com/vlanse)
+
 # v9.10.0
 
 * [FIXED] SELECT inherits dialect from INSERT in INSERT FROM SELECT.  [#229](https://github.com/doug-martin/goqu/pull/229), [#223](https://github.com/doug-martin/goqu/issues/223) - [@vlanse](https://github.com/vlanse)

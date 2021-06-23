@@ -138,7 +138,7 @@ func ExampleC() {
 	ds := goqu.From("test").Where(
 		goqu.C("col1").Eq(10),
 		goqu.C("col2").In([]int64{1, 2, 3, 4}),
-		goqu.C("col3").Like(regexp.MustCompile("^(a|b)")),
+		goqu.C("col3").Like(regexp.MustCompile("^[ab]")),
 		goqu.C("col4").IsNull(),
 	)
 
@@ -151,8 +151,8 @@ func ExampleC() {
 	// Output:
 	// SELECT * FROM "test" []
 	// SELECT "col1" FROM "test" []
-	// SELECT * FROM "test" WHERE (("col1" = 10) AND ("col2" IN (1, 2, 3, 4)) AND ("col3" ~ '^(a|b)') AND ("col4" IS NULL)) []
-	// SELECT * FROM "test" WHERE (("col1" = ?) AND ("col2" IN (?, ?, ?, ?)) AND ("col3" ~ ?) AND ("col4" IS NULL)) [10 1 2 3 4 ^(a|b)]
+	// SELECT * FROM "test" WHERE (("col1" = 10) AND ("col2" IN (1, 2, 3, 4)) AND ("col3" ~ '^[ab]') AND ("col4" IS NULL)) []
+	// SELECT * FROM "test" WHERE (("col1" = ?) AND ("col2" IN (?, ?, ?, ?)) AND ("col3" ~ ?) AND ("col4" IS NULL)) [10 1 2 3 4 ^[ab]]
 }
 
 func ExampleC_as() {
@@ -267,36 +267,36 @@ func ExampleC_likeComparisons() {
 	sql, _, _ := goqu.From("test").Where(goqu.C("a").Like("%a%")).ToSQL()
 	fmt.Println(sql)
 
-	sql, _, _ = goqu.From("test").Where(goqu.C("a").Like(regexp.MustCompile("(a|b)"))).ToSQL()
+	sql, _, _ = goqu.From("test").Where(goqu.C("a").Like(regexp.MustCompile(`[ab]`))).ToSQL()
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(goqu.C("a").ILike("%a%")).ToSQL()
 	fmt.Println(sql)
 
-	sql, _, _ = goqu.From("test").Where(goqu.C("a").ILike(regexp.MustCompile("(a|b)"))).ToSQL()
+	sql, _, _ = goqu.From("test").Where(goqu.C("a").ILike(regexp.MustCompile("[ab]"))).ToSQL()
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(goqu.C("a").NotLike("%a%")).ToSQL()
 	fmt.Println(sql)
 
-	sql, _, _ = goqu.From("test").Where(goqu.C("a").NotLike(regexp.MustCompile("(a|b)"))).ToSQL()
+	sql, _, _ = goqu.From("test").Where(goqu.C("a").NotLike(regexp.MustCompile("[ab]"))).ToSQL()
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(goqu.C("a").NotILike("%a%")).ToSQL()
 	fmt.Println(sql)
 
-	sql, _, _ = goqu.From("test").Where(goqu.C("a").NotILike(regexp.MustCompile("(a|b)"))).ToSQL()
+	sql, _, _ = goqu.From("test").Where(goqu.C("a").NotILike(regexp.MustCompile(`[ab]`))).ToSQL()
 	fmt.Println(sql)
 
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" LIKE '%a%')
-	// SELECT * FROM "test" WHERE ("a" ~ '(a|b)')
+	// SELECT * FROM "test" WHERE ("a" ~ '[ab]')
 	// SELECT * FROM "test" WHERE ("a" ILIKE '%a%')
-	// SELECT * FROM "test" WHERE ("a" ~* '(a|b)')
+	// SELECT * FROM "test" WHERE ("a" ~* '[ab]')
 	// SELECT * FROM "test" WHERE ("a" NOT LIKE '%a%')
-	// SELECT * FROM "test" WHERE ("a" !~ '(a|b)')
+	// SELECT * FROM "test" WHERE ("a" !~ '[ab]')
 	// SELECT * FROM "test" WHERE ("a" NOT ILIKE '%a%')
-	// SELECT * FROM "test" WHERE ("a" !~* '(a|b)')
+	// SELECT * FROM "test" WHERE ("a" !~* '[ab]')
 }
 
 func ExampleC_isComparisons() {
@@ -724,7 +724,7 @@ func ExampleL_likeComparisons() {
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(
-		goqu.L("(a::text || 'bar')").Like(regexp.MustCompile("(a|b)")),
+		goqu.L("(a::text || 'bar')").Like(regexp.MustCompile("[ab]")),
 	).ToSQL()
 	fmt.Println(sql)
 
@@ -732,7 +732,7 @@ func ExampleL_likeComparisons() {
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(
-		goqu.L("(a::text || 'bar')").ILike(regexp.MustCompile("(a|b)")),
+		goqu.L("(a::text || 'bar')").ILike(regexp.MustCompile("[ab]")),
 	).ToSQL()
 	fmt.Println(sql)
 
@@ -740,7 +740,7 @@ func ExampleL_likeComparisons() {
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(
-		goqu.L("(a::text || 'bar')").NotLike(regexp.MustCompile("(a|b)")),
+		goqu.L("(a::text || 'bar')").NotLike(regexp.MustCompile("[ab]")),
 	).ToSQL()
 	fmt.Println(sql)
 
@@ -748,19 +748,19 @@ func ExampleL_likeComparisons() {
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("test").Where(
-		goqu.L("(a::text || 'bar')").NotILike(regexp.MustCompile("(a|b)")),
+		goqu.L("(a::text || 'bar')").NotILike(regexp.MustCompile("[ab]")),
 	).ToSQL()
 	fmt.Println(sql)
 
 	// Output:
 	// SELECT * FROM "test" WHERE ((a::text || 'bar') LIKE '%a%')
-	// SELECT * FROM "test" WHERE ((a::text || 'bar') ~ '(a|b)')
+	// SELECT * FROM "test" WHERE ((a::text || 'bar') ~ '[ab]')
 	// SELECT * FROM "test" WHERE ((a::text || 'bar') ILIKE '%a%')
-	// SELECT * FROM "test" WHERE ((a::text || 'bar') ~* '(a|b)')
+	// SELECT * FROM "test" WHERE ((a::text || 'bar') ~* '[ab]')
 	// SELECT * FROM "test" WHERE ((a::text || 'bar') NOT LIKE '%a%')
-	// SELECT * FROM "test" WHERE ((a::text || 'bar') !~ '(a|b)')
+	// SELECT * FROM "test" WHERE ((a::text || 'bar') !~ '[ab]')
 	// SELECT * FROM "test" WHERE ((a::text || 'bar') NOT ILIKE '%a%')
-	// SELECT * FROM "test" WHERE ((a::text || 'bar') !~* '(a|b)')
+	// SELECT * FROM "test" WHERE ((a::text || 'bar') !~* '[ab]')
 }
 
 func ExampleL_isComparisons() {
@@ -1317,10 +1317,10 @@ func ExampleExOr_withOp() {
 	fmt.Println(sql)
 
 	sql, _, _ = goqu.From("items").Where(goqu.ExOr{
-		"col1": goqu.Op{"like": regexp.MustCompile("^(a|b)")},
-		"col2": goqu.Op{"notLike": regexp.MustCompile("^(a|b)")},
-		"col3": goqu.Op{"iLike": regexp.MustCompile("^(a|b)")},
-		"col4": goqu.Op{"notILike": regexp.MustCompile("^(a|b)")},
+		"col1": goqu.Op{"like": regexp.MustCompile("^[ab]")},
+		"col2": goqu.Op{"notLike": regexp.MustCompile("^[ab]")},
+		"col3": goqu.Op{"iLike": regexp.MustCompile("^[ab]")},
+		"col4": goqu.Op{"notILike": regexp.MustCompile("^[ab]")},
 	}).ToSQL()
 	fmt.Println(sql)
 
@@ -1328,7 +1328,7 @@ func ExampleExOr_withOp() {
 	// SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
 	// SELECT * FROM "items" WHERE (("col1" > 1) OR ("col2" >= 1) OR ("col3" < 1) OR ("col4" <= 1))
 	// SELECT * FROM "items" WHERE (("col1" LIKE 'a%') OR ("col2" NOT LIKE 'a%') OR ("col3" ILIKE 'a%') OR ("col4" NOT ILIKE 'a%'))
-	// SELECT * FROM "items" WHERE (("col1" ~ '^(a|b)') OR ("col2" !~ '^(a|b)') OR ("col3" ~* '^(a|b)') OR ("col4" !~* '^(a|b)'))
+	// SELECT * FROM "items" WHERE (("col1" ~ '^[ab]') OR ("col2" !~ '^[ab]') OR ("col3" ~* '^[ab]') OR ("col4" !~* '^[ab]'))
 }
 
 func ExampleOp_comparisons() {
@@ -1392,7 +1392,7 @@ func ExampleOp_likeComparisons() {
 	fmt.Println(sql, args)
 
 	ds = goqu.From("test").Where(goqu.Ex{
-		"a": goqu.Op{"like": regexp.MustCompile("(a|b)")},
+		"a": goqu.Op{"like": regexp.MustCompile("[ab]")},
 	})
 
 	sql, args, _ = ds.ToSQL()
@@ -1412,7 +1412,7 @@ func ExampleOp_likeComparisons() {
 	fmt.Println(sql, args)
 
 	ds = goqu.From("test").Where(goqu.Ex{
-		"a": goqu.Op{"iLike": regexp.MustCompile("(a|b)")},
+		"a": goqu.Op{"iLike": regexp.MustCompile("[ab]")},
 	})
 
 	sql, args, _ = ds.ToSQL()
@@ -1432,7 +1432,7 @@ func ExampleOp_likeComparisons() {
 	fmt.Println(sql, args)
 
 	ds = goqu.From("test").Where(goqu.Ex{
-		"a": goqu.Op{"notLike": regexp.MustCompile("(a|b)")},
+		"a": goqu.Op{"notLike": regexp.MustCompile("[ab]")},
 	})
 
 	sql, args, _ = ds.ToSQL()
@@ -1452,7 +1452,7 @@ func ExampleOp_likeComparisons() {
 	fmt.Println(sql, args)
 
 	ds = goqu.From("test").Where(goqu.Ex{
-		"a": goqu.Op{"notILike": regexp.MustCompile("(a|b)")},
+		"a": goqu.Op{"notILike": regexp.MustCompile("[ab]")},
 	})
 	sql, args, _ = ds.ToSQL()
 	fmt.Println(sql, args)
@@ -1463,20 +1463,20 @@ func ExampleOp_likeComparisons() {
 	// Output:
 	// SELECT * FROM "test" WHERE ("a" LIKE '%a%') []
 	// SELECT * FROM "test" WHERE ("a" LIKE ?) [%a%]
-	// SELECT * FROM "test" WHERE ("a" ~ '(a|b)') []
-	// SELECT * FROM "test" WHERE ("a" ~ ?) [(a|b)]
+	// SELECT * FROM "test" WHERE ("a" ~ '[ab]') []
+	// SELECT * FROM "test" WHERE ("a" ~ ?) [[ab]]
 	// SELECT * FROM "test" WHERE ("a" ILIKE '%a%') []
 	// SELECT * FROM "test" WHERE ("a" ILIKE ?) [%a%]
-	// SELECT * FROM "test" WHERE ("a" ~* '(a|b)') []
-	// SELECT * FROM "test" WHERE ("a" ~* ?) [(a|b)]
+	// SELECT * FROM "test" WHERE ("a" ~* '[ab]') []
+	// SELECT * FROM "test" WHERE ("a" ~* ?) [[ab]]
 	// SELECT * FROM "test" WHERE ("a" NOT LIKE '%a%') []
 	// SELECT * FROM "test" WHERE ("a" NOT LIKE ?) [%a%]
-	// SELECT * FROM "test" WHERE ("a" !~ '(a|b)') []
-	// SELECT * FROM "test" WHERE ("a" !~ ?) [(a|b)]
+	// SELECT * FROM "test" WHERE ("a" !~ '[ab]') []
+	// SELECT * FROM "test" WHERE ("a" !~ ?) [[ab]]
 	// SELECT * FROM "test" WHERE ("a" NOT ILIKE '%a%') []
 	// SELECT * FROM "test" WHERE ("a" NOT ILIKE ?) [%a%]
-	// SELECT * FROM "test" WHERE ("a" !~* '(a|b)') []
-	// SELECT * FROM "test" WHERE ("a" !~* ?) [(a|b)]
+	// SELECT * FROM "test" WHERE ("a" !~* '[ab]') []
+	// SELECT * FROM "test" WHERE ("a" !~* ?) [[ab]]
 }
 
 func ExampleOp_isComparisons() {

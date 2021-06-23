@@ -73,9 +73,9 @@ func (je conditionedJoin) IsConditionEmpty() bool {
 }
 
 func (jes JoinExpressions) Clone() JoinExpressions {
-	ret := make(JoinExpressions, len(jes))
-	for i, jc := range jes {
-		ret[i] = jc.Clone().(JoinExpression)
+	ret := make(JoinExpressions, 0, len(jes))
+	for _, jc := range jes {
+		ret = append(ret, jc.Clone().(JoinExpression))
 	}
 	return ret
 }

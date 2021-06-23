@@ -34,11 +34,11 @@ var (
 	TrueLiteral     = exp.NewLiteralExpression("TRUE")
 	FalseLiteral    = exp.NewLiteralExpression("FALSE")
 
-	errEmptyIdentifier = errors.New(
+	ErrEmptyIdentifier = errors.New(
 		`a empty identifier was encountered, please specify a "schema", "table" or "column"`,
 	)
-	errUnexpectedNamedWindow = errors.New(`unexpected named window function`)
-	errEmptyCaseWhens        = errors.New(`when conditions not found for case statement`)
+	ErrUnexpectedNamedWindow = errors.New(`unexpected named window function`)
+	ErrEmptyCaseWhens        = errors.New(`when conditions not found for case statement`)
 )
 
 func errUnsupportedExpressionType(e exp.Expression) error {
@@ -215,7 +215,7 @@ func (esg *expressionSQLGenerator) appendableExpressionSQL(b sb.SQLBuilder, a ex
 // Quotes an identifier (e.g. "col", "table"."col"
 func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, ident exp.IdentifierExpression) {
 	if ident.IsEmpty() {
-		b.SetError(errEmptyIdentifier)
+		b.SetError(ErrEmptyIdentifier)
 		return
 	}
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
@@ -393,6 +393,12 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		return
 	}
 	rhs := operator.RHS()
+
+	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && rhs != nil && !esg.dialectOptions.BooleanDataTypeSupported {
+		b.SetError(errors.New("boolean data type is not supported by dialect %q", esg.dialect))
+		return
+	}
+
 	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
 		// these values must be interpolated because preparing them generates invalid SQL
 		switch rhs {
@@ -405,7 +411,14 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		}
 	}
 	b.WriteRunes(esg.dialectOptions.SpaceRune)
-	esg.Generate(b, rhs)
+
+	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && rhs == nil && !esg.dialectOptions.BooleanDataTypeSupported {
+		// e.g. for SQL server dialect which does not support "IS @p1" for "IS NULL"
+		b.Write(esg.dialectOptions.Null)
+	} else {
+		esg.Generate(b, rhs)
+	}
+
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
 }
 
@@ -438,6 +451,8 @@ func (esg *expressionSQLGenerator) orderedExpressionSQL(b sb.SQLBuilder, order e
 		b.Write(esg.dialectOptions.DescFragment)
 	}
 	switch order.NullSortType() {
+	case exp.NoNullsSortType:
+		return
 	case exp.NullsFirstSortType:
 		b.Write(esg.dialectOptions.NullsFirstFragment)
 	case exp.NullsLastSortType:
@@ -458,8 +473,7 @@ func (esg *expressionSQLGenerator) expressionListSQL(b sb.SQLBuilder, expression
 	}
 	exps := expressionList.Expressions()
 	expLen := len(exps) - 1
-	needsAppending := expLen > 0
-	if needsAppending {
+	if expLen > 0 {
 		b.WriteRunes(esg.dialectOptions.LeftParenRune)
 	} else {
 		esg.Generate(b, exps[0])
@@ -499,8 +513,7 @@ func (esg *expressionSQLGenerator) updateExpressionSQL(b sb.SQLBuilder, update e
 func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal exp.LiteralExpression) {
 	l := literal.Literal()
 	args := literal.Args()
-	argsLen := len(args)
-	if argsLen > 0 {
+	if argsLen := len(args); argsLen > 0 {
 		currIndex := 0
 		for _, char := range l {
 			if char == replacementRune && currIndex < argsLen {
@@ -510,9 +523,9 @@ func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal
 				b.WriteRunes(char)
 			}
 		}
-	} else {
-		b.WriteStrings(l)
+		return
 	}
+	b.WriteStrings(l)
 }
 
 // Generates SQL for a SQLFunctionExpression
@@ -524,7 +537,7 @@ func (esg *expressionSQLGenerator) sqlFunctionExpressionSQL(b sb.SQLBuilder, sql
 
 func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, sqlWinFunc exp.SQLWindowFunctionExpression) {
 	if !esg.dialectOptions.SupportsWindowFunction {
-		b.SetError(errWindowNotSupported(esg.dialect))
+		b.SetError(ErrWindowNotSupported(esg.dialect))
 		return
 	}
 	esg.Generate(b, sqlWinFunc.Func())
@@ -534,7 +547,7 @@ func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, 
 		esg.Generate(b, sqlWinFunc.WindowName())
 	case sqlWinFunc.HasWindow():
 		if sqlWinFunc.Window().HasName() {
-			b.SetError(errUnexpectedNamedWindow)
+			b.SetError(ErrUnexpectedNamedWindow)
 			return
 		}
 		esg.Generate(b, sqlWinFunc.Window())
@@ -545,7 +558,7 @@ func (esg *expressionSQLGenerator) sqlWindowFunctionExpression(b sb.SQLBuilder, 
 
 func (esg *expressionSQLGenerator) windowExpressionSQL(b sb.SQLBuilder, we exp.WindowExpression) {
 	if !esg.dialectOptions.SupportsWindowFunction {
-		b.SetError(errWindowNotSupported(esg.dialect))
+		b.SetError(ErrWindowNotSupported(esg.dialect))
 		return
 	}
 	if we.HasName() {
@@ -591,31 +604,33 @@ func (esg *expressionSQLGenerator) castExpressionSQL(b sb.SQLBuilder, cast exp.C
 
 // Generates the sql for the WITH clauses for common table expressions (CTE)
 func (esg *expressionSQLGenerator) commonTablesSliceSQL(b sb.SQLBuilder, ctes []exp.CommonTableExpression) {
-	if l := len(ctes); l > 0 {
-		if !esg.dialectOptions.SupportsWithCTE {
-			b.SetError(errCTENotSupported(esg.dialect))
+	l := len(ctes)
+	if l == 0 {
+		return
+	}
+	if !esg.dialectOptions.SupportsWithCTE {
+		b.SetError(ErrCTENotSupported(esg.dialect))
+		return
+	}
+	b.Write(esg.dialectOptions.WithFragment)
+	anyRecursive := false
+	for _, cte := range ctes {
+		anyRecursive = anyRecursive || cte.IsRecursive()
+	}
+	if anyRecursive {
+		if !esg.dialectOptions.SupportsWithCTERecursive {
+			b.SetError(ErrRecursiveCTENotSupported(esg.dialect))
 			return
 		}
-		b.Write(esg.dialectOptions.WithFragment)
-		anyRecursive := false
-		for _, cte := range ctes {
-			anyRecursive = anyRecursive || cte.IsRecursive()
-		}
-		if anyRecursive {
-			if !esg.dialectOptions.SupportsWithCTERecursive {
-				b.SetError(errRecursiveCTENotSupported(esg.dialect))
-				return
-			}
-			b.Write(esg.dialectOptions.RecursiveFragment)
-		}
-		for i, cte := range ctes {
-			esg.Generate(b, cte)
-			if i < l-1 {
-				b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
-			}
-		}
-		b.WriteRunes(esg.dialectOptions.SpaceRune)
+		b.Write(esg.dialectOptions.RecursiveFragment)
 	}
+	for i, cte := range ctes {
+		esg.Generate(b, cte)
+		if i < l-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.SpaceRune)
 }
 
 // Generates SQL for a CommonTableExpression
@@ -653,7 +668,7 @@ func (esg *expressionSQLGenerator) caseExpressionSQL(b sb.SQLBuilder, caseExpres
 	elseResult := caseExpression.GetElse()
 
 	if len(whens) == 0 {
-		b.SetError(errEmptyCaseWhens)
+		b.SetError(ErrEmptyCaseWhens)
 		return
 	}
 	b.Write(esg.dialectOptions.CaseFragment)

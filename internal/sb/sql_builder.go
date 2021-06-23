@@ -54,6 +54,7 @@ func (b *sqlBuilder) Write(bs []byte) SQLBuilder {
 	}
 	return b
 }
+
 func (b *sqlBuilder) WriteStrings(ss ...string) SQLBuilder {
 	if b.err == nil {
 		for _, s := range ss {
@@ -62,6 +63,7 @@ func (b *sqlBuilder) WriteStrings(ss ...string) SQLBuilder {
 	}
 	return b
 }
+
 func (b *sqlBuilder) WriteRunes(rs ...rune) SQLBuilder {
 	if b.err == nil {
 		for _, r := range rs {

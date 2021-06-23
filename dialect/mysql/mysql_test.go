@@ -39,7 +39,7 @@ const (
 		"(9, 0.900000, '0.900000', '2015-02-23 03:19:55', FALSE, '0.900000');"
 )
 
-const defaultDbURI = "root@/goqumysql?parseTime=true"
+const defaultDBURI = "root@/goqumysql?parseTime=true"
 
 type (
 	mysqlTest struct {
@@ -55,18 +55,57 @@ type (
 		Bool   bool      `db:"bool"`
 		Bytes  []byte    `db:"bytes"`
 	}
+	entryTestCase struct {
+		ds    *goqu.SelectDataset
+		len   int
+		check func(entry entry, index int)
+		err   string
+	}
 )
 
 func (mt *mysqlTest) SetupSuite() {
 	dbURI := os.Getenv("MYSQL_URI")
 	if dbURI == "" {
-		dbURI = defaultDbURI
+		dbURI = defaultDBURI
 	}
 	db, err := sql.Open("mysql", dbURI)
 	if err != nil {
 		panic(err.Error())
 	}
 	mt.db = goqu.New("mysql", db)
+}
+
+func (mt *mysqlTest) assertSQL(cases ...sqlTestCase) {
+	for i, c := range cases {
+		actualSQL, actualArgs, err := c.ds.ToSQL()
+		if c.err == "" {
+			mt.NoError(err, "test case %d failed", i)
+		} else {
+			mt.EqualError(err, c.err, "test case %d failed", i)
+		}
+		mt.Equal(c.sql, actualSQL, "test case %d failed", i)
+		if c.isPrepared && c.args != nil || len(c.args) > 0 {
+			mt.Equal(c.args, actualArgs, "test case %d failed", i)
+		} else {
+			mt.Empty(actualArgs, "test case %d failed", i)
+		}
+	}
+}
+
+func (mt *mysqlTest) assertEntries(cases ...entryTestCase) {
+	for i, c := range cases {
+		var entries []entry
+		err := c.ds.ScanStructs(&entries)
+		if c.err == "" {
+			mt.NoError(err, "test case %d failed", i)
+		} else {
+			mt.EqualError(err, c.err, "test case %d failed", i)
+		}
+		mt.Len(entries, c.len)
+		for index, entry := range entries {
+			c.check(entry, index)
+		}
+	}
 }
 
 func (mt *mysqlTest) SetupTest() {
@@ -83,218 +122,122 @@ func (mt *mysqlTest) SetupTest() {
 
 func (mt *mysqlTest) TestToSQL() {
 	ds := mt.db.From("entry")
-	s, _, err := ds.Select("id", "float", "string", "time", "bool").ToSQL()
-	mt.NoError(err)
-	mt.Equal("SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`", s)
-
-	s, _, err = ds.Where(goqu.C("int").Eq(10)).ToSQL()
-	mt.NoError(err)
-	mt.Equal("SELECT * FROM `entry` WHERE (`int` = 10)", s)
-
-	s, args, err := ds.Prepared(true).Where(goqu.L("? = ?", goqu.C("int"), 10)).ToSQL()
-	mt.NoError(err)
-	mt.Equal([]interface{}{int64(10)}, args)
-	mt.Equal("SELECT * FROM `entry` WHERE `int` = ?", s)
+	mt.assertSQL(
+		sqlTestCase{ds: ds.Select("id", "float", "string", "time", "bool"), sql: "SELECT `id`, `float`, `string`, `time`, `bool` FROM `entry`"},
+		sqlTestCase{ds: ds.Where(goqu.C("int").Eq(10)), sql: "SELECT * FROM `entry` WHERE (`int` = 10)"},
+		sqlTestCase{
+			ds:  ds.Prepared(true).Where(goqu.L("? = ?", goqu.C("int"), 10)),
+			sql: "SELECT * FROM `entry` WHERE `int` = ?", args: []interface{}{int64(10)},
+		},
+	)
 }
 
 func (mt *mysqlTest) TestQuery() {
-	var entries []entry
 	ds := mt.db.From("entry")
-	mt.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 10)
 	floatVal := float64(0)
 	baseDate, err := time.Parse(
 		"2006-01-02 15:04:05",
 		"2015-02-22 18:19:55",
 	)
 	mt.NoError(err)
-	for i, entry := range entries {
-		f := fmt.Sprintf("%f", floatVal)
-		mt.Equal(uint32(i+1), entry.ID)
-		mt.Equal(i, entry.Int)
-		mt.Equal(f, fmt.Sprintf("%f", entry.Float))
-		mt.Equal(f, entry.String)
-		mt.Equal([]byte(f), entry.Bytes)
-		mt.Equal(i%2 == 0, entry.Bool)
-		mt.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
-		floatVal += float64(0.1)
-	}
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Bool)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int > 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int < 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int <= 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 4)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 3)
-		mt.True(entry.Int <= 6)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 9)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.NotEqual("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 0)
+	mt.assertEntries(
+		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
+			f := fmt.Sprintf("%f", floatVal)
+			mt.Equal(uint32(index+1), entry.ID)
+			mt.Equal(index, entry.Int)
+			mt.Equal(f, fmt.Sprintf("%f", entry.Float))
+			mt.Equal(f, entry.String)
+			mt.Equal([]byte(f), entry.Bytes)
+			mt.Equal(index%2 == 0, entry.Bool)
+			mt.Equal(baseDate.Add(time.Duration(index)*time.Hour).Unix(), entry.Time.Unix())
+			floatVal += float64(0.1)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Bool)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int > 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int >= 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int < 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int <= 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()), len: 4, check: func(entry entry, _ int) {
+			mt.True(entry.Int >= 3)
+			mt.True(entry.Int <= 6)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			mt.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			mt.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
+			mt.NotEqual(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+			mt.Fail("Should not have returned any records")
+		}},
+	)
 }
 
 func (mt *mysqlTest) TestQuery_Prepared() {
-	var entries []entry
 	ds := mt.db.From("entry").Prepared(true)
-	mt.NoError(ds.Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 10)
 	floatVal := float64(0)
 	baseDate, err := time.Parse(
 		"2006-01-02 15:04:05",
 		"2015-02-22 18:19:55",
 	)
 	mt.NoError(err)
-	for i, entry := range entries {
-		f := fmt.Sprintf("%f", floatVal)
-		mt.Equal(uint32(i+1), entry.ID)
-		mt.Equal(i, entry.Int)
-		mt.Equal(f, fmt.Sprintf("%f", entry.Float))
-		mt.Equal(f, entry.String)
-		mt.Equal([]byte(f), entry.Bytes)
-		mt.Equal(i%2 == 0, entry.Bool)
-		mt.Equal(baseDate.Add(time.Duration(i)*time.Hour), entry.Time)
-		floatVal += float64(0.1)
-	}
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Bool)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int > 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int < 5)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 5)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int <= 4)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 4)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.True(entry.Int >= 3)
-		mt.True(entry.Int <= 6)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 1)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.Equal("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 9)
-	mt.NoError(err)
-	for _, entry := range entries {
-		mt.NotEqual("0.100000", entry.String)
-	}
-
-	entries = entries[0:0]
-	mt.NoError(ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()).ScanStructs(&entries))
-	mt.Len(entries, 0)
+	mt.assertEntries(
+		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
+			f := fmt.Sprintf("%f", floatVal)
+			mt.Equal(uint32(index+1), entry.ID)
+			mt.Equal(index, entry.Int)
+			mt.Equal(f, fmt.Sprintf("%f", entry.Float))
+			mt.Equal(f, entry.String)
+			mt.Equal([]byte(f), entry.Bytes)
+			mt.Equal(index%2 == 0, entry.Bool)
+			mt.Equal(baseDate.Add(time.Duration(index)*time.Hour).Unix(), entry.Time.Unix())
+			floatVal += float64(0.1)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("bool").IsTrue()).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Bool)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gt(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int > 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Gte(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int >= 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lt(5)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int < 5)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Lte(4)).Order(goqu.C("id").Asc()), len: 5, check: func(entry entry, _ int) {
+			mt.True(entry.Int <= 4)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("int").Between(goqu.Range(3, 6))).Order(goqu.C("id").Asc()), len: 4, check: func(entry entry, _ int) {
+			mt.True(entry.Int >= 3)
+			mt.True(entry.Int <= 6)
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Eq("0.100000")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			mt.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").Like("0.1%")).Order(goqu.C("id").Asc()), len: 1, check: func(entry entry, _ int) {
+			mt.Equal(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
+			mt.NotEqual(entry.String, "0.100000")
+		}},
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+			mt.Fail("Should not have returned any records")
+		}},
+	)
 }
 
 func (mt *mysqlTest) TestQuery_ValueExpressions() {
@@ -512,6 +455,7 @@ func (mt *mysqlTest) TestWindowFunction() {
 	major, err := strconv.Atoi(fields[0])
 	mt.NoError(err)
 	if major < 8 {
+		//nolint:forbidigo
 		fmt.Printf("SKIPPING MYSQL WINDOW FUNCTION TEST BECAUSE VERSION IS < 8 [mysql_version:=%d]\n", major)
 		return
 	}

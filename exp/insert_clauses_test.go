@@ -1,8 +1,9 @@
-package exp
+package exp_test
 
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,8 +16,8 @@ func TestInsertClausesSuite(t *testing.T) {
 }
 
 func (ics *insertClausesSuite) TestInto() {
-	c := NewInsertClauses()
-	ti := NewIdentifierExpression("", "test", "")
+	c := exp.NewInsertClauses()
+	ti := exp.NewIdentifierExpression("", "test", "")
 	c2 := c.SetInto(ti)
 
 	ics.Nil(c.Into())
@@ -25,8 +26,8 @@ func (ics *insertClausesSuite) TestInto() {
 }
 
 func (ics *insertClausesSuite) TestHasInto() {
-	c := NewInsertClauses()
-	ti := NewIdentifierExpression("", "test", "")
+	c := exp.NewInsertClauses()
+	ti := exp.NewIdentifierExpression("", "test", "")
 	c2 := c.SetInto(ti)
 
 	ics.False(c.HasInto())
@@ -35,7 +36,7 @@ func (ics *insertClausesSuite) TestHasInto() {
 }
 
 func (ics *insertClausesSuite) TestFrom() {
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	ae := newTestAppendableExpression("select * from test", nil)
 	c2 := c.SetFrom(ae)
 
@@ -45,7 +46,7 @@ func (ics *insertClausesSuite) TestFrom() {
 }
 
 func (ics *insertClausesSuite) TestHasFrom() {
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	ae := newTestAppendableExpression("select * from test", nil)
 	c2 := c.SetFrom(ae)
 
@@ -55,7 +56,7 @@ func (ics *insertClausesSuite) TestHasFrom() {
 }
 
 func (ics *insertClausesSuite) TestSetFrom() {
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	ae := newTestAppendableExpression("select * from test", nil)
 	c2 := c.SetFrom(ae)
 
@@ -65,8 +66,8 @@ func (ics *insertClausesSuite) TestSetFrom() {
 }
 
 func (ics *insertClausesSuite) TestCols() {
-	c := NewInsertClauses()
-	cle := NewColumnListExpression("a", "b")
+	c := exp.NewInsertClauses()
+	cle := exp.NewColumnListExpression("a", "b")
 	c2 := c.SetCols(cle)
 
 	ics.Nil(c.Cols())
@@ -75,27 +76,28 @@ func (ics *insertClausesSuite) TestCols() {
 }
 
 func (ics *insertClausesSuite) TestHasCols() {
-	c := NewInsertClauses()
-	cle := NewColumnListExpression("a", "b")
+	c := exp.NewInsertClauses()
+	cle := exp.NewColumnListExpression("a", "b")
 	c2 := c.SetCols(cle)
 
 	ics.False(c.HasCols())
 
 	ics.True(c2.HasCols())
 }
+
 func (ics *insertClausesSuite) TestColsAppend() {
-	cle := NewColumnListExpression("a")
-	cle2 := NewColumnListExpression("b")
-	c := NewInsertClauses().SetCols(cle)
+	cle := exp.NewColumnListExpression("a")
+	cle2 := exp.NewColumnListExpression("b")
+	c := exp.NewInsertClauses().SetCols(cle)
 	c2 := c.ColsAppend(cle2)
 
 	ics.Equal(cle, c.Cols())
 
-	ics.Equal(NewColumnListExpression("a", "b"), c2.Cols())
+	ics.Equal(exp.NewColumnListExpression("a", "b"), c2.Cols())
 }
 
 func (ics *insertClausesSuite) TestVals() {
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	vals := [][]interface{}{{"a", "b"}}
 	c2 := c.SetVals(vals)
 
@@ -105,7 +107,7 @@ func (ics *insertClausesSuite) TestVals() {
 }
 
 func (ics *insertClausesSuite) TestHasVals() {
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	vals := [][]interface{}{{"a", "b"}}
 	c2 := c.SetVals(vals)
 
@@ -113,10 +115,11 @@ func (ics *insertClausesSuite) TestHasVals() {
 
 	ics.True(c2.HasVals())
 }
+
 func (ics *insertClausesSuite) TestValsAppend() {
 	vals := [][]interface{}{{"a", "b"}}
 	vals2 := [][]interface{}{{"c", "d"}}
-	c := NewInsertClauses().SetVals(vals)
+	c := exp.NewInsertClauses().SetVals(vals)
 	c2 := c.ValsAppend(vals2)
 
 	ics.Equal(vals, c.Vals())
@@ -128,8 +131,8 @@ func (ics *insertClausesSuite) TestValsAppend() {
 }
 
 func (ics *insertClausesSuite) TestRows() {
-	c := NewInsertClauses()
-	rs := []interface{}{Record{"a": "a1", "b": "b1"}}
+	c := exp.NewInsertClauses()
+	rs := []interface{}{exp.Record{"a": "a1", "b": "b1"}}
 	c2 := c.SetRows(rs)
 
 	ics.Nil(c.Rows())
@@ -138,18 +141,19 @@ func (ics *insertClausesSuite) TestRows() {
 }
 
 func (ics *insertClausesSuite) TestHasRows() {
-	c := NewInsertClauses()
-	rs := []interface{}{Record{"a": "a1", "b": "b1"}}
+	c := exp.NewInsertClauses()
+	rs := []interface{}{exp.Record{"a": "a1", "b": "b1"}}
 	c2 := c.SetRows(rs)
 
 	ics.False(c.HasRows())
 
 	ics.True(c2.HasRows())
 }
+
 func (ics *insertClausesSuite) TestSetRows() {
-	rs := []interface{}{Record{"a": "a1", "b": "b1"}}
-	c := NewInsertClauses().SetRows(rs)
-	rs2 := []interface{}{Record{"a": "a2", "b": "b2"}}
+	rs := []interface{}{exp.Record{"a": "a1", "b": "b1"}}
+	c := exp.NewInsertClauses().SetRows(rs)
+	rs2 := []interface{}{exp.Record{"a": "a2", "b": "b2"}}
 	c2 := c.SetRows(rs2)
 
 	ics.Equal(rs, c.Rows())
@@ -158,32 +162,32 @@ func (ics *insertClausesSuite) TestSetRows() {
 }
 
 func (ics *insertClausesSuite) TestCommonTables() {
-	cte := NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
+	cte := exp.NewCommonTableExpression(true, "test", newTestAppendableExpression(`SELECT * FROM "foo"`, []interface{}{}))
 
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	c2 := c.CommonTablesAppend(cte)
 
 	ics.Nil(c.CommonTables())
 
-	ics.Equal([]CommonTableExpression{cte}, c2.CommonTables())
+	ics.Equal([]exp.CommonTableExpression{cte}, c2.CommonTables())
 }
 
 func (ics *insertClausesSuite) TestAddCommonTablesAppend() {
-	cte := NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
-	cte2 := NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
+	cte := exp.NewCommonTableExpression(true, "test", testSQLExpression("test_cte"))
+	cte2 := exp.NewCommonTableExpression(true, "test", testSQLExpression("test_cte2"))
 
-	c := NewInsertClauses().CommonTablesAppend(cte)
+	c := exp.NewInsertClauses().CommonTablesAppend(cte)
 	c2 := c.CommonTablesAppend(cte2)
 
-	ics.Equal([]CommonTableExpression{cte}, c.CommonTables())
+	ics.Equal([]exp.CommonTableExpression{cte}, c.CommonTables())
 
-	ics.Equal([]CommonTableExpression{cte, cte2}, c2.CommonTables())
+	ics.Equal([]exp.CommonTableExpression{cte, cte2}, c2.CommonTables())
 }
 
 func (ics *insertClausesSuite) TestOnConflict() {
-	ce := NewDoNothingConflictExpression()
+	ce := exp.NewDoNothingConflictExpression()
 
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	c2 := c.SetOnConflict(ce)
 
 	ics.Nil(c.OnConflict())
@@ -192,10 +196,10 @@ func (ics *insertClausesSuite) TestOnConflict() {
 }
 
 func (ics *insertClausesSuite) TestSetOnConflict() {
-	ce := NewDoNothingConflictExpression()
+	ce := exp.NewDoNothingConflictExpression()
 
-	c := NewInsertClauses().SetOnConflict(ce)
-	ce2 := NewDoUpdateConflictExpression("test", Record{"a": "a1"})
+	c := exp.NewInsertClauses().SetOnConflict(ce)
+	ce2 := exp.NewDoUpdateConflictExpression("test", exp.Record{"a": "a1"})
 	c2 := c.SetOnConflict(ce2)
 
 	ics.Equal(ce, c.OnConflict())
@@ -204,9 +208,9 @@ func (ics *insertClausesSuite) TestSetOnConflict() {
 }
 
 func (ics *insertClausesSuite) TestReturning() {
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
 
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	c2 := c.SetReturning(cl)
 
 	ics.Nil(c.Returning())
@@ -215,9 +219,9 @@ func (ics *insertClausesSuite) TestReturning() {
 }
 
 func (ics *insertClausesSuite) TestHasReturning() {
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
 
-	c := NewInsertClauses()
+	c := exp.NewInsertClauses()
 	c2 := c.SetReturning(cl)
 
 	ics.False(c.HasReturning())
@@ -226,10 +230,10 @@ func (ics *insertClausesSuite) TestHasReturning() {
 }
 
 func (ics *insertClausesSuite) TestSetReturning() {
-	cl := NewColumnListExpression(NewIdentifierExpression("", "", "col"))
-	cl2 := NewColumnListExpression(NewIdentifierExpression("", "", "col2"))
+	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
+	cl2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col2"))
 
-	c := NewInsertClauses().SetReturning(cl)
+	c := exp.NewInsertClauses().SetReturning(cl)
 	c2 := c.SetReturning(cl2)
 
 	ics.Equal(cl, c.Returning())
