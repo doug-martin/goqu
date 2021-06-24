@@ -396,7 +396,7 @@ func (sf SQLFragmentType) String() string {
 	return fmt.Sprintf("%d", sf)
 }
 
-//nolint:funlen
+// nolint: funlen
 func DefaultDialectOptions() *SQLDialectOptions {
 	return &SQLDialectOptions{
 		SupportsOrderByOnDelete:     false,

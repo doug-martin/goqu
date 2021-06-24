@@ -35,7 +35,7 @@ func Insert(table interface{}) *InsertDataset {
 }
 
 // Set the parameter interpolation behavior. See examples
-//
+
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (id *InsertDataset) Prepared(prepared bool) *InsertDataset {
 	ret := id.copy(id.clauses)
@@ -92,20 +92,20 @@ func (id *InsertDataset) copy(clauses exp.InsertClauses) *InsertDataset {
 }
 
 // Creates a WITH clause for a common table expression (CTE).
-//
+
 // The name will be available to SELECT from in the associated query; and can optionally
 // contain a list of column names "name(col1, col2, col3)".
-//
+
 // The name will refer to the results of the specified subquery.
 func (id *InsertDataset) With(name string, subquery exp.Expression) *InsertDataset {
 	return id.copy(id.clauses.CommonTablesAppend(exp.NewCommonTableExpression(false, name, subquery)))
 }
 
 // Creates a WITH RECURSIVE clause for a common table expression (CTE)
-//
+
 // The name will be available to SELECT from in the associated query; and must
 // contain a list of column names "name(col1, col2, col3)" for a recursive clause.
-//
+
 // The name will refer to the results of the specified subquery. The subquery for
 // a recursive query will always end with a UNION or UNION ALL with a clause that
 // refers to the CTE by name.
@@ -217,10 +217,10 @@ func (id *InsertDataset) SetError(err error) *InsertDataset {
 //       Id   uint32 `db:"id" goqu:"skipinsert"`
 //       Name string `db:"name"`
 //    }
-//
+
 // rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the
 // accepted types.
-//
+
 // Errors:
 //  * There is no INTO clause
 //  * Different row types passed in, all rows must be of the same type
@@ -251,7 +251,7 @@ func (id *InsertDataset) ReturnsColumns() bool {
 
 // Generates the INSERT sql, and returns an QueryExecutor struct with the sql set to the INSERT statement
 //    db.Insert("test").Rows(Record{"name":"Bob"}).Executor().Exec()
-//
+
 func (id *InsertDataset) Executor() exec.QueryExecutor {
 	return id.queryFactory.FromSQLBuilder(id.insertSQLBuilder())
 }
