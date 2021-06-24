@@ -455,7 +455,7 @@ func (mt *mysqlTest) TestWindowFunction() {
 	major, err := strconv.Atoi(fields[0])
 	mt.NoError(err)
 	if major < 8 {
-		//nolint:forbidigo
+		// nolint: forbidigo
 		fmt.Printf("SKIPPING MYSQL WINDOW FUNCTION TEST BECAUSE VERSION IS < 8 [mysql_version:=%d]\n", major)
 		return
 	}

@@ -35,7 +35,7 @@ func (td *TruncateDataset) WithDialect(dl string) *TruncateDataset {
 }
 
 // Set the parameter interpolation behavior. See examples
-//
+
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (td *TruncateDataset) Prepared(prepared bool) *TruncateDataset {
 	ret := td.copy(td.clauses)
@@ -146,7 +146,7 @@ func (td *TruncateDataset) SetError(err error) *TruncateDataset {
 
 // Generates a TRUNCATE sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
-//
+
 // Errors:
 //  * There is an error generating the SQL
 func (td *TruncateDataset) ToSQL() (sql string, params []interface{}, err error) {
