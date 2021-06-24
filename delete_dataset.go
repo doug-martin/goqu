@@ -42,7 +42,7 @@ func (dd *DeleteDataset) Clone() exp.Expression {
 }
 
 // Set the parameter interpolation behavior. See examples
-//
+
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (dd *DeleteDataset) Prepared(prepared bool) *DeleteDataset {
 	ret := dd.copy(dd.clauses)
@@ -91,20 +91,20 @@ func (dd *DeleteDataset) copy(clauses exp.DeleteClauses) *DeleteDataset {
 }
 
 // Creates a WITH clause for a common table expression (CTE).
-//
+
 // The name will be available to SELECT from in the associated query; and can optionally
 // contain a list of column names "name(col1, col2, col3)".
-//
+
 // The name will refer to the results of the specified subquery.
 func (dd *DeleteDataset) With(name string, subquery exp.Expression) *DeleteDataset {
 	return dd.copy(dd.clauses.CommonTablesAppend(exp.NewCommonTableExpression(false, name, subquery)))
 }
 
 // Creates a WITH RECURSIVE clause for a common table expression (CTE)
-//
+
 // The name will be available to SELECT from in the associated query; and must
 // contain a list of column names "name(col1, col2, col3)" for a recursive clause.
-//
+
 // The name will refer to the results of the specified subquery. The subquery for
 // a recursive query will always end with a UNION or UNION ALL with a clause that
 // refers to the CTE by name.
@@ -201,7 +201,7 @@ func (dd *DeleteDataset) SetError(err error) *DeleteDataset {
 
 // Generates a DELETE sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
-//
+
 // Errors:
 //  * There is an error generating the SQL
 func (dd *DeleteDataset) ToSQL() (sql string, params []interface{}, err error) {
@@ -228,7 +228,7 @@ func (dd *DeleteDataset) ReturnsColumns() bool {
 
 // Creates an QueryExecutor to execute the query.
 //    db.Delete("test").Exec()
-//
+
 // See Dataset#ToUpdateSQL for arguments
 func (dd *DeleteDataset) Executor() exec.QueryExecutor {
 	return dd.queryFactory.FromSQLBuilder(dd.deleteSQLBuilder())

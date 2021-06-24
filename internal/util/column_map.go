@@ -86,14 +86,19 @@ func implementsScanner(t reflect.Type) bool {
 }
 
 func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, goquTag tag.Options) ColumnData {
-	return ColumnData{
+	tmp := ColumnData{
 		ColumnName:     columnName,
 		ShouldInsert:   !goquTag.Contains(skipInsertTagName),
 		ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
 		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
-		FieldIndex:     append(fieldIndex, f.Index...),
 		GoType:         f.Type,
 	}
+
+	tmp.FieldIndex = make([]int, len(fieldIndex), len(fieldIndex)+len(f.Index))
+	copy(tmp.FieldIndex, fieldIndex)
+	tmp.FieldIndex = append(tmp.FieldIndex, f.Index...)
+
+	return tmp
 }
 
 func getStructColumnMap(f *reflect.StructField, fieldIndex []int, fieldNames, prefixes []string) ColumnMap {

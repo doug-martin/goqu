@@ -171,6 +171,8 @@ type (
 		EndFragment []byte
 		// The quote rune to use when quoting string literals (DEFAULT='\'')
 		StringQuote rune
+		// The quote rune to use when quoting string literals (DEFAULT='\'')
+		StartStringQuote []rune
 		// The operator to use when setting values in an update statement (DEFAULT='=')
 		SetOperatorRune rune
 		// The placeholder fragment to use when generating a non interpolated statement (DEFAULT=[]byte"?")
@@ -394,7 +396,7 @@ func (sf SQLFragmentType) String() string {
 	return fmt.Sprintf("%d", sf)
 }
 
-//nolint:funlen
+// nolint: funlen
 func DefaultDialectOptions() *SQLDialectOptions {
 	return &SQLDialectOptions{
 		SupportsOrderByOnDelete:     false,
@@ -479,6 +481,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 
 		PlaceHolderFragment: []byte("?"),
 		QuoteRune:           '"',
+		StartStringQuote:    []rune{'\''},
 		StringQuote:         '\'',
 		SetOperatorRune:     '=',
 		CommaRune:           ',',

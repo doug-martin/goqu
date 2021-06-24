@@ -31,7 +31,7 @@ func (c doNothingConflict) Action() ConflictAction {
 
 // Creates a ConflictUpdate struct to be passed to InsertConflict
 // Represents a ON CONFLICT DO UPDATE portion of an INSERT statement (ON DUPLICATE KEY UPDATE for mysql)
-//
+
 //  InsertConflict(DoUpdate("target_column", update),...) ->
 //  	INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
 //  InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) ->

@@ -31,7 +31,7 @@ func Update(table interface{}) *UpdateDataset {
 }
 
 // Set the parameter interpolation behavior. See examples
-//
+
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (ud *UpdateDataset) Prepared(prepared bool) *UpdateDataset {
 	ret := ud.copy(ud.clauses)
@@ -88,20 +88,20 @@ func (ud *UpdateDataset) copy(clauses exp.UpdateClauses) *UpdateDataset {
 }
 
 // Creates a WITH clause for a common table expression (CTE).
-//
+
 // The name will be available to use in the UPDATE from in the associated query; and can optionally
 // contain a list of column names "name(col1, col2, col3)".
-//
+
 // The name will refer to the results of the specified subquery.
 func (ud *UpdateDataset) With(name string, subquery exp.Expression) *UpdateDataset {
 	return ud.copy(ud.clauses.CommonTablesAppend(exp.NewCommonTableExpression(false, name, subquery)))
 }
 
 // Creates a WITH RECURSIVE clause for a common table expression (CTE)
-//
+
 // The name will be available to use in the UPDATE from in the associated query; and must
 // contain a list of column names "name(col1, col2, col3)" for a recursive clause.
-//
+
 // The name will refer to the results of the specified subquery. The subquery for
 // a recursive query will always end with a UNION or UNION ALL with a clause that
 // refers to the CTE by name.
@@ -204,7 +204,7 @@ func (ud *UpdateDataset) SetError(err error) *UpdateDataset {
 
 // Generates an UPDATE sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
-//
+
 // Errors:
 //  * There is an error generating the SQL
 func (ud *UpdateDataset) ToSQL() (sql string, params []interface{}, err error) {

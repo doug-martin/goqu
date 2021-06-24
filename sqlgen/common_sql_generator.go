@@ -34,7 +34,7 @@ type (
 		SourcesSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
 		WhereSQL(b sb.SQLBuilder, where exp.ExpressionList)
 		OrderSQL(b sb.SQLBuilder, order exp.ColumnListExpression)
-		OrderWithOffsetFetchSQL(b sb.SQLBuilder, order exp.ColumnListExpression, offset uint, limit interface{})
+		OrderWithOffsetFetchSQL(b sb.SQLBuilder, order exp.ColumnListExpression, offset uint, limit interface{}, subQuery bool)
 		LimitSQL(b sb.SQLBuilder, limit interface{})
 		UpdateExpressionSQL(b sb.SQLBuilder, updates ...exp.UpdateExpression)
 	}
@@ -107,13 +107,14 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 	order exp.ColumnListExpression,
 	offset uint,
 	limit interface{},
+	subQuery bool,
 ) {
 	if order == nil {
 		return
 	}
 
 	csg.OrderSQL(b, order)
-	if offset > 0 {
+	if offset > 0 || subQuery {
 		b.Write(csg.dialectOptions.OffsetFragment)
 		csg.esg.Generate(b, offset)
 		b.Write([]byte(" ROWS"))
