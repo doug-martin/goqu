@@ -890,6 +890,7 @@ Scans rows into a slice of structs
 type User struct{
   FirstName string `db:"first_name"`
   LastName  string `db:"last_name"`
+  Age       int    `db:"-"` // a field that shouldn't be selected
 }
 
 var users []User
@@ -909,7 +910,7 @@ fmt.Printf("\n%+v", users)
 
 `goqu` also supports scanning into multiple structs. In the example below we define a `Role` and `User` struct that could both be used individually to scan into. However, you can also create a new struct that adds both structs as fields that can be populated in a single query.
 
-**NOTE** When calling `ScanStructs` without a select already defined it will automatically only `SELECT` the columns found in the struct
+**NOTE** When calling `ScanStructs` without a select already defined it will automatically only `SELECT` the columns found in the struct, omitting any that are tagged with `db:"-"`
 
  ```go
 type Role struct {
@@ -990,6 +991,7 @@ Scans a row into a slice a struct, returns false if a row wasnt found
 type User struct{
   FirstName string `db:"first_name"`
   LastName  string `db:"last_name"`
+  Age       int    `db:"-"` // a field that shouldn't be selected
 }
 
 var user User
@@ -1008,7 +1010,7 @@ if !found {
 
 `goqu` also supports scanning into multiple structs. In the example below we define a `Role` and `User` struct that could both be used individually to scan into. However, you can also create a new struct that adds both structs as fields that can be populated in a single query.
 
-**NOTE** When calling `ScanStruct` without a select already defined it will automatically only `SELECT` the columns found in the struct
+**NOTE** When calling `ScanStruct` without a select already defined it will automatically only `SELECT` the columns found in the struct, omitting any that are tagged with `db:"-"`
 
  ```go
 type Role struct {
@@ -1101,6 +1103,23 @@ var user User
 found, err := db.From("user").ScanStruct(&user)
 // ...
 ```
+
+**NOTE** Using the `goqu.SetIgnoreUntaggedFields(true)` function, you can cause goqu to ignore any fields that aren't explicitly tagged.
+
+```go
+goqu.SetIgnoreUntaggedFields(true)
+
+type User struct{
+  FirstName string `db:"first_name"`
+  LastName string
+}
+
+var user User
+//SELECT "first_name" FROM "user" LIMIT 1;
+found, err := db.From("user").ScanStruct(&user)
+// ...
+```
+
 
 <a name="scan-vals"></a>
 **[`ScanVals`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanVals)**
@@ -1248,8 +1267,3 @@ if err := db.From("user").Pluck(&ids, "id"); err != nil{
 }
 fmt.Printf("\nIds := %+v", ids)
 ```
-
-
-
-
-

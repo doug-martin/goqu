@@ -22,6 +22,11 @@ type (
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
+	dsUntaggedTestActionItem struct {
+		Address  string `db:"address"`
+		Name     string `db:"name"`
+		Untagged string
+	}
 	selectDatasetSuite struct {
 		suite.Suite
 	}
@@ -1303,6 +1308,41 @@ func (sds *selectDatasetSuite) TestScanStruct_WithPreparedStatements() {
 		Where(goqu.Ex{"name": []string{"Bob", "Sally", "Billy"}, "address": "111 Test Addr"}).
 		ScanStruct(&item)
 	sds.EqualError(err, `goqu: unable to find corresponding field to column "test" returned by query`)
+}
+
+func (sds *selectDatasetSuite) TestScanStructUntagged() {
+	defer goqu.SetIgnoreUntaggedFields(false)
+
+	mDB, sqlMock, err := sqlmock.New()
+	sds.NoError(err)
+	sqlMock.ExpectQuery(`SELECT "address", "name", "untagged" FROM "items" LIMIT 1`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name", "untagged"}).FromCSVString("111 Test Addr,Test1,Test2"))
+
+	sqlMock.ExpectQuery(`SELECT "address", "name" FROM "items" LIMIT 1`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"address", "name"}).FromCSVString("111 Test Addr,Test1"))
+
+	db := goqu.New("mock", mDB)
+	var item dsUntaggedTestActionItem
+
+	found, err := db.From("items").ScanStruct(&item)
+	sds.NoError(err)
+	sds.True(found)
+	sds.Equal("111 Test Addr", item.Address)
+	sds.Equal("Test1", item.Name)
+	sds.Equal("Test2", item.Untagged)
+
+	// Ignore untagged fields, which will suppress the "untagged" column
+	goqu.SetIgnoreUntaggedFields(true)
+
+	item = dsUntaggedTestActionItem{}
+	found, err = db.From("items").ScanStruct(&item)
+	sds.NoError(err)
+	sds.True(found)
+	sds.Equal("111 Test Addr", item.Address)
+	sds.Equal("Test1", item.Name)
+	sds.Equal("", item.Untagged)
 }
 
 func (sds *selectDatasetSuite) TestScanVals() {

@@ -34,7 +34,7 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 			dbTag := tag.New("db", f.Tag)
 			// if PkgPath is empty then it is an exported field
 			columnName := getColumnName(&f, dbTag)
-			if !dbTag.Equals("-") {
+			if !shouldIgnoreField(dbTag) {
 				if !implementsScanner(f.Type) {
 					subCm := getStructColumnMap(&f, fieldIndex, []string{columnName}, prefixes)
 					if len(subCm) != 0 {
@@ -110,4 +110,14 @@ func getColumnName(f *reflect.StructField, dbTag tag.Options) string {
 		return columnRenameFunction(f.Name)
 	}
 	return dbTag.Values()[0]
+}
+
+func shouldIgnoreField(dbTag tag.Options) bool {
+	if dbTag == "-" {
+		return true
+	} else if dbTag == "" && ignoreUntaggedFields {
+		return true
+	}
+
+	return false
 }

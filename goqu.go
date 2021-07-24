@@ -66,6 +66,13 @@ func New(dialect string, db SQLDatabase) *Database {
 	return newDatabase(dialect, db)
 }
 
+// Set the behavior when encountering struct fields that do not have a db tag.
+// By default this is false; if set to true any field without a db tag will not
+// be targeted by Select or Scan operations.
+func SetIgnoreUntaggedFields(ignore bool) {
+	util.SetIgnoreUntaggedFields(ignore)
+}
+
 // Set the column rename function. This is used for struct fields that do not have a db tag to specify the column name
 // By default all struct fields that do not have a db tag will be converted lowercase
 func SetColumnRenameFunction(renameFunc func(string) string) {
