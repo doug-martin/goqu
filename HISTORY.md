@@ -1,6 +1,9 @@
 # v9.14.0
-* [ADDED] GroupByAppend to the SelectDataset and SelectClauses
-*
+* [FEATURE] GroupByAppend to the SelectDataset and SelectClauses [#276](https://github.com/doug-martin/goqu/pull/276), [#287](https://github.com/doug-martin/goqu/pull/287) - [@ashishkf](https://github.com/ashishkf)
+* [FEATURE] Allow untagged fields to be ignored [#285](https://github.com/doug-martin/goqu/pull/285) - [@Deiz](https://github.com/Deiz)
+* [FIX] Nil valuer [#277](https://github.com/doug-martin/goqu/pull/277) - [@benzolium](https://github.com/benzolium), [@Diggs](https://github.com/Diggs)
+* [FIX] Fix old import URL in doc comments [#286](https://github.com/doug-martin/goqu/pull/286) - [@maito1201](https://github.com/maito1201)
+
 # v9.13.0
 
 * [ADDED] ScanStructs, ScanVals to Scanner interface [#273](https://github.com/doug-martin/goqu/issues/273) - [@vlanse](https://github.com/vlanse)
