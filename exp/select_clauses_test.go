@@ -405,6 +405,18 @@ func (scs *selectClausesSuite) TestGroupByAppend() {
 	scs.Equal(exp.NewColumnListExpression(g, g2), c2.GroupBy())
 }
 
+func (scs *selectClausesSuite) TestGroupByAppend_NoPreviousGroupBy() {
+	g := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "a"))
+	g2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "b"))
+
+	c := exp.NewSelectClauses().GroupByAppend(g)
+	c2 := c.GroupByAppend(g2)
+
+	scs.Equal(g, c.GroupBy())
+
+	scs.Equal(exp.NewColumnListExpression(g, g2), c2.GroupBy())
+}
+
 func (scs *selectClausesSuite) TestSetGroupBy() {
 	g := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "a"))
 	g2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "b"))
