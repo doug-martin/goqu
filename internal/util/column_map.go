@@ -113,9 +113,9 @@ func getColumnName(f *reflect.StructField, dbTag tag.Options) string {
 }
 
 func shouldIgnoreField(dbTag tag.Options) bool {
-	if dbTag == "-" {
+	if dbTag.Equals("-") {
 		return true
-	} else if dbTag == "" && ignoreUntaggedFields {
+	} else if dbTag.IsEmpty() && ignoreUntaggedFields {
 		return true
 	}
 
