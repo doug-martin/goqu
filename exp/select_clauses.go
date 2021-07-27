@@ -40,6 +40,7 @@ type (
 
 		GroupBy() ColumnListExpression
 		SetGroupBy(cl ColumnListExpression) SelectClauses
+		GroupByAppend(cl ColumnListExpression) SelectClauses
 
 		Limit() interface{}
 		HasLimit() bool
@@ -292,6 +293,12 @@ func (c *selectClauses) OrderPrepend(oes ...OrderedExpression) SelectClauses {
 
 func (c *selectClauses) GroupBy() ColumnListExpression {
 	return c.groupBy
+}
+
+func (c *selectClauses) GroupByAppend(cl ColumnListExpression) SelectClauses {
+	ret := c.clone()
+	ret.groupBy = ret.groupBy.Append(cl.Columns()...)
+	return ret
 }
 
 func (c *selectClauses) SetGroupBy(cl ColumnListExpression) SelectClauses {

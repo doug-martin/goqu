@@ -414,6 +414,22 @@ func ExampleSelectDataset_GroupBy() {
 	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
 }
 
+func ExampleSelectDataset_GroupByAppend() {
+	sql, _, _ := goqu.From("test").
+		Select(goqu.SUM("income").As("income_sum")).
+		GroupBy("age").
+		ToSQL()
+	fmt.Println(sql)
+	sql, _, _ = goqu.From("test").
+		Select(goqu.SUM("income").As("income_sum")).
+		GroupByAppend("age").
+		ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
+	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
+}
+
 func ExampleSelectDataset_Having() {
 	sql, _, _ := goqu.From("test").Having(goqu.SUM("income").Gt(1000)).ToSQL()
 	fmt.Println(sql)

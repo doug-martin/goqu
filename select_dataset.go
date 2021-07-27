@@ -387,6 +387,11 @@ func (sd *SelectDataset) GroupBy(groupBy ...interface{}) *SelectDataset {
 	return sd.copy(sd.clauses.SetGroupBy(exp.NewColumnListExpression(groupBy...)))
 }
 
+// Adds more columns to the current GROUP BY clause. See examples.
+func (sd *SelectDataset) GroupByAppend(groupBy ...interface{}) *SelectDataset {
+	return sd.copy(sd.clauses.GroupByAppend(exp.NewColumnListExpression(groupBy...)))
+}
+
 // Adds a HAVING clause. See examples.
 func (sd *SelectDataset) Having(expressions ...exp.Expression) *SelectDataset {
 	return sd.copy(sd.clauses.HavingAppend(expressions...))
