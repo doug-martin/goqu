@@ -296,6 +296,9 @@ func (c *selectClauses) GroupBy() ColumnListExpression {
 }
 
 func (c *selectClauses) GroupByAppend(cl ColumnListExpression) SelectClauses {
+	if c.groupBy == nil {
+		return c.SetGroupBy(cl)
+	}
 	ret := c.clone()
 	ret.groupBy = ret.groupBy.Append(cl.Columns()...)
 	return ret
