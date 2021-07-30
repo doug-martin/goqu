@@ -12,7 +12,7 @@ import (
 type InsertDataset struct {
 	dialect      SQLDialect
 	clauses      exp.InsertClauses
-	isPrepared   bool
+	isPrepared   prepared
 	queryFactory exec.QueryFactory
 	err          error
 }
@@ -39,12 +39,12 @@ func Insert(table interface{}) *InsertDataset {
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (id *InsertDataset) Prepared(prepared bool) *InsertDataset {
 	ret := id.copy(id.clauses)
-	ret.isPrepared = prepared
+	ret.isPrepared = preparedFromBool(prepared)
 	return ret
 }
 
 func (id *InsertDataset) IsPrepared() bool {
-	return id.isPrepared
+	return id.isPrepared.Bool()
 }
 
 // Sets the adapter used to serialize values and create the SQL statement
@@ -257,7 +257,7 @@ func (id *InsertDataset) Executor() exec.QueryExecutor {
 }
 
 func (id *InsertDataset) insertSQLBuilder() sb.SQLBuilder {
-	buf := sb.NewSQLBuilder(id.isPrepared)
+	buf := sb.NewSQLBuilder(id.isPrepared.Bool())
 	if id.err != nil {
 		return buf.SetError(id.err)
 	}

@@ -9,7 +9,7 @@ import (
 type TruncateDataset struct {
 	dialect      SQLDialect
 	clauses      exp.TruncateClauses
-	isPrepared   bool
+	isPrepared   prepared
 	queryFactory exec.QueryFactory
 	err          error
 }
@@ -39,12 +39,12 @@ func (td *TruncateDataset) WithDialect(dl string) *TruncateDataset {
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (td *TruncateDataset) Prepared(prepared bool) *TruncateDataset {
 	ret := td.copy(td.clauses)
-	ret.isPrepared = prepared
+	ret.isPrepared = preparedFromBool(prepared)
 	return ret
 }
 
 func (td *TruncateDataset) IsPrepared() bool {
-	return td.isPrepared
+	return td.isPrepared.Bool()
 }
 
 // Returns the current adapter on the dataset
@@ -160,7 +160,7 @@ func (td *TruncateDataset) Executor() exec.QueryExecutor {
 }
 
 func (td *TruncateDataset) truncateSQLBuilder() sb.SQLBuilder {
-	buf := sb.NewSQLBuilder(td.isPrepared)
+	buf := sb.NewSQLBuilder(td.isPrepared.Bool())
 	if td.err != nil {
 		return buf.SetError(td.err)
 	}

@@ -69,6 +69,13 @@ func (uds *updateDatasetSuite) TestPrepared() {
 	uds.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
 	uds.True(preparedDs.Where(goqu.Ex{"a": 1}).IsPrepared())
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	// should be prepared by default
+	ds = goqu.Update("test")
+	uds.True(ds.IsPrepared())
 }
 
 func (uds *updateDatasetSuite) TestGetClauses() {
@@ -446,6 +453,14 @@ func (uds *updateDatasetSuite) TestExecutor() {
 	uds.Equal(`UPDATE "items" SET "address"='111 Test Addr',"name"='Test1' WHERE ("name" IS NULL)`, updateSQL)
 
 	updateSQL, args, err = ds.Prepared(true).Executor().ToSQL()
+	uds.NoError(err)
+	uds.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
+	uds.Equal(`UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`, updateSQL)
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	updateSQL, args, err = ds.Executor().ToSQL()
 	uds.NoError(err)
 	uds.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
 	uds.Equal(`UPDATE "items" SET "address"=?,"name"=? WHERE ("name" IS NULL)`, updateSQL)

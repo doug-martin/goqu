@@ -62,6 +62,13 @@ func (tds *truncateDatasetSuite) TestPrepared() {
 	tds.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
 	tds.True(preparedDs.Restrict().IsPrepared())
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	// should be prepared by default
+	ds = goqu.Truncate("test")
+	tds.True(ds.IsPrepared())
 }
 
 func (tds *truncateDatasetSuite) TestGetClauses() {
@@ -271,6 +278,14 @@ func (tds *truncateDatasetSuite) TestExecutor() {
 	tds.Equal(`TRUNCATE "table1", "table2"`, tsql)
 
 	tsql, args, err = ds.Prepared(true).Executor().ToSQL()
+	tds.NoError(err)
+	tds.Empty(args)
+	tds.Equal(`TRUNCATE "table1", "table2"`, tsql)
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	tsql, args, err = ds.Executor().ToSQL()
 	tds.NoError(err)
 	tds.Empty(args)
 	tds.Equal(`TRUNCATE "table1", "table2"`, tsql)

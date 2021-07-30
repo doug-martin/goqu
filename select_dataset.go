@@ -14,7 +14,7 @@ import (
 type SelectDataset struct {
 	dialect      SQLDialect
 	clauses      exp.SelectClauses
-	isPrepared   bool
+	isPrepared   prepared
 	queryFactory exec.QueryFactory
 	err          error
 }
@@ -52,12 +52,12 @@ func (sd *SelectDataset) WithDialect(dl string) *SelectDataset {
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (sd *SelectDataset) Prepared(prepared bool) *SelectDataset {
 	ret := sd.copy(sd.clauses)
-	ret.isPrepared = prepared
+	ret.isPrepared = preparedFromBool(prepared)
 	return ret
 }
 
 func (sd *SelectDataset) IsPrepared() bool {
-	return sd.isPrepared
+	return sd.isPrepared.Bool()
 }
 
 // Returns the current adapter on the dataset
@@ -101,7 +101,7 @@ func (sd *SelectDataset) copy(clauses exp.SelectClauses) *SelectDataset {
 // `ORDER , and `LIMIT`
 func (sd *SelectDataset) Update() *UpdateDataset {
 	u := newUpdateDataset(sd.dialect.Dialect(), sd.queryFactory).
-		Prepared(sd.isPrepared)
+		Prepared(sd.isPrepared.Bool())
 	if sd.clauses.HasSources() {
 		u = u.Table(sd.GetClauses().From().Columns()[0])
 	}
@@ -128,7 +128,7 @@ func (sd *SelectDataset) Update() *UpdateDataset {
 // insert.
 func (sd *SelectDataset) Insert() *InsertDataset {
 	i := newInsertDataset(sd.dialect.Dialect(), sd.queryFactory).
-		Prepared(sd.isPrepared)
+		Prepared(sd.isPrepared.Bool())
 	if sd.clauses.HasSources() {
 		i = i.Into(sd.GetClauses().From().Columns()[0])
 	}
@@ -144,7 +144,7 @@ func (sd *SelectDataset) Insert() *InsertDataset {
 // `ORDER , and `LIMIT`
 func (sd *SelectDataset) Delete() *DeleteDataset {
 	d := newDeleteDataset(sd.dialect.Dialect(), sd.queryFactory).
-		Prepared(sd.isPrepared)
+		Prepared(sd.isPrepared.Bool())
 	if sd.clauses.HasSources() {
 		d = d.From(sd.clauses.From().Columns()[0])
 	}
@@ -686,7 +686,7 @@ func (sd *SelectDataset) PluckContext(ctx context.Context, i interface{}, col st
 }
 
 func (sd *SelectDataset) selectSQLBuilder() sb.SQLBuilder {
-	buf := sb.NewSQLBuilder(sd.isPrepared)
+	buf := sb.NewSQLBuilder(sd.isPrepared.Bool())
 	if sd.err != nil {
 		return buf.SetError(sd.err)
 	}

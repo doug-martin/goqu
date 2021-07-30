@@ -76,6 +76,13 @@ func (sds *selectDatasetSuite) TestPrepared() {
 	sds.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
 	sds.True(preparedDs.Where(goqu.Ex{"a": 1}).IsPrepared())
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	// should be prepared by default
+	ds = goqu.From("test")
+	sds.True(ds.IsPrepared())
 }
 
 func (sds *selectDatasetSuite) TestGetClauses() {
