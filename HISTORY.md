@@ -1,3 +1,6 @@
+# v9.15.1
+* [FIX] Field indexes in the columnMap getting overridden [290](https://github.com/doug-martin/goqu/issues/290), [#291](https://github.com/doug-martin/goqu/pull/291)
+
 # v9.15.0
 * [FEATURE] Add SetDefaultPrepared which controls query value interpolation [#288](https://github.com/doug-martin/goqu/pull/288) - [@Deiz](https://github.com/Deiz)
 
