@@ -450,6 +450,50 @@ func (gis *githubIssuesSuite) TestIssue203() {
 	gis.Empty(args, []interface{}{})
 }
 
+func (gis *githubIssuesSuite) TestIssue290() {
+	type OcomModel struct {
+		ID           uint      `json:"id" db:"id" goqu:"skipinsert"`
+		CreatedDate  time.Time `json:"created_date" db:"created_date" goqu:"skipupdate"`
+		ModifiedDate time.Time `json:"modified_date" db:"modified_date"`
+	}
+
+	type ActiveModel struct {
+		OcomModel
+		ActiveStartDate time.Time  `json:"active_start_date" db:"active_start_date"`
+		ActiveEndDate   *time.Time `json:"active_end_date" db:"active_end_date"`
+	}
+
+	type CodeModel struct {
+		ActiveModel
+
+		Code        string `json:"code" db:"code"`
+		Description string `json:"description" binding:"required" db:"description"`
+	}
+
+	type CodeExample struct {
+		CodeModel
+	}
+
+	var item CodeExample
+	item.Code = "Code"
+	item.Description = "Description"
+	item.ID = 1 // Value set HERE!
+	item.CreatedDate = time.Date(
+		2021, 1, 1, 1, 1, 1, 1, time.UTC)
+	item.ModifiedDate = time.Date(
+		2021, 2, 2, 2, 2, 2, 2, time.UTC) // The Value we Get!
+	item.ActiveStartDate = time.Date(
+		2021, 3, 3, 3, 3, 3, 3, time.UTC)
+
+	updateQuery := goqu.From("example").Update().Set(item).Where(goqu.C("id").Eq(1))
+
+	sql, params, err := updateQuery.ToSQL()
+
+	gis.NoError(err)
+	gis.Empty(params)
+	gis.Equal(`UPDATE "example" SET "active_end_date"=NULL,"active_start_date"='2021-03-03T03:03:03.000000003Z',"code"='Code',"description"='Description',"id"=1,"modified_date"='2021-02-02T02:02:02.000000002Z' WHERE ("id" = 1)`, sql) //nolint:lll
+}
+
 func TestGithubIssuesSuite(t *testing.T) {
 	suite.Run(t, new(githubIssuesSuite))
 }
