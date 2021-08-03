@@ -91,13 +91,13 @@ func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, 
 		ShouldInsert:   !goquTag.Contains(skipInsertTagName),
 		ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
 		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
-		FieldIndex:     append(fieldIndex, f.Index...),
+		FieldIndex:     concatFieldIndexes(fieldIndex, f.Index),
 		GoType:         f.Type,
 	}
 }
 
 func getStructColumnMap(f *reflect.StructField, fieldIndex []int, fieldNames, prefixes []string) ColumnMap {
-	subFieldIndexes := append(fieldIndex, f.Index...)
+	subFieldIndexes := concatFieldIndexes(fieldIndex, f.Index)
 	subPrefixes := append(prefixes, fieldNames...)
 	if f.Type.Kind() == reflect.Ptr {
 		return newColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
@@ -120,4 +120,11 @@ func shouldIgnoreField(dbTag tag.Options) bool {
 	}
 
 	return false
+}
+
+// safely concat two fieldIndex slices into one.
+func concatFieldIndexes(fieldIndexPath, fieldIndex []int) []int {
+	fieldIndexes := make([]int, 0, len(fieldIndexPath)+len(fieldIndex))
+	fieldIndexes = append(fieldIndexes, fieldIndexPath...)
+	return append(fieldIndexes, fieldIndex...)
 }
