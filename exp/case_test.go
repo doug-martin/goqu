@@ -57,6 +57,16 @@ func (ces *caseExpressionSuite) TestElse() {
 	ces.Nil(ce.GetElse())
 }
 
+func (ces *caseExpressionSuite) TestAsc() {
+	ce := exp.NewCaseExpression()
+	ces.Equal(exp.NewOrderedExpression(ce, exp.AscDir, exp.NoNullsSortType), ce.Asc())
+}
+
+func (ces *caseExpressionSuite) TestDesc() {
+	ce := exp.NewCaseExpression()
+	ces.Equal(exp.NewOrderedExpression(ce, exp.DescSortDir, exp.NoNullsSortType), ce.Desc())
+}
+
 type caseWhenSuite struct {
 	suite.Suite
 }

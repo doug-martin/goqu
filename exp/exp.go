@@ -455,6 +455,7 @@ type (
 	CaseExpression interface {
 		Expression
 		Aliaseable
+		Orderable
 		GetValue() interface{}
 		GetWhens() []CaseWhen
 		GetElse() CaseElse
