@@ -73,3 +73,6 @@ func (c caseExpression) Else(result interface{}) CaseExpression {
 	c.elseCondition = NewCaseElse(result)
 	return c
 }
+
+func (c caseExpression) Asc() OrderedExpression  { return asc(c) }
+func (c caseExpression) Desc() OrderedExpression { return desc(c) }
