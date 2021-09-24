@@ -86,6 +86,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		0x1a: []byte("\\x1a"),
 	}
 
+	opts.OfFragment = []byte("")
 	opts.ConflictFragment = []byte("")
 	opts.ConflictDoUpdateFragment = []byte("")
 	opts.ConflictDoNothingFragment = []byte("")

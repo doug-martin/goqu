@@ -3,6 +3,7 @@ package sqlgen_test
 import (
 	"testing"
 
+	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
 	"github.com/doug-martin/goqu/v9/internal/sb"
@@ -506,6 +507,7 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 	opts.ForNoKeyUpdateFragment = []byte(" for no key update ")
 	opts.ForShareFragment = []byte(" for share ")
 	opts.ForKeyShareFragment = []byte(" for key share ")
+	opts.OfFragment = []byte("of ")
 	opts.NowaitFragment = []byte("nowait")
 	opts.SkipLockedFragment = []byte("skip locked")
 
@@ -513,10 +515,13 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 	scFnW := sc.SetLock(exp.NewLock(exp.ForNolock, exp.Wait))
 	scFnNw := sc.SetLock(exp.NewLock(exp.ForNolock, exp.NoWait))
 	scFnSl := sc.SetLock(exp.NewLock(exp.ForNolock, exp.SkipLocked))
+	scFnSlOf := sc.SetLock(exp.NewLock(exp.ForNolock, exp.SkipLocked, goqu.T("my_table")))
 
 	scFsW := sc.SetLock(exp.NewLock(exp.ForShare, exp.Wait))
 	scFsNw := sc.SetLock(exp.NewLock(exp.ForShare, exp.NoWait))
 	scFsSl := sc.SetLock(exp.NewLock(exp.ForShare, exp.SkipLocked))
+	scFsSlOf := sc.SetLock(exp.NewLock(exp.ForShare, exp.SkipLocked, goqu.T("my_table")))
+	scFsSlOfMulti := sc.SetLock(exp.NewLock(exp.ForShare, exp.SkipLocked, goqu.T("my_table"), goqu.T("table2")))
 
 	scFksW := sc.SetLock(exp.NewLock(exp.ForKeyShare, exp.Wait))
 	scFksNw := sc.SetLock(exp.NewLock(exp.ForKeyShare, exp.NoWait))
@@ -539,6 +544,8 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 
 		selectTestCase{clause: scFnSl, sql: `SELECT * FROM "test"`},
 		selectTestCase{clause: scFnSl, sql: `SELECT * FROM "test"`, isPrepared: true},
+		selectTestCase{clause: scFnSlOf, sql: `SELECT * FROM "test"`},
+		selectTestCase{clause: scFnSlOf, sql: `SELECT * FROM "test"`, isPrepared: true, args: []interface{}{}},
 
 		selectTestCase{clause: scFsW, sql: `SELECT * FROM "test" for share `},
 		selectTestCase{clause: scFsW, sql: `SELECT * FROM "test" for share `, isPrepared: true},
@@ -548,6 +555,12 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 
 		selectTestCase{clause: scFsSl, sql: `SELECT * FROM "test" for share skip locked`},
 		selectTestCase{clause: scFsSl, sql: `SELECT * FROM "test" for share skip locked`, isPrepared: true},
+
+		selectTestCase{clause: scFsSlOf, sql: `SELECT * FROM "test" for share of "my_table" skip locked`},
+		selectTestCase{clause: scFsSlOf, sql: `SELECT * FROM "test" for share of "my_table" skip locked`, isPrepared: true},
+
+		selectTestCase{clause: scFsSlOfMulti, sql: `SELECT * FROM "test" for share of "my_table", "table2" skip locked`},
+		selectTestCase{clause: scFsSlOfMulti, sql: `SELECT * FROM "test" for share of "my_table", "table2" skip locked`, isPrepared: true},
 
 		selectTestCase{clause: scFksW, sql: `SELECT * FROM "test" for key share `},
 		selectTestCase{clause: scFksW, sql: `SELECT * FROM "test" for key share `, isPrepared: true},

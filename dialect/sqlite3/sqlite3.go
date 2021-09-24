@@ -66,6 +66,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.ConflictDoUpdateFragment = []byte(" DO UPDATE SET ")
 	opts.ConflictDoNothingFragment = []byte(" DO NOTHING ")
 	opts.ForUpdateFragment = []byte("")
+	opts.OfFragment = []byte("")
 	opts.NowaitFragment = []byte("")
 	return opts
 }
