@@ -119,6 +119,8 @@ type (
 		ForNoKeyUpdateFragment []byte
 		// The SQL FOR SHARE fragment(DEFAULT=[]byte(" FOR SHARE "))
 		ForShareFragment []byte
+		// The SQL OF fragment(DEFAULT=[]byte("OF "))
+		OfFragment []byte
 		// The SQL FOR KEY SHARE fragment(DEFAULT=[]byte(" FOR KEY SHARE "))
 		ForKeyShareFragment []byte
 		// The SQL NOWAIT fragment(DEFAULT=[]byte("NOWAIT"))
@@ -460,6 +462,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		ForNoKeyUpdateFragment:    []byte(" FOR NO KEY UPDATE "),
 		ForShareFragment:          []byte(" FOR SHARE "),
 		ForKeyShareFragment:       []byte(" FOR KEY SHARE "),
+		OfFragment:                []byte("OF "),
 		NowaitFragment:            []byte("NOWAIT"),
 		SkipLockedFragment:        []byte("SKIP LOCKED"),
 		LateralFragment:           []byte("LATERAL "),
