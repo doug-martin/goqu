@@ -91,7 +91,20 @@ var (
 var (
 	DefaultColumnRenameFunction = strings.ToLower
 	columnRenameFunction        = DefaultColumnRenameFunction
+	ignoreUntaggedFields        = false
 )
+
+func SetIgnoreUntaggedFields(ignore bool) {
+	// If the value here is changing, reset the struct map cache
+	if ignore != ignoreUntaggedFields {
+		ignoreUntaggedFields = ignore
+
+		structMapCacheLock.Lock()
+		defer structMapCacheLock.Unlock()
+
+		structMapCache = make(map[interface{}]ColumnMap)
+	}
+}
 
 func SetColumnRenameFunction(newFunction func(string) string) {
 	columnRenameFunction = newFunction

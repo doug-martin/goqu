@@ -89,6 +89,13 @@ func (dds *deleteDatasetSuite) TestPrepared() {
 	dds.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
 	dds.True(preparedDs.Where(goqu.Ex{"a": 1}).IsPrepared())
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	// should be prepared by default
+	ds = goqu.Delete("test")
+	dds.True(ds.IsPrepared())
 }
 
 func (dds *deleteDatasetSuite) TestGetClauses() {
@@ -442,6 +449,14 @@ func (dds *deleteDatasetSuite) TestExecutor() {
 	dds.Equal(`DELETE FROM "items" WHERE ("id" > 10)`, dsql)
 
 	dsql, args, err = ds.Prepared(true).Executor().ToSQL()
+	dds.NoError(err)
+	dds.Equal([]interface{}{int64(10)}, args)
+	dds.Equal(`DELETE FROM "items" WHERE ("id" > ?)`, dsql)
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	dsql, args, err = ds.Executor().ToSQL()
 	dds.NoError(err)
 	dds.Equal([]interface{}{int64(10)}, args)
 	dds.Equal(`DELETE FROM "items" WHERE ("id" > ?)`, dsql)

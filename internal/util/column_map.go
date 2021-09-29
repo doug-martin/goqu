@@ -34,7 +34,7 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 			dbTag := tag.New("db", f.Tag)
 			// if PkgPath is empty then it is an exported field
 			columnName := getColumnName(&f, dbTag)
-			if !dbTag.Equals("-") {
+			if !shouldIgnoreField(dbTag) {
 				if !implementsScanner(f.Type) {
 					subCm := getStructColumnMap(&f, fieldIndex, []string{columnName}, prefixes)
 					if len(subCm) != 0 {
@@ -86,23 +86,18 @@ func implementsScanner(t reflect.Type) bool {
 }
 
 func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, goquTag tag.Options) ColumnData {
-	tmp := ColumnData{
+	return ColumnData{
 		ColumnName:     columnName,
 		ShouldInsert:   !goquTag.Contains(skipInsertTagName),
 		ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
 		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
+		FieldIndex:     concatFieldIndexes(fieldIndex, f.Index),
 		GoType:         f.Type,
 	}
-
-	tmp.FieldIndex = make([]int, len(fieldIndex), len(fieldIndex)+len(f.Index))
-	copy(tmp.FieldIndex, fieldIndex)
-	tmp.FieldIndex = append(tmp.FieldIndex, f.Index...)
-
-	return tmp
 }
 
 func getStructColumnMap(f *reflect.StructField, fieldIndex []int, fieldNames, prefixes []string) ColumnMap {
-	subFieldIndexes := append(fieldIndex, f.Index...)
+	subFieldIndexes := concatFieldIndexes(fieldIndex, f.Index)
 	subPrefixes := append(prefixes, fieldNames...)
 	if f.Type.Kind() == reflect.Ptr {
 		return newColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
@@ -115,4 +110,21 @@ func getColumnName(f *reflect.StructField, dbTag tag.Options) string {
 		return columnRenameFunction(f.Name)
 	}
 	return dbTag.Values()[0]
+}
+
+func shouldIgnoreField(dbTag tag.Options) bool {
+	if dbTag.Equals("-") {
+		return true
+	} else if dbTag.IsEmpty() && ignoreUntaggedFields {
+		return true
+	}
+
+	return false
+}
+
+// safely concat two fieldIndex slices into one.
+func concatFieldIndexes(fieldIndexPath, fieldIndex []int) []int {
+	fieldIndexes := make([]int, 0, len(fieldIndexPath)+len(fieldIndex))
+	fieldIndexes = append(fieldIndexes, fieldIndexPath...)
+	return append(fieldIndexes, fieldIndex...)
 }

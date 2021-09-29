@@ -380,6 +380,14 @@ func ExampleSelectDataset_Order() {
 	// SELECT * FROM "test" ORDER BY "a" ASC
 }
 
+func ExampleSelectDataset_Order_caseExpression() {
+	ds := goqu.From("test").Order(goqu.Case().When(goqu.C("num").Gt(10), 0).Else(1).Asc())
+	sql, _, _ := ds.ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM "test" ORDER BY CASE  WHEN ("num" > 10) THEN 0 ELSE 1 END ASC
+}
+
 func ExampleSelectDataset_OrderAppend() {
 	ds := goqu.From("test").Order(goqu.C("a").Asc())
 	sql, _, _ := ds.OrderAppend(goqu.C("b").Desc().NullsLast()).ToSQL()
@@ -411,6 +419,22 @@ func ExampleSelectDataset_GroupBy() {
 		ToSQL()
 	fmt.Println(sql)
 	// Output:
+	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
+}
+
+func ExampleSelectDataset_GroupByAppend() {
+	ds := goqu.From("test").
+		Select(goqu.SUM("income").As("income_sum")).
+		GroupBy("age")
+	sql, _, _ := ds.
+		GroupByAppend("job").
+		ToSQL()
+	fmt.Println(sql)
+	// the original dataset group by does not change
+	sql, _, _ = ds.ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age", "job"
 	// SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
 }
 

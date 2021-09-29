@@ -70,6 +70,13 @@ func (ids *insertDatasetSuite) TestPrepared() {
 	ids.False(ds.IsPrepared())
 	// should apply the prepared to any datasets created from the root
 	ids.True(preparedDs.Returning(goqu.C("col")).IsPrepared())
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	// should be prepared by default
+	ds = goqu.Insert("test")
+	ids.True(ds.IsPrepared())
 }
 
 func (ids *insertDatasetSuite) TestGetClauses() {
@@ -432,6 +439,52 @@ func (ids *insertDatasetSuite) TestExecutor() {
 		Rows(goqu.Record{"address": "111 Test Addr", "name": "Test1"})
 
 	isql, args, err := ds.Executor().ToSQL()
+	ids.NoError(err)
+	ids.Empty(args)
+	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1')`, isql)
+
+	isql, args, err = ds.Prepared(true).Executor().ToSQL()
+	ids.NoError(err)
+	ids.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
+	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, isql)
+
+	defer goqu.SetDefaultPrepared(false)
+	goqu.SetDefaultPrepared(true)
+
+	isql, args, err = ds.Executor().ToSQL()
+	ids.NoError(err)
+	ids.Equal([]interface{}{"111 Test Addr", "Test1"}, args)
+	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES (?, ?)`, isql)
+}
+
+func (ids *insertDatasetSuite) TestInsertStruct() {
+	defer goqu.SetIgnoreUntaggedFields(false)
+
+	mDB, _, err := sqlmock.New()
+	ids.NoError(err)
+
+	item := dsUntaggedTestActionItem{
+		Address:  "111 Test Addr",
+		Name:     "Test1",
+		Untagged: "Test2",
+	}
+
+	ds := goqu.New("mock", mDB).Insert("items").
+		Rows(item)
+
+	isql, args, err := ds.Executor().ToSQL()
+	ids.NoError(err)
+	ids.Empty(args)
+	ids.Equal(`INSERT INTO "items" ("address", "name", "untagged") VALUES ('111 Test Addr', 'Test1', 'Test2')`, isql)
+
+	isql, args, err = ds.Prepared(true).Executor().ToSQL()
+	ids.NoError(err)
+	ids.Equal([]interface{}{"111 Test Addr", "Test1", "Test2"}, args)
+	ids.Equal(`INSERT INTO "items" ("address", "name", "untagged") VALUES (?, ?, ?)`, isql)
+
+	goqu.SetIgnoreUntaggedFields(true)
+
+	isql, args, err = ds.Executor().ToSQL()
 	ids.NoError(err)
 	ids.Empty(args)
 	ids.Equal(`INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1')`, isql)

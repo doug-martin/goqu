@@ -12,7 +12,7 @@ var ErrBadFromArgument = errors.New("unsupported DeleteDataset#From argument, a 
 type DeleteDataset struct {
 	dialect      SQLDialect
 	clauses      exp.DeleteClauses
-	isPrepared   bool
+	isPrepared   prepared
 	queryFactory exec.QueryFactory
 	err          error
 }
@@ -23,7 +23,7 @@ func newDeleteDataset(d string, queryFactory exec.QueryFactory) *DeleteDataset {
 		clauses:      exp.NewDeleteClauses(),
 		dialect:      GetDialect(d),
 		queryFactory: queryFactory,
-		isPrepared:   false,
+		isPrepared:   preparedNoPreference,
 		err:          nil,
 	}
 }
@@ -46,13 +46,13 @@ func (dd *DeleteDataset) Clone() exp.Expression {
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (dd *DeleteDataset) Prepared(prepared bool) *DeleteDataset {
 	ret := dd.copy(dd.clauses)
-	ret.isPrepared = prepared
+	ret.isPrepared = preparedFromBool(prepared)
 	return ret
 }
 
 // Returns true if Prepared(true) has been called on this dataset
 func (dd *DeleteDataset) IsPrepared() bool {
-	return dd.isPrepared
+	return dd.isPrepared.Bool()
 }
 
 // Sets the adapter used to serialize values and create the SQL statement
@@ -235,7 +235,7 @@ func (dd *DeleteDataset) Executor() exec.QueryExecutor {
 }
 
 func (dd *DeleteDataset) deleteSQLBuilder() sb.SQLBuilder {
-	buf := sb.NewSQLBuilder(dd.isPrepared)
+	buf := sb.NewSQLBuilder(dd.isPrepared.Bool())
 	if dd.err != nil {
 		return buf.SetError(dd.err)
 	}

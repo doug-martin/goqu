@@ -299,6 +299,7 @@ func (j datasetValuerType) Value() (driver.Value, error) {
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_Valuer() {
 	err := errors.New("valuer error")
+	var val *datasetValuerType
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: datasetValuerType{int: 10}, sql: "'Hello World 10'"},
@@ -309,6 +310,9 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Valuer() {
 		expressionTestCase{val: datasetValuerType{err: err}, err: "goqu: valuer error"},
 		expressionTestCase{
 			val: datasetValuerType{err: err}, isPrepared: true, err: "goqu: valuer error",
+		},
+		expressionTestCase{
+			val: val, sql: "NULL",
 		},
 	)
 }

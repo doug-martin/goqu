@@ -706,12 +706,38 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 	}, cm)
 }
 
+func (rt *reflectTest) TestGetColumnMap_withStructWithIgnoreUntagged() {
+	defer util.SetIgnoreUntaggedFields(false)
+	util.SetIgnoreUntaggedFields(true)
+
+	type EmbeddedStruct struct {
+		Float float64 `db:"f"`
+		Rune  rune    // Ignored
+	}
+
+	type TestStruct struct {
+		EmbeddedStruct
+		Str  string `db:"s"`
+		Int  int64  `db:"i"`
+		Bool bool   // Ignored
+	}
+	var ts TestStruct
+	cm, err := util.GetColumnMap(&ts)
+	rt.NoError(err)
+	rt.Equal(util.ColumnMap{
+		"f": {ColumnName: "f", FieldIndex: []int{0, 0}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(float64(1))},
+		"s": {ColumnName: "s", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf("")},
+		"i": {ColumnName: "i", FieldIndex: []int{2}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+	}, cm)
+}
+
 func (rt *reflectTest) TestGetColumnMap_withStructWithTag() {
 	type TestStruct struct {
-		Str    string          `db:"s"`
-		Int    int64           `db:"i"`
-		Bool   bool            `db:"b"`
-		Valuer *sql.NullString `db:"v"`
+		Str     string          `db:"s"`
+		Int     int64           `db:"i"`
+		Bool    bool            `db:"b"`
+		Valuer  *sql.NullString `db:"v"`
+		Ignored string          `db:"-"`
 	}
 	var ts TestStruct
 	cm, err := util.GetColumnMap(&ts)
