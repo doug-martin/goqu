@@ -299,7 +299,7 @@ func (esg *expressionSQLGenerator) literalTime(b sb.SQLBuilder, t time.Time) {
 		esg.placeHolderSQL(b, t)
 		return
 	}
-	//esg.Generate(b, t.In(timeLocation).Format(esg.dialectOptions.TimeFormat))
+
 	s := t.In(timeLocation).Format(esg.dialectOptions.TimeFormat)
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 	for _, char := range s {

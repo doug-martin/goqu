@@ -48,7 +48,7 @@ func (sd *SelectDataset) WithDialect(dl string) *SelectDataset {
 }
 
 // Set the parameter interpolation behavior. See examples
-//
+
 // prepared: If true the dataset WILL NOT interpolate the parameters.
 func (sd *SelectDataset) Prepared(prepared bool) *SelectDataset {
 	ret := sd.copy(sd.clauses)
@@ -84,6 +84,10 @@ func (sd *SelectDataset) Clone() exp.Expression {
 // Returns the current clauses on the dataset.
 func (sd *SelectDataset) GetClauses() exp.SelectClauses {
 	return sd.clauses
+}
+
+func (sd *SelectDataset) SetSubQuery(subQuery bool) *SelectDataset {
+	return sd.copy(sd.clauses.SetSubQuery(subQuery))
 }
 
 // used interally to copy the dataset
@@ -177,20 +181,24 @@ func (sd *SelectDataset) Truncate() *TruncateDataset {
 }
 
 // Creates a WITH clause for a common table expression (CTE).
-//
+
 // The name will be available to SELECT from in the associated query; and can optionally
 // contain a list of column names "name(col1, col2, col3)".
-//
+
 // The name will refer to the results of the specified subquery.
 func (sd *SelectDataset) With(name string, subquery exp.Expression) *SelectDataset {
+	if subQuerySelectDataset, ok := subquery.(*SelectDataset); ok {
+		subquery = subQuerySelectDataset.copy(subQuerySelectDataset.clauses.SetSubQuery(true))
+	}
+
 	return sd.copy(sd.clauses.CommonTablesAppend(exp.NewCommonTableExpression(false, name, subquery)))
 }
 
 // Creates a WITH RECURSIVE clause for a common table expression (CTE)
-//
+
 // The name will be available to SELECT from in the associated query; and must
 // contain a list of column names "name(col1, col2, col3)" for a recursive clause.
-//
+
 // The name will refer to the results of the specified subquery. The subquery for
 // a recursive query will always end with a UNION or UNION ALL with a clause that
 // refers to the CTE by name.
@@ -493,7 +501,7 @@ func (sd *SelectDataset) CompoundFromSelf() *SelectDataset {
 
 // Sets the alias for this dataset. This is typically used when using a Dataset as a subselect. See examples.
 func (sd *SelectDataset) As(alias string) *SelectDataset {
-	return sd.copy(sd.clauses.SetAlias(T(alias)))
+	return sd.copy(sd.clauses.SetAlias(T(alias)).SetSubQuery(true))
 }
 
 // Returns the alias value as an identiier expression
@@ -534,7 +542,7 @@ func (sd *SelectDataset) SetError(err error) *SelectDataset {
 
 // Generates a SELECT sql statement, if Prepared has been called with true then the parameters will not be interpolated.
 // See examples.
-//
+
 // Errors:
 //  * There is an error generating the SQL
 func (sd *SelectDataset) ToSQL() (sql string, params []interface{}, err error) {
@@ -543,7 +551,7 @@ func (sd *SelectDataset) ToSQL() (sql string, params []interface{}, err error) {
 
 // Generates the SELECT sql, and returns an Exec struct with the sql set to the SELECT statement
 //    db.From("test").Select("col").Executor()
-//
+
 // See Dataset#ToUpdateSQL for arguments
 func (sd *SelectDataset) Executor() exec.QueryExecutor {
 	return sd.queryFactory.FromSQLBuilder(sd.selectSQLBuilder())
@@ -564,10 +572,10 @@ func (sd *SelectDataset) ReturnsColumns() bool {
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanStructs to scan the results into a slice of structs.
-//
+
 // ScanStructs will only select the columns that can be scanned in to the struct unless you have explicitly selected
 // certain columns. See examples.
-//
+
 // i: A pointer to a slice of structs
 func (sd *SelectDataset) ScanStructs(i interface{}) error {
 	return sd.ScanStructsContext(context.Background(), i)
@@ -575,10 +583,10 @@ func (sd *SelectDataset) ScanStructs(i interface{}) error {
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanStructsContext to scan the results into a slice of
 // structs.
-//
+
 // ScanStructsContext will only select the columns that can be scanned in to the struct unless you have explicitly
 // selected certain columns. See examples.
-//
+
 // i: A pointer to a slice of structs
 func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) error {
 	if sd.queryFactory == nil {
@@ -592,20 +600,20 @@ func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) 
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a slice of structs
-//
+
 // ScanStruct will only select the columns that can be scanned in to the struct unless you have explicitly selected
 // certain columns. See examples.
-//
+
 // i: A pointer to a structs
 func (sd *SelectDataset) ScanStruct(i interface{}) (bool, error) {
 	return sd.ScanStructContext(context.Background(), i)
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a slice of structs
-//
+
 // ScanStructContext will only select the columns that can be scanned in to the struct unless you have explicitly
 // selected certain columns. See examples.
-//
+
 // i: A pointer to a structs
 func (sd *SelectDataset) ScanStructContext(ctx context.Context, i interface{}) (bool, error) {
 	if sd.queryFactory == nil {
@@ -619,7 +627,7 @@ func (sd *SelectDataset) ScanStructContext(ctx context.Context, i interface{}) (
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanVals to scan the results into a slice of primitive values
-//
+
 // i: A pointer to a slice of primitive values
 func (sd *SelectDataset) ScanVals(i interface{}) error {
 	return sd.ScanValsContext(context.Background(), i)
@@ -627,7 +635,7 @@ func (sd *SelectDataset) ScanVals(i interface{}) error {
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanValsContext to scan the results into a slice of primitive
 // values
-//
+
 // i: A pointer to a slice of primitive values
 func (sd *SelectDataset) ScanValsContext(ctx context.Context, i interface{}) error {
 	if sd.queryFactory == nil {
@@ -637,14 +645,14 @@ func (sd *SelectDataset) ScanValsContext(ctx context.Context, i interface{}) err
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanVal to scan the result into a primitive value
-//
+
 // i: A pointer to a primitive value
 func (sd *SelectDataset) ScanVal(i interface{}) (bool, error) {
 	return sd.ScanValContext(context.Background(), i)
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanValContext to scan the result into a primitive value
-//
+
 // i: A pointer to a primitive value
 func (sd *SelectDataset) ScanValContext(ctx context.Context, i interface{}) (bool, error) {
 	if sd.queryFactory == nil {
@@ -667,9 +675,9 @@ func (sd *SelectDataset) CountContext(ctx context.Context) (int64, error) {
 
 // Generates the SELECT sql only selecting the passed in column and uses Exec#ScanVals to scan the result into a slice
 // of primitive values.
-//
+
 // i: A slice of primitive values
-//
+
 // col: The column to select when generative the SQL
 func (sd *SelectDataset) Pluck(i interface{}, col string) error {
 	return sd.PluckContext(context.Background(), i, col)
@@ -677,9 +685,9 @@ func (sd *SelectDataset) Pluck(i interface{}, col string) error {
 
 // Generates the SELECT sql only selecting the passed in column and uses Exec#ScanValsContext to scan the result into a
 // slice of primitive values.
-//
+
 // i: A slice of primitive values
-//
+
 // col: The column to select when generative the SQL
 func (sd *SelectDataset) PluckContext(ctx context.Context, i interface{}, col string) error {
 	return sd.Select(col).ScanValsContext(ctx, i)

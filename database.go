@@ -35,10 +35,10 @@ type (
 )
 
 // This is the common entry point into goqu.
-//
+
 // dialect: This is the adapter dialect, you should see your database adapter for the string to use. Built in adapters
 // can be found at https://github.com/doug-martin/goqu/tree/master/adapters
-//
+
 // db: A sql.Db to use for querying the database
 //      import (
 //          "database/sql"
@@ -47,7 +47,7 @@ type (
 //          _ "github.com/doug-martin/goqu/v9/dialect/postgres"
 //          _ "github.com/lib/pq"
 //      )
-//
+
 //      func main() {
 //          sqlDb, err := sql.Open("postgres", "user=postgres dbname=goqupostgres sslmode=disable ")
 //          if err != nil {
@@ -114,7 +114,7 @@ func (d *Database) WithTx(fn func(*TxDatabase) error) error {
 //              panic(err.Error())
 //          }
 //          fmt.Printf("%+v", ids)
-//
+
 // from...: Sources for you dataset, could be table names (strings), a goqu.Literal or another goqu.Dataset
 func (d *Database) From(from ...interface{}) *SelectDataset {
 	return newDataset(d.dialect, d.queryFactory()).From(from...)
@@ -161,18 +161,18 @@ func (d *Database) Trace(op, sqlString string, args ...interface{}) {
 }
 
 // Uses the db to Execute the query with arguments and return the sql.Result
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) Exec(query string, args ...interface{}) (sql.Result, error) {
 	return d.ExecContext(context.Background(), query, args...)
 }
 
 // Uses the db to Execute the query with arguments and return the sql.Result
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	d.Trace("EXEC", query, args...)
@@ -180,7 +180,7 @@ func (d *Database) ExecContext(ctx context.Context, query string, args ...interf
 }
 
 // Can be used to prepare a query.
-//
+
 // You can use this in tandem with a dataset by doing the following.
 //    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
 //    if err != nil{
@@ -202,14 +202,14 @@ func (d *Database) ExecContext(ctx context.Context, query string, args ...interf
 //    if rows.Err() != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
-//
+
 // query: The SQL statement to prepare.
 func (d *Database) Prepare(query string) (*sql.Stmt, error) {
 	return d.PrepareContext(context.Background(), query)
 }
 
 // Can be used to prepare a query.
-//
+
 // You can use this in tandem with a dataset by doing the following.
 //    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
 //    if err != nil{
@@ -231,7 +231,7 @@ func (d *Database) Prepare(query string) (*sql.Stmt, error) {
 //    if rows.Err() != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
-//
+
 // query: The SQL statement to prepare.
 func (d *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
 	d.Trace("PREPARE", query)
@@ -239,7 +239,7 @@ func (d *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 }
 
 // Used to query for multiple rows.
-//
+
 // You can use this in tandem with a dataset by doing the following.
 //    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
 //    if err != nil{
@@ -256,16 +256,16 @@ func (d *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 //    if rows.Err() != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 	return d.QueryContext(context.Background(), query, args...)
 }
 
 // Used to query for multiple rows.
-//
+
 // You can use this in tandem with a dataset by doing the following.
 //    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
 //    if err != nil{
@@ -282,9 +282,9 @@ func (d *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 //    if rows.Err() != nil{
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	d.Trace("QUERY", query, args...)
@@ -292,7 +292,7 @@ func (d *Database) QueryContext(ctx context.Context, query string, args ...inter
 }
 
 // Used to query for a single row.
-//
+
 // You can use this in tandem with a dataset by doing the following.
 //    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
 //    if err != nil{
@@ -303,16 +303,16 @@ func (d *Database) QueryContext(ctx context.Context, query string, args ...inter
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
 //    //scan your row
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 	return d.QueryRowContext(context.Background(), query, args...)
 }
 
 // Used to query for a single row.
-//
+
 // You can use this in tandem with a dataset by doing the following.
 //    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
 //    if err != nil{
@@ -323,9 +323,9 @@ func (d *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 //        panic(err.Error()) //you could gracefully handle the error also
 //    }
 //    //scan your row
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	d.Trace("QUERY ROW", query, args...)
@@ -341,11 +341,11 @@ func (d *Database) queryFactory() exec.QueryFactory {
 
 // Queries the database using the supplied query, and args and uses CrudExec.ScanStructs to scan the results into a
 // slice of structs
-//
+
 // i: A pointer to a slice of structs
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanStructs(i interface{}, query string, args ...interface{}) error {
 	return d.ScanStructsContext(context.Background(), i, query, args...)
@@ -353,11 +353,11 @@ func (d *Database) ScanStructs(i interface{}, query string, args ...interface{})
 
 // Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructsContext to scan the
 // results into a slice of structs
-//
+
 // i: A pointer to a slice of structs
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanStructsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
 	return d.queryFactory().FromSQL(query, args...).ScanStructsContext(ctx, i)
@@ -365,11 +365,11 @@ func (d *Database) ScanStructsContext(ctx context.Context, i interface{}, query 
 
 // Queries the database using the supplied query, and args and uses CrudExec.ScanStruct to scan the results into a
 // struct
-//
+
 // i: A pointer to a struct
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanStruct(i interface{}, query string, args ...interface{}) (bool, error) {
 	return d.ScanStructContext(context.Background(), i, query, args...)
@@ -377,11 +377,11 @@ func (d *Database) ScanStruct(i interface{}, query string, args ...interface{}) 
 
 // Queries the database using the supplied context, query, and args and uses CrudExec.ScanStructContext to scan the
 // results into a struct
-//
+
 // i: A pointer to a struct
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanStructContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
 	return d.queryFactory().FromSQL(query, args...).ScanStructContext(ctx, i)
@@ -389,11 +389,11 @@ func (d *Database) ScanStructContext(ctx context.Context, i interface{}, query s
 
 // Queries the database using the supplied query, and args and uses CrudExec.ScanVals to scan the results into a slice
 // of primitive values
-//
+
 // i: A pointer to a slice of primitive values
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanVals(i interface{}, query string, args ...interface{}) error {
 	return d.ScanValsContext(context.Background(), i, query, args...)
@@ -401,11 +401,11 @@ func (d *Database) ScanVals(i interface{}, query string, args ...interface{}) er
 
 // Queries the database using the supplied context, query, and args and uses CrudExec.ScanValsContext to scan the
 // results into a slice of primitive values
-//
+
 // i: A pointer to a slice of primitive values
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanValsContext(ctx context.Context, i interface{}, query string, args ...interface{}) error {
 	return d.queryFactory().FromSQL(query, args...).ScanValsContext(ctx, i)
@@ -413,11 +413,11 @@ func (d *Database) ScanValsContext(ctx context.Context, i interface{}, query str
 
 // Queries the database using the supplied query, and args and uses CrudExec.ScanVal to scan the results into a
 // primitive value
-//
+
 // i: A pointer to a primitive value
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanVal(i interface{}, query string, args ...interface{}) (bool, error) {
 	return d.ScanValContext(context.Background(), i, query, args...)
@@ -425,11 +425,11 @@ func (d *Database) ScanVal(i interface{}, query string, args ...interface{}) (bo
 
 // Queries the database using the supplied context, query, and args and uses CrudExec.ScanValContext to scan the
 // results into a primitive value
-//
+
 // i: A pointer to a primitive value
-//
+
 // query: The SQL to execute
-//
+
 // args...: for any placeholder parameters in the query
 func (d *Database) ScanValContext(ctx context.Context, i interface{}, query string, args ...interface{}) (bool, error) {
 	return d.queryFactory().FromSQL(query, args...).ScanValContext(ctx, i)
@@ -614,7 +614,7 @@ func (td *TxDatabase) Rollback() error {
 }
 
 // A helper method that will automatically COMMIT or ROLLBACK once the supplied function is done executing
-//
+
 //      tx, err := db.Begin()
 //      if err != nil{
 //           panic(err.Error()) // you could gracefully handle the error also
