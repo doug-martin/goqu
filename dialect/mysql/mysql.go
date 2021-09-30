@@ -51,6 +51,14 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		exp.RegexpILikeOp:    []byte("REGEXP"),
 		exp.RegexpNotILikeOp: []byte("NOT REGEXP"),
 	}
+	opts.BitwiseOperatorLookup = map[exp.BitwiseOperation][]byte{
+		exp.BitwiseInversionOp:  []byte("~"),
+		exp.BitwiseOrOp:         []byte("|"),
+		exp.BitwiseAndOp:        []byte("&"),
+		exp.BitwiseXorOp:        []byte("^"),
+		exp.BitwiseLeftShiftOp:  []byte("<<"),
+		exp.BitwiseRightShiftOp: []byte(">>"),
+	}
 	opts.EscapedRunes = map[rune][]byte{
 		'\'': []byte("\\'"),
 		'"':  []byte("\\\""),

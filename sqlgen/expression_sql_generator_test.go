@@ -616,6 +616,41 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 	)
 }
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_BitwiseExpression() {
+	ident := exp.NewIdentifierExpression("", "", "a")
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: ident.BitwiseInversion(), sql: `(~ "a")`},
+		expressionTestCase{val: ident.BitwiseInversion(), sql: `(~ "a")`, isPrepared: true},
+
+		expressionTestCase{val: ident.BitwiseAnd(1), sql: `("a" & 1)`},
+		expressionTestCase{val: ident.BitwiseAnd(1), sql: `("a" & ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.BitwiseOr(1), sql: `("a" | 1)`},
+		expressionTestCase{val: ident.BitwiseOr(1), sql: `("a" | ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.BitwiseXor(1), sql: `("a" # 1)`},
+		expressionTestCase{val: ident.BitwiseXor(1), sql: `("a" # ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.BitwiseLeftShift(1), sql: `("a" << 1)`},
+		expressionTestCase{val: ident.BitwiseLeftShift(1), sql: `("a" << ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.BitwiseRightShift(1), sql: `("a" >> 1)`},
+		expressionTestCase{val: ident.BitwiseRightShift(1), sql: `("a" >> ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+	)
+
+	opts := sqlgen.DefaultDialectOptions()
+	opts.BitwiseOperatorLookup = map[exp.BitwiseOperation][]byte{}
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: ident.BitwiseInversion(), err: "goqu: bitwise operator 'Inversion' not supported"},
+		expressionTestCase{val: ident.BitwiseAnd(1), err: "goqu: bitwise operator 'AND' not supported"},
+		expressionTestCase{val: ident.BitwiseOr(1), err: "goqu: bitwise operator 'OR' not supported"},
+		expressionTestCase{val: ident.BitwiseXor(1), err: "goqu: bitwise operator 'XOR' not supported"},
+		expressionTestCase{val: ident.BitwiseLeftShift(1), err: "goqu: bitwise operator 'Left Shift' not supported"},
+		expressionTestCase{val: ident.BitwiseRightShift(1), err: "goqu: bitwise operator 'Right Shift' not supported"},
+	)
+}
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_RangeExpression() {
 	betweenNum := exp.NewIdentifierExpression("", "", "a").
 		Between(exp.NewRangeVal(1, 2))

@@ -39,6 +39,7 @@ func (les *literalExpressionSuite) TestAllOthers() {
 	rv := exp.NewRangeVal(1, 2)
 	pattern := "literal like%"
 	inVals := []interface{}{1, 2}
+	bitwiseVals := 2
 	testCases := []struct {
 		Ex       exp.Expression
 		Expected exp.Expression
@@ -72,6 +73,12 @@ func (les *literalExpressionSuite) TestAllOthers() {
 		{Ex: le.IsNotTrue(), Expected: exp.NewBooleanExpression(exp.IsNotOp, le, true)},
 		{Ex: le.IsFalse(), Expected: exp.NewBooleanExpression(exp.IsOp, le, false)},
 		{Ex: le.IsNotFalse(), Expected: exp.NewBooleanExpression(exp.IsNotOp, le, false)},
+		{Ex: le.BitwiseInversion(), Expected: exp.NewBitwiseExpression(exp.BitwiseInversionOp, nil, le)},
+		{Ex: le.BitwiseOr(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseOrOp, le, bitwiseVals)},
+		{Ex: le.BitwiseAnd(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseAndOp, le, bitwiseVals)},
+		{Ex: le.BitwiseXor(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseXorOp, le, bitwiseVals)},
+		{Ex: le.BitwiseLeftShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseLeftShiftOp, le, bitwiseVals)},
+		{Ex: le.BitwiseRightShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseRightShiftOp, le, bitwiseVals)},
 	}
 
 	for _, tc := range testCases {
