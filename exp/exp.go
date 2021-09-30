@@ -138,6 +138,27 @@ type (
 		// Used internally by update sql
 		Set(interface{}) UpdateExpression
 	}
+
+	Bitwiseable interface {
+		// Creates a Bit Operation Expresion for sql ~
+		// I("col").BitiInversion() // (~ "col")
+		BitwiseInversion() BitwiseExpression
+		// Creates a Bit Operation Expresion for sql |
+		// I("col").BitOr(1) // ("col" | 1)
+		BitwiseOr(interface{}) BitwiseExpression
+		// Creates a Bit Operation Expresion for sql &
+		// I("col").BitAnd(1) // ("col" & 1)
+		BitwiseAnd(interface{}) BitwiseExpression
+		// Creates a Bit Operation Expresion for sql ^
+		// I("col").BitXor(1) // ("col" ^ 1)
+		BitwiseXor(interface{}) BitwiseExpression
+		// Creates a Bit Operation Expresion for sql <<
+		// I("col").BitLeftShift(1) // ("col" << 1)
+		BitwiseLeftShift(interface{}) BitwiseExpression
+		// Creates a Bit Operation Expresion for sql >>
+		// I("col").BitRighttShift(1) // ("col" >> 1)
+		BitwiseRightShift(interface{}) BitwiseExpression
+	}
 )
 
 type (
@@ -195,6 +216,25 @@ type (
 		// The right hand side of the expression could be a primitive value, dataset, or expression
 		RHS() interface{}
 	}
+
+	BitwiseOperation  int
+	BitwiseExpression interface {
+		Expression
+		Aliaseable
+		Comparable
+		Isable
+		Inable
+		Likeable
+		Rangeable
+		Orderable
+		// Returns the operator for the expression
+		Op() BitwiseOperation
+		// The left hand side of the expression (e.g. I("a")
+		LHS() Expression
+		// The right hand side of the expression could be a primitive value, dataset, or expression
+		RHS() interface{}
+	}
+
 	// An Expression that represents another Expression casted to a SQL type
 	CastExpression interface {
 		Expression
@@ -276,6 +316,7 @@ type (
 		Updateable
 		Distinctable
 		Castable
+		Bitwiseable
 		// returns true if this identifier has more more than on part (Schema, Table or Col)
 		//	"schema" -> true //cant qualify anymore
 		//	"schema.table" -> true
@@ -345,6 +386,7 @@ type (
 		Likeable
 		Rangeable
 		Orderable
+		Bitwiseable
 		// Returns the literal sql
 		Literal() string
 		// Arguments to be replaced within the sql
@@ -547,6 +589,13 @@ const (
 	RegexpNotILikeOp
 
 	betweenStr = "between"
+
+	BitwiseInversionOp BitwiseOperation = iota
+	BitwiseOrOp
+	BitwiseAndOp
+	BitwiseXorOp
+	BitwiseLeftShiftOp
+	BitwiseRightShiftOp
 )
 
 var (
@@ -622,6 +671,24 @@ func (bo BooleanOperation) String() string {
 		return "regexpnotilike"
 	}
 	return fmt.Sprintf("%d", bo)
+}
+
+func (bi BitwiseOperation) String() string {
+	switch bi {
+	case BitwiseInversionOp:
+		return "~"
+	case BitwiseOrOp:
+		return "OR"
+	case BitwiseAndOp:
+		return "AND"
+	case BitwiseXorOp:
+		return "^"
+	case BitwiseLeftShiftOp:
+		return "<<"
+	case BitwiseRightShiftOp:
+		return ">>"
+	}
+	return fmt.Sprintf("%d", bi)
 }
 
 func (ro RangeOperation) String() string {

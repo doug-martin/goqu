@@ -160,6 +160,28 @@ func (i identifier) Lt(val interface{}) BooleanExpression { return lt(i, val) }
 // (e.g "my_col" <= 1)
 func (i identifier) Lte(val interface{}) BooleanExpression { return lte(i, val) }
 
+// Returns a BooleanExpression for bit inversion (e.g ~ "my_col")
+func (i identifier) BitwiseInversion() BitwiseExpression { return bitwiseInversion(i) }
+
+// Returns a BooleanExpression for bit OR (e.g "my_col" | 1)
+func (i identifier) BitwiseOr(val interface{}) BitwiseExpression { return bitwiseOr(i, val) }
+
+// Returns a BooleanExpression for bit AND (e.g "my_col" & 1)
+func (i identifier) BitwiseAnd(val interface{}) BitwiseExpression { return bitwiseAnd(i, val) }
+
+// Returns a BooleanExpression for bit XOR (e.g "my_col" ^ 1)
+func (i identifier) BitwiseXor(val interface{}) BitwiseExpression { return bitwiseXor(i, val) }
+
+// Returns a BooleanExpression for bit LEFT shift (e.g "my_col" << 1)
+func (i identifier) BitwiseLeftShift(val interface{}) BitwiseExpression {
+	return bitwiseLeftShift(i, val)
+}
+
+// Returns a BooleanExpression for bit RIGHT shift (e.g "my_col" >> 1)
+func (i identifier) BitwiseRightShift(val interface{}) BitwiseExpression {
+	return bitwiseRightShift(i, val)
+}
+
 // Returns a BooleanExpression for checking that a identifier is in a list of values or  (e.g "my_col" > 1)
 func (i identifier) In(vals ...interface{}) BooleanExpression         { return in(i, vals...) }
 func (i identifier) NotIn(vals ...interface{}) BooleanExpression      { return notIn(i, vals...) }
