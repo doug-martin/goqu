@@ -215,6 +215,16 @@ type (
 		// 		exp.RegexpNotILikeOp: []byte("!~*"),
 		// })
 		BooleanOperatorLookup map[exp.BooleanOperation][]byte
+		// A map used to look up BitwiseOperations and their SQL equivalents
+		// (Default=map[exp.BitwiseOperation][]byte{
+		// 		exp.BitwiseInversionOp:  []byte("~"),
+		// 		exp.BitwiseOrOp:         []byte("|"),
+		// 		exp.BitwiseAndOp:        []byte("&"),
+		// 		exp.BitwiseXorOp:        []byte("#"),
+		// 		exp.BitwiseLeftShiftOp:  []byte("<<"),
+		// 		exp.BitwiseRightShiftOp: []byte(">>"),
+		// }),
+		BitwiseOperatorLookup map[exp.BitwiseOperation][]byte
 		// A map used to look up RangeOperations and their SQL equivalents
 		// (Default=map[exp.RangeOperation][]byte{
 		// 		exp.BetweenOp:    []byte("BETWEEN"),
@@ -508,6 +518,14 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			exp.RegexpNotLikeOp:  []byte("!~"),
 			exp.RegexpILikeOp:    []byte("~*"),
 			exp.RegexpNotILikeOp: []byte("!~*"),
+		},
+		BitwiseOperatorLookup: map[exp.BitwiseOperation][]byte{
+			exp.BitwiseInversionOp:  []byte("~"),
+			exp.BitwiseOrOp:         []byte("|"),
+			exp.BitwiseAndOp:        []byte("&"),
+			exp.BitwiseXorOp:        []byte("#"),
+			exp.BitwiseLeftShiftOp:  []byte("<<"),
+			exp.BitwiseRightShiftOp: []byte(">>"),
 		},
 		RangeOperatorLookup: map[exp.RangeOperation][]byte{
 			exp.BetweenOp:    []byte("BETWEEN"),
