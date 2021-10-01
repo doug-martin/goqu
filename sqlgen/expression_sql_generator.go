@@ -443,9 +443,8 @@ func (esg *expressionSQLGenerator) bitwiseExpressionSQL(b sb.SQLBuilder, operato
 		return
 	}
 
-	rhs := operator.RHS()
-	esg.Generate(b, rhs)
-
+	b.WriteRunes(esg.dialectOptions.SpaceRune)
+	esg.Generate(b, operator.RHS())
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
 }
 

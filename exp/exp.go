@@ -676,17 +676,17 @@ func (bo BooleanOperation) String() string {
 func (bi BitwiseOperation) String() string {
 	switch bi {
 	case BitwiseInversionOp:
-		return "~"
+		return "Inversion"
 	case BitwiseOrOp:
 		return "OR"
 	case BitwiseAndOp:
 		return "AND"
 	case BitwiseXorOp:
-		return "^"
+		return "XOR"
 	case BitwiseLeftShiftOp:
-		return "<<"
+		return "Left Shift"
 	case BitwiseRightShiftOp:
-		return ">>"
+		return "Right Shift"
 	}
 	return fmt.Sprintf("%d", bi)
 }
