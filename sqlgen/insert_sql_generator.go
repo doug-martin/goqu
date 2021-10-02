@@ -100,6 +100,10 @@ func (isg *insertSQLGenerator) InsertSQL(b sb.SQLBuilder, ic exp.InsertClauses) 
 	default:
 		isg.defaultValuesSQL(b)
 	}
+	if ic.HasAlias() {
+		b.Write(isg.DialectOptions().AsFragment)
+		isg.ExpressionSQLGenerator().Generate(b, ic.Alias())
+	}
 	isg.onConflictSQL(b, ic.OnConflict())
 }
 
