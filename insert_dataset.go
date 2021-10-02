@@ -242,7 +242,12 @@ func (id *InsertDataset) AppendSQL(b sb.SQLBuilder) {
 }
 
 func (id *InsertDataset) GetAs() exp.IdentifierExpression {
-	return nil
+	return id.clauses.Alias()
+}
+
+// Sets the alias for this dataset. This is typically used when using a Dataset as MySQL upsert
+func (id *InsertDataset) As(alias string) *InsertDataset {
+	return id.copy(id.clauses.SetAlias(T(alias)))
 }
 
 func (id *InsertDataset) ReturnsColumns() bool {
