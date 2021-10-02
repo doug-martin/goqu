@@ -257,6 +257,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 		})
 	icDn := ic.SetOnConflict(exp.NewDoNothingConflictExpression())
 	icDu := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("test", exp.Record{"a": "b"}))
+	icAsDu := ic.SetAlias(exp.NewIdentifierExpression("", "", "new")).SetOnConflict(exp.NewDoUpdateConflictExpression("test", exp.Record{"a": exp.NewIdentifierExpression("", "new", "a")}))
 	icDoc := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("on constraint test", exp.Record{"a": "b"}))
 	icDuw := ic.SetOnConflict(
 		exp.NewDoUpdateConflictExpression("test", exp.Record{"a": "b"}).Where(exp.Ex{"foo": true}),
@@ -281,6 +282,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=?`,
 			isPrepared: true,
 			args:       []interface{}{"a1", "b"},
+		},
+
+		insertTestCase{clause: icAsDu, sql: `INSERT INTO "test" ("a") VALUES ('a1') AS "new" on conflict (test) do update set "a"="new"."a"`},
+		insertTestCase{
+			clause:     icAsDu,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) AS "new" on conflict (test) do update set "a"="new"."a"`,
+			isPrepared: true,
+			args:       []interface{}{"a1"},
 		},
 
 		insertTestCase{clause: icDoc, sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict on constraint test do update set "a"='b'`},

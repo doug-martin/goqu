@@ -28,6 +28,10 @@ type (
 		HasRows() bool
 		SetRows(rows []interface{}) InsertClauses
 
+		HasAlias() bool
+		Alias() IdentifierExpression
+		SetAlias(ie IdentifierExpression) InsertClauses
+
 		Vals() [][]interface{}
 		HasVals() bool
 		SetVals(vals [][]interface{}) InsertClauses
@@ -41,6 +45,7 @@ type (
 		cols         ColumnListExpression
 		into         Expression
 		returning    ColumnListExpression
+		alias        IdentifierExpression
 		rows         []interface{}
 		values       [][]interface{}
 		from         AppendableExpression
@@ -62,6 +67,7 @@ func (ic *insertClauses) clone() *insertClauses {
 		cols:         ic.cols,
 		into:         ic.into,
 		returning:    ic.returning,
+		alias:        ic.alias,
 		rows:         ic.rows,
 		values:       ic.values,
 		from:         ic.from,
@@ -115,6 +121,20 @@ func (ic *insertClauses) Returning() ColumnListExpression {
 
 func (ic *insertClauses) HasReturning() bool {
 	return ic.returning != nil && !ic.returning.IsEmpty()
+}
+
+func (ic *insertClauses) HasAlias() bool {
+	return ic.alias != nil
+}
+
+func (ic *insertClauses) Alias() IdentifierExpression {
+	return ic.alias
+}
+
+func (ic *insertClauses) SetAlias(ie IdentifierExpression) InsertClauses {
+	ret := ic.clone()
+	ret.alias = ie
+	return ret
 }
 
 func (ic *insertClauses) SetReturning(cl ColumnListExpression) InsertClauses {
