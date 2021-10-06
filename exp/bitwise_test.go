@@ -43,7 +43,7 @@ func (bes *bitwiseExpressionSuite) TestDesc() {
 func (bes *bitwiseExpressionSuite) TestAllOthers() {
 	be := exp.NewBitwiseExpression(exp.BitwiseRightShiftOp, exp.NewIdentifierExpression("", "", "col"), 1)
 	rv := exp.NewRangeVal(1, 2)
-	pattern := "cast like%"
+	pattern := "bitwiseExp like%"
 	inVals := []interface{}{1, 2}
 	testCases := []struct {
 		Ex       exp.Expression
