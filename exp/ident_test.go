@@ -198,6 +198,7 @@ func (ies *identifierExpressionSuite) TestAllOthers() {
 	rv := exp.NewRangeVal(1, 2)
 	pattern := "ident like%"
 	inVals := []interface{}{1, 2}
+	bitwiseVals := 2
 	testCases := []struct {
 		Ex       exp.Expression
 		Expected exp.Expression
@@ -232,6 +233,12 @@ func (ies *identifierExpressionSuite) TestAllOthers() {
 		{Ex: ident.IsFalse(), Expected: exp.NewBooleanExpression(exp.IsOp, ident, false)},
 		{Ex: ident.IsNotFalse(), Expected: exp.NewBooleanExpression(exp.IsNotOp, ident, false)},
 		{Ex: ident.Distinct(), Expected: exp.NewSQLFunctionExpression("DISTINCT", ident)},
+		{Ex: ident.BitwiseInversion(), Expected: exp.NewBitwiseExpression(exp.BitwiseInversionOp, nil, ident)},
+		{Ex: ident.BitwiseOr(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseOrOp, ident, bitwiseVals)},
+		{Ex: ident.BitwiseAnd(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseAndOp, ident, bitwiseVals)},
+		{Ex: ident.BitwiseXor(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseXorOp, ident, bitwiseVals)},
+		{Ex: ident.BitwiseLeftShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseLeftShiftOp, ident, bitwiseVals)},
+		{Ex: ident.BitwiseRightShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseRightShiftOp, ident, bitwiseVals)},
 	}
 
 	for _, tc := range testCases {

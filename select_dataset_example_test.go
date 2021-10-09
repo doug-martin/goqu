@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/lib/pq"
 )
 
@@ -1650,4 +1651,35 @@ func ExampleSelectDataset_Executor_scannerScanVal() {
 	// Bob
 	// Sally
 	// Vinita
+}
+
+func ExampleForUpdate() {
+	sql, args, _ := goqu.From("test").ForUpdate(exp.Wait).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "test" FOR UPDATE  []
+}
+
+func ExampleForUpdate_of() {
+	sql, args, _ := goqu.From("test").ForUpdate(exp.Wait, goqu.T("test")).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "test" FOR UPDATE OF "test"  []
+}
+
+func ExampleForUpdate_ofMultiple() {
+	sql, args, _ := goqu.From("table1").Join(
+		goqu.T("table2"),
+		goqu.On(goqu.I("table2.id").Eq(goqu.I("table1.id"))),
+	).ForUpdate(
+		exp.Wait,
+		goqu.T("table1"),
+		goqu.T("table2"),
+	).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "table1" INNER JOIN "table2" ON ("table2"."id" = "table1"."id") FOR UPDATE OF "table1", "table2"  []
 }

@@ -132,6 +132,19 @@ func (sds *sqlite3DialectSuite) TestBooleanOperations() {
 	)
 }
 
+func (sds *sqlite3DialectSuite) TestBitwiseOperations() {
+	col := goqu.C("a")
+	ds := sds.GetDs("test")
+	sds.assertSQL(
+		sqlTestCase{ds: ds.Where(col.BitwiseInversion()), err: "goqu: bitwise operator 'Inversion' not supported"},
+		sqlTestCase{ds: ds.Where(col.BitwiseAnd(1)), sql: "SELECT * FROM `test` WHERE (`a` & 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseOr(1)), sql: "SELECT * FROM `test` WHERE (`a` | 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseXor(1)), err: "goqu: bitwise operator 'XOR' not supported"},
+		sqlTestCase{ds: ds.Where(col.BitwiseLeftShift(1)), sql: "SELECT * FROM `test` WHERE (`a` << 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseRightShift(1)), sql: "SELECT * FROM `test` WHERE (`a` >> 1)"},
+	)
+}
+
 func (sds *sqlite3DialectSuite) TestForUpdate() {
 	ds := sds.GetDs("test")
 	sds.assertSQL(

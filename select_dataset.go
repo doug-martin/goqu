@@ -367,27 +367,27 @@ func (sd *SelectDataset) ClearWhere() *SelectDataset {
 }
 
 // Adds a FOR UPDATE clause. See examples.
-func (sd *SelectDataset) ForUpdate(waitOption exp.WaitOption) *SelectDataset {
-	return sd.withLock(exp.ForUpdate, waitOption)
+func (sd *SelectDataset) ForUpdate(waitOption exp.WaitOption, of ...exp.IdentifierExpression) *SelectDataset {
+	return sd.withLock(exp.ForUpdate, waitOption, of...)
 }
 
 // Adds a FOR NO KEY UPDATE clause. See examples.
-func (sd *SelectDataset) ForNoKeyUpdate(waitOption exp.WaitOption) *SelectDataset {
-	return sd.withLock(exp.ForNoKeyUpdate, waitOption)
+func (sd *SelectDataset) ForNoKeyUpdate(waitOption exp.WaitOption, of ...exp.IdentifierExpression) *SelectDataset {
+	return sd.withLock(exp.ForNoKeyUpdate, waitOption, of...)
 }
 
 // Adds a FOR KEY SHARE clause. See examples.
-func (sd *SelectDataset) ForKeyShare(waitOption exp.WaitOption) *SelectDataset {
-	return sd.withLock(exp.ForKeyShare, waitOption)
+func (sd *SelectDataset) ForKeyShare(waitOption exp.WaitOption, of ...exp.IdentifierExpression) *SelectDataset {
+	return sd.withLock(exp.ForKeyShare, waitOption, of...)
 }
 
 // Adds a FOR SHARE clause. See examples.
-func (sd *SelectDataset) ForShare(waitOption exp.WaitOption) *SelectDataset {
-	return sd.withLock(exp.ForShare, waitOption)
+func (sd *SelectDataset) ForShare(waitOption exp.WaitOption, of ...exp.IdentifierExpression) *SelectDataset {
+	return sd.withLock(exp.ForShare, waitOption, of...)
 }
 
-func (sd *SelectDataset) withLock(strength exp.LockStrength, option exp.WaitOption) *SelectDataset {
-	return sd.copy(sd.clauses.SetLock(exp.NewLock(strength, option)))
+func (sd *SelectDataset) withLock(strength exp.LockStrength, option exp.WaitOption, of ...exp.IdentifierExpression) *SelectDataset {
+	return sd.copy(sd.clauses.SetLock(exp.NewLock(strength, option, of...)))
 }
 
 // Adds a GROUP BY clause. See examples.

@@ -112,6 +112,19 @@ func (mds *mysqlDialectSuite) TestBooleanOperations() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestBitwiseOperations() {
+	col := goqu.C("a")
+	ds := mds.GetDs("test")
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Where(col.BitwiseInversion()), sql: "SELECT * FROM `test` WHERE (~ `a`)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseAnd(1)), sql: "SELECT * FROM `test` WHERE (`a` & 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseOr(1)), sql: "SELECT * FROM `test` WHERE (`a` | 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseXor(1)), sql: "SELECT * FROM `test` WHERE (`a` ^ 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseLeftShift(1)), sql: "SELECT * FROM `test` WHERE (`a` << 1)"},
+		sqlTestCase{ds: ds.Where(col.BitwiseRightShift(1)), sql: "SELECT * FROM `test` WHERE (`a` >> 1)"},
+	)
+}
+
 func (mds *mysqlDialectSuite) TestUpdateSQL() {
 	ds := mds.GetDs("test").Update()
 	mds.assertSQL(

@@ -53,6 +53,10 @@ func errUnsupportedBooleanExpressionOperator(op exp.BooleanOperation) error {
 	return errors.New("boolean operator '%+v' not supported", op)
 }
 
+func errUnsupportedBitwiseExpressionOperator(op exp.BitwiseOperation) error {
+	return errors.New("bitwise operator '%+v' not supported", op)
+}
+
 func errUnsupportedRangeExpressionOperator(op exp.RangeOperation) error {
 	return errors.New("range operator %+v not supported", op)
 }
@@ -170,6 +174,8 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 		esg.aliasedExpressionSQL(b, e)
 	case exp.BooleanExpression:
 		esg.booleanExpressionSQL(b, e)
+	case exp.BitwiseExpression:
+		esg.bitwiseExpressionSQL(b, e)
 	case exp.RangeExpression:
 		esg.rangeExpressionSQL(b, e)
 	case exp.OrderedExpression:
@@ -428,6 +434,28 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		esg.Generate(b, rhs)
 	}
 
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+// Generates SQL for a BitwiseExpresion (e.g. I("a").BitwiseOr(2) - > "a" | 2)
+func (esg *expressionSQLGenerator) bitwiseExpressionSQL(b sb.SQLBuilder, operator exp.BitwiseExpression) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+
+	if operator.LHS() != nil {
+		esg.Generate(b, operator.LHS())
+		b.WriteRunes(esg.dialectOptions.SpaceRune)
+	}
+
+	operatorOp := operator.Op()
+	if val, ok := esg.dialectOptions.BitwiseOperatorLookup[operatorOp]; ok {
+		b.Write(val)
+	} else {
+		b.SetError(errUnsupportedBitwiseExpressionOperator(operatorOp))
+		return
+	}
+
+	b.WriteRunes(esg.dialectOptions.SpaceRune)
+	esg.Generate(b, operator.RHS())
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
 }
 

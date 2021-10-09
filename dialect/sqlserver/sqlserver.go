@@ -54,6 +54,12 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		exp.RegexpILikeOp:    []byte("REGEXP"),
 		exp.RegexpNotILikeOp: []byte("NOT REGEXP"),
 	}
+	opts.BitwiseOperatorLookup = map[exp.BitwiseOperation][]byte{
+		exp.BitwiseInversionOp: []byte("~"),
+		exp.BitwiseOrOp:        []byte("|"),
+		exp.BitwiseAndOp:       []byte("&"),
+		exp.BitwiseXorOp:       []byte("^"),
+	}
 
 	opts.FetchFragment = []byte(" FETCH FIRST ")
 
@@ -75,6 +81,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		'\'': []byte("''"),
 	}
 
+	opts.OfFragment = []byte("")
 	opts.ConflictFragment = []byte("")
 	opts.ConflictDoUpdateFragment = []byte("")
 	opts.ConflictDoNothingFragment = []byte("")
