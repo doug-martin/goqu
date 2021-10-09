@@ -62,7 +62,8 @@ func (q QueryExecutor) QueryContext(ctx context.Context) (*gsql.Rows, error) {
 //        panic(err.Error()
 //    }
 //    //use your structs
-
+//
+//
 // i: A pointer to a slice of structs.
 func (q QueryExecutor) ScanStructs(i interface{}) error {
 	return q.ScanStructsContext(context.Background(), i)
@@ -74,7 +75,8 @@ func (q QueryExecutor) ScanStructs(i interface{}) error {
 //        panic(err.Error()
 //    }
 //    //use your structs
-
+//
+//
 // i: A pointer to a slice of structs.
 func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) error {
 	scanner, err := q.ScannerContext(ctx)
@@ -95,7 +97,7 @@ func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) er
 //    if !found{
 //          fmt.Println("NOT FOUND")
 //    }
-
+//
 // i: A pointer to a struct
 func (q QueryExecutor) ScanStruct(i interface{}) (bool, error) {
 	return q.ScanStructContext(context.Background(), i)
@@ -111,7 +113,7 @@ func (q QueryExecutor) ScanStruct(i interface{}) (bool, error) {
 //    if !found{
 //          fmt.Println("NOT FOUND")
 //    }
-
+//
 // i: A pointer to a struct
 func (q QueryExecutor) ScanStructContext(ctx context.Context, i interface{}) (bool, error) {
 	val := reflect.ValueOf(i)
@@ -147,7 +149,7 @@ func (q QueryExecutor) ScanStructContext(ctx context.Context, i interface{}) (bo
 //    if err := db.From("test").Select("id").ScanVals(&ids); err != nil{
 //        panic(err.Error()
 //    }
-
+//
 // i: Takes a pointer to a slice of primitive values.
 func (q QueryExecutor) ScanVals(i interface{}) error {
 	return q.ScanValsContext(context.Background(), i)
@@ -158,7 +160,7 @@ func (q QueryExecutor) ScanVals(i interface{}) error {
 //    if err := db.From("test").Select("id").ScanValsContext(ctx, &ids); err != nil{
 //        panic(err.Error()
 //    }
-
+//
 // i: Takes a pointer to a slice of primitive values.
 func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error {
 	scanner, err := q.ScannerContext(ctx)
@@ -178,7 +180,7 @@ func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error
 //    if !found{
 //        fmt.Println("NOT FOUND")
 //    }
-
+//
 //   i: Takes a pointer to a primitive value.
 func (q QueryExecutor) ScanVal(i interface{}) (bool, error) {
 	return q.ScanValContext(context.Background(), i)
@@ -193,7 +195,7 @@ func (q QueryExecutor) ScanVal(i interface{}) (bool, error) {
 //    if !found{
 //        fmt.Println("NOT FOUND")
 //    }
-
+//
 //   i: Takes a pointer to a primitive value.
 func (q QueryExecutor) ScanValContext(ctx context.Context, i interface{}) (bool, error) {
 	val := reflect.ValueOf(i)

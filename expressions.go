@@ -38,7 +38,7 @@ func DoNothing() exp.ConflictExpression {
 
 // Creates a ConflictUpdate struct to be passed to InsertConflict
 // Represents a ON CONFLICT DO UPDATE portion of an INSERT statement (ON DUPLICATE KEY UPDATE for mysql)
-
+//
 //  InsertConflict(DoUpdate("target_column", update),...) ->
 //  	INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
 //  InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) ->
@@ -168,9 +168,9 @@ func NTH_VALUE(val interface{}, nth int) exp.SQLFunctionExpression {
 
 // Creates a new Identifier, the generated sql will use adapter specific quoting or '"' by default, this ensures case
 // sensitivity and in certain databases allows for special characters, (e.g. "curr-table", "my table").
-
+//
 // The identifier will be split by '.'
-
+//
 // Table and Column example
 //    I("table.column") -> "table"."column" //A Column and table
 // Schema table and column
