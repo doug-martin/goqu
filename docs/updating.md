@@ -154,6 +154,56 @@ Output:
 UPDATE "items" SET "address"='111 Test Addr' []
 ```
 
+If you do not want to update the database field when the struct field is a nil pointer you can use the `omitnil` tag.
+This allows a struct of pointers to be used to represent partial updates where nil pointers were not changed.
+
+```go
+type item struct {
+    FirstName string  `db:"first_name" goqu:"omitnil"`
+    LastName  string  `db:"last_name" goqu:"omitnil"`
+    Address1  *string `db:"address1" goqu:"omitnil"`
+    Address2  *string `db:"address2" goqu:"omitnil"`
+    Address3  *string `db:"address3" goqu:"omitnil"`
+}
+testString := "Test"
+emptyString := ""
+query, args, _ := goqu.Update("items").Set(
+    item{FirstName: "Test", Address1: &testString, Address2: &emptyString},
+).ToSQL()
+fmt.Println(query, args)
+```
+
+Output:
+```
+UPDATE "items" SET "address1"='Test',"address2"='',"first_name"='Test',"last_name"='' []
+```
+
+If you do not want to update the database field when the struct field is a zero value (including nil pointers) you can
+use the `omitempty` tag.
+
+Empty embedded structs implementing the `Valuer` interface (eg. `sql.NullString`) will also be omitted.
+
+```go
+type item struct {
+    FirstName string  `db:"first_name" goqu:"omitempty"`
+    LastName  string  `db:"last_name" goqu:"omitempty"`
+    Address1  *string `db:"address1" goqu:"omitempty"`
+    Address2  *string `db:"address2" goqu:"omitempty"`
+    Address3  *string `db:"address3" goqu:"omitempty"`
+}
+testString := "Test"
+emptyString := ""
+query, args, _ := goqu.Update("items").Set(
+    item{FirstName: "Test", Address1: &testString, Address2: &emptyString},
+).ToSQL()
+fmt.Println(query, args)
+```
+
+Output:
+```
+UPDATE "items" SET "address1"='Test',"address2"='',"first_name"='Test' []
+```
+
 If you want to use the database `DEFAULT` when the struct field is a zero value you can use the `defaultifempty` tag.
 
 ```go

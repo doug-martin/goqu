@@ -389,11 +389,7 @@ func ExampleInsertDataset_Rows_withOmitNilTag() {
 	emptyString := ""
 	i := item{FirstName: "Test", Address1: &testString, Address2: &emptyString}
 
-	insertSQL, args, _ := goqu.Insert("items").
-		Rows(
-			i,
-		).
-		ToSQL()
+	insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 	fmt.Println(insertSQL, args)
 
 	// Output:
@@ -410,14 +406,8 @@ func ExampleInsertDataset_Rows_withOmitEmptyTag() {
 	}
 	testString := "Test"
 	emptyString := ""
-	i := item{
-		FirstName: "Test", Address1: &testString, Address2: &emptyString,
-	}
-	insertSQL, args, _ := goqu.Insert("items").
-		Rows(
-			i,
-		).
-		ToSQL()
+	i := item{FirstName: "Test", Address1: &testString, Address2: &emptyString}
+	insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 	fmt.Println(insertSQL, args)
 
 	// Output:
@@ -441,11 +431,7 @@ func ExampleInsertDataset_Rows_withOmitEmptyTag_Valuer() {
 		Address2:   &sql.NullString{Valid: true, String: ""},
 		Address3:   &sql.NullString{},
 	}
-	insertSQL, args, _ := goqu.Insert("items").
-		Rows(
-			i,
-		).
-		ToSQL()
+	insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 	fmt.Println(insertSQL, args)
 
 	// Output:
