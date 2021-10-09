@@ -14,6 +14,7 @@
   * [`Window`](#window)
   * [`With`](#with)
   * [`SetError`](#seterror)
+  * [`ForUpdate`](#forupdate)
 * Executing Queries
   * [`ScanStructs`](#scan-structs) - Scans rows into a slice of structs
   * [`ScanStruct`](#scan-struct) - Scans a row into a slice a struct, returns false if a row wasnt found
@@ -873,6 +874,31 @@ Output:
 ```
 name is empty
 name is empty
+```
+
+<a name="forupdate"></a>
+**[`ForUpdate`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.ForUpdate)**
+
+```go
+sql, _, _ := goqu.From("test").ForUpdate(exp.Wait).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```sql
+SELECT * FROM "test" FOR UPDATE
+```
+
+If your dialect supports FOR UPDATE OF you provide tables to be locked as variable arguments to the ForUpdate method.
+
+```go
+sql, _, _ := goqu.From("test").ForUpdate(exp.Wait, goqu.T("test")).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```sql
+SELECT * FROM "test" FOR UPDATE OF "test"
 ```
 
 ## Executing Queries

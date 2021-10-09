@@ -675,6 +675,18 @@ func (sds *selectDatasetSuite) TestForUpdate() {
 				SetLock(exp.NewLock(exp.ForUpdate, goqu.NoWait)),
 		},
 		selectTestCase{
+			ds: bd.ForUpdate(goqu.NoWait, goqu.T("table1")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForUpdate, goqu.NoWait, goqu.T("table1"))),
+		},
+		selectTestCase{
+			ds: bd.ForUpdate(goqu.NoWait, goqu.T("table1"), goqu.T("table2")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForUpdate, goqu.NoWait, goqu.T("table1"), goqu.T("table2"))),
+		},
+		selectTestCase{
 			ds:      bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
 		},
@@ -689,6 +701,18 @@ func (sds *selectDatasetSuite) TestForNoKeyUpdate() {
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				SetLock(exp.NewLock(exp.ForNoKeyUpdate, goqu.NoWait)),
+		},
+		selectTestCase{
+			ds: bd.ForNoKeyUpdate(goqu.NoWait, goqu.T("table1")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForNoKeyUpdate, goqu.NoWait, goqu.T("table1"))),
+		},
+		selectTestCase{
+			ds: bd.ForNoKeyUpdate(goqu.NoWait, goqu.T("table1"), goqu.T("table2")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForNoKeyUpdate, goqu.NoWait, goqu.T("table1"), goqu.T("table2"))),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -707,6 +731,18 @@ func (sds *selectDatasetSuite) TestForKeyShare() {
 				SetLock(exp.NewLock(exp.ForKeyShare, goqu.NoWait)),
 		},
 		selectTestCase{
+			ds: bd.ForKeyShare(goqu.NoWait, goqu.T("table1")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForKeyShare, goqu.NoWait, goqu.T("table1"))),
+		},
+		selectTestCase{
+			ds: bd.ForKeyShare(goqu.NoWait, goqu.T("table1"), goqu.T("table2")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForKeyShare, goqu.NoWait, goqu.T("table1"), goqu.T("table2"))),
+		},
+		selectTestCase{
 			ds:      bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
 		},
@@ -721,6 +757,18 @@ func (sds *selectDatasetSuite) TestForShare() {
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
 				SetLock(exp.NewLock(exp.ForShare, goqu.NoWait)),
+		},
+		selectTestCase{
+			ds: bd.ForShare(goqu.NoWait, goqu.T("table1")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForShare, goqu.NoWait, goqu.T("table1"))),
+		},
+		selectTestCase{
+			ds: bd.ForShare(goqu.NoWait, goqu.T("table1"), goqu.T("table2")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLock(exp.NewLock(exp.ForShare, goqu.NoWait, goqu.T("table1"), goqu.T("table2"))),
 		},
 		selectTestCase{
 			ds:      bd,

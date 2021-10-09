@@ -277,7 +277,7 @@ New features and/or enhancements are great and I encourage you to either submit 
 1. The use case
 2. A short example
 
-If you are issuing a PR also also include the following
+If you are issuing a PR also include the following
 
 1. Tests - otherwise the PR will not be merged
 2. Documentation - otherwise the PR will not be merged
@@ -297,7 +297,7 @@ go test -v -race ./...
 You can also run the tests in a container using [docker-compose](https://docs.docker.com/compose/).
 
 ```sh
-GO_VERSION=latest docker-compose run goqu
+MYSQL_VERSION=8 POSTGRES_VERSION=13.4 SQLSERVER_VERSION=2017-CU8-ubuntu GO_VERSION=latest docker-compose run goqu
 ```
 
 ## License
