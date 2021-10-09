@@ -57,6 +57,14 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate() {
 	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test"))
 	scWithCols := sc.SetSelect(exp.NewColumnListExpression("a", "b"))
 
+	ident := exp.NewIdentifierExpression("", "", "a")
+	scWithBooExpAliased := sc.SetSelect(
+		exp.NewColumnListExpression(
+			ident.Eq(1).As("x"),
+			ident.IsNull().As("y"),
+		),
+	)
+
 	ssgs.assertCases(
 		sqlgen.NewSelectSQLGenerator("test", opts),
 		selectTestCase{clause: sc, sql: `select # FROM "test"`},
@@ -64,6 +72,17 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate() {
 
 		selectTestCase{clause: scWithCols, sql: `select "a", "b" FROM "test"`},
 		selectTestCase{clause: scWithCols, sql: `select "a", "b" FROM "test"`, isPrepared: true},
+
+		selectTestCase{
+			clause: scWithBooExpAliased,
+			sql:    `select ("a" = 1) AS "x", ("a" IS NULL) AS "y" FROM "test"`,
+		},
+		selectTestCase{
+			clause:     scWithBooExpAliased,
+			sql:        `select ("a" = ?) AS "x", ("a" IS NULL) AS "y" FROM "test"`,
+			isPrepared: true,
+			args:       []interface{}{int64(1)},
+		},
 	)
 }
 
