@@ -342,6 +342,7 @@ func (rt *reflectTest) TestIsEmptyValue_emptyValues() {
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.f64)))
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ptr)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts)))
 }
 
 func (rt *reflectTest) TestIsEmptyValue_validValues() {
@@ -364,6 +365,7 @@ func (rt *reflectTest) TestIsEmptyValue_validValues() {
 	rt.False(util.IsEmptyValue(reflect.ValueOf(float32(0.1))))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(float64(0.2))))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(ts)))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(&TestStruct{str: "a"})))
 }
 
@@ -681,11 +683,13 @@ func (rt *reflectTest) TestGetColumnMap_withStruct() {
 
 func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 	type TestStruct struct {
-		Str    string `goqu:"skipinsert,skipupdate"`
-		Int    int64  `goqu:"skipinsert"`
-		Bool   bool   `goqu:"skipupdate"`
-		Empty  bool   `goqu:"defaultifempty"`
-		Valuer *sql.NullString
+		Str       string `goqu:"skipinsert,skipupdate"`
+		Int       int64  `goqu:"skipinsert"`
+		Bool      bool   `goqu:"skipupdate"`
+		Empty     bool   `goqu:"defaultifempty"`
+		OmitNil   bool   `goqu:"omitnil"`
+		OmitEmpty bool   `goqu:"omitempty"`
+		Valuer    *sql.NullString
 	}
 	var ts TestStruct
 	cm, err := util.GetColumnMap(&ts)
@@ -702,7 +706,23 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 			DefaultIfEmpty: true,
 			GoType:         reflect.TypeOf(true),
 		},
-		"valuer": {ColumnName: "valuer", FieldIndex: []int{4}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
+		"omitnil": {
+			ColumnName:   "omitnil",
+			FieldIndex:   []int{4},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			OmitNil:      true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"omitempty": {
+			ColumnName:   "omitempty",
+			FieldIndex:   []int{5},
+			ShouldInsert: true,
+			ShouldUpdate: true,
+			OmitEmpty:    true,
+			GoType:       reflect.TypeOf(true),
+		},
+		"valuer": {ColumnName: "valuer", FieldIndex: []int{6}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(&sql.NullString{})},
 	}, cm)
 }
 

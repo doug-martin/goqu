@@ -13,6 +13,8 @@ const (
 	skipUpdateTagName     = "skipupdate"
 	skipInsertTagName     = "skipinsert"
 	defaultIfEmptyTagName = "defaultifempty"
+	omitNilTagName        = "omitnil"
+	omitEmptyTagName      = "omitempty"
 )
 
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
@@ -76,11 +78,17 @@ func IsEmptyValue(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
+	case reflect.Struct:
+		return v.IsZero()
 	case reflect.Invalid:
 		return true
 	default:
 		return false
 	}
+}
+
+func IsNilPointer(v reflect.Value) bool {
+	return v.Kind() == reflect.Ptr && v.IsNil()
 }
 
 var (

@@ -377,6 +377,81 @@ func ExampleInsertDataset_Rows_withGoquSkipInsertTag() {
 	// INSERT INTO "items" ("address") VALUES ('111 Test Addr'), ('112 Test Addr') []
 }
 
+func ExampleInsertDataset_Rows_withOmitNilTag() {
+	type item struct {
+		FirstName string  `db:"first_name" goqu:"omitnil"`
+		LastName  string  `db:"last_name" goqu:"omitnil"`
+		Address1  *string `db:"address1" goqu:"omitnil"`
+		Address2  *string `db:"address2" goqu:"omitnil"`
+		Address3  *string `db:"address3" goqu:"omitnil"`
+	}
+	testString := "Test"
+	emptyString := ""
+	i := item{FirstName: "Test", Address1: &testString, Address2: &emptyString}
+
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(
+			i,
+		).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address1", "address2", "first_name", "last_name") VALUES ('Test', '', 'Test', '') []
+}
+
+func ExampleInsertDataset_Rows_withOmitEmptyTag() {
+	type item struct {
+		FirstName string  `db:"first_name" goqu:"omitempty"`
+		LastName  string  `db:"last_name" goqu:"omitempty"`
+		Address1  *string `db:"address1" goqu:"omitempty"`
+		Address2  *string `db:"address2" goqu:"omitempty"`
+		Address3  *string `db:"address3" goqu:"omitempty"`
+	}
+	testString := "Test"
+	emptyString := ""
+	i := item{
+		FirstName: "Test", Address1: &testString, Address2: &emptyString,
+	}
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(
+			i,
+		).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address1", "address2", "first_name") VALUES ('Test', '', 'Test') []
+}
+
+func ExampleInsertDataset_Rows_withOmitEmptyTag_Valuer() {
+	type item struct {
+		FirstName  sql.NullString  `db:"first_name" goqu:"omitempty"`
+		MiddleName sql.NullString  `db:"middle_name" goqu:"omitempty"`
+		LastName   sql.NullString  `db:"last_name" goqu:"omitempty"`
+		Address1   *sql.NullString `db:"address1" goqu:"omitempty"`
+		Address2   *sql.NullString `db:"address2" goqu:"omitempty"`
+		Address3   *sql.NullString `db:"address3" goqu:"omitempty"`
+		Address4   *sql.NullString `db:"address4" goqu:"omitempty"`
+	}
+	i := item{
+		FirstName:  sql.NullString{Valid: true, String: "Test"},
+		MiddleName: sql.NullString{Valid: true, String: ""},
+		Address1:   &sql.NullString{Valid: true, String: "Test"},
+		Address2:   &sql.NullString{Valid: true, String: ""},
+		Address3:   &sql.NullString{},
+	}
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(
+			i,
+		).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address1", "address2", "address3", "first_name", "middle_name") VALUES ('Test', '', NULL, 'Test', '') []
+}
+
 func ExampleInsertDataset_Rows_withGoquDefaultIfEmptyTag() {
 	type item struct {
 		ID      uint32 `goqu:"skipinsert"`

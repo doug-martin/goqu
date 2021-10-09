@@ -2,6 +2,7 @@
 package goqu_test
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/doug-martin/goqu/v9"
@@ -20,6 +21,69 @@ func ExampleUpdate_withStruct() {
 
 	// Output:
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+}
+
+func ExampleUpdate_withOmitNilTag() {
+	type item struct {
+		FirstName string  `db:"first_name" goqu:"omitnil"`
+		LastName  string  `db:"last_name" goqu:"omitnil"`
+		Address1  *string `db:"address1" goqu:"omitnil"`
+		Address2  *string `db:"address2" goqu:"omitnil"`
+		Address3  *string `db:"address3" goqu:"omitnil"`
+	}
+	testString := "Test"
+	emptyString := ""
+	query, args, _ := goqu.Update("items").Set(
+		item{FirstName: "Test", Address1: &testString, Address2: &emptyString},
+	).ToSQL()
+	fmt.Println(query, args)
+
+	// Output:
+	// UPDATE "items" SET "address1"='Test',"address2"='',"first_name"='Test',"last_name"='' []
+}
+
+func ExampleUpdate_withOmitEmptyTag() {
+	type item struct {
+		FirstName string  `db:"first_name" goqu:"omitempty"`
+		LastName  string  `db:"last_name" goqu:"omitempty"`
+		Address1  *string `db:"address1" goqu:"omitempty"`
+		Address2  *string `db:"address2" goqu:"omitempty"`
+		Address3  *string `db:"address3" goqu:"omitempty"`
+	}
+	testString := "Test"
+	emptyString := ""
+	query, args, _ := goqu.Update("items").Set(
+		item{FirstName: "Test", Address1: &testString, Address2: &emptyString},
+	).ToSQL()
+	fmt.Println(query, args)
+
+	// Output:
+	// UPDATE "items" SET "address1"='Test',"address2"='',"first_name"='Test' []
+}
+
+func ExampleUpdate_withOmitEmptyTag_Valuer() {
+	type item struct {
+		FirstName  sql.NullString  `db:"first_name" goqu:"omitempty"`
+		MiddleName sql.NullString  `db:"middle_name" goqu:"omitempty"`
+		LastName   sql.NullString  `db:"last_name" goqu:"omitempty"`
+		Address1   *sql.NullString `db:"address1" goqu:"omitempty"`
+		Address2   *sql.NullString `db:"address2" goqu:"omitempty"`
+		Address3   *sql.NullString `db:"address3" goqu:"omitempty"`
+		Address4   *sql.NullString `db:"address4" goqu:"omitempty"`
+	}
+	query, args, _ := goqu.Update("items").Set(
+		item{
+			FirstName:  sql.NullString{Valid: true, String: "Test"},
+			MiddleName: sql.NullString{Valid: true, String: ""},
+			Address1:   &sql.NullString{Valid: true, String: "Test"},
+			Address2:   &sql.NullString{Valid: true, String: ""},
+			Address3:   &sql.NullString{},
+		},
+	).ToSQL()
+	fmt.Println(query, args)
+
+	// Output:
+	// UPDATE "items" SET "address1"='Test',"address2"='',"address3"=NULL,"first_name"='Test',"middle_name"='' []
 }
 
 func ExampleUpdate_withGoquRecord() {
