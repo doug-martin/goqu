@@ -9,10 +9,10 @@ type sqlWindowExpression struct {
 
 func NewWindowExpression(window, parent IdentifierExpression, partitionCols, orderCols ColumnListExpression) WindowExpression {
 	if partitionCols == nil {
-		partitionCols = NewColumnListExpression()
+		partitionCols = NewColumnListExpression(nil)
 	}
 	if orderCols == nil {
-		orderCols = NewColumnListExpression()
+		orderCols = NewColumnListExpression(nil)
 	}
 	return sqlWindowExpression{
 		name:          window,
@@ -73,13 +73,13 @@ func (we sqlWindowExpression) HasOrder() bool {
 
 func (we sqlWindowExpression) PartitionBy(cols ...interface{}) WindowExpression {
 	ret := we.clone()
-	ret.partitionCols = NewColumnListExpression(cols...)
+	ret.partitionCols = NewColumnListExpression(nil, cols...)
 	return ret
 }
 
 func (we sqlWindowExpression) OrderBy(cols ...interface{}) WindowExpression {
 	ret := we.clone()
-	ret.orderCols = NewColumnListExpression(cols...)
+	ret.orderCols = NewColumnListExpression(nil, cols...)
 	return ret
 }
 

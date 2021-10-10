@@ -11,7 +11,7 @@ type columnList struct {
 	columns []Expression
 }
 
-func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
+func NewColumnListExpression(subquerys map[string]Aliaseable, vals ...interface{}) ColumnListExpression {
 	cols := []Expression{}
 	for _, val := range vals {
 		switch t := val.(type) {
@@ -30,12 +30,22 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 				if err != nil {
 					panic(err.Error())
 				}
-				structCols := cm.Cols()
+				structCols, subqueryKeys := cm.Cols()
 				for _, col := range structCols {
-					i := ParseIdentifier(col)
-					var sc Expression = i
-					if i.IsQualified() {
-						sc = i.As(NewIdentifierExpression("", "", col))
+					var sc Expression
+
+					if v, found := subqueryKeys[col]; found {
+						if q, f := subquerys[v]; f {
+							sc = q.As(col)
+						} else {
+							sc = NewLiteralExpression(v).As(col)
+						}
+					} else {
+						i := ParseIdentifier(col)
+						sc = i
+						if i.IsQualified() {
+							sc = i.As(NewIdentifierExpression("", "", col))
+						}
 					}
 					cols = append(cols, sc)
 				}
@@ -52,7 +62,7 @@ func NewOrderedColumnList(vals ...OrderedExpression) ColumnListExpression {
 	for _, col := range vals {
 		exps = append(exps, col.Expression())
 	}
-	return NewColumnListExpression(exps...)
+	return NewColumnListExpression(nil, exps...)
 }
 
 func (cl columnList) Clone() Expression {

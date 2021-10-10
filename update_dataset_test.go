@@ -173,13 +173,13 @@ func (uds *updateDatasetSuite) TestFrom() {
 			ds: bd.From("other"),
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")).
-				SetFrom(exp.NewColumnListExpression("other")),
+				SetFrom(exp.NewColumnListExpression(nil, "other")),
 		},
 		updateTestCase{
 			ds: bd.From("other").From("other2"),
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")).
-				SetFrom(exp.NewColumnListExpression("other2")),
+				SetFrom(exp.NewColumnListExpression(nil, "other2")),
 		},
 		updateTestCase{
 			ds: bd,
@@ -360,25 +360,25 @@ func (uds *updateDatasetSuite) TestReturning() {
 			ds: bd.Returning("a", "b"),
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression("a", "b")),
+				SetReturning(exp.NewColumnListExpression(nil, "a", "b")),
 		},
 		updateTestCase{
 			ds: bd.Returning(),
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression()),
+				SetReturning(exp.NewColumnListExpression(nil)),
 		},
 		updateTestCase{
 			ds: bd.Returning(nil),
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression()),
+				SetReturning(exp.NewColumnListExpression(nil)),
 		},
 		updateTestCase{
 			ds: bd.Returning("a", "b").Returning("c"),
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression("c")),
+				SetReturning(exp.NewColumnListExpression(nil, "c")),
 		},
 		updateTestCase{
 			ds:      bd,

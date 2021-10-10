@@ -17,7 +17,7 @@ func TestTruncateClausesSuite(t *testing.T) {
 
 func (tcs *truncateClausesSuite) TestHasTable() {
 	c := exp.NewTruncateClauses()
-	cle := exp.NewColumnListExpression("test1", "test2")
+	cle := exp.NewColumnListExpression(nil, "test1", "test2")
 	c2 := c.SetTable(cle)
 
 	tcs.False(c.HasTable())
@@ -27,7 +27,7 @@ func (tcs *truncateClausesSuite) TestHasTable() {
 
 func (tcs *truncateClausesSuite) TestTable() {
 	c := exp.NewTruncateClauses()
-	cle := exp.NewColumnListExpression("test1", "test2")
+	cle := exp.NewColumnListExpression(nil, "test1", "test2")
 	c2 := c.SetTable(cle)
 
 	tcs.Nil(c.Table())
@@ -36,9 +36,9 @@ func (tcs *truncateClausesSuite) TestTable() {
 }
 
 func (tcs *truncateClausesSuite) TestSetTable() {
-	cle := exp.NewColumnListExpression("test1", "test2")
+	cle := exp.NewColumnListExpression(nil, "test1", "test2")
 	c := exp.NewTruncateClauses().SetTable(cle)
-	cle2 := exp.NewColumnListExpression("test3", "test4")
+	cle2 := exp.NewColumnListExpression(nil, "test3", "test4")
 	c2 := c.SetTable(cle2)
 
 	tcs.Equal(cle, c.Table())

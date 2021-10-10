@@ -180,7 +180,7 @@ func (dd *DeleteDataset) ClearLimit() *DeleteDataset {
 
 // Adds a RETURNING clause to the dataset if the adapter supports it.
 func (dd *DeleteDataset) Returning(returning ...interface{}) *DeleteDataset {
-	return dd.copy(dd.clauses.SetReturning(exp.NewColumnListExpression(returning...)))
+	return dd.copy(dd.clauses.SetReturning(exp.NewColumnListExpression(nil, returning...)))
 }
 
 // Get any error that has been set or nil if no error has been set.

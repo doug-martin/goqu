@@ -10,12 +10,13 @@ import (
 
 type (
 	ColumnData struct {
-		ColumnName     string
-		FieldIndex     []int
-		ShouldInsert   bool
-		ShouldUpdate   bool
-		DefaultIfEmpty bool
-		GoType         reflect.Type
+		ColumnName        string
+		ColumnSubqueryKey string
+		FieldIndex        []int
+		ShouldInsert      bool
+		ShouldUpdate      bool
+		DefaultIfEmpty    bool
+		GoType            reflect.Type
 	}
 	ColumnMap map[string]ColumnData
 )
@@ -32,8 +33,10 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 			}
 		} else if f.PkgPath == "" {
 			dbTag := tag.New("db", f.Tag)
+			subqueryTag := tag.New("subquery", f.Tag)
 			// if PkgPath is empty then it is an exported field
 			columnName := getColumnName(&f, dbTag)
+			columnSubqueryKey := getSubqueryKey(subqueryTag)
 			if !shouldIgnoreField(dbTag) {
 				if !implementsScanner(f.Type) {
 					subCm := getStructColumnMap(&f, fieldIndex, []string{columnName}, prefixes)
@@ -44,20 +47,25 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 				}
 				goquTag := tag.New("goqu", f.Tag)
 				columnName = strings.Join(append(prefixes, columnName), ".")
-				cm[columnName] = newColumnData(&f, columnName, fieldIndex, goquTag)
+				cm[columnName] = newColumnData(&f, columnName, columnSubqueryKey, fieldIndex, goquTag)
 			}
 		}
 	}
 	return cm.Merge(subColMaps)
 }
 
-func (cm ColumnMap) Cols() []string {
-	structCols := make([]string, 0, len(cm))
-	for key := range cm {
+func (cm ColumnMap) Cols() (structCols []string, colSubqueries map[string]string) {
+	structCols = make([]string, 0, len(cm))
+	colSubqueries = make(map[string]string, len(cm))
+
+	for key, val := range cm {
 		structCols = append(structCols, key)
+		if val.ColumnSubqueryKey != "" {
+			colSubqueries[key] = val.ColumnSubqueryKey
+		}
 	}
 	sort.Strings(structCols)
-	return structCols
+	return structCols, colSubqueries
 }
 
 func (cm ColumnMap) Merge(colMaps []ColumnMap) ColumnMap {
@@ -85,14 +93,15 @@ func implementsScanner(t reflect.Type) bool {
 	return false
 }
 
-func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, goquTag tag.Options) ColumnData {
+func newColumnData(f *reflect.StructField, columnName, columnSubqueryKey string, fieldIndex []int, goquTag tag.Options) ColumnData {
 	return ColumnData{
-		ColumnName:     columnName,
-		ShouldInsert:   !goquTag.Contains(skipInsertTagName),
-		ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
-		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
-		FieldIndex:     concatFieldIndexes(fieldIndex, f.Index),
-		GoType:         f.Type,
+		ColumnName:        columnName,
+		ColumnSubqueryKey: columnSubqueryKey,
+		ShouldInsert:      !goquTag.Contains(skipInsertTagName),
+		ShouldUpdate:      !goquTag.Contains(skipUpdateTagName),
+		DefaultIfEmpty:    goquTag.Contains(defaultIfEmptyTagName),
+		FieldIndex:        concatFieldIndexes(fieldIndex, f.Index),
+		GoType:            f.Type,
 	}
 }
 
@@ -110,6 +119,13 @@ func getColumnName(f *reflect.StructField, dbTag tag.Options) string {
 		return columnRenameFunction(f.Name)
 	}
 	return dbTag.Values()[0]
+}
+
+func getSubqueryKey(subqueryTag tag.Options) string {
+	if subqueryTag.IsEmpty() {
+		return ""
+	}
+	return subqueryTag.Values()[0]
 }
 
 func shouldIgnoreField(dbTag tag.Options) bool {

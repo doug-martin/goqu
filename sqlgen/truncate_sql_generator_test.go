@@ -53,8 +53,8 @@ func (tsgs *truncateSQLGeneratorSuite) TestGenerate() {
 	opts.TruncateClause = []byte("truncate")
 
 	tcNoTable := exp.NewTruncateClauses()
-	tcSingle := tcNoTable.SetTable(exp.NewColumnListExpression("a"))
-	tcMulti := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression("a", "b"))
+	tcSingle := tcNoTable.SetTable(exp.NewColumnListExpression(nil, "a"))
+	tcMulti := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(nil, "a", "b"))
 
 	expectedNoSourceErr := "goqu: no source found when generating truncate sql"
 	tsgs.assertCases(
@@ -73,7 +73,7 @@ func (tsgs *truncateSQLGeneratorSuite) TestGenerate() {
 func (tsgs *truncateSQLGeneratorSuite) TestGenerate_UnsupportedFragment() {
 	opts := sqlgen.DefaultDialectOptions()
 	opts.TruncateSQLOrder = []sqlgen.SQLFragmentType{sqlgen.UpdateBeginSQLFragment}
-	tc := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression("a"))
+	tc := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(nil, "a"))
 	expectedErr := "goqu: unsupported TRUNCATE SQL fragment UpdateBeginSQLFragment"
 	tsgs.assertCases(
 		sqlgen.NewTruncateSQLGenerator("test", opts),
@@ -88,7 +88,7 @@ func (tsgs *truncateSQLGeneratorSuite) TestGenerate_WithErroredBuilder() {
 	d := sqlgen.NewTruncateSQLGenerator("test", opts)
 
 	b := sb.NewSQLBuilder(true).SetError(errors.New("expected error"))
-	d.Generate(b, exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression("a")))
+	d.Generate(b, exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(nil, "a")))
 	tsgs.assertErrorSQL(b, `goqu: expected error`)
 }
 
@@ -98,7 +98,7 @@ func (tsgs *truncateSQLGeneratorSuite) TestGenerate_WithCascade() {
 	opts.RestrictFragment = []byte(" restrict")
 	opts.IdentityFragment = []byte(" identity")
 
-	tc := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression("a"))
+	tc := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(nil, "a"))
 	tcCascade := tc.SetOptions(exp.TruncateOptions{Cascade: true})
 	tcRestrict := tc.SetOptions(exp.TruncateOptions{Restrict: true})
 	tcRestart := tc.SetOptions(exp.TruncateOptions{Identity: "restart"})

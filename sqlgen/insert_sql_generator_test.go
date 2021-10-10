@@ -82,7 +82,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_empty() {
 func (igs *insertSQLGeneratorSuite) TestGenerate_nilValues() {
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
-		SetCols(exp.NewColumnListExpression("a")).
+		SetCols(exp.NewColumnListExpression(nil, "a")).
 		SetVals([][]interface{}{
 			{nil},
 		})
@@ -106,14 +106,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_colsAndVals() {
 
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
-		SetCols(exp.NewColumnListExpression("a", "b")).
+		SetCols(exp.NewColumnListExpression(nil, "a", "b")).
 		SetVals([][]interface{}{
 			{"a1", "b1"},
 			{"a2", "b2"},
 			{"a3", "b3"},
 		})
 
-	bic := ic.SetCols(exp.NewColumnListExpression("a", "b")).
+	bic := ic.SetCols(exp.NewColumnListExpression(nil, "a", "b")).
 		SetVals([][]interface{}{
 			{"a1"},
 			{"a2", "b2"},
@@ -143,7 +143,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withNoInto() {
 	opts.PlaceHolderFragment = []byte("#")
 
 	ic := exp.NewInsertClauses().
-		SetCols(exp.NewColumnListExpression("a", "b")).
+		SetCols(exp.NewColumnListExpression(nil, "a", "b")).
 		SetVals([][]interface{}{
 			{"a1", "b1"},
 			{"a2", "b2"},
@@ -231,7 +231,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withFrom() {
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
 		SetFrom(newTestAppendableExpression(`select c, d from test where a = 'b'`, nil, nil, nil))
 
-	icCols := ic.SetCols(exp.NewColumnListExpression("a", "b"))
+	icCols := ic.SetCols(exp.NewColumnListExpression(nil, "a", "b"))
 	igs.assertCases(
 		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		insertTestCase{clause: ic, sql: `INSERT INTO "test" select c, d from test where a = 'b'`},
@@ -251,7 +251,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
-		SetCols(exp.NewColumnListExpression("a")).
+		SetCols(exp.NewColumnListExpression(nil, "a")).
 		SetVals([][]interface{}{
 			{"a1"},
 		})
@@ -437,11 +437,11 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withCommonTables() {
 func (igs *insertSQLGeneratorSuite) TestGenerate_withReturning() {
 	ic := exp.NewInsertClauses().
 		SetInto(exp.NewIdentifierExpression("", "test", "")).
-		SetCols(exp.NewColumnListExpression("a", "b")).
+		SetCols(exp.NewColumnListExpression(nil, "a", "b")).
 		SetVals([][]interface{}{
 			{"a1", "b1"},
 		}).
-		SetReturning(exp.NewColumnListExpression("a", "b"))
+		SetReturning(exp.NewColumnListExpression(nil, "a", "b"))
 
 	igs.assertCases(
 		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),

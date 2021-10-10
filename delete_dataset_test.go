@@ -359,25 +359,25 @@ func (dds *deleteDatasetSuite) TestReturning() {
 			ds: bd.Returning("a"),
 			clauses: exp.NewDeleteClauses().
 				SetFrom(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression("a")),
+				SetReturning(exp.NewColumnListExpression(nil, "a")),
 		},
 		deleteTestCase{
 			ds: bd.Returning(),
 			clauses: exp.NewDeleteClauses().
 				SetFrom(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression()),
+				SetReturning(exp.NewColumnListExpression(nil)),
 		},
 		deleteTestCase{
 			ds: bd.Returning(nil),
 			clauses: exp.NewDeleteClauses().
 				SetFrom(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression()),
+				SetReturning(exp.NewColumnListExpression(nil)),
 		},
 		deleteTestCase{
 			ds: bd.Returning("a").Returning("b"),
 			clauses: exp.NewDeleteClauses().
 				SetFrom(goqu.C("items")).
-				SetReturning(exp.NewColumnListExpression("b")),
+				SetReturning(exp.NewColumnListExpression(nil, "b")),
 		},
 		deleteTestCase{
 			ds:      bd,

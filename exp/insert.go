@@ -109,7 +109,7 @@ func newInsert(rows ...interface{}) (insertExp InsertExpression, err error) {
 				for _, key := range mapKeys {
 					colKeys = append(colKeys, key.Interface())
 				}
-				columns = NewColumnListExpression(colKeys...)
+				columns = NewColumnListExpression(nil, colKeys...)
 			}
 			newMapKeys := util.ValueSlice(newRowValue.MapKeys())
 			if len(newMapKeys) != len(mapKeys) {

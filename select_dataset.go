@@ -16,6 +16,7 @@ type SelectDataset struct {
 	clauses      exp.SelectClauses
 	isPrepared   prepared
 	queryFactory exec.QueryFactory
+	subqueries   map[string]exp.Aliaseable
 	err          error
 }
 
@@ -88,13 +89,21 @@ func (sd *SelectDataset) GetClauses() exp.SelectClauses {
 
 // used interally to copy the dataset
 func (sd *SelectDataset) copy(clauses exp.SelectClauses) *SelectDataset {
-	return &SelectDataset{
+	nsd := &SelectDataset{
 		dialect:      sd.dialect,
 		clauses:      clauses,
 		isPrepared:   sd.isPrepared,
 		queryFactory: sd.queryFactory,
 		err:          sd.err,
 	}
+
+	nsd.subqueries = make(map[string]exp.Aliaseable, len(sd.subqueries))
+
+	for k, v := range sd.subqueries {
+		nsd.subqueries[k] = v
+	}
+
+	return nsd
 }
 
 // Creates a new UpdateDataset using the FROM of this dataset. This method will also copy over the `WITH`, `WHERE`,
@@ -211,7 +220,7 @@ func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 	if len(selects) == 0 {
 		return sd.ClearSelect()
 	}
-	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)))
+	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(sd.subqueries, selects...)))
 }
 
 // Adds columns to the SELECT DISTINCT clause. See examples
@@ -229,13 +238,21 @@ func (sd *SelectDataset) SelectDistinct(selects ...interface{}) *SelectDataset {
 		cleared := sd.ClearSelect()
 		return cleared.copy(cleared.clauses.SetDistinct(nil))
 	}
-	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)).SetDistinct(exp.NewColumnListExpression()))
+	return sd.copy(
+		sd.clauses.
+			SetSelect(
+				exp.NewColumnListExpression(sd.subqueries, selects...),
+			).
+			SetDistinct(
+				exp.NewColumnListExpression(sd.subqueries),
+			),
+	)
 }
 
 // Resets to SELECT *. If the SelectDistinct or Distinct was used the returned Dataset will have the the dataset set to SELECT *.
 // See examples.
 func (sd *SelectDataset) ClearSelect() *SelectDataset {
-	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(exp.Star())).SetDistinct(nil))
+	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(sd.subqueries, exp.Star())).SetDistinct(nil))
 }
 
 // Adds columns to the SELECT clause. See examples
@@ -246,11 +263,11 @@ func (sd *SelectDataset) ClearSelect() *SelectDataset {
 //   LiteralExpression: (See Literal) Will use the literal SQL
 //   SQLFunction: (See Func, MIN, MAX, COUNT....)
 func (sd *SelectDataset) SelectAppend(selects ...interface{}) *SelectDataset {
-	return sd.copy(sd.clauses.SelectAppend(exp.NewColumnListExpression(selects...)))
+	return sd.copy(sd.clauses.SelectAppend(exp.NewColumnListExpression(sd.subqueries, selects...)))
 }
 
 func (sd *SelectDataset) Distinct(on ...interface{}) *SelectDataset {
-	return sd.copy(sd.clauses.SetDistinct(exp.NewColumnListExpression(on...)))
+	return sd.copy(sd.clauses.SetDistinct(exp.NewColumnListExpression(sd.subqueries, on...)))
 }
 
 // Adds a FROM clause. This return a new dataset with the original sources replaced. See examples.
@@ -269,7 +286,7 @@ func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
 			sources = append(sources, source)
 		}
 	}
-	return sd.copy(sd.clauses.SetFrom(exp.NewColumnListExpression(sources...)))
+	return sd.copy(sd.clauses.SetFrom(exp.NewColumnListExpression(sd.subqueries, sources...)))
 }
 
 // Returns a new Dataset with the current one as an source. If the current Dataset is not aliased (See Dataset#As) then
@@ -384,12 +401,12 @@ func (sd *SelectDataset) withLock(strength exp.LockStrength, option exp.WaitOpti
 
 // Adds a GROUP BY clause. See examples.
 func (sd *SelectDataset) GroupBy(groupBy ...interface{}) *SelectDataset {
-	return sd.copy(sd.clauses.SetGroupBy(exp.NewColumnListExpression(groupBy...)))
+	return sd.copy(sd.clauses.SetGroupBy(exp.NewColumnListExpression(sd.subqueries, groupBy...)))
 }
 
 // Adds more columns to the current GROUP BY clause. See examples.
 func (sd *SelectDataset) GroupByAppend(groupBy ...interface{}) *SelectDataset {
-	return sd.copy(sd.clauses.GroupByAppend(exp.NewColumnListExpression(groupBy...)))
+	return sd.copy(sd.clauses.GroupByAppend(exp.NewColumnListExpression(sd.subqueries, groupBy...)))
 }
 
 // Adds a HAVING clause. See examples.
@@ -494,6 +511,16 @@ func (sd *SelectDataset) CompoundFromSelf() *SelectDataset {
 // Sets the alias for this dataset. This is typically used when using a Dataset as a subselect. See examples.
 func (sd *SelectDataset) As(alias string) *SelectDataset {
 	return sd.copy(sd.clauses.SetAlias(T(alias)))
+}
+
+// Sets sub queries for cols
+func (sd *SelectDataset) SubQueries(subqueries map[string]exp.Aliaseable) *SelectDataset {
+	nsd := sd.copy(sd.clauses)
+	for k, v := range subqueries {
+		nsd.subqueries[k] = v
+	}
+
+	return nsd
 }
 
 // Returns the alias value as an identiier expression

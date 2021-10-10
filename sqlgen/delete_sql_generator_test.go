@@ -211,7 +211,7 @@ func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withReturning() {
 
 	dc := exp.NewDeleteClauses().
 		SetFrom(exp.NewIdentifierExpression("", "test", "")).
-		SetReturning(exp.NewColumnListExpression("a", "b"))
+		SetReturning(exp.NewColumnListExpression(nil, "a", "b"))
 
 	dsgs.assertCases(
 		sqlgen.NewDeleteSQLGenerator("test", opts),

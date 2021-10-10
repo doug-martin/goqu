@@ -35,7 +35,7 @@ func TestSelectClausesSuite(t *testing.T) {
 
 func (scs *selectClausesSuite) TestHasSources() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetFrom(exp.NewColumnListExpression("test"))
+	c2 := c.SetFrom(exp.NewColumnListExpression(nil, "test"))
 
 	scs.False(c.HasSources())
 
@@ -44,7 +44,7 @@ func (scs *selectClausesSuite) TestHasSources() {
 
 func (scs *selectClausesSuite) TestIsDefaultSelect() {
 	c := exp.NewSelectClauses()
-	c2 := c.SelectAppend(exp.NewColumnListExpression("a"))
+	c2 := c.SelectAppend(exp.NewColumnListExpression(nil, "a"))
 
 	scs.True(c.IsDefaultSelect())
 
@@ -53,67 +53,67 @@ func (scs *selectClausesSuite) TestIsDefaultSelect() {
 
 func (scs *selectClausesSuite) TestSelect() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetSelect(exp.NewColumnListExpression("a"))
+	c2 := c.SetSelect(exp.NewColumnListExpression(nil, "a"))
 
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
 
-	scs.Equal(exp.NewColumnListExpression("a"), c2.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, "a"), c2.Select())
 }
 
 func (scs *selectClausesSuite) TestSelectAppend() {
 	c := exp.NewSelectClauses()
-	c2 := c.SelectAppend(exp.NewColumnListExpression("a"))
+	c2 := c.SelectAppend(exp.NewColumnListExpression(nil, "a"))
 
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
-	scs.Equal(exp.NewColumnListExpression(exp.Star(), "a"), c2.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star(), "a"), c2.Select())
 }
 
 func (scs *selectClausesSuite) TestSetSelect() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetSelect(exp.NewColumnListExpression("a"))
+	c2 := c.SetSelect(exp.NewColumnListExpression(nil, "a"))
 
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
-	scs.Equal(exp.NewColumnListExpression("a"), c2.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, "a"), c2.Select())
 }
 
 func (scs *selectClausesSuite) TestDistinct() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetDistinct(exp.NewColumnListExpression("a"))
+	c2 := c.SetDistinct(exp.NewColumnListExpression(nil, "a"))
 
 	scs.Nil(c.Distinct())
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
 
-	scs.Equal(exp.NewColumnListExpression("a"), c2.Distinct())
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, "a"), c2.Distinct())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
 }
 
 func (scs *selectClausesSuite) TestSetSelectDistinct() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetDistinct(exp.NewColumnListExpression("a"))
+	c2 := c.SetDistinct(exp.NewColumnListExpression(nil, "a"))
 
 	scs.Nil(c.Distinct())
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
 
-	scs.Equal(exp.NewColumnListExpression("a"), c2.Distinct())
-	scs.Equal(exp.NewColumnListExpression(exp.Star()), c.Select())
+	scs.Equal(exp.NewColumnListExpression(nil, "a"), c2.Distinct())
+	scs.Equal(exp.NewColumnListExpression(nil, exp.Star()), c.Select())
 }
 
 func (scs *selectClausesSuite) TestFrom() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetFrom(exp.NewColumnListExpression("a"))
+	c2 := c.SetFrom(exp.NewColumnListExpression(nil, "a"))
 
 	scs.Nil(c.From())
 
-	scs.Equal(exp.NewColumnListExpression("a"), c2.From())
+	scs.Equal(exp.NewColumnListExpression(nil, "a"), c2.From())
 }
 
 func (scs *selectClausesSuite) TestSetFrom() {
 	c := exp.NewSelectClauses()
-	c2 := c.SetFrom(exp.NewColumnListExpression("a"))
+	c2 := c.SetFrom(exp.NewColumnListExpression(nil, "a"))
 
 	scs.Nil(c.From())
 
-	scs.Equal(exp.NewColumnListExpression("a"), c2.From())
+	scs.Equal(exp.NewColumnListExpression(nil, "a"), c2.From())
 }
 
 func (scs *selectClausesSuite) TestHasAlias() {
@@ -321,7 +321,7 @@ func (scs *selectClausesSuite) TestOrder() {
 
 	scs.Nil(c.Order())
 
-	scs.Equal(exp.NewColumnListExpression(oe), c2.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe), c2.Order())
 }
 
 func (scs *selectClausesSuite) TestHasOrder() {
@@ -341,7 +341,7 @@ func (scs *selectClausesSuite) TestClearOrder() {
 	c := exp.NewSelectClauses().SetOrder(oe)
 	c2 := c.ClearOrder()
 
-	scs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
 	scs.Nil(c2.Order())
 }
@@ -353,9 +353,9 @@ func (scs *selectClausesSuite) TestSetOrder() {
 	c := exp.NewSelectClauses().SetOrder(oe)
 	c2 := c.SetOrder(oe2)
 
-	scs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
-	scs.Equal(exp.NewColumnListExpression(oe2), c2.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe2), c2.Order())
 }
 
 func (scs *selectClausesSuite) TestOrderAppend() {
@@ -365,9 +365,9 @@ func (scs *selectClausesSuite) TestOrderAppend() {
 	c := exp.NewSelectClauses().SetOrder(oe)
 	c2 := c.OrderAppend(oe2)
 
-	scs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
-	scs.Equal(exp.NewColumnListExpression(oe, oe2), c2.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe, oe2), c2.Order())
 }
 
 func (scs *selectClausesSuite) TestOrderPrepend() {
@@ -377,13 +377,13 @@ func (scs *selectClausesSuite) TestOrderPrepend() {
 	c := exp.NewSelectClauses().SetOrder(oe)
 	c2 := c.OrderPrepend(oe2)
 
-	scs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
-	scs.Equal(exp.NewColumnListExpression(oe2, oe), c2.Order())
+	scs.Equal(exp.NewColumnListExpression(nil, oe2, oe), c2.Order())
 }
 
 func (scs *selectClausesSuite) TestGroupBy() {
-	g := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "a"))
+	g := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "a"))
 
 	c := exp.NewSelectClauses()
 	c2 := c.SetGroupBy(g)
@@ -394,32 +394,32 @@ func (scs *selectClausesSuite) TestGroupBy() {
 }
 
 func (scs *selectClausesSuite) TestGroupByAppend() {
-	g := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "a"))
-	g2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "b"))
+	g := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "a"))
+	g2 := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "b"))
 
 	c := exp.NewSelectClauses().SetGroupBy(g)
 	c2 := c.GroupByAppend(g2)
 
 	scs.Equal(g, c.GroupBy())
 
-	scs.Equal(exp.NewColumnListExpression(g, g2), c2.GroupBy())
+	scs.Equal(exp.NewColumnListExpression(nil, g, g2), c2.GroupBy())
 }
 
 func (scs *selectClausesSuite) TestGroupByAppend_NoPreviousGroupBy() {
-	g := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "a"))
-	g2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "b"))
+	g := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "a"))
+	g2 := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "b"))
 
 	c := exp.NewSelectClauses().GroupByAppend(g)
 	c2 := c.GroupByAppend(g2)
 
 	scs.Equal(g, c.GroupBy())
 
-	scs.Equal(exp.NewColumnListExpression(g, g2), c2.GroupBy())
+	scs.Equal(exp.NewColumnListExpression(nil, g, g2), c2.GroupBy())
 }
 
 func (scs *selectClausesSuite) TestSetGroupBy() {
-	g := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "a"))
-	g2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "b"))
+	g := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "a"))
+	g2 := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "b"))
 
 	c := exp.NewSelectClauses().SetGroupBy(g)
 	c2 := c.SetGroupBy(g2)

@@ -128,7 +128,7 @@ func (ud *UpdateDataset) Set(values interface{}) *UpdateDataset {
 
 // Allows specifying other tables to reference in your update (If your dialect supports it). See examples.
 func (ud *UpdateDataset) From(tables ...interface{}) *UpdateDataset {
-	return ud.copy(ud.clauses.SetFrom(exp.NewColumnListExpression(tables...)))
+	return ud.copy(ud.clauses.SetFrom(exp.NewColumnListExpression(nil, tables...)))
 }
 
 // Adds a WHERE clause. See examples.
@@ -183,7 +183,7 @@ func (ud *UpdateDataset) ClearLimit() *UpdateDataset {
 
 // Adds a RETURNING clause to the dataset if the adapter supports it. See examples.
 func (ud *UpdateDataset) Returning(returning ...interface{}) *UpdateDataset {
-	return ud.copy(ud.clauses.SetReturning(exp.NewColumnListExpression(returning...)))
+	return ud.copy(ud.clauses.SetReturning(exp.NewColumnListExpression(nil, returning...)))
 }
 
 // Get any error that has been set or nil if no error has been set.

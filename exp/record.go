@@ -26,12 +26,12 @@ func NewRecordFromStruct(i interface{}, forInsert, forUpdate bool) (r Record, er
 		if err != nil {
 			return nil, err
 		}
-		cols := cm.Cols()
+		cols, _ := cm.Cols()
 		r = make(map[string]interface{}, len(cols))
 		for _, col := range cols {
 			f := cm[col]
-			if !shouldSkipField(f, forInsert, forUpdate) {
-				if ok, fieldVal := getFieldValue(value, f); ok {
+			if !shouldSkipField(&f, forInsert, forUpdate) {
+				if ok, fieldVal := getFieldValue(value, &f); ok {
 					r[f.ColumnName] = fieldVal
 				}
 			}
@@ -40,13 +40,13 @@ func NewRecordFromStruct(i interface{}, forInsert, forUpdate bool) (r Record, er
 	return
 }
 
-func shouldSkipField(f util.ColumnData, forInsert, forUpdate bool) bool {
+func shouldSkipField(f *util.ColumnData, forInsert, forUpdate bool) bool {
 	shouldSkipInsert := forInsert && !f.ShouldInsert
 	shouldSkipUpdate := forUpdate && !f.ShouldUpdate
 	return shouldSkipInsert || shouldSkipUpdate
 }
 
-func getFieldValue(val reflect.Value, f util.ColumnData) (ok bool, fieldVal interface{}) {
+func getFieldValue(val reflect.Value, f *util.ColumnData) (ok bool, fieldVal interface{}) {
 	if v, isAvailable := util.SafeGetFieldByIndex(val, f.FieldIndex); !isAvailable {
 		return false, nil
 	} else if f.DefaultIfEmpty && util.IsEmptyValue(v) {
