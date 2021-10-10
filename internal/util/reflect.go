@@ -64,10 +64,6 @@ func IsPointer(k reflect.Kind) bool {
 	return k == reflect.Ptr
 }
 
-func IsEmptyValue(v reflect.Value) bool {
-	return !v.IsValid() || v.IsZero()
-}
-
 func IsNil(v reflect.Value) bool {
 	if !v.IsValid() {
 		return true
@@ -78,6 +74,10 @@ func IsNil(v reflect.Value) bool {
 	default:
 		return false
 	}
+}
+
+func IsEmptyValue(v reflect.Value) bool {
+	return !v.IsValid() || v.IsZero()
 }
 
 var (
