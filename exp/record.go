@@ -49,7 +49,7 @@ func shouldSkipField(f util.ColumnData, forInsert, forUpdate bool) bool {
 }
 
 func shouldOmitField(val reflect.Value, f util.ColumnData) bool {
-	if f.OmitNil && util.IsNilPointer(val) {
+	if f.OmitNil && util.IsNil(val) {
 		return true
 	} else if f.OmitEmpty && util.IsEmptyValue(val) {
 		return true

@@ -343,6 +343,7 @@ func (rt *reflectTest) TestIsEmptyValue_emptyValues() {
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ptr)))
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts)))
+	rt.True(util.IsNil(reflect.ValueOf(nil)))
 }
 
 func (rt *reflectTest) TestIsEmptyValue_validValues() {
@@ -365,8 +366,35 @@ func (rt *reflectTest) TestIsEmptyValue_validValues() {
 	rt.False(util.IsEmptyValue(reflect.ValueOf(float32(0.1))))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(float64(0.2))))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
-	rt.False(util.IsEmptyValue(reflect.ValueOf(ts)))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(&TestStruct{str: "a"})))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(ts)))
+}
+
+func (rt *reflectTest) TestIsNil() {
+	ts := TestStruct{}
+	rt.False(util.IsNil(reflect.ValueOf(ts.arr)))
+	rt.True(util.IsNil(reflect.ValueOf(ts.slc)))
+	rt.False(util.IsEmptyValue(reflect.ValueOf([]string{"a"})))
+	rt.True(util.IsNil(reflect.ValueOf(ts.mp)))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(map[string]interface{}{"a": true})))
+	rt.False(util.IsNil(reflect.ValueOf(ts.str)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.bl)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.i)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.i8)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.i16)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.i32)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.i64)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.ui)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.ui8)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.ui16)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.ui32)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.ui64)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.f32)))
+	rt.False(util.IsNil(reflect.ValueOf(ts.f64)))
+	rt.True(util.IsNil(reflect.ValueOf(ts.intr)))
+	rt.True(util.IsNil(reflect.ValueOf(ts.ptr)))
+	rt.False(util.IsNil(reflect.ValueOf(ts)))
+	rt.True(util.IsNil(reflect.ValueOf(nil)))
 }
 
 func (rt *reflectTest) TestColumnRename() {
