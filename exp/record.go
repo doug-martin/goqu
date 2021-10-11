@@ -32,7 +32,7 @@ func NewRecordFromStruct(i interface{}, forInsert, forUpdate bool) (r Record, er
 			f := cm[col]
 			if !shouldSkipField(f, forInsert, forUpdate) {
 				if fieldValue, isAvailable := util.SafeGetFieldByIndex(value, f.FieldIndex); isAvailable {
-					if fieldValue.IsValid() && !shouldOmitField(fieldValue, f) {
+					if !shouldOmitField(fieldValue, f) {
 						r[f.ColumnName] = getRecordValue(fieldValue, f)
 					}
 				}
