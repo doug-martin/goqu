@@ -473,6 +473,16 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AliasedExpression() {
 	)
 }
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpressionAliased() {
+	ident := exp.NewIdentifierExpression("", "", "a")
+
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: ident.Eq(1).As("b"), sql: `("a" = 1) AS "b"`},
+		expressionTestCase{val: ident.Eq(1).As("b"), sql: `("a" = ?) AS "b"`,
+			isPrepared: true, args: []interface{}{int64(1)}},
+	)
+}
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 	ae := newTestAppendableExpression(`SELECT "id" FROM "test2"`, emptyArgs, nil, nil)
 	re := regexp.MustCompile("[ab]")
