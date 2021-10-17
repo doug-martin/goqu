@@ -92,7 +92,7 @@ func (dcs *deleteClausesSuite) TestOrder() {
 
 	dcs.Nil(c.Order())
 
-	dcs.Equal(exp.NewColumnListExpression(oe), c2.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe), c2.Order())
 }
 
 func (dcs *deleteClausesSuite) TestHasOrder() {
@@ -112,7 +112,7 @@ func (dcs *deleteClausesSuite) TestClearOrder() {
 	c := exp.NewDeleteClauses().SetOrder(oe)
 	c2 := c.ClearOrder()
 
-	dcs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
 	dcs.Nil(c2.Order())
 }
@@ -124,9 +124,9 @@ func (dcs *deleteClausesSuite) TestSetOrder() {
 	c := exp.NewDeleteClauses().SetOrder(oe)
 	c2 := c.SetOrder(oe2)
 
-	dcs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
-	dcs.Equal(exp.NewColumnListExpression(oe2), c2.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe2), c2.Order())
 }
 
 func (dcs *deleteClausesSuite) TestOrderAppend() {
@@ -136,9 +136,9 @@ func (dcs *deleteClausesSuite) TestOrderAppend() {
 	c := exp.NewDeleteClauses().SetOrder(oe)
 	c2 := c.OrderAppend(oe2)
 
-	dcs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
-	dcs.Equal(exp.NewColumnListExpression(oe, oe2), c2.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe, oe2), c2.Order())
 }
 
 func (dcs *deleteClausesSuite) TestOrderPrepend() {
@@ -148,9 +148,9 @@ func (dcs *deleteClausesSuite) TestOrderPrepend() {
 	c := exp.NewDeleteClauses().SetOrder(oe)
 	c2 := c.OrderPrepend(oe2)
 
-	dcs.Equal(exp.NewColumnListExpression(oe), c.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe), c.Order())
 
-	dcs.Equal(exp.NewColumnListExpression(oe2, oe), c2.Order())
+	dcs.Equal(exp.NewColumnListExpression(nil, oe2, oe), c2.Order())
 }
 
 func (dcs *deleteClausesSuite) TestLimit() {
@@ -222,7 +222,7 @@ func (dcs *deleteClausesSuite) TestAddCommonTablesAppend() {
 }
 
 func (dcs *deleteClausesSuite) TestReturning() {
-	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col"))
 
 	c := exp.NewDeleteClauses()
 	c2 := c.SetReturning(cl)
@@ -233,7 +233,7 @@ func (dcs *deleteClausesSuite) TestReturning() {
 }
 
 func (dcs *deleteClausesSuite) TestHasReturning() {
-	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col"))
 
 	c := exp.NewDeleteClauses()
 	c2 := c.SetReturning(cl)
@@ -244,8 +244,8 @@ func (dcs *deleteClausesSuite) TestHasReturning() {
 }
 
 func (dcs *deleteClausesSuite) TestSetReturning() {
-	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
-	cl2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col2"))
+	cl := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col"))
+	cl2 := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col2"))
 
 	c := exp.NewDeleteClauses().SetReturning(cl)
 	c2 := c.SetReturning(cl2)

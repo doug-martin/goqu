@@ -377,7 +377,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_AppendableExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_ColumnList() {
-	cl := exp.NewColumnListExpression("a", exp.NewLiteralExpression("true"))
+	cl := exp.NewColumnListExpression(nil, "a", exp.NewLiteralExpression("true"))
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: cl, sql: `"a", true`},
@@ -837,7 +837,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_WindowExpression() {
 		nil, exp.NewIdentifierExpression("", "", "w"), nil, nil,
 	)
 	partitionBySQLWinFunc := exp.NewWindowExpression(
-		nil, nil, exp.NewColumnListExpression("a", "b"), nil,
+		nil, nil, exp.NewColumnListExpression(nil, "a", "b"), nil,
 	)
 	orderBySQLWinFunc := exp.NewWindowExpression(
 		nil, nil, nil, exp.NewOrderedColumnList(
@@ -849,7 +849,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_WindowExpression() {
 	namedInheritPartitionOrderSQLWinFunc := exp.NewWindowExpression(
 		exp.NewIdentifierExpression("", "", "w1"),
 		exp.NewIdentifierExpression("", "", "w2"),
-		exp.NewColumnListExpression("a", "b"),
+		exp.NewColumnListExpression(nil, "a", "b"),
 		exp.NewOrderedColumnList(
 			exp.NewIdentifierExpression("", "", "a").Asc(),
 			exp.NewIdentifierExpression("", "", "b").Desc(),

@@ -40,13 +40,13 @@ func (csgs *commonSQLGeneratorSuite) assertCases(testCases ...commonSQLTestCase)
 func (csgs *commonSQLGeneratorSuite) TestReturningSQL() {
 	returningGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
-			csgs.ReturningSQL(sb, exp.NewColumnListExpression("a", "b"))
+			csgs.ReturningSQL(sb, exp.NewColumnListExpression(nil, "a", "b"))
 		}
 	}
 
 	returningNoColsGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
-			csgs.ReturningSQL(sb, exp.NewColumnListExpression())
+			csgs.ReturningSQL(sb, exp.NewColumnListExpression(nil))
 		}
 	}
 
@@ -82,13 +82,13 @@ func (csgs *commonSQLGeneratorSuite) TestReturningSQL() {
 func (csgs *commonSQLGeneratorSuite) TestFromSQL() {
 	fromGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
-			csgs.FromSQL(sb, exp.NewColumnListExpression("a", "b"))
+			csgs.FromSQL(sb, exp.NewColumnListExpression(nil, "a", "b"))
 		}
 	}
 
 	fromNoColsGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
 		return func(sb sb.SQLBuilder) {
-			csgs.FromSQL(sb, exp.NewColumnListExpression())
+			csgs.FromSQL(sb, exp.NewColumnListExpression(nil))
 		}
 	}
 

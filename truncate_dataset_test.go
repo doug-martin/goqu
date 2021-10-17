@@ -73,7 +73,7 @@ func (tds *truncateDatasetSuite) TestPrepared() {
 
 func (tds *truncateDatasetSuite) TestGetClauses() {
 	ds := goqu.Truncate("test")
-	ce := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(goqu.I("test")))
+	ce := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(nil, goqu.I("test")))
 	tds.Equal(ce, ds.GetClauses())
 }
 
@@ -83,17 +83,17 @@ func (tds *truncateDatasetSuite) TestTable() {
 		truncateTestCase{
 			ds: bd.Table("test2"),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test2")),
+				SetTable(exp.NewColumnListExpression(nil, "test2")),
 		},
 		truncateTestCase{
 			ds: bd.Table("test1", "test2"),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test1", "test2")),
+				SetTable(exp.NewColumnListExpression(nil, "test1", "test2")),
 		},
 		truncateTestCase{
 			ds: bd,
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")),
+				SetTable(exp.NewColumnListExpression(nil, "test")),
 		},
 	)
 }
@@ -104,19 +104,19 @@ func (tds *truncateDatasetSuite) TestCascade() {
 		truncateTestCase{
 			ds: bd.Cascade(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: true}),
 		},
 		truncateTestCase{
 			ds: bd.Restrict().Cascade(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: true}),
 		},
 		truncateTestCase{
 			ds: bd,
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")),
+				SetTable(exp.NewColumnListExpression(nil, "test")),
 		},
 	)
 }
@@ -127,19 +127,19 @@ func (tds *truncateDatasetSuite) TestNoCascade() {
 		truncateTestCase{
 			ds: bd.NoCascade(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{}),
 		},
 		truncateTestCase{
 			ds: bd.Restrict().NoCascade(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: false, Restrict: true}),
 		},
 		truncateTestCase{
 			ds: bd,
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: true}),
 		},
 	)
@@ -151,19 +151,19 @@ func (tds *truncateDatasetSuite) TestRestrict() {
 		truncateTestCase{
 			ds: bd.Restrict(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Restrict: true}),
 		},
 		truncateTestCase{
 			ds: bd.Cascade().Restrict(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: true}),
 		},
 		truncateTestCase{
 			ds: bd,
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")),
+				SetTable(exp.NewColumnListExpression(nil, "test")),
 		},
 	)
 }
@@ -174,19 +174,19 @@ func (tds *truncateDatasetSuite) TestNoRestrict() {
 		truncateTestCase{
 			ds: bd.NoRestrict(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{}),
 		},
 		truncateTestCase{
 			ds: bd.Cascade().NoRestrict(),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: false}),
 		},
 		truncateTestCase{
 			ds: bd,
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Restrict: true}),
 		},
 	)
@@ -198,25 +198,25 @@ func (tds *truncateDatasetSuite) TestIdentity() {
 		truncateTestCase{
 			ds: bd.Identity("RESTART"),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Identity: "RESTART"}),
 		},
 		truncateTestCase{
 			ds: bd.Identity("CONTINUE"),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Identity: "CONTINUE"}),
 		},
 		truncateTestCase{
 			ds: bd.Cascade().Restrict().Identity("CONTINUE"),
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")).
+				SetTable(exp.NewColumnListExpression(nil, "test")).
 				SetOptions(exp.TruncateOptions{Cascade: true, Restrict: true, Identity: "CONTINUE"}),
 		},
 		truncateTestCase{
 			ds: bd,
 			clauses: exp.NewTruncateClauses().
-				SetTable(exp.NewColumnListExpression("test")),
+				SetTable(exp.NewColumnListExpression(nil, "test")),
 		},
 	)
 }

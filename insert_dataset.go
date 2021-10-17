@@ -130,7 +130,7 @@ func (id *InsertDataset) Into(into interface{}) *InsertDataset {
 
 // Sets the Columns to insert into
 func (id *InsertDataset) Cols(cols ...interface{}) *InsertDataset {
-	return id.copy(id.clauses.SetCols(exp.NewColumnListExpression(cols...)))
+	return id.copy(id.clauses.SetCols(exp.NewColumnListExpression(nil, cols...)))
 }
 
 // Clears the Columns to insert into
@@ -140,7 +140,7 @@ func (id *InsertDataset) ClearCols() *InsertDataset {
 
 // Adds columns to the current list of columns clause. See examples
 func (id *InsertDataset) ColsAppend(cols ...interface{}) *InsertDataset {
-	return id.copy(id.clauses.ColsAppend(exp.NewColumnListExpression(cols...)))
+	return id.copy(id.clauses.ColsAppend(exp.NewColumnListExpression(nil, cols...)))
 }
 
 // Adds a subquery to the insert. See examples.
@@ -181,7 +181,7 @@ func (id *InsertDataset) ClearRows() *InsertDataset {
 
 // Adds a RETURNING clause to the dataset if the adapter supports it See examples.
 func (id *InsertDataset) Returning(returning ...interface{}) *InsertDataset {
-	return id.copy(id.clauses.SetReturning(exp.NewColumnListExpression(returning...)))
+	return id.copy(id.clauses.SetReturning(exp.NewColumnListExpression(nil, returning...)))
 }
 
 // Adds an (ON CONFLICT/ON DUPLICATE KEY) clause to the dataset if the dialect supports it. See examples.

@@ -67,7 +67,7 @@ func (ics *insertClausesSuite) TestSetFrom() {
 
 func (ics *insertClausesSuite) TestCols() {
 	c := exp.NewInsertClauses()
-	cle := exp.NewColumnListExpression("a", "b")
+	cle := exp.NewColumnListExpression(nil, "a", "b")
 	c2 := c.SetCols(cle)
 
 	ics.Nil(c.Cols())
@@ -77,7 +77,7 @@ func (ics *insertClausesSuite) TestCols() {
 
 func (ics *insertClausesSuite) TestHasCols() {
 	c := exp.NewInsertClauses()
-	cle := exp.NewColumnListExpression("a", "b")
+	cle := exp.NewColumnListExpression(nil, "a", "b")
 	c2 := c.SetCols(cle)
 
 	ics.False(c.HasCols())
@@ -86,14 +86,14 @@ func (ics *insertClausesSuite) TestHasCols() {
 }
 
 func (ics *insertClausesSuite) TestColsAppend() {
-	cle := exp.NewColumnListExpression("a")
-	cle2 := exp.NewColumnListExpression("b")
+	cle := exp.NewColumnListExpression(nil, "a")
+	cle2 := exp.NewColumnListExpression(nil, "b")
 	c := exp.NewInsertClauses().SetCols(cle)
 	c2 := c.ColsAppend(cle2)
 
 	ics.Equal(cle, c.Cols())
 
-	ics.Equal(exp.NewColumnListExpression("a", "b"), c2.Cols())
+	ics.Equal(exp.NewColumnListExpression(nil, "a", "b"), c2.Cols())
 }
 
 func (ics *insertClausesSuite) TestVals() {
@@ -208,7 +208,7 @@ func (ics *insertClausesSuite) TestSetOnConflict() {
 }
 
 func (ics *insertClausesSuite) TestReturning() {
-	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col"))
 
 	c := exp.NewInsertClauses()
 	c2 := c.SetReturning(cl)
@@ -219,7 +219,7 @@ func (ics *insertClausesSuite) TestReturning() {
 }
 
 func (ics *insertClausesSuite) TestHasReturning() {
-	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
+	cl := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col"))
 
 	c := exp.NewInsertClauses()
 	c2 := c.SetReturning(cl)
@@ -230,8 +230,8 @@ func (ics *insertClausesSuite) TestHasReturning() {
 }
 
 func (ics *insertClausesSuite) TestSetReturning() {
-	cl := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col"))
-	cl2 := exp.NewColumnListExpression(exp.NewIdentifierExpression("", "", "col2"))
+	cl := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col"))
+	cl2 := exp.NewColumnListExpression(nil, exp.NewIdentifierExpression("", "", "col2"))
 
 	c := exp.NewInsertClauses().SetReturning(cl)
 	c2 := c.SetReturning(cl2)

@@ -78,7 +78,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_Vals() {
 	vals := [][]interface{}{
 		{"a", "b"},
 	}
-	ie = ie.SetCols(exp.NewColumnListExpression("a", "b")).SetVals(vals)
+	ie = ie.SetCols(exp.NewColumnListExpression(nil, "a", "b")).SetVals(vals)
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
 	iets.Equal(vals, ie.Vals())
@@ -90,7 +90,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_Cols() {
 	vals := [][]interface{}{
 		{"a", "b"},
 	}
-	ce := exp.NewColumnListExpression("a", "b")
+	ce := exp.NewColumnListExpression(nil, "a", "b")
 	ie = ie.SetCols(ce).SetVals(vals)
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -119,7 +119,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_appendableExpress
 func (iets *insertExpressionTestSuite) TestNewInsertExpression_withRecords() {
 	ie, err := exp.NewInsertExpression(exp.Record{"c": "a"}, exp.Record{"c": "b"})
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("c"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "c"), ie.Cols())
 	iets.Equal([][]interface{}{{"a"}, {"b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -128,7 +128,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withRecords() {
 func (iets *insertExpressionTestSuite) TestNewInsertExpression_withRecordsSlice() {
 	ie, err := exp.NewInsertExpression([]exp.Record{{"c": "a"}, {"c": "b"}})
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("c"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "c"), ie.Cols())
 	iets.Equal([][]interface{}{{"a"}, {"b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -150,7 +150,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withMap() {
 		map[string]interface{}{"c": "b"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("c"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "c"), ie.Cols())
 	iets.Equal([][]interface{}{{"a"}, {"b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -165,7 +165,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructs() {
 		testRecord{C: "b"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("c"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "c"), ie.Cols())
 	iets.Equal([][]interface{}{{"a"}, {"b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -180,7 +180,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructSlice()
 		{C: "b"},
 	})
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("c"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "c"), ie.Cols())
 	iets.Equal([][]interface{}{{"a"}, {"b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -197,7 +197,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithou
 		testRecord{FieldA: 2, FieldB: false, FieldC: "b"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("fielda", "fieldb", "fieldc"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "fielda", "fieldb", "fieldc"), ie.Cols())
 	iets.Equal([][]interface{}{{int64(1), true, "a"}, {int64(2), false, "b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -214,7 +214,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsIgnore
 		testRecord{FieldA: 2, FieldB: false, FieldC: "b"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("fieldb", "fieldc"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "fieldb", "fieldc"), ie.Cols())
 	iets.Equal([][]interface{}{{true, "a"}, {false, "b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -231,7 +231,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithGo
 		testRecord{FieldA: 2, FieldB: false, FieldC: "b"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("fielda", "fieldb"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "fielda", "fieldb"), ie.Cols())
 	iets.Equal([][]interface{}{{int64(1), true}, {int64(2), false}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -246,7 +246,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructPointer
 		&testRecord{C: "b"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("c"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "c"), ie.Cols())
 	iets.Equal([][]interface{}{{"a"}, {"b"}}, ie.Vals())
 	iets.False(ie.IsEmpty())
 	iets.False(ie.IsInsertFrom())
@@ -269,7 +269,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithEm
 		item{Address: "411 Test Addr", Name: "Test4", Phone: Phone{Home: "123123", Primary: "456456"}},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("address", "home_phone", "name", "primary_phone"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "address", "home_phone", "name", "primary_phone"), ie.Cols())
 	iets.Equal([][]interface{}{
 		{"111 Test Addr", "123123", "Test1", "456456"},
 		{"211 Test Addr", "123123", "Test2", "456456"},
@@ -297,7 +297,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withStructsWithEm
 		item{Address: "411 Test Addr", Name: "Test4", Phone: &Phone{Home: "123123", Primary: "456456"}},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("address", "home_phone", "name", "primary_phone"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "address", "home_phone", "name", "primary_phone"), ie.Cols())
 	iets.Equal([][]interface{}{
 		{"111 Test Addr", "123123", "Test1", "456456"},
 		{"211 Test Addr", "123123", "Test2", "456456"},
@@ -325,7 +325,7 @@ func (iets *insertExpressionTestSuite) TestNewInsertExpression_withNilEmbeddedSt
 		item{Address: "411 Test Addr", Name: "Test4"},
 	)
 	iets.NoError(err)
-	iets.Equal(exp.NewColumnListExpression("address", "name"), ie.Cols())
+	iets.Equal(exp.NewColumnListExpression(nil, "address", "name"), ie.Cols())
 	iets.Equal([][]interface{}{
 		{"111 Test Addr", "Test1"},
 		{"211 Test Addr", "Test2"},

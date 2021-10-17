@@ -37,7 +37,7 @@ func (wet *windowExpressionTest) TestName() {
 }
 
 func (wet *windowExpressionTest) TestPartitionCols() {
-	cols := exp.NewColumnListExpression("a", "b")
+	cols := exp.NewColumnListExpression(nil, "a", "b")
 	w := exp.NewWindowExpression(exp.NewIdentifierExpression("", "", "w"), nil, cols, nil)
 
 	wet.Equal(cols, w.PartitionCols())
@@ -45,7 +45,7 @@ func (wet *windowExpressionTest) TestPartitionCols() {
 }
 
 func (wet *windowExpressionTest) TestOrderCols() {
-	cols := exp.NewColumnListExpression("a", "b")
+	cols := exp.NewColumnListExpression(nil, "a", "b")
 	w := exp.NewWindowExpression(exp.NewIdentifierExpression("", "", "w"), nil, nil, cols)
 
 	wet.Equal(cols, w.OrderCols())
@@ -53,14 +53,14 @@ func (wet *windowExpressionTest) TestOrderCols() {
 }
 
 func (wet *windowExpressionTest) TestPartitionBy() {
-	cols := exp.NewColumnListExpression("a", "b")
+	cols := exp.NewColumnListExpression(nil, "a", "b")
 	w := exp.NewWindowExpression(exp.NewIdentifierExpression("", "", "w"), nil, nil, nil).PartitionBy("a", "b")
 
 	wet.Equal(cols, w.PartitionCols())
 }
 
 func (wet *windowExpressionTest) TestOrderBy() {
-	cols := exp.NewColumnListExpression("a", "b")
+	cols := exp.NewColumnListExpression(nil, "a", "b")
 	w := exp.NewWindowExpression(exp.NewIdentifierExpression("", "", "w"), nil, nil, nil).OrderBy("a", "b")
 
 	wet.Equal(cols, w.OrderCols())

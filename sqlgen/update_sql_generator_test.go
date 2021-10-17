@@ -99,12 +99,12 @@ func (usgs *updateSQLGeneratorSuite) TestGenerate_withFrom() {
 	uc := exp.NewUpdateClauses().
 		SetTable(exp.NewIdentifierExpression("", "test", "")).
 		SetSetValues(exp.Record{"foo": "bar"}).
-		SetFrom(exp.NewColumnListExpression("other_test"))
+		SetFrom(exp.NewColumnListExpression(nil, "other_test"))
 
 	ucNullSet := exp.NewUpdateClauses().
 		SetTable(exp.NewIdentifierExpression("", "test", "")).
 		SetSetValues(exp.Record{"foo": nil}).
-		SetFrom(exp.NewColumnListExpression("other_test"))
+		SetFrom(exp.NewColumnListExpression(nil, "other_test"))
 
 	opts := sqlgen.DefaultDialectOptions()
 	usgs.assertCases(
