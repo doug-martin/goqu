@@ -369,6 +369,37 @@ func (ids *insertDatasetSuite) TestOnConflict() {
 	)
 }
 
+func (ids *insertDatasetSuite) TestAs() {
+	du := goqu.DoUpdate("other_items", goqu.Record{"new.a": 1})
+
+	bd := goqu.Insert("items").As("new")
+	ids.assertCases(
+		insertTestCase{
+			ds: bd.OnConflict(nil),
+			clauses: exp.NewInsertClauses().SetInto(goqu.C("items")).
+				SetAlias(exp.NewIdentifierExpression("", "new", "")),
+		},
+		insertTestCase{
+			ds: bd.OnConflict(goqu.DoNothing()),
+			clauses: exp.NewInsertClauses().SetInto(goqu.C("items")).
+				SetAlias(exp.NewIdentifierExpression("", "new", "")).
+				SetOnConflict(goqu.DoNothing()),
+		},
+		insertTestCase{
+			ds: bd.OnConflict(du),
+			clauses: exp.NewInsertClauses().
+				SetAlias(exp.NewIdentifierExpression("", "new", "")).
+				SetInto(goqu.C("items")).SetOnConflict(du),
+		},
+		insertTestCase{
+			ds: bd,
+			clauses: exp.NewInsertClauses().
+				SetAlias(exp.NewIdentifierExpression("", "new", "")).
+				SetInto(goqu.C("items")),
+		},
+	)
+}
+
 func (ids *insertDatasetSuite) TestClearOnConflict() {
 	du := goqu.DoUpdate("other_items", goqu.Record{"a": 1})
 
