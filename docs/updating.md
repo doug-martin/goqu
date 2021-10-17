@@ -165,17 +165,23 @@ type item struct {
     Address2  *string `db:"address2" goqu:"omitnil"`
     Address3  *string `db:"address3" goqu:"omitnil"`
 }
-testString := "Test"
-emptyString := ""
-query, args, _ := goqu.Update("items").Set(
-    item{FirstName: "Test", Address1: &testString, Address2: &emptyString},
+address1 := "113 Test Addr"
+var emptyString string
+sql, args, _ := goqu.Update("items").Set(
+    item{
+        FirstName: "Test First Name",
+        LastName:  "",
+        Address1:  &address1,
+        Address2:  &emptyString,
+        Address3:  nil, // will omit nil pointer
+    },
 ).ToSQL()
-fmt.Println(query, args)
+fmt.Println(sql, args)
 ```
 
 Output:
 ```
-UPDATE "items" SET "address1"='Test',"address2"='',"first_name"='Test',"last_name"='' []
+UPDATE "items" SET "address1"='113 Test Addr',"address2"='',"first_name"='Test First Name',"last_name"='' []
 ```
 
 If you do not want to update the database field when the struct field is a zero value (including nil pointers) you can
@@ -191,17 +197,23 @@ type item struct {
     Address2  *string `db:"address2" goqu:"omitempty"`
     Address3  *string `db:"address3" goqu:"omitempty"`
 }
-testString := "Test"
-emptyString := ""
-query, args, _ := goqu.Update("items").Set(
-    item{FirstName: "Test", Address1: &testString, Address2: &emptyString},
+address1 := "114 Test Addr"
+var emptyString string
+sql, args, _ := goqu.Update("items").Set(
+    item{
+        FirstName: "Test First Name",
+        LastName:  "", // will omit zero field
+        Address1:  &address1,
+        Address2:  &emptyString,
+        Address3:  nil, // will omit nil pointer
+    },
 ).ToSQL()
-fmt.Println(query, args)
+fmt.Println(sql, args)
 ```
 
 Output:
 ```
-UPDATE "items" SET "address1"='Test',"address2"='',"first_name"='Test' []
+UPDATE "items" SET "address1"='114 Test Addr',"address2"='',"first_name"='Test First Name' []
 ```
 
 If you want to use the database `DEFAULT` when the struct field is a zero value you can use the `defaultifempty` tag.

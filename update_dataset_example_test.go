@@ -31,15 +31,21 @@ func ExampleUpdate_withOmitNilTag() {
 		Address2  *string `db:"address2" goqu:"omitnil"`
 		Address3  *string `db:"address3" goqu:"omitnil"`
 	}
-	address := "113 Test Addr"
+	address1 := "113 Test Addr"
 	var emptyString string
 	sql, args, _ := goqu.Update("items").Set(
-		item{FirstName: "Test", Address1: &address, Address2: &emptyString},
+		item{
+			FirstName: "Test First Name",
+			LastName:  "",
+			Address1:  &address1,
+			Address2:  &emptyString,
+			Address3:  nil, // will omit nil pointer
+		},
 	).ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
-	// UPDATE "items" SET "address1"='113 Test Addr',"address2"='',"first_name"='Test',"last_name"='' []
+	// UPDATE "items" SET "address1"='113 Test Addr',"address2"='',"first_name"='Test First Name',"last_name"='' []
 }
 
 func ExampleUpdate_withOmitEmptyTag() {
@@ -50,15 +56,21 @@ func ExampleUpdate_withOmitEmptyTag() {
 		Address2  *string `db:"address2" goqu:"omitempty"`
 		Address3  *string `db:"address3" goqu:"omitempty"`
 	}
-	address := "114 Test Addr"
+	address1 := "114 Test Addr"
 	var emptyString string
 	sql, args, _ := goqu.Update("items").Set(
-		item{FirstName: "Test", Address1: &address, Address2: &emptyString},
+		item{
+			FirstName: "Test First Name",
+			LastName:  "", // will omit zero field
+			Address1:  &address1,
+			Address2:  &emptyString,
+			Address3:  nil, // will omit nil pointer
+		},
 	).ToSQL()
 	fmt.Println(sql, args)
 
 	// Output:
-	// UPDATE "items" SET "address1"='114 Test Addr',"address2"='',"first_name"='Test' []
+	// UPDATE "items" SET "address1"='114 Test Addr',"address2"='',"first_name"='Test First Name' []
 }
 
 func ExampleUpdate_withOmitEmptyTag_valuer() {
@@ -73,17 +85,19 @@ func ExampleUpdate_withOmitEmptyTag_valuer() {
 	}
 	query, args, _ := goqu.Update("items").Set(
 		item{
-			FirstName:  dbsql.NullString{Valid: true, String: "Test"},
+			FirstName:  dbsql.NullString{Valid: true, String: "Test First Name"},
 			MiddleName: dbsql.NullString{Valid: true, String: ""},
-			Address1:   &dbsql.NullString{Valid: true, String: "Test"},
+			LastName:   dbsql.NullString{}, // will omit zero valuer struct
+			Address1:   &dbsql.NullString{Valid: true, String: "Test Address 1"},
 			Address2:   &dbsql.NullString{Valid: true, String: ""},
 			Address3:   &dbsql.NullString{},
+			Address4:   nil, // will omit nil pointer
 		},
 	).ToSQL()
 	fmt.Println(query, args)
 
 	// Output:
-	// UPDATE "items" SET "address1"='Test',"address2"='',"address3"=NULL,"first_name"='Test',"middle_name"='' []
+	// UPDATE "items" SET "address1"='Test Address 1',"address2"='',"address3"=NULL,"first_name"='Test First Name',"middle_name"='' []
 }
 
 func ExampleUpdate_withGoquRecord() {

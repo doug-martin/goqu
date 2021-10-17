@@ -385,15 +385,21 @@ func ExampleInsertDataset_Rows_withOmitNilTag() {
 		Address2  *string `db:"address2" goqu:"omitnil"`
 		Address3  *string `db:"address3" goqu:"omitnil"`
 	}
-	address := "111 Test Addr"
+	address1 := "111 Test Addr"
 	var emptyString string
-	i := item{FirstName: "Test", Address1: &address, Address2: &emptyString}
+	i := item{
+		FirstName: "Test First Name",
+		LastName:  "",
+		Address1:  &address1,
+		Address2:  &emptyString,
+		Address3:  nil, // will omit nil pointer
+	}
 
 	insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 	fmt.Println(insertSQL, args)
 
 	// Output:
-	// INSERT INTO "items" ("address1", "address2", "first_name", "last_name") VALUES ('111 Test Addr', '', 'Test', '') []
+	// INSERT INTO "items" ("address1", "address2", "first_name", "last_name") VALUES ('111 Test Addr', '', 'Test First Name', '') []
 }
 
 func ExampleInsertDataset_Rows_withOmitEmptyTag() {
@@ -404,14 +410,20 @@ func ExampleInsertDataset_Rows_withOmitEmptyTag() {
 		Address2  *string `db:"address2" goqu:"omitempty"`
 		Address3  *string `db:"address3" goqu:"omitempty"`
 	}
-	address := "112 Test Addr"
+	address1 := "112 Test Addr"
 	var emptyString string
-	i := item{FirstName: "Test", Address1: &address, Address2: &emptyString}
+	i := item{
+		FirstName: "Test First Name",
+		LastName:  "", // will omit zero field
+		Address1:  &address1,
+		Address2:  &emptyString,
+		Address3:  nil, // will omit nil pointer
+	}
 	insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 	fmt.Println(insertSQL, args)
 
 	// Output:
-	// INSERT INTO "items" ("address1", "address2", "first_name") VALUES ('112 Test Addr', '', 'Test') []
+	// INSERT INTO "items" ("address1", "address2", "first_name") VALUES ('112 Test Addr', '', 'Test First Name') []
 }
 
 func ExampleInsertDataset_Rows_withOmitEmptyTag_Valuer() {
@@ -425,17 +437,19 @@ func ExampleInsertDataset_Rows_withOmitEmptyTag_Valuer() {
 		Address4   *sql.NullString `db:"address4" goqu:"omitempty"`
 	}
 	i := item{
-		FirstName:  sql.NullString{Valid: true, String: "Test"},
+		FirstName:  sql.NullString{Valid: true, String: "Test First Name"},
 		MiddleName: sql.NullString{Valid: true, String: ""},
-		Address1:   &sql.NullString{Valid: true, String: "Test"},
+		LastName:   sql.NullString{}, // will omit zero valuer struct
+		Address1:   &sql.NullString{Valid: true, String: "Test Address 1"},
 		Address2:   &sql.NullString{Valid: true, String: ""},
 		Address3:   &sql.NullString{},
+		Address4:   nil, // will omit nil pointer
 	}
 	insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 	fmt.Println(insertSQL, args)
 
 	// Output:
-	// INSERT INTO "items" ("address1", "address2", "address3", "first_name", "middle_name") VALUES ('Test', '', NULL, 'Test', '') []
+	// INSERT INTO "items" ("address1", "address2", "address3", "first_name", "middle_name") VALUES ('Test Address 1', '', NULL, 'Test First Name', '') []
 }
 
 func ExampleInsertDataset_Rows_withGoquDefaultIfEmptyTag() {

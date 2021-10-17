@@ -185,9 +185,15 @@ type item struct {
     Address2  *string `db:"address2" goqu:"omitnil"`
     Address3  *string `db:"address3" goqu:"omitnil"`
 }
-testString := "Test"
-emptyString := ""
-i := item{FirstName: "Test", Address1: &testString, Address2: &emptyString}
+address1 := "111 Test Addr"
+var emptyString string
+i := item{
+    FirstName: "Test First Name",
+    LastName:  "",
+    Address1:  &address1,
+    Address2:  &emptyString,
+    Address3:  nil, // will omit nil pointer
+}
 
 insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 fmt.Println(insertSQL, args)
@@ -195,7 +201,7 @@ fmt.Println(insertSQL, args)
 
 Output:
 ```
-INSERT INTO "items" ("address1", "address2", "first_name", "last_name") VALUES ('Test', '', 'Test', '') []
+INSERT INTO "items" ("address1", "address2", "first_name", "last_name") VALUES ('111 Test Addr', '', 'Test First Name', '') []
 ```
 
 If you do not want to set the database field when the struct field is a zero value (including nil pointers) you can use
@@ -211,17 +217,22 @@ type item struct {
     Address2  *string `db:"address2" goqu:"omitempty"`
     Address3  *string `db:"address3" goqu:"omitempty"`
 }
-testString := "Test"
-emptyString := ""
-i := item{FirstName: "Test", Address1: &testString, Address2: &emptyString}
-
+address1 := "112 Test Addr"
+var emptyString string
+i := item{
+    FirstName: "Test First Name",
+    LastName:  "", // will omit zero field
+    Address1:  &address1,
+    Address2:  &emptyString,
+    Address3:  nil, // will omit nil pointer
+}
 insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
 fmt.Println(insertSQL, args)
 ```
 
 Output:
 ```
-INSERT INTO "items" ("address1", "address2", "first_name") VALUES ('Test', '', 'Test') []
+INSERT INTO "items" ("address1", "address2", "first_name") VALUES ('112 Test Addr', '', 'Test First Name') []
 ```
 
 If you want to use the database `DEFAULT` when the struct field is a zero value you can use the `defaultifempty` tag.
