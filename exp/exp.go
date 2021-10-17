@@ -209,6 +209,7 @@ type (
 	BooleanOperation  int
 	BooleanExpression interface {
 		Expression
+		Aliaseable
 		// Returns the operator for the expression
 		Op() BooleanOperation
 		// The left hand side of the expression (e.g. I("a")
