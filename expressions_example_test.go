@@ -1008,6 +1008,7 @@ func ExampleOr_withAnd() {
 }
 
 func ExampleOr_withExMap() {
+	var val *int
 	ds := goqu.From("test").Where(
 		goqu.Or(
 			// Ex will be anded together
@@ -1018,6 +1019,7 @@ func ExampleOr_withExMap() {
 			goqu.Ex{
 				"col3": nil,
 				"col4": "foo",
+				"col5": val,
 			},
 		),
 	)
@@ -1028,8 +1030,8 @@ func ExampleOr_withExMap() {
 	fmt.Println(sql, args)
 
 	// Output:
-	// SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo'))) []
-	// SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?))) [1 foo]
+	// SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo') AND ("col5" IS NULL))) []
+	// SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?) AND ("col5" IS NULL))) [1 foo]
 }
 
 func ExampleRange_numbers() {

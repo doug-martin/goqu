@@ -405,13 +405,15 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 
 	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && esg.dialectOptions.UseLiteralIsBools {
 		// these values must be interpolated because preparing them generates invalid SQL
-		switch rhs {
-		case true:
-			rhs = TrueLiteral
-		case false:
-			rhs = FalseLiteral
-		case nil:
+		if util.IsNil(rhs) {
 			rhs = exp.NewLiteralExpression(string(esg.dialectOptions.Null))
+		} else {
+			switch rhs {
+			case true:
+				rhs = TrueLiteral
+			case false:
+				rhs = FalseLiteral
+			}
 		}
 	}
 	b.WriteRunes(esg.dialectOptions.SpaceRune)
