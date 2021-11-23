@@ -592,6 +592,11 @@ const (
 
 	betweenStr = "between"
 
+	FunctionNameGreatest = "FunGreatest"
+	FunctionNameLeast    = "FunLeast"
+	FunctionNameUpper    = "FunUpper"
+	FunctionNameLower    = "FunLower"
+
 	BitwiseInversionOp BitwiseOperation = iota
 	BitwiseOrOp
 	BitwiseAndOp

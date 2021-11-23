@@ -557,7 +557,11 @@ func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal
 // Generates SQL for a SQLFunctionExpression
 //   COUNT(I("a")) -> COUNT("a")
 func (esg *expressionSQLGenerator) sqlFunctionExpressionSQL(b sb.SQLBuilder, sqlFunc exp.SQLFunctionExpression) {
-	b.WriteStrings(sqlFunc.Name())
+	name := sqlFunc.Name()
+	if val, ok := esg.dialectOptions.FunctionNameLookup[name]; ok {
+		name = string(val)
+	}
+	b.WriteStrings(name)
 	esg.Generate(b, sqlFunc.Args())
 }
 

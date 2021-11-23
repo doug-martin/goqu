@@ -58,6 +58,44 @@ func (ges *goquExpressionsSuite) TestMAX() {
 	ges.Equal(exp.NewSQLFunctionExpression("MAX", goqu.I("col")), goqu.MAX("col"))
 }
 
+func (ges *goquExpressionsSuite) TestGREATEST() {
+	ges.Equal(
+		exp.NewSQLFunctionExpression(exp.FunctionNameGreatest, goqu.I("col1"), "col2"),
+		goqu.GREATEST(goqu.I("col1"), "col2"),
+	)
+}
+
+func (ges *goquExpressionsSuite) TestLEAST() {
+	ges.Equal(
+		exp.NewSQLFunctionExpression(exp.FunctionNameLeast, goqu.I("col1"), "col2"),
+		goqu.LEAST(goqu.I("col1"), "col2"),
+	)
+}
+
+func (ges *goquExpressionsSuite) TestUPPER() {
+	ges.Equal(
+		exp.NewSQLFunctionExpression(exp.FunctionNameUpper, goqu.I("col1")),
+		goqu.UPPER(goqu.I("col1")),
+	)
+
+	ges.Equal(
+		exp.NewSQLFunctionExpression(exp.FunctionNameUpper, "val1"),
+		goqu.UPPER("val1"),
+	)
+}
+
+func (ges *goquExpressionsSuite) TestLOWER() {
+	ges.Equal(
+		exp.NewSQLFunctionExpression(exp.FunctionNameLower, goqu.I("col1")),
+		goqu.LOWER(goqu.I("col1")),
+	)
+
+	ges.Equal(
+		exp.NewSQLFunctionExpression(exp.FunctionNameLower, "val1"),
+		goqu.LOWER("val1"),
+	)
+}
+
 func (ges *goquExpressionsSuite) TestAVG() {
 	ges.Equal(exp.NewSQLFunctionExpression("AVG", goqu.I("col")), goqu.AVG("col"))
 }

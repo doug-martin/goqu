@@ -937,6 +937,78 @@ func ExampleMIN_havingClause() {
 	// SELECT MIN("a") AS "MIN" FROM "test" GROUP BY "a" HAVING (MIN("a") > ?) [10]
 }
 
+func ExampleGREATEST() {
+	ds := goqu.From("test").Select(goqu.GREATEST(goqu.I("col1"), "val2"))
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT GREATEST("col1", 'val2') FROM "test" []
+	// SELECT GREATEST("col1", ?) FROM "test" [val2]
+}
+
+func ExampleGREATEST_as() {
+	sql, _, _ := goqu.
+		From("test").
+		Select(goqu.GREATEST(goqu.I("col1"), "val2").As("a")).
+		ToSQL()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT GREATEST("col1", 'val2') AS "a" FROM "test"
+}
+
+func ExampleLEAST() {
+	ds := goqu.From("test").Select(goqu.LEAST(goqu.I("col1"), "val2"))
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT LEAST("col1", 'val2') FROM "test" []
+	// SELECT LEAST("col1", ?) FROM "test" [val2]
+}
+
+func ExampleLEAST_as() {
+	sql, _, _ := goqu.
+		From("test").
+		Select(goqu.LEAST(goqu.I("col1"), "val2").As("a")).
+		ToSQL()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT LEAST("col1", 'val2') AS "a" FROM "test"
+}
+
+func ExampleUPPER() {
+	ds := goqu.From("test").Select(goqu.UPPER("val"), goqu.UPPER(goqu.I("col")))
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT UPPER('val'), UPPER("col") FROM "test" []
+	// SELECT UPPER(?), UPPER("col") FROM "test" [val]
+}
+
+func ExampleLOWER() {
+	ds := goqu.From("test").Select(goqu.LOWER("val"), goqu.UPPER(goqu.I("col")))
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT LOWER('val'), UPPER("col") FROM "test" []
+	// SELECT LOWER(?), UPPER("col") FROM "test" [val]
+}
+
 func ExampleOn() {
 	ds := goqu.From("test").Join(
 		goqu.T("my_table"),

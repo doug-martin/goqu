@@ -55,6 +55,19 @@ func (sds *sqlserverDialectSuite) TestBitwiseOperations() {
 	)
 }
 
+func (sds *sqlserverDialectSuite) TestFuns() {
+	col := goqu.C("a")
+	ds := sds.GetDs("test")
+	sds.assertSQL(
+		sqlTestCase{ds: ds.Select(goqu.GREATEST(col, 2)), sql: "SELECT GREATEST(\"a\", 2) FROM \"test\""},
+		sqlTestCase{ds: ds.Select(goqu.LEAST(col, 2)), sql: "SELECT LEAST(\"a\", 2) FROM \"test\""},
+		sqlTestCase{ds: ds.Select(goqu.UPPER(col)), sql: "SELECT UPPER(\"a\") FROM \"test\""},
+		sqlTestCase{ds: ds.Select(goqu.UPPER("Val")), sql: "SELECT UPPER('Val') FROM \"test\""},
+		sqlTestCase{ds: ds.Select(goqu.LOWER(col)), sql: "SELECT LOWER(\"a\") FROM \"test\""},
+		sqlTestCase{ds: ds.Select(goqu.LOWER("Val")), sql: "SELECT LOWER('Val') FROM \"test\""},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlserverDialectSuite))
 }
