@@ -123,12 +123,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Invalid() {
 	)
 }
 
-func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnsupportedType() {
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_OtherType() {
 	type strct struct{}
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}"},
-		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}", isPrepared: true},
+		expressionTestCase{val: strct{}, sql: "?", isPrepared: true, args: []interface{}{strct{}}},
 	)
 }
 

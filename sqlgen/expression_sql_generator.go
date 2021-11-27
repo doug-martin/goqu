@@ -153,6 +153,13 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsBool(valKind):
 		esg.Generate(b, v.Bool())
 	default:
+		// allow any type of value for prepared mode
+		if b.IsPrepared() {
+			esg.placeHolderSQL(b, val)
+
+			return
+		}
+
 		b.SetError(errors.NewEncodeError(val))
 	}
 }
