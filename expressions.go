@@ -130,7 +130,7 @@ func LOWER(col interface{}) exp.SQLFunctionExpression {
 // Creates a new case insensitive equal sql boolean expression
 //   CaseInsensitiveEq("a", "A") -> LOWER('a') = LOWER('A')
 //   CaseInsensitiveEq(I("a"), "A") -> LOWER("a") = LOWER('A')
-func CaseInsensitiveEq(lval interface{}, rval interface{}) exp.BooleanExpression {
+func CaseInsensitiveEq(lval, rval interface{}) exp.BooleanExpression {
 	lvalLower := LOWER(lval)
 	rvalLower := LOWER(rval)
 
@@ -140,7 +140,7 @@ func CaseInsensitiveEq(lval interface{}, rval interface{}) exp.BooleanExpression
 // Creates a new case insensitive not equal sql boolean expression
 //   CaseInsensitiveNeq("a", "A") -> LOWER('a') != LOWER('A')
 //   CaseInsensitiveNeq(I("a"), "A") -> LOWER("a") != LOWER('A')
-func CaseInsensitiveNeq(lval interface{}, rval interface{}) exp.BooleanExpression {
+func CaseInsensitiveNeq(lval, rval interface{}) exp.BooleanExpression {
 	lvalLower := LOWER(lval)
 	rvalLower := LOWER(rval)
 
