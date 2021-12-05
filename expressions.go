@@ -100,31 +100,51 @@ func MIN(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("
 func MAX(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("MAX", true, col) }
 
 // Creates a new GREATEST sql function
-//   GREATEST("a", "b") -> GREATEST("a", "b")
+//   GREATEST("a", "b") -> GREATEST('a', 'b')
 //   GREATEST(I("a"), I("b")) -> GREATEST("a", "b")
 func GREATEST(cols ...interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc(exp.FunctionNameGreatest, false, cols...)
 }
 
 // Creates a new LEAST sql function
-//   LEAST("a", "b") -> LEAST("a", "b")
+//   LEAST("a", "b") -> LEAST('a', 'b')
 //   LEAST(I("a"), I("b")) -> LEAST("a", "b")
 func LEAST(cols ...interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc(exp.FunctionNameLeast, false, cols...)
 }
 
 // Creates a new UPPER sql function
-//   UPPER("a") -> UPPER("a")
+//   UPPER("a") -> UPPER('a')
 //   UPPER(I("a")) -> UPPER("a")
 func UPPER(col interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc(exp.FunctionNameUpper, false, col)
 }
 
 // Creates a new LOWER sql function
-//   LOWER("a") -> LOWER("a")
+//   LOWER("a") -> LOWER('a')
 //   LOWER(I("a")) -> LOWER("a")
 func LOWER(col interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc(exp.FunctionNameLower, false, col)
+}
+
+// Creates a new case insensitive equal sql boolean expression
+//   CaseInsensitiveEq("a", "A") -> LOWER('a') = LOWER('A')
+//   CaseInsensitiveEq(I("a"), "A") -> LOWER("a") = LOWER('A')
+func CaseInsensitiveEq(lval interface{}, rval interface{}) exp.BooleanExpression {
+	lvalLower := LOWER(lval)
+	rvalLower := LOWER(rval)
+
+	return lvalLower.Eq(rvalLower)
+}
+
+// Creates a new case insensitive not equal sql boolean expression
+//   CaseInsensitiveNeq("a", "A") -> LOWER('a') != LOWER('A')
+//   CaseInsensitiveNeq(I("a"), "A") -> LOWER("a") != LOWER('A')
+func CaseInsensitiveNeq(lval interface{}, rval interface{}) exp.BooleanExpression {
+	lvalLower := LOWER(lval)
+	rvalLower := LOWER(rval)
+
+	return lvalLower.Neq(rvalLower)
 }
 
 // Creates a new AVG sql function

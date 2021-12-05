@@ -1009,6 +1009,42 @@ func ExampleLOWER() {
 	// SELECT LOWER(?), UPPER("col") FROM "test" [val]
 }
 
+func ExampleCaseInsensitiveEq() {
+	ds := goqu.
+		From("test").
+		Select(
+			goqu.
+				CaseInsensitiveEq(goqu.I("col"), "A").
+				As("is_a"),
+		)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT (LOWER("col") = LOWER('A')) AS "is_a" FROM "test" []
+	// SELECT (LOWER("col") = LOWER(?)) AS "is_a" FROM "test" [A]
+}
+
+func ExampleCaseInsensitiveNeq() {
+	ds := goqu.
+		From("test").
+		Select(
+			goqu.
+				CaseInsensitiveNeq(goqu.I("col"), "A").
+				As("is_a"),
+		)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT (LOWER("col") != LOWER('A')) AS "is_a" FROM "test" []
+	// SELECT (LOWER("col") != LOWER(?)) AS "is_a" FROM "test" [A]
+}
+
 func ExampleOn() {
 	ds := goqu.From("test").Join(
 		goqu.T("my_table"),
