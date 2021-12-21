@@ -48,6 +48,15 @@ var (
 	pointers = []interface{}{
 		&sql.NullString{},
 	}
+
+	nilSlice   []int
+	nilPointer *string
+
+	nilorEmpties = []interface{}{
+		nil,
+		nilSlice,
+		nilPointer,
+	}
 )
 
 type (
@@ -1291,6 +1300,12 @@ func (rt *reflectTest) TestAppendSliceElement() {
 	util.AppendSliceElement(sliceVal, reflect.ValueOf(&MyStruct{}))
 
 	rt.Equal([]*MyStruct{{}}, sliceVal.Interface())
+}
+
+func (rt *reflectTest) TestIsNil() {
+	for _, v := range nilorEmpties {
+		rt.True(util.IsNil(v))
+	}
 }
 
 func TestReflectSuite(t *testing.T) {
