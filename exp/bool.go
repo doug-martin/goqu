@@ -3,6 +3,8 @@ package exp
 import (
 	"reflect"
 	"regexp"
+
+	"github.com/doug-martin/goqu/v9/internal/util"
 )
 
 type boolean struct {
@@ -155,7 +157,7 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
-	if rhs == nil {
+	if rhs == nil || util.IsNil(rhs) {
 		op = IsOp
 	} else {
 		switch reflect.Indirect(reflect.ValueOf(rhs)).Kind() {
