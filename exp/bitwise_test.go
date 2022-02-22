@@ -76,6 +76,10 @@ func (bes *bitwiseExpressionSuite) TestAllOthers() {
 		{Ex: be.IsFalse(), Expected: exp.NewBooleanExpression(exp.IsOp, be, false)},
 		{Ex: be.IsNotFalse(), Expected: exp.NewBooleanExpression(exp.IsNotOp, be, false)},
 		{Ex: be.Distinct(), Expected: exp.NewSQLFunctionExpression("DISTINCT", be)},
+		{Ex: be.Add(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticAddOp, be, 1)},
+		{Ex: be.Sub(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticSubOp, be, 1)},
+		{Ex: be.Mul(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticMulOp, be, 1)},
+		{Ex: be.Div(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticDivOp, be, 1)},
 	}
 
 	for _, tc := range testCases {

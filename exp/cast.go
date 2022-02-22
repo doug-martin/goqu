@@ -54,3 +54,7 @@ func (c cast) IsNotFalse() BooleanExpression                    { return isNot(c
 func (c cast) Distinct() SQLFunctionExpression                  { return NewSQLFunctionExpression("DISTINCT", c) }
 func (c cast) Between(val RangeVal) RangeExpression             { return between(c, val) }
 func (c cast) NotBetween(val RangeVal) RangeExpression          { return notBetween(c, val) }
+func (c cast) Add(val interface{}) ArithmeticExpression         { return arithmeticAdd(c, val) }
+func (c cast) Sub(val interface{}) ArithmeticExpression         { return arithmeticSub(c, val) }
+func (c cast) Mul(val interface{}) ArithmeticExpression         { return arithmeticMul(c, val) }
+func (c cast) Div(val interface{}) ArithmeticExpression         { return arithmeticDiv(c, val) }

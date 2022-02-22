@@ -159,6 +159,13 @@ type (
 		// I("col").BitRighttShift(1) // ("col" >> 1)
 		BitwiseRightShift(interface{}) BitwiseExpression
 	}
+
+	Arithmeticable interface {
+		Add(interface{}) ArithmeticExpression
+		Sub(interface{}) ArithmeticExpression
+		Mul(interface{}) ArithmeticExpression
+		Div(interface{}) ArithmeticExpression
+	}
 )
 
 type (
@@ -223,6 +230,7 @@ type (
 		Expression
 		Aliaseable
 		Comparable
+		Arithmeticable
 		Isable
 		Inable
 		Likeable
@@ -242,6 +250,7 @@ type (
 		Expression
 		Aliaseable
 		Comparable
+		Arithmeticable
 		Inable
 		Isable
 		Likeable
@@ -310,6 +319,7 @@ type (
 		Expression
 		Aliaseable
 		Comparable
+		Arithmeticable
 		Inable
 		Isable
 		Likeable
@@ -383,6 +393,7 @@ type (
 		Expression
 		Aliaseable
 		Comparable
+		Arithmeticable
 		Isable
 		Inable
 		Likeable
@@ -393,6 +404,27 @@ type (
 		Literal() string
 		// Arguments to be replaced within the sql
 		Args() []interface{}
+	}
+
+	ArithmeticOperation  int
+	ArithmeticExpression interface {
+		Expression
+		Aliaseable
+		Comparable
+		Inable
+		Isable
+		Likeable
+		Rangeable
+		Orderable
+		Distinctable
+		Castable
+		Bitwiseable
+		// Returns the operator for the expression
+		Op() ArithmeticOperation
+		// The left hand side of the expression (e.g. I("a")
+		LHS() Expression
+		// The right hand side of the expression could be a primitive value, dataset, or expression
+		RHS() interface{}
 	}
 
 	NullSortType  int
@@ -438,6 +470,7 @@ type (
 		Aliaseable
 		Rangeable
 		Comparable
+		Arithmeticable
 		Orderable
 		Isable
 		Inable
@@ -598,6 +631,11 @@ const (
 	BitwiseXorOp
 	BitwiseLeftShiftOp
 	BitwiseRightShiftOp
+
+	ArithmeticAddOp ArithmeticOperation = iota
+	ArithmeticSubOp
+	ArithmeticMulOp
+	ArithmeticDivOp
 )
 
 var (
@@ -691,6 +729,20 @@ func (bi BitwiseOperation) String() string {
 		return "Right Shift"
 	}
 	return fmt.Sprintf("%d", bi)
+}
+
+func (ao ArithmeticOperation) String() string {
+	switch ao {
+	case ArithmeticAddOp:
+		return "Addition"
+	case ArithmeticSubOp:
+		return "Subtraction"
+	case ArithmeticMulOp:
+		return "Multiplication"
+	case ArithmeticDivOp:
+		return "Division"
+	}
+	return fmt.Sprintf("%d", ao)
 }
 
 func (ro RangeOperation) String() string {

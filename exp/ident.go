@@ -211,3 +211,8 @@ func (i identifier) Between(val RangeVal) RangeExpression { return between(i, va
 
 // Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
 func (i identifier) NotBetween(val RangeVal) RangeExpression { return notBetween(i, val) }
+
+func (i identifier) Add(val interface{}) ArithmeticExpression { return arithmeticAdd(i, val) }
+func (i identifier) Sub(val interface{}) ArithmeticExpression { return arithmeticSub(i, val) }
+func (i identifier) Mul(val interface{}) ArithmeticExpression { return arithmeticMul(i, val) }
+func (i identifier) Div(val interface{}) ArithmeticExpression { return arithmeticDiv(i, val) }

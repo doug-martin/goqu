@@ -73,6 +73,10 @@ func (sfes *sqlFunctionExpressionSuite) TestAllOthers() {
 		{Ex: fn.IsNotFalse(), Expected: exp.NewBooleanExpression(exp.IsNotOp, fn, false)},
 		{Ex: fn.Desc(), Expected: exp.NewOrderedExpression(fn, exp.DescSortDir, exp.NoNullsSortType)},
 		{Ex: fn.Asc(), Expected: exp.NewOrderedExpression(fn, exp.AscDir, exp.NoNullsSortType)},
+		{Ex: fn.Add(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticAddOp, fn, 1)},
+		{Ex: fn.Sub(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticSubOp, fn, 1)},
+		{Ex: fn.Mul(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticMulOp, fn, 1)},
+		{Ex: fn.Div(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticDivOp, fn, 1)},
 	}
 
 	for _, tc := range testCases {
