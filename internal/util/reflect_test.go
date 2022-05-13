@@ -58,25 +58,26 @@ type (
 		str string
 	}
 	TestStruct struct {
-		arr  [0]string
-		slc  []string
-		mp   map[string]interface{}
-		str  string
-		bl   bool
-		i    int
-		i8   int8
-		i16  int16
-		i32  int32
-		i64  int64
-		ui   uint
-		ui8  uint8
-		ui16 uint16
-		ui32 uint32
-		ui64 uint64
-		f32  float32
-		f64  float64
-		intr TestInterface
-		ptr  *sql.NullString
+		arr      [1]string
+		slc      []string
+		mp       map[string]interface{}
+		str      string
+		bl       bool
+		i        int
+		i8       int8
+		i16      int16
+		i32      int32
+		i64      int64
+		ui       uint
+		ui8      uint8
+		ui16     uint16
+		ui32     uint32
+		ui64     uint64
+		f32      float32
+		f64      float64
+		intr     TestInterface
+		ptr      *sql.NullString
+		nullable sql.NullString
 	}
 )
 
@@ -342,6 +343,7 @@ func (rt *reflectTest) TestIsEmptyValue_emptyValues() {
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.f64)))
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
 	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.ptr)))
+	rt.True(util.IsEmptyValue(reflect.ValueOf(ts.nullable)))
 }
 
 func (rt *reflectTest) TestIsEmptyValue_validValues() {
@@ -365,6 +367,7 @@ func (rt *reflectTest) TestIsEmptyValue_validValues() {
 	rt.False(util.IsEmptyValue(reflect.ValueOf(float64(0.2))))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(ts.intr)))
 	rt.False(util.IsEmptyValue(reflect.ValueOf(&TestStruct{str: "a"})))
+	rt.False(util.IsEmptyValue(reflect.ValueOf(sql.NullString{Valid: true})))
 }
 
 func (rt *reflectTest) TestColumnRename() {
