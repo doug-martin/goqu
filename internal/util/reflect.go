@@ -64,7 +64,9 @@ func IsPointer(k reflect.Kind) bool {
 
 func IsEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+	case reflect.Array:
+		return v.IsZero()
+	case reflect.Map, reflect.Slice, reflect.String:
 		return v.Len() == 0
 	case reflect.Bool:
 		return !v.Bool()
@@ -76,6 +78,8 @@ func IsEmptyValue(v reflect.Value) bool {
 		return v.Float() == 0
 	case reflect.Interface, reflect.Ptr:
 		return v.IsNil()
+	case reflect.Struct:
+		return v.IsZero()
 	case reflect.Invalid:
 		return true
 	default:
