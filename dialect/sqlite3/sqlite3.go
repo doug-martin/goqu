@@ -7,6 +7,8 @@ import (
 	"github.com/doug-martin/goqu/v9/exp"
 )
 
+const DialectName = "sqlite3"
+
 func DialectOptions() *goqu.SQLDialectOptions {
 	opts := goqu.DefaultDialectOptions()
 
@@ -72,5 +74,5 @@ func DialectOptions() *goqu.SQLDialectOptions {
 }
 
 func init() {
-	goqu.RegisterDialect("sqlite3", DialectOptions())
+	goqu.RegisterDialect(DialectName, DialectOptions())
 }

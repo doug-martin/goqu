@@ -4,6 +4,8 @@ import (
 	"github.com/doug-martin/goqu/v9"
 )
 
+const DialectName = "postgres"
+
 func DialectOptions() *goqu.SQLDialectOptions {
 	do := goqu.DefaultDialectOptions()
 	do.PlaceHolderFragment = []byte("$")
@@ -12,5 +14,5 @@ func DialectOptions() *goqu.SQLDialectOptions {
 }
 
 func init() {
-	goqu.RegisterDialect("postgres", DialectOptions())
+	goqu.RegisterDialect(DialectName, DialectOptions())
 }
