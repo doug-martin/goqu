@@ -4,9 +4,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/doug-martin/goqu/v9/internal/sb"
-	"github.com/doug-martin/goqu/v9/sqlgen"
+	"github.com/slessard/goqu/v9/exp"
+	"github.com/slessard/goqu/v9/internal/sb"
+	"github.com/slessard/goqu/v9/sqlgen"
 )
 
 type (
@@ -23,7 +23,7 @@ type (
 	}
 	// The default adapter. This class should be used when building a new adapter. When creating a new adapter you can
 	// either override methods, or more typically update default values.
-	// See (github.com/doug-martin/goqu/dialect/postgres)
+	// See (github.com/slessard/goqu/dialect/postgres)
 	sqlDialect struct {
 		dialect        string
 		dialectOptions *SQLDialectOptions

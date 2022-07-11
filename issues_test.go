@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v9"
-	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/slessard/goqu/v9"
+	"github.com/slessard/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
 

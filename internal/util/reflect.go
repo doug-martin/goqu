@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/doug-martin/goqu/v9/internal/errors"
+	"github.com/slessard/goqu/v9/internal/errors"
 )
 
 const (

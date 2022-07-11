@@ -1,9 +1,9 @@
 package goqu
 
 import (
-	"github.com/doug-martin/goqu/v9/exec"
-	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/slessard/goqu/v9/exec"
+	"github.com/slessard/goqu/v9/exp"
+	"github.com/slessard/goqu/v9/internal/sb"
 )
 
 type TruncateDataset struct {

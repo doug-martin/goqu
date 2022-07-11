@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	"reflect"
 
-	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/doug-martin/goqu/v9/internal/errors"
-	"github.com/doug-martin/goqu/v9/internal/util"
+	"github.com/slessard/goqu/v9/exp"
+	"github.com/slessard/goqu/v9/internal/errors"
+	"github.com/slessard/goqu/v9/internal/util"
 )
 
 type (
