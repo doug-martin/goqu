@@ -37,6 +37,10 @@ func ErrWindowNotSupported(dialect string) error {
 	return errors.New("dialect does not support WINDOW clause [dialect=%s]", dialect)
 }
 
+func ErrQualifyNotSupported(dialect string) error {
+	return errors.New("dialect does not support QUALIFY clause [dialect=%s]", dialect)
+}
+
 var ErrNoWindowName = errors.New("window expresion has no valid name")
 
 func NewSelectSQLGenerator(dialect string, do *SQLDialectOptions) SelectSQLGenerator {
@@ -65,6 +69,8 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 			ssg.GroupBySQL(b, clauses.GroupBy())
 		case HavingSQLFragment:
 			ssg.HavingSQL(b, clauses.Having())
+		case QualifySQLFragment:
+			ssg.QualifySQL(b, clauses.Qualify())
 		case WindowSQLFragment:
 			ssg.WindowSQL(b, clauses.Windows())
 		case CompoundsSQLFragment:
@@ -161,6 +167,18 @@ func (ssg *selectSQLGenerator) HavingSQL(b sb.SQLBuilder, having exp.ExpressionL
 	if having != nil && len(having.Expressions()) > 0 {
 		b.Write(ssg.DialectOptions().HavingFragment)
 		ssg.ExpressionSQLGenerator().Generate(b, having)
+	}
+}
+
+// Generates the QUALIFY clause for an SQL statement
+func (ssg *selectSQLGenerator) QualifySQL(b sb.SQLBuilder, qualify exp.ExpressionList) {
+	if qualify != nil && len(qualify.Expressions()) > 0 {
+		if ssg.DialectOptions().SupportsQualify {
+			b.Write(ssg.DialectOptions().QualifyFragment)
+			ssg.ExpressionSQLGenerator().Generate(b, qualify)
+		} else {
+			b.SetError(ErrQualifyNotSupported(ssg.Dialect()))
+		}
 	}
 }
 

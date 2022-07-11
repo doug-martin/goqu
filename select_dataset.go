@@ -397,6 +397,12 @@ func (sd *SelectDataset) Having(expressions ...exp.Expression) *SelectDataset {
 	return sd.copy(sd.clauses.HavingAppend(expressions...))
 }
 
+// Adds a QUALIFY clause. See examples.
+func (sd *SelectDataset) Qualify(expressions ...exp.Expression) *SelectDataset {
+	return sd.copy(sd.clauses.QualifyAppend(expressions...))
+}
+
+
 // Adds a ORDER clause. If the ORDER is currently set it replaces it. See examples.
 func (sd *SelectDataset) Order(order ...exp.OrderedExpression) *SelectDataset {
 	return sd.copy(sd.clauses.SetOrder(order...))

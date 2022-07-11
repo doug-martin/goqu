@@ -271,6 +271,46 @@ func (scs *selectClausesSuite) TestHavingAppend() {
 	scs.Equal(exp.NewExpressionList(exp.AndType, w, w2), c4.Having())
 }
 
+func (scs *selectClausesSuite) TestQualify() {
+	w := exp.Ex{"a": 1}
+
+	c := exp.NewSelectClauses()
+	c2 := c.QualifyAppend(w)
+
+	scs.Nil(c.Qualify())
+
+	scs.Equal(exp.NewExpressionList(exp.AndType, w), c2.Qualify())
+}
+
+func (scs *selectClausesSuite) TestClearQualify() {
+	w := exp.Ex{"a": 1}
+
+	c := exp.NewSelectClauses().QualifyAppend(w)
+	c2 := c.ClearQualify()
+
+	scs.Equal(exp.NewExpressionList(exp.AndType, w), c.Qualify())
+
+	scs.Nil(c2.Qualify())
+}
+
+func (scs *selectClausesSuite) TestQualifyAppend() {
+	w := exp.Ex{"a": 1}
+	w2 := exp.Ex{"b": 2}
+
+	c := exp.NewSelectClauses()
+	c2 := c.QualifyAppend(w)
+
+	c3 := c.QualifyAppend(w).QualifyAppend(w2)
+
+	c4 := c.QualifyAppend(w, w2)
+
+	scs.Nil(c.Qualify())
+
+	scs.Equal(exp.NewExpressionList(exp.AndType, w), c2.Qualify())
+	scs.Equal(exp.NewExpressionList(exp.AndType, w).Append(w2), c3.Qualify())
+	scs.Equal(exp.NewExpressionList(exp.AndType, w, w2), c4.Qualify())
+}
+
 func (scs *selectClausesSuite) TestWindows() {
 	w := exp.NewWindowExpression(exp.NewIdentifierExpression("", "", "w"), nil, nil, nil)
 
