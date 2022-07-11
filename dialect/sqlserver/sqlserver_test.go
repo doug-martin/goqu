@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doug-martin/goqu/v9/dialect/mysql"
+	"github.com/slessard/goqu/v9/dialect/mysql"
 
 	_ "github.com/denisenkom/go-mssqldb"
-	"github.com/doug-martin/goqu/v9"
-	_ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+	"github.com/slessard/goqu/v9"
+	_ "github.com/slessard/goqu/v9/dialect/sqlserver"
 	"github.com/stretchr/testify/suite"
 )
 

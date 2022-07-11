@@ -3,7 +3,7 @@ package exp
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/slessard/goqu/v9/internal/sb"
 )
 
 // Behaviors

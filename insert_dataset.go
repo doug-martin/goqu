@@ -3,10 +3,10 @@ package goqu
 import (
 	"fmt"
 
-	"github.com/doug-martin/goqu/v9/exec"
-	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/doug-martin/goqu/v9/internal/errors"
-	"github.com/doug-martin/goqu/v9/internal/sb"
+	"github.com/slessard/goqu/v9/exec"
+	"github.com/slessard/goqu/v9/exp"
+	"github.com/slessard/goqu/v9/internal/errors"
+	"github.com/slessard/goqu/v9/internal/sb"
 )
 
 type InsertDataset struct {

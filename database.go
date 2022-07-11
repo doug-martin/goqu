@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/doug-martin/goqu/v9/exec"
+	"github.com/slessard/goqu/v9/exec"
 )
 
 type (
@@ -43,8 +43,8 @@ type (
 //      import (
 //          "database/sql"
 //          "fmt"
-//          "github.com/doug-martin/goqu/v9"
-//          _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+//          "github.com/slessard/goqu/v9"
+//          _ "github.com/slessard/goqu/v9/dialect/postgres"
 //          _ "github.com/lib/pq"
 //      )
 //
