@@ -12,9 +12,9 @@
   * [Executing](#exec)
 
 <a name="create"></a>
-To create a [`DeleteDataset`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset)  you can use
+To create a [`DeleteDataset`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset)  you can use
 
-**[`goqu.Delete`](https://godoc.org/github.com/doug-martin/goqu/#Delete)**
+**[`goqu.Delete`](https://godoc.org/github.com/slessard/goqu/#Delete)**
 
 When you just want to create some quick SQL, this mostly follows the `Postgres` with the exception of placeholders for prepared statements.
 
@@ -27,7 +27,7 @@ Output:
 DELETE FROM "table"
 ```
 
-**[`SelectDataset.Delete`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Delete)**
+**[`SelectDataset.Delete`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Delete)**
 
 If you already have a `SelectDataset` you can invoke `Delete()` to get a `DeleteDataset`
 
@@ -49,12 +49,12 @@ DELETE FROM "table"
 DELETE FROM "table" WHERE "foo"='bar'
 ```
 
-**[`DialectWrapper.Delete`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Delete)**
+**[`DialectWrapper.Delete`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Delete)**
 
 Use this when you want to create SQL for a specific `dialect`
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 dialect := goqu.Dialect("mysql")
 
@@ -66,12 +66,12 @@ Output:
 DELETE FROM `table`
 ```
 
-**[`Database.Delete`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Delete)**
+**[`Database.Delete`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Delete)**
 
 Use this when you want to execute the SQL or create SQL for the drivers dialect.
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 mysqlDB := //initialize your db
 db := goqu.New("mysql", mysqlDB)
@@ -86,7 +86,7 @@ DELETE FROM `table`
 
 ### Examples
 
-For more examples visit the **[Docs](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset)**
+For more examples visit the **[Docs](https://godoc.org/github.com/slessard/goqu/#DeleteDataset)**
 
 <a name="delete-all"></a>
 **Delete All Records**
@@ -104,7 +104,7 @@ DELETE FROM "items" []
 ```
 
 <a name="prepared"></a>
-**[`Prepared`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Prepared)**
+**[`Prepared`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset.Prepared)**
 
 ```go
 sql, _, _ := goqu.Delete("test").Where(goqu.Ex{
@@ -122,7 +122,7 @@ DELETE FROM "test" WHERE (("a" > ?) AND ("b" < ?) AND ("c" IS NULL) AND ("d" IN 
 ```
 
 <a name="where"></a>
-**[`Where`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Where)**
+**[`Where`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset.Where)**
 
 ```go
 sql, _, _ := goqu.Delete("test").Where(goqu.Ex{
@@ -140,12 +140,12 @@ DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" I
 ```
 
 <a name="order"></a>
-**[`Order`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Order)**
+**[`Order`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset.Order)**
 
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").Delete("test").Order(goqu.C("a").Asc())
 sql, _, _ := ds.ToSQL()
@@ -158,12 +158,12 @@ DELETE FROM `test` ORDER BY `a` ASC
 ```
 
 <a name="limit"></a>
-**[`Limit`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Limit)**
+**[`Limit`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset.Limit)**
 
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").Delete("test").Limit(10)
 sql, _, _ := ds.ToSQL()
@@ -176,7 +176,7 @@ DELETE FROM `test` LIMIT 10
 ```
 
 <a name="returning"></a>
-**[`Returning`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Returning)**
+**[`Returning`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset.Returning)**
 
 Returning a single column example.
 
@@ -216,7 +216,7 @@ DELETE FROM "test" RETURNING "test".*
 ```
 
 <a name="seterror"></a>
-**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.SetError)**
+**[`SetError`](https://godoc.org/github.com/slessard/goqu/#DeleteDataset.SetError)**
 
 Sometimes while building up a query with goqu you will encounter situations where certain
 preconditions are not met or some end-user contraint has been violated. While you could
@@ -262,7 +262,7 @@ name is empty
 
 ## Executing Deletes
 
-To execute DELETES use [`Database.Delete`](https://godoc.org/github.com/doug-martin/goqu/#Database.Delete) to create your dataset
+To execute DELETES use [`Database.Delete`](https://godoc.org/github.com/slessard/goqu/#Database.Delete) to create your dataset
 
 ### Examples
 

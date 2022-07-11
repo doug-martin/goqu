@@ -2,10 +2,10 @@
 
 Dialects allow goqu the build the correct SQL for each database. There are four dialects that come packaged with `goqu`
 
-* [mysql](./dialect/mysql/mysql.go) - `import _ "github.com/doug-martin/goqu/v9/dialect/mysql"`
-* [postgres](./dialect/postgres/postgres.go) - `import _ "github.com/doug-martin/goqu/v9/dialect/postgres"`
-* [sqlite3](./dialect/sqlite3/sqlite3.go) - `import _ "github.com/doug-martin/goqu/v9/dialect/sqlite3"`
-* [sqlserver](./dialect/sqlserver/sqlserver.go) - `import _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"`
+* [mysql](./dialect/mysql/mysql.go) - `import _ "github.com/slessard/goqu/v9/dialect/mysql"`
+* [postgres](./dialect/postgres/postgres.go) - `import _ "github.com/slessard/goqu/v9/dialect/postgres"`
+* [sqlite3](./dialect/sqlite3/sqlite3.go) - `import _ "github.com/slessard/goqu/v9/dialect/sqlite3"`
+* [sqlserver](./dialect/sqlserver/sqlserver.go) - `import _ "github.com/slessard/goqu/v9/dialect/sqlserver"`
 
 **NOTE** Dialects work like drivers in go where they are not registered until you import the package.
 
@@ -16,9 +16,9 @@ Below are examples for each dialect. Notice how the dialect is imported and then
 ```go
 import (
   "fmt"
-  "github.com/doug-martin/goqu/v9"
+  "github.com/slessard/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+  _ "github.com/slessard/goqu/v9/dialect/postgres"
 )
 
 // look up the dialect
@@ -44,9 +44,9 @@ SELECT * FROM "test" WHERE "id" = 10 []
 ```go
 import (
   "fmt"
-  "github.com/doug-martin/goqu/v9"
+  "github.com/slessard/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+  _ "github.com/slessard/goqu/v9/dialect/mysql"
 )
 
 // look up the dialect
@@ -72,9 +72,9 @@ SELECT * FROM `test` WHERE `id` = 10 []
 ```go
 import (
   "fmt"
-  "github.com/doug-martin/goqu/v9"
+  "github.com/slessard/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/sqlite3"
+  _ "github.com/slessard/goqu/v9/dialect/sqlite3"
 )
 
 // look up the dialect
@@ -100,9 +100,9 @@ SELECT * FROM `test` WHERE `id` = 10 []
 ```go
 import (
   "fmt"
-  "github.com/doug-martin/goqu/v9"
+  "github.com/slessard/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+  _ "github.com/slessard/goqu/v9/dialect/sqlserver"
 )
 
 // look up the dialect
@@ -132,8 +132,8 @@ In the example below notice that we imported the dialect and driver for side eff
 ```go
 import (
   "database/sql"
-  "github.com/doug-martin/goqu/v9"
-  _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+  "github.com/slessard/goqu/v9"
+  _ "github.com/slessard/goqu/v9/dialect/postgres"
   _ "github.com/lib/pq"
 )
 
@@ -160,15 +160,15 @@ Dialects in goqu are the foundation of building the correct SQL for each DB dial
 
 ### Dialect Options
 
-Most SQL dialects share a majority of their syntax, for this reason `goqu` has a [default set of dialect options]((http://godoc.org/github.com/doug-martin/goqu/#DefaultDialectOptions)) that can be used as a base for any new Dialect.
+Most SQL dialects share a majority of their syntax, for this reason `goqu` has a [default set of dialect options]((http://godoc.org/github.com/slessard/goqu/#DefaultDialectOptions)) that can be used as a base for any new Dialect.
 
-When creating a new `SQLDialect` you just need to override the default values that are documented in [`SQLDialectOptions`](http://godoc.org/github.com/doug-martin/goqu/#SQLDialectOptions).
+When creating a new `SQLDialect` you just need to override the default values that are documented in [`SQLDialectOptions`](http://godoc.org/github.com/slessard/goqu/#SQLDialectOptions).
 
 Take a look at [`postgres`](./dialect/postgres/postgres.go), [`mysql`](./dialect/mysql/mysql.go) and [`sqlite3`](./dialect/sqlite3/sqlite3.go) for examples.
 
 ### Creating a custom dialect
 
-When creating a new dialect you must register it using [`RegisterDialect`](http://godoc.org/github.com/doug-martin/goqu/#RegisterDialect). This method requires 2 arguments.
+When creating a new dialect you must register it using [`RegisterDialect`](http://godoc.org/github.com/slessard/goqu/#RegisterDialect). This method requires 2 arguments.
 
 1. `dialect string` - The name of your dialect
 2. `opts SQLDialectOptions` - The custom options for your dialect

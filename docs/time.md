@@ -9,7 +9,7 @@ For most use cases `UTC` should be preferred, if a timezone is specified it is u
 ## How to use a different default timezone?
 `goqu` provides a **_global_** configuration settings to set the [location](https://golang.org/pkg/time/#Location) to convert all timestamps to. 
 
-To change the default timezone to covert time instances to you can use [`goqu.SetTimeLocation`](https://godoc.org/github.com/doug-martin/goqu#SetTimeLocation) to change the default timezone.
+To change the default timezone to covert time instances to you can use [`goqu.SetTimeLocation`](https://godoc.org/github.com/slessard/goqu#SetTimeLocation) to change the default timezone.
 
 In the following example the default value `UTC` is used.
 

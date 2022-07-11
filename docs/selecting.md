@@ -25,9 +25,9 @@
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
 <a name="create"></a>
-To create a [`SelectDataset`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset)  you can use
+To create a [`SelectDataset`](https://godoc.org/github.com/slessard/goqu/#SelectDataset)  you can use
 
-**[`goqu.From`](https://godoc.org/github.com/doug-martin/goqu/#From) and [`goqu.Select`](https://godoc.org/github.com/doug-martin/goqu/#Select)**
+**[`goqu.From`](https://godoc.org/github.com/slessard/goqu/#From) and [`goqu.Select`](https://godoc.org/github.com/slessard/goqu/#Select)**
 
 When you just want to create some quick SQL, this mostly follows the `Postgres` with the exception of placeholders for prepared statements.
 
@@ -44,12 +44,12 @@ SELECT * FROM "table"
 SELECT NOW()
 ```
 
-**[`DialectWrapper.From`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.From) and [`DialectWrapper.Select`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Select)**
+**[`DialectWrapper.From`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.From) and [`DialectWrapper.Select`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Select)**
 
 Use this when you want to create SQL for a specific `dialect`
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 dialect := goqu.Dialect("mysql")
 
@@ -65,12 +65,12 @@ SELECT * FROM `table`
 SELECT NOW()
 ```
 
-**[`Database.From`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.From) and [`Database.Select`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.From)**
+**[`Database.From`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.From) and [`Database.Select`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.From)**
 
 Use this when you want to execute the SQL or create SQL for the drivers dialect.
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 mysqlDB := //initialize your db
 db := goqu.New("mysql", mysqlDB)
@@ -89,10 +89,10 @@ SELECT NOW()
 
 ### Examples
 
-For more examples visit the **[Docs](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset)**
+For more examples visit the **[Docs](https://godoc.org/github.com/slessard/goqu/#SelectDataset)**
 
 <a name="select"></a>
-**[`Select`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Select)**
+**[`Select`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Select)**
 
 ```go
 sql, _, _ := goqu.From("test").Select("a", "b", "c").ToSQL()
@@ -168,7 +168,7 @@ SELECT "address", "email_address", "name" FROM "test"
 ```
 
 <a name="distinct"></a>
-**[`Distinct`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Distinct)**
+**[`Distinct`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Distinct)**
 
 ```go
 sql, _, _ := goqu.From("test").Select("a", "b").Distinct().ToSQL()
@@ -217,7 +217,7 @@ SELECT DISTINCT ON (COALESCE("a", 'empty')) * FROM "test"
 ```
 
 <a name="from"></a>
-**[`From`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.From)**
+**[`From`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.From)**
 
 Overriding the original from
 ```go
@@ -293,7 +293,7 @@ SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e", LATER
 ```
 
 <a name="joins"></a>
-**[`Join`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Join)**
+**[`Join`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Join)**
 
 ```go
 sql, _, _ := goqu.From("test").Join(
@@ -308,7 +308,7 @@ Output:
 SELECT * FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`InnerJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.InnerJoin)
+[`InnerJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.InnerJoin)
 
 ```go
 sql, _, _ := goqu.From("test").InnerJoin(
@@ -323,7 +323,7 @@ Output:
 SELECT * FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`FullOuterJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.FullOuterJoin)
+[`FullOuterJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.FullOuterJoin)
 
 ```go
 sql, _, _ := goqu.From("test").FullOuterJoin(
@@ -340,7 +340,7 @@ Output:
 SELECT * FROM "test" FULL OUTER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`RightOuterJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.RightOuterJoin)
+[`RightOuterJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.RightOuterJoin)
 
 ```go
 sql, _, _ := goqu.From("test").RightOuterJoin(
@@ -357,7 +357,7 @@ Output:
 SELECT * FROM "test" RIGHT OUTER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`LeftOuterJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.LeftOuterJoin)
+[`LeftOuterJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.LeftOuterJoin)
 
 ```go
 sql, _, _ := goqu.From("test").LeftOuterJoin(
@@ -374,7 +374,7 @@ Output:
 SELECT * FROM "test" LEFT OUTER JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`FullJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.FullJoin)
+[`FullJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.FullJoin)
 
 ```go
 sql, _, _ := goqu.From("test").FullJoin(
@@ -392,7 +392,7 @@ SELECT * FROM "test" FULL JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
 
-[`RightJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.RightJoin)
+[`RightJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.RightJoin)
 
 ```go
 sql, _, _ := goqu.From("test").RightJoin(
@@ -409,7 +409,7 @@ Output:
 SELECT * FROM "test" RIGHT JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`LeftJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.LeftJoin)
+[`LeftJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.LeftJoin)
 
 ```go
 sql, _, _ := goqu.From("test").LeftJoin(
@@ -426,7 +426,7 @@ Output:
 SELECT * FROM "test" LEFT JOIN "test2" ON ("test"."fkey" = "test2"."Id")
 ```
 
-[`NaturalJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.NaturalJoin)
+[`NaturalJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.NaturalJoin)
 
 ```go
 sql, _, _ := goqu.From("test").NaturalJoin(goqu.T("test2")).ToSQL()
@@ -438,7 +438,7 @@ Output:
 SELECT * FROM "test" NATURAL JOIN "test2"
 ```
 
-[`NaturalLeftJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.NaturalLeftJoin)
+[`NaturalLeftJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.NaturalLeftJoin)
 
 ```go
 sql, _, _ := goqu.From("test").NaturalLeftJoin(goqu.T("test2")).ToSQL()
@@ -450,7 +450,7 @@ Output:
 SELECT * FROM "test" NATURAL LEFT JOIN "test2"
 ```
 
-[`NaturalRightJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.NaturalRightJoin)
+[`NaturalRightJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.NaturalRightJoin)
 
 ```go
 sql, _, _ := goqu.From("test").NaturalRightJoin(goqu.T("test2")).ToSQL()
@@ -462,7 +462,7 @@ Output:
 SELECT * FROM "test" NATURAL RIGHT LEFT JOIN "test2"
 ```
 
-[`NaturalFullJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.NaturalFullJoin)
+[`NaturalFullJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.NaturalFullJoin)
 
 ```go
 sql, _, _ := goqu.From("test").NaturalFullJoin(goqu.T("test2")).ToSQL()
@@ -474,7 +474,7 @@ Output:
 SELECT * FROM "test" NATURAL FULL LEFT JOIN "test2"
 ```
 
-[`CrossJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.CrossJoin)
+[`CrossJoin`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.CrossJoin)
 
 ```go
 sql, _, _ := goqu.From("test").CrossJoin(goqu.T("test2")).ToSQL()
@@ -519,7 +519,7 @@ SELECT "e"."id", "max_entry"."max_int", "max_id"."id" FROM "entry" AS "e" INNER 
 ```
 
 <a name="where"></a>
-**[`Where`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Where)**
+**[`Where`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Where)**
 
 You can use `goqu.Ex` to create an ANDed condition
 ```go
@@ -620,7 +620,7 @@ SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
 ```
 
 <a name="limit"></a>
-**[`Limit`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Limit)**
+**[`Limit`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Limit)**
 
 ```go
 ds := goqu.From("test").Limit(10)
@@ -635,7 +635,7 @@ SELECT * FROM "test" LIMIT 10
 ```
 
 <a name="offset"></a>
-**[`Offset`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Offset)**
+**[`Offset`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Offset)**
 
 ```go
 ds := goqu.From("test").Offset(2)
@@ -650,7 +650,7 @@ SELECT * FROM "test" OFFSET 2
 ```
 
 <a name="group_by"></a>
-**[`GroupBy`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.GroupBy)**
+**[`GroupBy`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.GroupBy)**
 
 ```go
 sql, _, _ := goqu.From("test").
@@ -667,7 +667,7 @@ SELECT SUM("income") AS "income_sum" FROM "test" GROUP BY "age"
 ```
 
 <a name="having"></a>
-**[`Having`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Having)**
+**[`Having`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Having)**
 
 ```go
 sql, _, _ = goqu.From("test").GroupBy("age").Having(goqu.SUM("income").Gt(1000)).ToSQL()
@@ -681,7 +681,7 @@ SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 ```
 
 <a name="with"></a>
-**[`With`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.With)**
+**[`With`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.With)**
 
 To use CTEs in `SELECT` statements you can use the `With` method.
 
@@ -801,7 +801,7 @@ WITH del AS (DELETE FROM "foo" WHERE ("bar" = ?) RETURNING "id") SELECT "bar_nam
 ```
 
 <a name="window"></a>
-**[`Window Function`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Window)**
+**[`Window Function`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Window)**
 
 **NOTE** currently only the `postgres`, `mysql8` (NOT `mysql`) and the default dialect support `Window Function`
 
@@ -836,7 +836,7 @@ SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER B
 ```
 
 <a name="seterror"></a>
-**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.SetError)**
+**[`SetError`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.SetError)**
 
 Sometimes while building up a query with goqu you will encounter situations where certain
 preconditions are not met or some end-user contraint has been violated. While you could
@@ -877,7 +877,7 @@ name is empty
 ```
 
 <a name="forupdate"></a>
-**[`ForUpdate`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.ForUpdate)**
+**[`ForUpdate`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.ForUpdate)**
 
 ```go
 sql, _, _ := goqu.From("test").ForUpdate(exp.Wait).ToSQL()
@@ -903,14 +903,14 @@ SELECT * FROM "test" FOR UPDATE OF "test"
 
 ## Executing Queries
 
-To execute your query use [`goqu.Database#From`](https://godoc.org/github.com/doug-martin/goqu/#Database.From) to create your dataset
+To execute your query use [`goqu.Database#From`](https://godoc.org/github.com/slessard/goqu/#Database.From) to create your dataset
 
 <a name="scan-structs"></a>
-**[`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStructs)**
+**[`ScanStructs`](http://godoc.org/github.com/slessard/goqu#SelectDataset.ScanStructs)**
 
 Scans rows into a slice of structs
 
-**NOTE** [`ScanStructs`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStructs) will only select the columns that can be scanned in to the structs unless you have explicitly selected certain columns.
+**NOTE** [`ScanStructs`](http://godoc.org/github.com/slessard/goqu#SelectDataset.ScanStructs) will only select the columns that can be scanned in to the structs unless you have explicitly selected certain columns.
 
  ```go
 type User struct{
@@ -1007,11 +1007,11 @@ for _, u := range users {
 ```
 
 <a name="scan-struct"></a>
-**[`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStruct)**
+**[`ScanStruct`](http://godoc.org/github.com/slessard/goqu#SelectDataset.ScanStruct)**
 
 Scans a row into a slice a struct, returns false if a row wasnt found
 
-**NOTE** [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStruct) will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns.
+**NOTE** [`ScanStruct`](http://godoc.org/github.com/slessard/goqu#SelectDataset.ScanStruct) will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns.
 
 ```go
 type User struct{
@@ -1148,7 +1148,7 @@ found, err := db.From("user").ScanStruct(&user)
 
 
 <a name="scan-vals"></a>
-**[`ScanVals`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanVals)**
+**[`ScanVals`](http://godoc.org/github.com/slessard/goqu#SelectDataset.ScanVals)**
 
 Scans a rows of 1 column into a slice of primitive values
 
@@ -1162,7 +1162,7 @@ fmt.Printf("\n%+v", ids)
 ```
 
 <a name="scan-val"></a>
-[`ScanVal`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanVal)
+[`ScanVal`](http://godoc.org/github.com/slessard/goqu#SelectDataset.ScanVal)
 
 Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
 
@@ -1182,7 +1182,7 @@ if !found{
 ```
 
 <a name="scanner"></a>
-**[`Scanner`](http://godoc.org/github.com/doug-martin/goqu/exec#Scanner)**
+**[`Scanner`](http://godoc.org/github.com/slessard/goqu/exec#Scanner)**
 
 Scanner knows how to scan rows into structs. This is useful when dealing with large result sets where you can have only one item scanned in memory at one time.
 
@@ -1267,7 +1267,7 @@ if scanner.Err() != nil {
 ```
 
 <a name="count"></a>
-**[`Count`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Count)**
+**[`Count`](http://godoc.org/github.com/slessard/goqu#SelectDataset.Count)**
 
 Returns the count for the current query
 
@@ -1281,7 +1281,7 @@ fmt.Printf("\nCount:= %d", count)
 ```
 
 <a name="pluck"></a>
-**[`Pluck`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Pluck)**
+**[`Pluck`](http://godoc.org/github.com/slessard/goqu#SelectDataset.Pluck)**
 
 Selects a single column and stores the results into a slice of primitive values
 

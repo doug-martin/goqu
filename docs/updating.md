@@ -14,9 +14,9 @@
   * [Executing](#executing)
 
 <a name="create"></a>
-To create a [`UpdateDataset`](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset)  you can use
+To create a [`UpdateDataset`](https://godoc.org/github.com/slessard/goqu/#UpdateDataset)  you can use
 
-**[`goqu.Update`](https://godoc.org/github.com/doug-martin/goqu/#Update)**
+**[`goqu.Update`](https://godoc.org/github.com/slessard/goqu/#Update)**
 
 When you just want to create some quick SQL, this mostly follows the `Postgres` with the exception of placeholders for prepared statements.
 
@@ -32,7 +32,7 @@ Output:
 UPDATE "user" SET "first_name"='Greg', "last_name"='Farley'
 ```
 
-**[`SelectDataset.Update`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Update)**
+**[`SelectDataset.Update`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Update)**
 
 If you already have a `SelectDataset` you can invoke `Update()` to get a `UpdateDataset`
 
@@ -57,12 +57,12 @@ UPDATE "user" SET "first_name"='Greg', "last_name"='Farley'
 UPDATE "user" SET "first_name"='Greg', "last_name"='Farley' WHERE "first_name"='Gregory'
 ```
 
-**[`DialectWrapper.Update`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Update)**
+**[`DialectWrapper.Update`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Update)**
 
 Use this when you want to create SQL for a specific `dialect`
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 dialect := goqu.Dialect("mysql")
 
@@ -77,12 +77,12 @@ Output:
 UPDATE `user` SET `first_name`='Greg', `last_name`='Farley'
 ```
 
-**[`Database.Update`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Update)**
+**[`Database.Update`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Update)**
 
 Use this when you want to execute the SQL or create SQL for the drivers dialect.
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 mysqlDB := //initialize your db
 db := goqu.New("mysql", mysqlDB)
@@ -100,10 +100,10 @@ UPDATE `user` SET `first_name`='Greg', `last_name`='Farley'
 
 ### Examples
 
-For more examples visit the **[Docs](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset)**
+For more examples visit the **[Docs](https://godoc.org/github.com/slessard/goqu/#UpdateDataset)**
 
 <a name="set-record"></a>
-**[Set with `goqu.Record`](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Set)**
+**[Set with `goqu.Record`](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Set)**
 
 ```go
 sql, args, _ := goqu.Update("items").Set(
@@ -118,7 +118,7 @@ UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 ```
 
 <a name="set-struct"></a>
-**[Set with Struct](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Set)**
+**[Set with Struct](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Set)**
 
 ```go
 type item struct {
@@ -248,7 +248,7 @@ UPDATE "user" SET "firstname"='Greg',"lastname"='Farley' []
 
 
 <a name="set-map"></a>
-**[Set with Map](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Set)**
+**[Set with Map](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Set)**
 
 ```go
 sql, args, _ := goqu.Update("items").Set(
@@ -263,7 +263,7 @@ UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 ```
 
 <a name="from"></a>
-**[From / Multi Table](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.From)**
+**[From / Multi Table](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.From)**
 
 `goqu` allows joining multiple tables in a update clause through `From`.
 
@@ -307,7 +307,7 @@ UPDATE `table_one`,`table_two` SET `foo`=`table_two`.`bar` WHERE (`table_one`.`i
 ```
 
 <a name="where"></a>
-**[Where](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Where)**
+**[Where](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Where)**
 
 ```go
 sql, _, _ := goqu.Update("test").
@@ -327,12 +327,12 @@ UPDATE "test" SET "foo"='bar' WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL)
 ```
 
 <a name="order"></a>
-**[Order](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Order)**
+**[Order](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Order)**
 
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").
 	Update("test").
@@ -348,12 +348,12 @@ UPDATE `test` SET `foo`='bar' ORDER BY `a` ASC
 ```
 
 <a name="limit"></a>
-**[Order](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Limit)**
+**[Order](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Limit)**
 
 **NOTE** This will only work if your dialect supports it
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 ds := goqu.Dialect("mysql").
 	Update("test").
@@ -369,7 +369,7 @@ UPDATE `test` SET `foo`='bar' LIMIT 10
 ```
 
 <a name="returning"></a>
-**[Returning](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Returning)**
+**[Returning](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.Returning)**
 
 Returning a single column example.
 
@@ -417,7 +417,7 @@ UPDATE "test" SET "foo"='bar' RETURNING "test".*
 ```
 
 <a name="seterror"></a>
-**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.SetError)**
+**[`SetError`](https://godoc.org/github.com/slessard/goqu/#UpdateDataset.SetError)**
 
 Sometimes while building up a query with goqu you will encounter situations where certain
 preconditions are not met or some end-user contraint has been violated. While you could
@@ -464,7 +464,7 @@ name is empty
 <a name="executing"></a>
 ## Executing Updates
 
-To execute Updates use [`goqu.Database#Update`](https://godoc.org/github.com/doug-martin/goqu/#Database.Update) to create your dataset
+To execute Updates use [`goqu.Database#Update`](https://godoc.org/github.com/slessard/goqu/#Database.Update) to create your dataset
 
 ### Examples
 

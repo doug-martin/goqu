@@ -12,9 +12,9 @@
   * [Executing](#executing)
 
 <a name="create"></a>
-To create a [`InsertDataset`](https://godoc.org/github.com/doug-martin/goqu/#InsertDataset)  you can use
+To create a [`InsertDataset`](https://godoc.org/github.com/slessard/goqu/#InsertDataset)  you can use
 
-**[`goqu.Insert`](https://godoc.org/github.com/doug-martin/goqu/#Insert)**
+**[`goqu.Insert`](https://godoc.org/github.com/slessard/goqu/#Insert)**
 
 When you just want to create some quick SQL, this mostly follows the `Postgres` with the exception of placeholders for prepared statements.
 
@@ -30,7 +30,7 @@ Output:
 INSERT INTO "user" ("first_name", "last_name") VALUES ('Greg', 'Farley')
 ```
 
-**[`SelectDataset.Insert`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Insert)**
+**[`SelectDataset.Insert`](https://godoc.org/github.com/slessard/goqu/#SelectDataset.Insert)**
 
 If you already have a `SelectDataset` you can invoke `Insert()` to get a `InsertDataset`
 
@@ -50,12 +50,12 @@ Output:
 INSERT INTO "user" ("first_name", "last_name") VALUES ('Greg', 'Farley')
 ```
 
-**[`DialectWrapper.Insert`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Insert)**
+**[`DialectWrapper.Insert`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Insert)**
 
 Use this when you want to create SQL for a specific `dialect`
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 dialect := goqu.Dialect("mysql")
 
@@ -70,12 +70,12 @@ Output:
 INSERT INTO `user` (`first_name`, `last_name`) VALUES ('Greg', 'Farley')
 ```
 
-**[`Database.Insert`](https://godoc.org/github.com/doug-martin/goqu/#DialectWrapper.Insert)**
+**[`Database.Insert`](https://godoc.org/github.com/slessard/goqu/#DialectWrapper.Insert)**
 
 Use this when you want to execute the SQL or create SQL for the drivers dialect.
 
 ```go
-// import _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+// import _ "github.com/slessard/goqu/v9/dialect/mysql"
 
 mysqlDB := //initialize your db
 db := goqu.New("mysql", mysqlDB)
@@ -93,7 +93,7 @@ INSERT INTO `user` (`first_name`, `last_name`) VALUES ('Greg', 'Farley')
 
 ### Examples
 
-For more examples visit the **[Docs](https://godoc.org/github.com/doug-martin/goqu/#InsertDataset)**
+For more examples visit the **[Docs](https://godoc.org/github.com/slessard/goqu/#InsertDataset)**
 
 <a name="insert-cols-vals"></a>
 **Insert with Cols and Vals**
@@ -375,7 +375,7 @@ INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "test".*
 ```
 
 <a name="seterror"></a>
-**[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#InsertDataset.SetError)**
+**[`SetError`](https://godoc.org/github.com/slessard/goqu/#InsertDataset.SetError)**
 
 Sometimes while building up a query with goqu you will encounter situations where certain
 preconditions are not met or some end-user contraint has been violated. While you could
@@ -422,7 +422,7 @@ name is empty
 <a name="executing"></a>
 ## Executing Inserts
 
-To execute INSERTS use [`Database.Insert`](https://godoc.org/github.com/doug-martin/goqu/#Database.Insert) to create your dataset
+To execute INSERTS use [`Database.Insert`](https://godoc.org/github.com/slessard/goqu/#Database.Insert) to create your dataset
 
 ### Examples
 

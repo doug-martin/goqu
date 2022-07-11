@@ -17,7 +17,7 @@
 The entry points for expressions are:
 
 <a name="ex"></a>
-**[`Ex{}`](https://godoc.org/github.com/doug-martin/goqu#Ex)** 
+**[`Ex{}`](https://godoc.org/github.com/slessard/goqu#Ex)** 
 
 A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `Ex` will use the equality operator except in cases where the equality operator will not work, see the example below.
 
@@ -38,7 +38,7 @@ Output:
 SELECT * FROM "items" WHERE (("col1" = 'a') AND ("col2" = 1) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IS NULL) AND ("col6" IN ('a', 'b', 'c')))
 ```
 
-You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
+You can also use the [`Op`](https://godoc.org/github.com/slessard/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
 
 ```go
 sql, _, _ := db.From("items").Where(goqu.Ex{
@@ -53,10 +53,10 @@ Output:
 ```sql
 SELECT * FROM "items" WHERE (("col1" != 'a') AND ("col3" IS NOT TRUE) AND ("col6" NOT IN ('a', 'b', 'c')))
 ```
-For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`Ex`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
+For a more complete examples see the [`Op`](https://godoc.org/github.com/slessard/goqu#Op) and [`Ex`](https://godoc.org/github.com/slessard/goqu#Ex) docs
 
 <a name="ex-or"></a>
-**[`ExOr{}`](https://godoc.org/github.com/doug-martin/goqu#ExOr)** 
+**[`ExOr{}`](https://godoc.org/github.com/slessard/goqu#ExOr)** 
 
 A map where the key will become an Identifier and the Key is the value, this is most commonly used in the Where clause. By default `ExOr` will use the equality operator except in cases where the equality operator will not work, see the example below.
 
@@ -77,7 +77,7 @@ Output:
 SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c')))
 ```
   
-You can also use the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
+You can also use the [`Op`](https://godoc.org/github.com/slessard/goqu#Op) map which allows you to create more complex expressions using the map syntax. When using the `Op` map the key is the name of the comparison you want to make (e.g. `"neq"`, `"like"`, `"is"`, `"in"`), the key is case insensitive.
   
 ```go
 sql, _, _ := db.From("items").Where(goqu.ExOr{
@@ -92,10 +92,10 @@ Output:
 ```sql
 SELECT * FROM "items" WHERE (("col1" != 'a') OR ("col3" IS NOT TRUE) OR ("col6" NOT IN ('a', 'b', 'c')))
 ```
-For a more complete examples see the [`Op`](https://godoc.org/github.com/doug-martin/goqu#Op) and [`ExOr`](https://godoc.org/github.com/doug-martin/goqu#Ex) docs
+For a more complete examples see the [`Op`](https://godoc.org/github.com/slessard/goqu#Op) and [`ExOr`](https://godoc.org/github.com/slessard/goqu#Ex) docs
 
 <a name="S"></a>
-**[`S()`](https://godoc.org/github.com/doug-martin/goqu#S)**
+**[`S()`](https://godoc.org/github.com/slessard/goqu#S)**
 
 An Identifier that represents a schema. With a schema identifier you can fully qualify tables and columns.
 
@@ -113,7 +113,7 @@ fmt.Println(sql)
 ```
 
 <a name="T"></a>
-**[`T()`](https://godoc.org/github.com/doug-martin/goqu#T)** 
+**[`T()`](https://godoc.org/github.com/slessard/goqu#T)** 
 
 An Identifier that represents a Table. With a Table identifier you can fully qualify columns.
 ```go
@@ -130,9 +130,9 @@ fmt.Println(sql)
 ```
 
 <a name="C"></a>
-**[`C()`](https://godoc.org/github.com/doug-martin/goqu#C)** 
+**[`C()`](https://godoc.org/github.com/slessard/goqu#C)** 
 
-An Identifier that represents a Column. See the [docs]((https://godoc.org/github.com/doug-martin/goqu#C)) for more examples
+An Identifier that represents a Column. See the [docs]((https://godoc.org/github.com/slessard/goqu#C)) for more examples
 
 ```go
 sql, _, _ := goqu.From("table").Where(goqu.C("col").Eq(10)).ToSQL()
@@ -141,7 +141,7 @@ fmt.Println(sql)
 ```
 
 <a name="I"></a>
-**[`I()`](https://godoc.org/github.com/doug-martin/goqu#I)** 
+**[`I()`](https://godoc.org/github.com/slessard/goqu#I)** 
 
 An Identifier represents a schema, table, or column or any combination. `I` parses identifiers seperated by a `.` character.
 
@@ -157,7 +157,7 @@ goqu.I("col") == goqu.C("col")
 ```
 
 <a name="L"></a>
-**[`L()`](https://godoc.org/github.com/doug-martin/goqu#L)** 
+**[`L()`](https://godoc.org/github.com/slessard/goqu#L)** 
 
 An SQL literal. You may find yourself in a situation where an IdentifierExpression cannot expression an SQL fragment that your database supports. In that case you can use a LiteralExpression
 
@@ -203,7 +203,7 @@ SELECT * FROM "test" WHERE ("json"::TEXT = "other_json"::TEXT) AND col IN ($1, $
 ```
 
 <a name="V"></a>
-**[`V()`](https://godoc.org/github.com/doug-martin/goqu#V)**
+**[`V()`](https://godoc.org/github.com/slessard/goqu#V)**
 
 Sometimes you may have a value that you want to use directly in SQL. 
 
@@ -258,7 +258,7 @@ SELECT * FROM "user" WHERE (? != ?) [1, 1]
 
 
 <a name="and"></a>
-**[`And()`](https://godoc.org/github.com/doug-martin/goqu#And)** 
+**[`And()`](https://godoc.org/github.com/slessard/goqu#And)** 
 
 You can use the `And` function to AND multiple expressions together.
 
@@ -285,7 +285,7 @@ SELECT * FROM "test" WHERE (("col" > ?) AND ("col" < ?)) [10 20]
 ```
 
 <a name="or"></a>
-**[`Or()`](https://godoc.org/github.com/doug-martin/goqu#Or)** 
+**[`Or()`](https://godoc.org/github.com/slessard/goqu#Or)** 
 
 You can use the `Or` function to OR multiple expressions together.
 
