@@ -2,6 +2,7 @@ package sqlgen_test
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"testing"
@@ -221,6 +222,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BytesTypes() {
 
 		expressionTestCase{val: []byte("Hello'"), sql: "'Hello'''"},
 		expressionTestCase{val: []byte("Hello'"), sql: "?", isPrepared: true, args: []interface{}{[]byte("Hello'")}},
+
+		expressionTestCase{val: json.RawMessage("Hello"), sql: "'Hello'"},
+		expressionTestCase{val: json.RawMessage("Hello"), sql: "?", isPrepared: true, args: []interface{}{[]byte("Hello")}},
+
+		expressionTestCase{val: json.RawMessage("Hello'"), sql: "'Hello'''"},
+		expressionTestCase{val: json.RawMessage("Hello'"), sql: "?", isPrepared: true, args: []interface{}{[]byte("Hello'")}},
 	)
 }
 
