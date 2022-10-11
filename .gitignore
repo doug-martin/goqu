@@ -2,3 +2,4 @@
 src
 *.iml
 coverage.*
+.env

@@ -81,7 +81,14 @@ func DialectOptionsV8() *goqu.SQLDialectOptions {
 	return opts
 }
 
+func DialectOptionsVSinglestore() *goqu.SQLDialectOptions {
+	opts := DialectOptionsV8()
+	opts.SupportsWithCTE = true
+	return opts
+}
+
 func init() {
 	goqu.RegisterDialect("mysql", DialectOptions())
 	goqu.RegisterDialect("mysql8", DialectOptionsV8())
+	goqu.RegisterDialect("mysqlSinglestore", DialectOptionsVSinglestore())
 }
