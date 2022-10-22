@@ -625,6 +625,24 @@ func (sds *selectDatasetSuite) TestCrossJoin() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestArrayJoin() {
+	bd := goqu.From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.ArrayJoin(goqu.T("foo")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				JoinsAppend(
+					exp.NewUnConditionedJoinExpression(exp.ArrayJoinType, goqu.T("foo")),
+				),
+		},
+		selectTestCase{
+			ds:      bd,
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+	)
+}
+
 func (sds *selectDatasetSuite) TestWhere() {
 	w := goqu.Ex{"a": 1}
 	w2 := goqu.Ex{"b": "c"}

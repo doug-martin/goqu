@@ -533,6 +533,7 @@ const (
 	NaturalRightJoinType
 	NaturalFullJoinType
 	CrossJoinType
+	ArrayJoinType
 
 	UsingJoinCondType JoinConditionType = iota
 	OnJoinCondType
@@ -729,6 +730,8 @@ func (jt JoinType) String() string {
 		return "NaturalFullJoinType"
 	case CrossJoinType:
 		return "CrossJoinType"
+	case ArrayJoinType:
+		return "ArrayJoinType"
 	}
 	return fmt.Sprintf("%d", jt)
 }
