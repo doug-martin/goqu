@@ -64,7 +64,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 
 	opts.SelectSQLOrder = []sqlgen.SQLFragmentType{
 		sqlgen.CommonTableSQLFragment,
-		sqlgen.SelectWithLimitSQLFragment,
+		sqlgen.SelectSQLFragment,
 		sqlgen.FromSQLFragment,
 		sqlgen.JoinSQLFragment,
 		sqlgen.WhereSQLFragment,

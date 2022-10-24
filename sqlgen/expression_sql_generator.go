@@ -235,17 +235,25 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 	}
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
 	if schema != esg.dialectOptions.EmptyString {
-		b.WriteRunes(esg.dialectOptions.QuoteRune).
-			WriteStrings(schema).
-			WriteRunes(esg.dialectOptions.QuoteRune)
+		if esg.dialectOptions.QuoteIdentifiers {
+			b.WriteRunes(esg.dialectOptions.QuoteRune)
+		}
+		b.WriteStrings(schema)
+		if esg.dialectOptions.QuoteIdentifiers {
+			b.WriteRunes(esg.dialectOptions.QuoteRune)
+		}
 	}
 	if table != esg.dialectOptions.EmptyString {
 		if schema != esg.dialectOptions.EmptyString {
 			b.WriteRunes(esg.dialectOptions.PeriodRune)
 		}
-		b.WriteRunes(esg.dialectOptions.QuoteRune).
-			WriteStrings(table).
-			WriteRunes(esg.dialectOptions.QuoteRune)
+		if esg.dialectOptions.QuoteIdentifiers {
+			b.WriteRunes(esg.dialectOptions.QuoteRune)
+		}
+		b.WriteStrings(table)
+		if esg.dialectOptions.QuoteIdentifiers {
+			b.WriteRunes(esg.dialectOptions.QuoteRune)
+		}
 	}
 	switch t := col.(type) {
 	case nil:
@@ -254,9 +262,13 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 			if table != esg.dialectOptions.EmptyString || schema != esg.dialectOptions.EmptyString {
 				b.WriteRunes(esg.dialectOptions.PeriodRune)
 			}
-			b.WriteRunes(esg.dialectOptions.QuoteRune).
-				WriteStrings(t).
-				WriteRunes(esg.dialectOptions.QuoteRune)
+			if esg.dialectOptions.QuoteIdentifiers {
+				b.WriteRunes(esg.dialectOptions.QuoteRune)
+			}
+			b.WriteStrings(t)
+			if esg.dialectOptions.QuoteIdentifiers {
+				b.WriteRunes(esg.dialectOptions.QuoteRune)
+			}
 		}
 	case exp.LiteralExpression:
 		if table != esg.dialectOptions.EmptyString || schema != esg.dialectOptions.EmptyString {
