@@ -111,6 +111,8 @@ type (
 		FetchFragment []byte
 		// The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
 		LimitFragment []byte
+		// The SQL LIMIT BY end clause fragment(DEFAULT=[]byte())
+		LimitEndFragment []byte
 		// The SQL OFFSET BY clause fragment(DEFAULT=[]byte(" OFFSET "))
 		OffsetFragment []byte
 		// The SQL FOR UPDATE fragment(DEFAULT=[]byte(" FOR UPDATE "))
@@ -134,6 +136,8 @@ type (
 		// The quote rune to use when quoting identifiers(DEFAULT='"')
 		QuoteRune rune
 		// The NULL literal to use when interpolating nulls values (DEFAULT=[]byte("NULL"))
+		QuoteIdentifiers bool
+		// Whether or not to use the QuoteRune for identifiers
 		Null []byte
 		// The TRUE literal to use when interpolating bool true values (DEFAULT=[]byte("TRUE"))
 		True []byte

@@ -3,6 +3,7 @@ package exec
 import (
 	"database/sql"
 	"reflect"
+	"strings"
 
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
@@ -69,7 +70,7 @@ func (s *scanner) ScanStruct(i interface{}) error {
 
 	scans := make([]interface{}, 0, len(s.columns))
 	for _, col := range s.columns {
-		data, ok := s.columnMap[col]
+		data, ok := s.columnMap[strings.ToLower(col)]
 		switch {
 		case !ok:
 			return unableToFindFieldError(col)
@@ -84,7 +85,7 @@ func (s *scanner) ScanStruct(i interface{}) error {
 
 	record := exp.Record{}
 	for index, col := range s.columns {
-		record[col] = scans[index]
+		record[strings.ToLower(col)] = scans[index]
 	}
 
 	util.AssignStructVals(i, record, s.columnMap)

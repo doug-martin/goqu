@@ -113,16 +113,16 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 	}
 
 	csg.OrderSQL(b, order)
-	if offset > 0 {
+	if offset >= 0 {
 		b.Write(csg.dialectOptions.OffsetFragment)
 		csg.esg.Generate(b, offset)
 		b.Write([]byte(" ROWS"))
 
-		if limit != nil {
-			b.Write(csg.dialectOptions.FetchFragment)
-			csg.esg.Generate(b, limit)
-			b.Write([]byte(" ROWS ONLY"))
-		}
+	}
+	if limit != nil {
+		b.Write(csg.dialectOptions.FetchFragment)
+		csg.esg.Generate(b, limit)
+		b.Write([]byte(" ROWS ONLY"))
 	}
 }
 
@@ -136,6 +136,9 @@ func (csg *commonSQLGenerator) LimitSQL(b sb.SQLBuilder, limit interface{}) {
 		csg.esg.Generate(b, limit)
 		if csg.dialectOptions.SurroundLimitWithParentheses {
 			b.WriteRunes(csg.dialectOptions.RightParenRune)
+		}
+		if csg.dialectOptions.LimitEndFragment != nil {
+			b.Write(csg.dialectOptions.LimitEndFragment)
 		}
 	}
 }
