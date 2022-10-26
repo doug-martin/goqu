@@ -48,7 +48,7 @@ func (tae *testAppendableExpression) ReturnsColumns() bool {
 	return tae.returnsColumns
 }
 
-func (tae *testAppendableExpression) AppendSQL(b sb.SQLBuilder) {
+func (tae *testAppendableExpression) AppendSQL(b sb.SQLBuilder, dialect string) {
 	if tae.err != nil {
 		b.SetError(tae.err)
 		return

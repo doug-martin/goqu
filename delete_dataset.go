@@ -210,12 +210,12 @@ func (dd *DeleteDataset) ToSQL() (sql string, params []interface{}, err error) {
 
 // Appends this Dataset's DELETE statement to the SQLBuilder
 // This is used internally when using deletes in CTEs
-func (dd *DeleteDataset) AppendSQL(b sb.SQLBuilder) {
+func (dd *DeleteDataset) AppendSQL(b sb.SQLBuilder, dialect string) {
 	if dd.err != nil {
 		b.SetError(dd.err)
 		return
 	}
-	dd.dialect.ToDeleteSQL(b, dd.GetClauses())
+	GetDialect(dialect).ToDeleteSQL(b, dd.GetClauses())
 }
 
 func (dd *DeleteDataset) GetAs() exp.IdentifierExpression {

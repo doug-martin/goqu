@@ -126,7 +126,7 @@ func (isg *insertSQLGenerator) defaultValuesSQL(b sb.SQLBuilder) {
 
 func (isg *insertSQLGenerator) insertFromSQL(b sb.SQLBuilder, ae exp.AppendableExpression) {
 	b.WriteRunes(isg.DialectOptions().SpaceRune)
-	ae.AppendSQL(b)
+	ae.AppendSQL(b, isg.Dialect())
 }
 
 // Adds the columns list to an insert statement
