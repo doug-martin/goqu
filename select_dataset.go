@@ -551,12 +551,12 @@ func (sd *SelectDataset) Executor() exec.QueryExecutor {
 
 // Appends this Dataset's SELECT statement to the SQLBuilder
 // This is used internally for sub-selects by the dialect
-func (sd *SelectDataset) AppendSQL(b sb.SQLBuilder) {
+func (sd *SelectDataset) AppendSQL(b sb.SQLBuilder, dialect string) {
 	if sd.err != nil {
 		b.SetError(sd.err)
 		return
 	}
-	sd.dialect.ToSelectSQL(b, sd.GetClauses())
+	GetDialect(dialect).ToSelectSQL(b, sd.GetClauses())
 }
 
 func (sd *SelectDataset) ReturnsColumns() bool {

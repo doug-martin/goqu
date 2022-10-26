@@ -177,7 +177,7 @@ type (
 
 	AppendableExpression interface {
 		Expression
-		AppendSQL(b sb.SQLBuilder)
+		AppendSQL(b sb.SQLBuilder, dialect string)
 		// Returns the alias value as an identiier expression
 		GetAs() IdentifierExpression
 

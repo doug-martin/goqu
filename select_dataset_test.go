@@ -1189,7 +1189,7 @@ func (sds *selectDatasetSuite) TestAppendSQL() {
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
-	ds.AppendSQL(sqlB)
+	ds.AppendSQL(sqlB, md.Dialect())
 	sds.NoError(sqlB.Error())
 	md.AssertExpectations(sds.T())
 }
