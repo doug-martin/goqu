@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -238,7 +239,11 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 		if esg.dialectOptions.QuoteIdentifiers {
 			b.WriteRunes(esg.dialectOptions.QuoteRune)
 		}
-		b.WriteStrings(schema)
+		if esg.dialectOptions.UppercaseIdentifiers {
+			b.WriteStrings(strings.ToUpper(schema))
+		} else {
+			b.WriteStrings(schema)
+		}
 		if esg.dialectOptions.QuoteIdentifiers {
 			b.WriteRunes(esg.dialectOptions.QuoteRune)
 		}
@@ -250,7 +255,11 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 		if esg.dialectOptions.QuoteIdentifiers {
 			b.WriteRunes(esg.dialectOptions.QuoteRune)
 		}
-		b.WriteStrings(table)
+		if esg.dialectOptions.UppercaseIdentifiers {
+			b.WriteStrings(strings.ToUpper(table))
+		} else {
+			b.WriteStrings(table)
+		}
 		if esg.dialectOptions.QuoteIdentifiers {
 			b.WriteRunes(esg.dialectOptions.QuoteRune)
 		}
@@ -265,7 +274,11 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 			if esg.dialectOptions.QuoteIdentifiers {
 				b.WriteRunes(esg.dialectOptions.QuoteRune)
 			}
-			b.WriteStrings(t)
+			if esg.dialectOptions.UppercaseIdentifiers {
+				b.WriteStrings(strings.ToUpper(t))
+			} else {
+				b.WriteStrings(t)
+			}
 			if esg.dialectOptions.QuoteIdentifiers {
 				b.WriteRunes(esg.dialectOptions.QuoteRune)
 			}
