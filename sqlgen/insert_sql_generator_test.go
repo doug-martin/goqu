@@ -333,33 +333,33 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 
 		insertTestCase{
 			clause: icDu,
-			sql:    `insert ignore into "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b'`,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b'`,
 		},
 		insertTestCase{
 			clause:     icDu,
-			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict (test) do update set "a"=?`,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=?`,
 			isPrepared: true,
 			args:       []interface{}{"a1", "b"},
 		},
 
 		insertTestCase{
 			clause: icDoc,
-			sql:    `insert ignore into "test" ("a") VALUES ('a1') on conflict on constraint test do update set "a"='b'`,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict on constraint test do update set "a"='b'`,
 		},
 		insertTestCase{
 			clause:     icDoc,
-			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict on constraint test do update set "a"=?`,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict on constraint test do update set "a"=?`,
 			isPrepared: true,
 			args:       []interface{}{"a1", "b"},
 		},
 
 		insertTestCase{
 			clause: icDuw,
-			sql:    `insert ignore into "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b' WHERE ("foo" IS TRUE)`,
 		},
 		insertTestCase{
 			clause:     icDuw,
-			sql:        `insert ignore into "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=? WHERE ("foo" IS TRUE)`,
 			isPrepared: true,
 			args:       []interface{}{"a1", "b"},
 		},
