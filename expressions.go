@@ -264,7 +264,7 @@ func Literal(sql string, args ...interface{}) exp.LiteralExpression {
 	return exp.NewLiteralExpression(sql, args...)
 }
 
-// Create a new SQL value ( alias for goqu.L("?", val) ). The prrimary use case for this would be in selects.
+// Create a new SQL value ( alias for goqu.L("?", val) ). The primary use case for this would be in selects.
 // See examples.
 func V(val interface{}) exp.LiteralExpression {
 	return exp.NewLiteralExpression("?", val)
