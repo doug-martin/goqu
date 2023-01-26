@@ -40,7 +40,7 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 					cols = append(cols, sc)
 				}
 			} else {
-				panic(fmt.Sprintf("Cannot created expression from  %+v", val))
+				panic(fmt.Sprintf("Cannot create expression from  %+v", val))
 			}
 		}
 	}
