@@ -140,8 +140,6 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 		esg.literalNil(b)
 	case util.IsSlice(valKind):
 		switch t := val.(type) {
-		case HexBytes:
-			esg.literalHexBytes(b, t)
 		case []byte:
 			esg.literalBytes(b, t)
 		case []exp.CommonTableExpression:
@@ -160,7 +158,12 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsBool(valKind):
 		esg.Generate(b, v.Bool())
 	default:
-		b.SetError(errors.NewEncodeError(val))
+		switch t := val.(type) {
+		case HexBytes:
+			esg.literalHexBytes(b, t)
+		default:
+			b.SetError(errors.NewEncodeError(val))
+		}
 	}
 }
 
