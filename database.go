@@ -40,28 +40,31 @@ type (
 // can be found at https://github.com/doug-martin/goqu/tree/master/adapters
 //
 // db: A sql.Db to use for querying the database
-//      import (
-//          "database/sql"
-//          "fmt"
-//          "github.com/doug-martin/goqu/v9"
-//          _ "github.com/doug-martin/goqu/v9/dialect/postgres"
-//          _ "github.com/lib/pq"
-//      )
 //
-//      func main() {
-//          sqlDb, err := sql.Open("postgres", "user=postgres dbname=goqupostgres sslmode=disable ")
-//          if err != nil {
-//              panic(err.Error())
-//          }
-//          db := goqu.New("postgres", sqlDb)
-//      }
+//	import (
+//	    "database/sql"
+//	    "fmt"
+//	    "github.com/doug-martin/goqu/v9"
+//	    _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+//	    _ "github.com/lib/pq"
+//	)
+//
+//	func main() {
+//	    sqlDb, err := sql.Open("postgres", "user=postgres dbname=goqupostgres sslmode=disable ")
+//	    if err != nil {
+//	        panic(err.Error())
+//	    }
+//	    db := goqu.New("postgres", sqlDb)
+//	}
+//
 // The most commonly used Database method is From, which creates a new Dataset that uses the correct adapter and
 // supports queries.
-//          var ids []uint32
-//          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
-//              panic(err.Error())
-//          }
-//          fmt.Printf("%+v", ids)
+//
+//	var ids []uint32
+//	if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
+//	    panic(err.Error())
+//	}
+//	fmt.Printf("%+v", ids)
 func newDatabase(dialect string, db SQLDatabase) *Database {
 	return &Database{
 		logger:  nil,
@@ -109,11 +112,12 @@ func (d *Database) WithTx(fn func(*TxDatabase) error) error {
 }
 
 // Creates a new Dataset that uses the correct adapter and supports queries.
-//          var ids []uint32
-//          if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
-//              panic(err.Error())
-//          }
-//          fmt.Printf("%+v", ids)
+//
+//	var ids []uint32
+//	if err := db.From("items").Where(goqu.I("id").Gt(10)).Pluck("id", &ids); err != nil {
+//	    panic(err.Error())
+//	}
+//	fmt.Printf("%+v", ids)
 //
 // from...: Sources for you dataset, could be table names (strings), a goqu.Literal or another goqu.Dataset
 func (d *Database) From(from ...interface{}) *SelectDataset {
@@ -182,26 +186,27 @@ func (d *Database) ExecContext(ctx context.Context, query string, args ...interf
 // Can be used to prepare a query.
 //
 // You can use this in tandem with a dataset by doing the following.
-//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    stmt, err := db.Prepare(sql)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    defer stmt.Close()
-//    rows, err := stmt.Query(args)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    defer rows.Close()
-//    for rows.Next(){
-//              //scan your rows
-//    }
-//    if rows.Err() != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
+//
+//	sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	stmt, err := db.Prepare(sql)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	defer stmt.Close()
+//	rows, err := stmt.Query(args)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	defer rows.Close()
+//	for rows.Next(){
+//	          //scan your rows
+//	}
+//	if rows.Err() != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
 //
 // query: The SQL statement to prepare.
 func (d *Database) Prepare(query string) (*sql.Stmt, error) {
@@ -211,26 +216,27 @@ func (d *Database) Prepare(query string) (*sql.Stmt, error) {
 // Can be used to prepare a query.
 //
 // You can use this in tandem with a dataset by doing the following.
-//    sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    stmt, err := db.Prepare(sql)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    defer stmt.Close()
-//    rows, err := stmt.QueryContext(ctx, args)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    defer rows.Close()
-//    for rows.Next(){
-//              //scan your rows
-//    }
-//    if rows.Err() != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
+//
+//	sql, args, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL(true)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	stmt, err := db.Prepare(sql)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	defer stmt.Close()
+//	rows, err := stmt.QueryContext(ctx, args)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	defer rows.Close()
+//	for rows.Next(){
+//	          //scan your rows
+//	}
+//	if rows.Err() != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
 //
 // query: The SQL statement to prepare.
 func (d *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
@@ -241,21 +247,22 @@ func (d *Database) PrepareContext(ctx context.Context, query string) (*sql.Stmt,
 // Used to query for multiple rows.
 //
 // You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    rows, err := stmt.Query(args)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    defer rows.Close()
-//    for rows.Next(){
-//              //scan your rows
-//    }
-//    if rows.Err() != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
+//
+//	sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	rows, err := stmt.Query(args)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	defer rows.Close()
+//	for rows.Next(){
+//	          //scan your rows
+//	}
+//	if rows.Err() != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
 //
 // query: The SQL to execute
 //
@@ -267,21 +274,22 @@ func (d *Database) Query(query string, args ...interface{}) (*sql.Rows, error) {
 // Used to query for multiple rows.
 //
 // You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    rows, err := stmt.QueryContext(ctx, args)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    defer rows.Close()
-//    for rows.Next(){
-//              //scan your rows
-//    }
-//    if rows.Err() != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
+//
+//	sql, err := db.From("items").Where(goqu.I("id").Gt(10)).ToSQL()
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	rows, err := stmt.QueryContext(ctx, args)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	defer rows.Close()
+//	for rows.Next(){
+//	          //scan your rows
+//	}
+//	if rows.Err() != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
 //
 // query: The SQL to execute
 //
@@ -294,15 +302,16 @@ func (d *Database) QueryContext(ctx context.Context, query string, args ...inter
 // Used to query for a single row.
 //
 // You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    rows, err := stmt.QueryRow(args)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    //scan your row
+//
+//	sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	rows, err := stmt.QueryRow(args)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	//scan your row
 //
 // query: The SQL to execute
 //
@@ -314,15 +323,16 @@ func (d *Database) QueryRow(query string, args ...interface{}) *sql.Row {
 // Used to query for a single row.
 //
 // You can use this in tandem with a dataset by doing the following.
-//    sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    rows, err := stmt.QueryRowContext(ctx, args)
-//    if err != nil{
-//        panic(err.Error()) //you could gracefully handle the error also
-//    }
-//    //scan your row
+//
+//	sql, err := db.From("items").Where(goqu.I("id").Gt(10)).Limit(1).ToSQL()
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	rows, err := stmt.QueryRowContext(ctx, args)
+//	if err != nil{
+//	    panic(err.Error()) //you could gracefully handle the error also
+//	}
+//	//scan your row
 //
 // query: The SQL to execute
 //
@@ -615,19 +625,19 @@ func (td *TxDatabase) Rollback() error {
 
 // A helper method that will automatically COMMIT or ROLLBACK once the supplied function is done executing
 //
-//      tx, err := db.Begin()
-//      if err != nil{
-//           panic(err.Error()) // you could gracefully handle the error also
-//      }
-//      if err := tx.Wrap(func() error{
-//          if _, err := tx.From("test").Insert(Record{"a":1, "b": "b"}).Exec(){
-//              // this error will be the return error from the Wrap call
-//              return err
-//          }
-//          return nil
-//      }); err != nil{
-//           panic(err.Error()) // you could gracefully handle the error also
-//      }
+//	tx, err := db.Begin()
+//	if err != nil{
+//	     panic(err.Error()) // you could gracefully handle the error also
+//	}
+//	if err := tx.Wrap(func() error{
+//	    if _, err := tx.From("test").Insert(Record{"a":1, "b": "b"}).Exec(){
+//	        // this error will be the return error from the Wrap call
+//	        return err
+//	    }
+//	    return nil
+//	}); err != nil{
+//	     panic(err.Error()) // you could gracefully handle the error also
+//	}
 func (td *TxDatabase) Wrap(fn func() error) (err error) {
 	defer func() {
 		if p := recover(); p != nil {

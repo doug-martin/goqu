@@ -57,12 +57,12 @@ func (q QueryExecutor) QueryContext(ctx context.Context) (*gsql.Rows, error) {
 }
 
 // This will execute the SQL and append results to the slice
-//    var myStructs []MyStruct
-//    if err := db.From("test").ScanStructs(&myStructs); err != nil{
-//        panic(err.Error()
-//    }
-//    //use your structs
 //
+//	var myStructs []MyStruct
+//	if err := db.From("test").ScanStructs(&myStructs); err != nil{
+//	    panic(err.Error()
+//	}
+//	//use your structs
 //
 // i: A pointer to a slice of structs.
 func (q QueryExecutor) ScanStructs(i interface{}) error {
@@ -70,12 +70,12 @@ func (q QueryExecutor) ScanStructs(i interface{}) error {
 }
 
 // This will execute the SQL and append results to the slice
-//    var myStructs []MyStruct
-//    if err := db.From("test").ScanStructsContext(ctx, &myStructs); err != nil{
-//        panic(err.Error()
-//    }
-//    //use your structs
 //
+//	var myStructs []MyStruct
+//	if err := db.From("test").ScanStructsContext(ctx, &myStructs); err != nil{
+//	    panic(err.Error()
+//	}
+//	//use your structs
 //
 // i: A pointer to a slice of structs.
 func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) error {
@@ -89,14 +89,15 @@ func (q QueryExecutor) ScanStructsContext(ctx context.Context, i interface{}) er
 
 // This will execute the SQL and fill out the struct with the fields returned.
 // This method returns a boolean value that is false if no record was found
-//    var myStruct MyStruct
-//    found, err := db.From("test").Limit(1).ScanStruct(&myStruct)
-//    if err != nil{
-//        panic(err.Error()
-//    }
-//    if !found{
-//          fmt.Println("NOT FOUND")
-//    }
+//
+//	var myStruct MyStruct
+//	found, err := db.From("test").Limit(1).ScanStruct(&myStruct)
+//	if err != nil{
+//	    panic(err.Error()
+//	}
+//	if !found{
+//	      fmt.Println("NOT FOUND")
+//	}
 //
 // i: A pointer to a struct
 func (q QueryExecutor) ScanStruct(i interface{}) (bool, error) {
@@ -105,14 +106,15 @@ func (q QueryExecutor) ScanStruct(i interface{}) (bool, error) {
 
 // This will execute the SQL and fill out the struct with the fields returned.
 // This method returns a boolean value that is false if no record was found
-//    var myStruct MyStruct
-//    found, err := db.From("test").Limit(1).ScanStructContext(ctx, &myStruct)
-//    if err != nil{
-//        panic(err.Error()
-//    }
-//    if !found{
-//          fmt.Println("NOT FOUND")
-//    }
+//
+//	var myStruct MyStruct
+//	found, err := db.From("test").Limit(1).ScanStructContext(ctx, &myStruct)
+//	if err != nil{
+//	    panic(err.Error()
+//	}
+//	if !found{
+//	      fmt.Println("NOT FOUND")
+//	}
 //
 // i: A pointer to a struct
 func (q QueryExecutor) ScanStructContext(ctx context.Context, i interface{}) (bool, error) {
@@ -145,10 +147,11 @@ func (q QueryExecutor) ScanStructContext(ctx context.Context, i interface{}) (bo
 }
 
 // This will execute the SQL and append results to the slice.
-//    var ids []uint32
-//    if err := db.From("test").Select("id").ScanVals(&ids); err != nil{
-//        panic(err.Error()
-//    }
+//
+//	var ids []uint32
+//	if err := db.From("test").Select("id").ScanVals(&ids); err != nil{
+//	    panic(err.Error()
+//	}
 //
 // i: Takes a pointer to a slice of primitive values.
 func (q QueryExecutor) ScanVals(i interface{}) error {
@@ -156,10 +159,11 @@ func (q QueryExecutor) ScanVals(i interface{}) error {
 }
 
 // This will execute the SQL and append results to the slice.
-//    var ids []uint32
-//    if err := db.From("test").Select("id").ScanValsContext(ctx, &ids); err != nil{
-//        panic(err.Error()
-//    }
+//
+//	var ids []uint32
+//	if err := db.From("test").Select("id").ScanValsContext(ctx, &ids); err != nil{
+//	    panic(err.Error()
+//	}
 //
 // i: Takes a pointer to a slice of primitive values.
 func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error {
@@ -172,31 +176,33 @@ func (q QueryExecutor) ScanValsContext(ctx context.Context, i interface{}) error
 }
 
 // This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
-//    var id uint32
-//    found, err := db.From("test").Select("id").Limit(1).ScanVal(&id)
-//    if err != nil{
-//        panic(err.Error()
-//    }
-//    if !found{
-//        fmt.Println("NOT FOUND")
-//    }
 //
-//   i: Takes a pointer to a primitive value.
+//	 var id uint32
+//	 found, err := db.From("test").Select("id").Limit(1).ScanVal(&id)
+//	 if err != nil{
+//	     panic(err.Error()
+//	 }
+//	 if !found{
+//	     fmt.Println("NOT FOUND")
+//	 }
+//
+//	i: Takes a pointer to a primitive value.
 func (q QueryExecutor) ScanVal(i interface{}) (bool, error) {
 	return q.ScanValContext(context.Background(), i)
 }
 
 // This will execute the SQL and set the value of the primitive. This method will return false if no record is found.
-//    var id uint32
-//    found, err := db.From("test").Select("id").Limit(1).ScanValContext(ctx, &id)
-//    if err != nil{
-//        panic(err.Error()
-//    }
-//    if !found{
-//        fmt.Println("NOT FOUND")
-//    }
 //
-//   i: Takes a pointer to a primitive value.
+//	 var id uint32
+//	 found, err := db.From("test").Select("id").Limit(1).ScanValContext(ctx, &id)
+//	 if err != nil{
+//	     panic(err.Error()
+//	 }
+//	 if !found{
+//	     fmt.Println("NOT FOUND")
+//	 }
+//
+//	i: Takes a pointer to a primitive value.
 func (q QueryExecutor) ScanValContext(ctx context.Context, i interface{}) (bool, error) {
 	val := reflect.ValueOf(i)
 	if !util.IsPointer(val.Kind()) {

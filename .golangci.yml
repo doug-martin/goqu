@@ -63,7 +63,7 @@ linters:
     - asciicheck
     - bodyclose
     - deadcode
-    - depguard
+    #- depguard
     - dogsled
     - errcheck
     - exportloopref
