@@ -202,10 +202,10 @@ func (ds *databaseSuite) TestQuery() {
 		WillReturnError(errors.New("mock error"))
 
 	db := goqu.New("mock", mDB)
-	_, err = db.Query(`SELECT * FROM "items"`)
+	_, err = db.Query(`SELECT * FROM "items"`) // nolint:rowserrcheck
 	ds.NoError(err, "goqu - mock error")
 
-	_, err = db.Query(`SELECT * FROM "items"`)
+	_, err = db.Query(`SELECT * FROM "items"`) // nolint:rowserrcheck
 	ds.EqualError(err, "goqu: mock error")
 }
 
@@ -662,10 +662,10 @@ func (tds *txdatabaseSuite) TestQuery() {
 	db := goqu.New("mock", mDB)
 	tx, err := db.Begin()
 	tds.NoError(err)
-	_, err = tx.Query(`SELECT * FROM "items"`)
+	_, err = tx.Query(`SELECT * FROM "items"`) // nolint:rowserrcheck
 	tds.NoError(err, "goqu - mock error")
 
-	_, err = tx.Query(`SELECT * FROM "items"`)
+	_, err = tx.Query(`SELECT * FROM "items"`) // nolint:rowserrcheck
 	tds.EqualError(err, "goqu: mock error")
 	tds.NoError(tx.Commit())
 }
