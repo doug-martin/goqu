@@ -16,6 +16,8 @@ import (
 	"unicode"
 
 	"github.com/denisenkom/go-mssqldb/internal/querytext"
+	"github.com/denisenkom/go-mssqldb/msdsn"
+	"github.com/golang-sql/sqlexp"
 )
 
 // ReturnStatus may be used to return the return value from a proc.
@@ -31,12 +33,16 @@ var driverInstanceNoProcess = &Driver{processQueryText: false}
 func init() {
 	sql.Register("mssql", driverInstance)
 	sql.Register("sqlserver", driverInstanceNoProcess)
-	createDialer = func(p *connectParams) Dialer {
-		return netDialer{&net.Dialer{KeepAlive: p.keepAlive}}
+	createDialer = func(p *msdsn.Config) Dialer {
+		ka := p.KeepAlive
+		if ka == 0 {
+			ka = 30 * time.Second
+		}
+		return netDialer{&net.Dialer{KeepAlive: ka}}
 	}
 }
 
-var createDialer func(p *connectParams) Dialer
+var createDialer func(p *msdsn.Config) Dialer
 
 type netDialer struct {
 	nd *net.Dialer
@@ -47,17 +53,18 @@ func (d netDialer) DialContext(ctx context.Context, network string, addr string)
 }
 
 type Driver struct {
-	log optionalLogger
+	logger optionalLogger
 
 	processQueryText bool
 }
 
 // OpenConnector opens a new connector. Useful to dial with a context.
 func (d *Driver) OpenConnector(dsn string) (*Connector, error) {
-	params, err := parseConnectParams(dsn)
+	params, _, err := msdsn.Parse(dsn)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Connector{
 		params: params,
 		driver: d,
@@ -68,19 +75,46 @@ func (d *Driver) Open(dsn string) (driver.Conn, error) {
 	return d.open(context.Background(), dsn)
 }
 
+// SetLogger sets a Logger for both driver instances ("mssql" and "sqlserver").
+// Use this to have go-msqldb log additional information in a format it picks.
+// You can set either a Logger or a ContextLogger, but not both. Calling SetLogger
+// will overwrite any ContextLogger you set with SetContextLogger.
 func SetLogger(logger Logger) {
 	driverInstance.SetLogger(logger)
 	driverInstanceNoProcess.SetLogger(logger)
 }
 
+// SetLogger sets a Logger for the driver instance on which you call it.
+// Use this to have go-msqldb log additional information in a format it picks.
+// You can set either a Logger or a ContextLogger, but not both. Calling SetLogger
+// will overwrite any ContextLogger you set with SetContextLogger.
 func (d *Driver) SetLogger(logger Logger) {
-	d.log = optionalLogger{logger}
+	d.logger = optionalLogger{loggerAdapter{logger}}
+}
+
+// SetContextLogger sets a ContextLogger for both driver instances ("mssql" and "sqlserver").
+// Use this to get callbacks from go-mssqldb with additional information and extra details
+// that you can log in the format of your choice.
+// You can set either a ContextLogger or a Logger, but not both. Calling SetContextLogger
+// will overwrite any Logger you set with SetLogger.
+func SetContextLogger(ctxLogger ContextLogger) {
+	driverInstance.SetContextLogger(ctxLogger)
+	driverInstanceNoProcess.SetContextLogger(ctxLogger)
+}
+
+// SetContextLogger sets a ContextLogger for the driver instance on which you call it.
+// Use this to get callbacks from go-mssqldb with additional information and extra details
+// that you can log in the format of your choice.
+// You can set either a ContextLogger or a Logger, but not both. Calling SetContextLogger
+// will overwrite any Logger you set with SetLogger.
+func (d *Driver) SetContextLogger(ctxLogger ContextLogger) {
+	d.logger = optionalLogger{ctxLogger}
 }
 
 // NewConnector creates a new connector from a DSN.
 // The returned connector may be used with sql.OpenDB.
 func NewConnector(dsn string) (*Connector, error) {
-	params, err := parseConnectParams(dsn)
+	params, _, err := msdsn.Parse(dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +125,33 @@ func NewConnector(dsn string) (*Connector, error) {
 	return c, nil
 }
 
+// NewConnectorConfig creates a new Connector for a DSN Config struct.
+// The returned connector may be used with sql.OpenDB.
+func NewConnectorConfig(config msdsn.Config) *Connector {
+	return &Connector{
+		params: config,
+		driver: driverInstanceNoProcess,
+	}
+}
+
 // Connector holds the parsed DSN and is ready to make a new connection
 // at any time.
 //
 // In the future, settings that cannot be passed through a string DSN
 // may be set directly on the connector.
 type Connector struct {
-	params connectParams
+	params msdsn.Config
 	driver *Driver
+
+	fedAuthRequired     bool
+	fedAuthLibrary      int
+	fedAuthADALWorkflow byte
+
+	// callback that can provide a security token during login
+	securityTokenProvider func(ctx context.Context) (string, error)
+
+	// callback that can provide a security token during ADAL login
+	adalTokenProvider func(ctx context.Context, serverSPN, stsURL string) (string, error)
 
 	// SessionInitSQL is executed after marking a given session to be reset.
 	// When not present, the next query will still reset the session to the
@@ -132,7 +185,7 @@ type Dialer interface {
 	DialContext(ctx context.Context, network string, addr string) (net.Conn, error)
 }
 
-func (c *Connector) getDialer(p *connectParams) Dialer {
+func (c *Connector) getDialer(p *msdsn.Config) Dialer {
 	if c != nil && c.Dialer != nil {
 		return c.Dialer
 	}
@@ -148,34 +201,33 @@ type Conn struct {
 	processQueryText bool
 	connectionGood   bool
 
-	outs         map[string]interface{}
+	outs outputs
+}
+
+type outputs struct {
+	params       map[string]interface{}
 	returnStatus *ReturnStatus
+	msgq         *sqlexp.ReturnMessage
 }
 
-func (c *Conn) setReturnStatus(s ReturnStatus) {
-	if c.returnStatus == nil {
-		return
-	}
-	*c.returnStatus = s
+// IsValid satisfies the driver.Validator interface.
+func (c *Conn) IsValid() bool {
+	return c.connectionGood
 }
 
-func (c *Conn) checkBadConn(err error) error {
-	// this is a hack to address Issue #275
-	// we set connectionGood flag to false if
-	// error indicates that connection is not usable
-	// but we return actual error instead of ErrBadConn
-	// this will cause connection to stay in a pool
-	// but next request to this connection will return ErrBadConn
-
-	// it might be possible to revise this hack after
-	// https://github.com/golang/go/issues/20807
-	// is implemented
+// checkBadConn marks the connection as bad based on the characteristics
+// of the supplied error. Bad connections will be dropped from the connection
+// pool rather than reused.
+//
+// If bad connection retry is enabled and the error + connection state permits
+// retrying, checkBadConn will return a RetryableError that allows database/sql
+// to automatically retry the query with another connection.
+func (c *Conn) checkBadConn(ctx context.Context, err error, mayRetry bool) error {
 	switch err {
 	case nil:
 		return nil
 	case io.EOF:
 		c.connectionGood = false
-		return driver.ErrBadConn
 	case driver.ErrBadConn:
 		// It is an internal programming error if driver.ErrBadConn
 		// is ever passed to this function. driver.ErrBadConn should
@@ -187,34 +239,36 @@ func (c *Conn) checkBadConn(err error) error {
 	switch err.(type) {
 	case net.Error:
 		c.connectionGood = false
-		return err
 	case StreamError:
 		c.connectionGood = false
-		return err
-	default:
-		return err
+	case ServerError:
+		c.connectionGood = false
 	}
+
+	if !c.connectionGood && mayRetry && !c.connector.params.DisableRetry {
+		if c.sess.logFlags&logRetries != 0 {
+			c.sess.logger.Log(ctx, msdsn.LogRetries, err.Error())
+		}
+		return newRetryableError(err)
+	}
+
+	return err
 }
 
 func (c *Conn) clearOuts() {
-	c.outs = nil
+	c.outs = outputs{}
 }
 
 func (c *Conn) simpleProcessResp(ctx context.Context) error {
-	tokchan := make(chan tokenStruct, 5)
-	go processResponse(ctx, c.sess, tokchan, c.outs)
+	reader := startReading(c.sess, ctx, c.outs)
 	c.clearOuts()
-	for tok := range tokchan {
-		switch token := tok.(type) {
-		case doneStruct:
-			if token.isError() {
-				return c.checkBadConn(token.getError())
-			}
-		case error:
-			return c.checkBadConn(token)
-		}
+
+	var resultError error
+	err := reader.iterateResponse()
+	if err != nil {
+		return c.checkBadConn(ctx, err, false)
 	}
-	return nil
+	return resultError
 }
 
 func (c *Conn) Commit() error {
@@ -222,7 +276,7 @@ func (c *Conn) Commit() error {
 		return driver.ErrBadConn
 	}
 	if err := c.sendCommitRequest(); err != nil {
-		return c.checkBadConn(err)
+		return c.checkBadConn(c.transactionCtx, err, true)
 	}
 	return c.simpleProcessResp(c.transactionCtx)
 }
@@ -236,10 +290,10 @@ func (c *Conn) sendCommitRequest() error {
 	c.resetSession = false
 	if err := sendCommitXact(c.sess.buf, headers, "", 0, 0, "", reset); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
-			c.sess.log.Printf("Failed to send CommitXact with %v", err)
+			c.sess.logger.Log(c.transactionCtx, msdsn.LogErrors, fmt.Sprintf("Failed to send CommitXact with %v", err))
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Faild to send CommitXact: %v", err)
+		return fmt.Errorf("faild to send CommitXact: %v", err)
 	}
 	return nil
 }
@@ -249,7 +303,7 @@ func (c *Conn) Rollback() error {
 		return driver.ErrBadConn
 	}
 	if err := c.sendRollbackRequest(); err != nil {
-		return c.checkBadConn(err)
+		return c.checkBadConn(c.transactionCtx, err, true)
 	}
 	return c.simpleProcessResp(c.transactionCtx)
 }
@@ -263,10 +317,10 @@ func (c *Conn) sendRollbackRequest() error {
 	c.resetSession = false
 	if err := sendRollbackXact(c.sess.buf, headers, "", 0, 0, "", reset); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
-			c.sess.log.Printf("Failed to send RollbackXact with %v", err)
+			c.sess.logger.Log(c.transactionCtx, msdsn.LogErrors, fmt.Sprintf("Failed to send RollbackXact with %v", err))
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Failed to send RollbackXact: %v", err)
+		return fmt.Errorf("failed to send RollbackXact: %v", err)
 	}
 	return nil
 }
@@ -281,11 +335,11 @@ func (c *Conn) begin(ctx context.Context, tdsIsolation isoLevel) (tx driver.Tx, 
 	}
 	err = c.sendBeginRequest(ctx, tdsIsolation)
 	if err != nil {
-		return nil, c.checkBadConn(err)
+		return nil, c.checkBadConn(ctx, err, true)
 	}
 	tx, err = c.processBeginResponse(ctx)
 	if err != nil {
-		return nil, c.checkBadConn(err)
+		return nil, err
 	}
 	return
 }
@@ -300,10 +354,10 @@ func (c *Conn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) erro
 	c.resetSession = false
 	if err := sendBeginXact(c.sess.buf, headers, tdsIsolation, "", reset); err != nil {
 		if c.sess.logFlags&logErrors != 0 {
-			c.sess.log.Printf("Failed to send BeginXact with %v", err)
+			c.sess.logger.Log(ctx, msdsn.LogErrors, fmt.Sprintf("Failed to send BeginXact with %v", err))
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Failed to send BeginXact: %v", err)
+		return fmt.Errorf("failed to send BeginXact: %v", err)
 	}
 	return nil
 }
@@ -318,28 +372,29 @@ func (c *Conn) processBeginResponse(ctx context.Context) (driver.Tx, error) {
 }
 
 func (d *Driver) open(ctx context.Context, dsn string) (*Conn, error) {
-	params, err := parseConnectParams(dsn)
+	params, _, err := msdsn.Parse(dsn)
 	if err != nil {
 		return nil, err
 	}
-	return d.connect(ctx, nil, params)
+	c := &Connector{params: params}
+	return d.connect(ctx, c, params)
 }
 
 // connect to the server, using the provided context for dialing only.
-func (d *Driver) connect(ctx context.Context, c *Connector, params connectParams) (*Conn, error) {
-	sess, err := connect(ctx, c, d.log, params)
+func (d *Driver) connect(ctx context.Context, c *Connector, params msdsn.Config) (*Conn, error) {
+	sess, err := connect(ctx, c, d.logger, params)
 	if err != nil {
 		// main server failed, try fail-over partner
-		if params.failOverPartner == "" {
+		if params.FailOverPartner == "" {
 			return nil, err
 		}
 
-		params.host = params.failOverPartner
-		if params.failOverPort != 0 {
-			params.port = params.failOverPort
+		params.Host = params.FailOverPartner
+		if params.FailOverPort != 0 {
+			params.Port = params.FailOverPort
 		}
 
-		sess, err = connect(ctx, c, d.log, params)
+		sess, err = connect(ctx, c, d.logger, params)
 		if err != nil {
 			// fail-over partner also failed, now fail
 			return nil, err
@@ -411,7 +466,7 @@ func (s *Stmt) NumInput() int {
 	return s.paramCount
 }
 
-func (s *Stmt) sendQuery(args []namedValue) (err error) {
+func (s *Stmt) sendQuery(ctx context.Context, args []namedValue) (err error) {
 	headers := []headerStruct{
 		{hdrtype: dataStmHdrTransDescr,
 			data: transDescrHdr{s.c.sess.tranid, 1}.pack()},
@@ -433,24 +488,25 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 
 	// no need to check number of parameters here, it is checked by database/sql
 	if conn.sess.logFlags&logSQL != 0 {
-		conn.sess.log.Println(s.query)
+		conn.sess.logger.Log(ctx, msdsn.LogSQL, s.query)
 	}
 	if conn.sess.logFlags&logParams != 0 && len(args) > 0 {
 		for i := 0; i < len(args); i++ {
 			if len(args[i].Name) > 0 {
-				s.c.sess.log.Printf("\t@%s\t%v\n", args[i].Name, args[i].Value)
+				s.c.sess.logger.Log(ctx, msdsn.LogParams, fmt.Sprintf("\t@%s\t%v", args[i].Name, args[i].Value))
 			} else {
-				s.c.sess.log.Printf("\t@p%d\t%v\n", i+1, args[i].Value)
+				s.c.sess.logger.Log(ctx, msdsn.LogParams, fmt.Sprintf("\t@p%d\t%v", i+1, args[i].Value))
 			}
 		}
 	}
 
 	reset := conn.resetSession
 	conn.resetSession = false
-	if len(args) == 0 {
+	isProc := isProc(s.query)
+	if len(args) == 0 && !isProc {
 		if err = sendSqlBatch72(conn.sess.buf, s.query, headers, reset); err != nil {
 			if conn.sess.logFlags&logErrors != 0 {
-				conn.sess.log.Printf("Failed to send SqlBatch with %v", err)
+				conn.sess.logger.Log(ctx, msdsn.LogErrors, fmt.Sprintf("Failed to send SqlBatch with %v", err))
 			}
 			conn.connectionGood = false
 			return fmt.Errorf("failed to send SQL Batch: %v", err)
@@ -458,7 +514,7 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 	} else {
 		proc := sp_ExecuteSql
 		var params []param
-		if isProc(s.query) {
+		if isProc {
 			proc.name = s.query
 			params, _, err = s.makeRPCParams(args, true)
 			if err != nil {
@@ -475,10 +531,10 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 		}
 		if err = sendRpc(conn.sess.buf, headers, proc, 0, params, reset); err != nil {
 			if conn.sess.logFlags&logErrors != 0 {
-				conn.sess.log.Printf("Failed to send Rpc with %v", err)
+				conn.sess.logger.Log(ctx, msdsn.LogErrors, fmt.Sprintf("Failed to send Rpc with %v", err))
 			}
 			conn.connectionGood = false
-			return fmt.Errorf("Failed to send RPC: %v", err)
+			return fmt.Errorf("failed to send RPC: %v", err)
 		}
 	}
 	return
@@ -500,30 +556,38 @@ func isProc(s string) bool {
 	for _, r := range s {
 		rPrev = rn1
 		rn1 = r
-		switch r {
-		// No newlines or string sequences.
-		case '\n', '\r', '\'', ';':
-			return false
+		if st != escaped {
+			switch r {
+			// No newlines or string sequences.
+			case '\n', '\r', '\'', ';':
+				return false
+			}
 		}
 		switch st {
 		case outside:
 			switch {
-			case unicode.IsSpace(r):
-				return false
 			case r == '[':
 				st = escaped
-				continue
 			case r == ']' && rPrev == ']':
 				st = escaped
-				continue
 			case unicode.IsLetter(r):
 				st = text
+			case r == '_':
+				st = text
+			case r == '#':
+				st = text
+			case r == '.':
+			default:
+				return false
 			}
 		case text:
 			switch {
 			case r == '.':
 				st = outside
-				continue
+			case r == '[':
+				return false
+			case r == '(':
+				return false
 			case unicode.IsSpace(r):
 				return false
 			}
@@ -531,7 +595,6 @@ func isProc(s string) bool {
 			switch {
 			case r == ']':
 				st = outside
-				continue
 			}
 		}
 	}
@@ -558,7 +621,13 @@ func (s *Stmt) makeRPCParams(args []namedValue, isProc bool) ([]param, []string,
 			name = fmt.Sprintf("@p%d", val.Ordinal)
 		}
 		params[i+offset].Name = name
-		decls[i] = fmt.Sprintf("%s %s", name, makeDecl(params[i+offset].ti))
+		const outputSuffix = " output"
+		var output string
+		if isOutputValue(val.Value) {
+			output = outputSuffix
+		}
+		decls[i] = fmt.Sprintf("%s %s%s", name, makeDecl(params[i+offset].ti), output)
+
 	}
 	return params, decls, nil
 }
@@ -581,6 +650,8 @@ func convertOldArgs(args []driver.Value) []namedValue {
 }
 
 func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
+	defer s.c.clearOuts()
+
 	return s.queryContext(context.Background(), convertOldArgs(args))
 }
 
@@ -588,49 +659,66 @@ func (s *Stmt) queryContext(ctx context.Context, args []namedValue) (rows driver
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
-	if err = s.sendQuery(args); err != nil {
-		return nil, s.c.checkBadConn(err)
+	if err = s.sendQuery(ctx, args); err != nil {
+		return nil, s.c.checkBadConn(ctx, err, true)
 	}
 	return s.processQueryResponse(ctx)
 }
 
 func (s *Stmt) processQueryResponse(ctx context.Context) (res driver.Rows, err error) {
-	tokchan := make(chan tokenStruct, 5)
 	ctx, cancel := context.WithCancel(ctx)
-	go processResponse(ctx, s.c.sess, tokchan, s.c.outs)
+	reader := startReading(s.c.sess, ctx, s.c.outs)
 	s.c.clearOuts()
+	// For apps using a message queue, return right away and let Rowsq do all the work
+	if reader.outs.msgq != nil {
+		res = &Rowsq{stmt: s, reader: reader, cols: nil, cancel: cancel}
+		return res, nil
+	}
 	// process metadata
 	var cols []columnStruct
 loop:
-	for tok := range tokchan {
-		switch token := tok.(type) {
-		// By ignoring DONE token we effectively
-		// skip empty result-sets.
-		// This improves results in queries like that:
-		// set nocount on; select 1
-		// see TestIgnoreEmptyResults test
-		//case doneStruct:
-		//break loop
-		case []columnStruct:
-			cols = token
-			break loop
-		case doneStruct:
-			if token.isError() {
-				cancel()
-				return nil, s.c.checkBadConn(token.getError())
+	for {
+		tok, err := reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				break
+			} else {
+				switch token := tok.(type) {
+				// By ignoring DONE token we effectively
+				// skip empty result-sets.
+				// This improves results in queries like that:
+				// set nocount on; select 1
+				// see TestIgnoreEmptyResults test
+				//case doneStruct:
+				//break loop
+				case []columnStruct:
+					cols = token
+					break loop
+				case doneStruct:
+					if token.isError() {
+						// need to cleanup cancellable context
+						cancel()
+						return nil, s.c.checkBadConn(ctx, token.getError(), false)
+					}
+				case ReturnStatus:
+					if reader.outs.returnStatus != nil {
+						*reader.outs.returnStatus = token
+					}
+				}
 			}
-		case ReturnStatus:
-			s.c.setReturnStatus(token)
-		case error:
+		} else {
+			// need to cleanup cancellable context
 			cancel()
-			return nil, s.c.checkBadConn(token)
+			return nil, s.c.checkBadConn(ctx, err, false)
 		}
 	}
-	res = &Rows{stmt: s, tokchan: tokchan, cols: cols, cancel: cancel}
+	res = &Rows{stmt: s, reader: reader, cols: cols, cancel: cancel}
 	return
 }
 
 func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
+	defer s.c.clearOuts()
+
 	return s.exec(context.Background(), convertOldArgs(args))
 }
 
@@ -638,61 +726,60 @@ func (s *Stmt) exec(ctx context.Context, args []namedValue) (res driver.Result, 
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
-	if err = s.sendQuery(args); err != nil {
-		return nil, s.c.checkBadConn(err)
+	if err = s.sendQuery(ctx, args); err != nil {
+		return nil, s.c.checkBadConn(ctx, err, true)
 	}
 	if res, err = s.processExec(ctx); err != nil {
-		return nil, s.c.checkBadConn(err)
+		return nil, err
 	}
 	return
 }
 
 func (s *Stmt) processExec(ctx context.Context) (res driver.Result, err error) {
-	tokchan := make(chan tokenStruct, 5)
-	go processResponse(ctx, s.c.sess, tokchan, s.c.outs)
+	reader := startReading(s.c.sess, ctx, s.c.outs)
 	s.c.clearOuts()
-	var rowCount int64
-	for token := range tokchan {
-		switch token := token.(type) {
-		case doneInProcStruct:
-			if token.Status&doneCount != 0 {
-				rowCount += int64(token.RowCount)
-			}
-		case doneStruct:
-			if token.Status&doneCount != 0 {
-				rowCount += int64(token.RowCount)
-			}
-			if token.isError() {
-				return nil, token.getError()
-			}
-		case ReturnStatus:
-			s.c.setReturnStatus(token)
-		case error:
-			return nil, token
-		}
+	err = reader.iterateResponse()
+	if err != nil {
+		return nil, s.c.checkBadConn(ctx, err, false)
 	}
-	return &Result{s.c, rowCount}, nil
+	return &Result{s.c, reader.rowCount}, nil
 }
 
+// Rows represents the non-experimental data/sql model for Query and QueryContext
 type Rows struct {
-	stmt    *Stmt
-	cols    []columnStruct
-	tokchan chan tokenStruct
-
+	stmt     *Stmt
+	cols     []columnStruct
+	reader   *tokenProcessor
 	nextCols []columnStruct
-
-	cancel func()
+	cancel   func()
 }
 
 func (rc *Rows) Close() error {
+	// need to add a test which returns lots of rows
+	// and check closing after reading only few rows
 	rc.cancel()
-	for _ = range rc.tokchan {
+
+	for {
+		tok, err := rc.reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				return nil
+			} else {
+				// continue consuming tokens
+				continue
+			}
+		} else {
+			if err == rc.reader.ctx.Err() {
+				return nil
+			} else {
+				return err
+			}
+		}
 	}
-	rc.tokchan = nil
-	return nil
 }
 
 func (rc *Rows) Columns() (res []string) {
+
 	res = make([]string, len(rc.cols))
 	for i, col := range rc.cols {
 		res[i] = col.ColName
@@ -707,27 +794,37 @@ func (rc *Rows) Next(dest []driver.Value) error {
 	if rc.nextCols != nil {
 		return io.EOF
 	}
-	for tok := range rc.tokchan {
-		switch tokdata := tok.(type) {
-		case []columnStruct:
-			rc.nextCols = tokdata
-			return io.EOF
-		case []interface{}:
-			for i := range dest {
-				dest[i] = tokdata[i]
+	for {
+		tok, err := rc.reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				return io.EOF
+			} else {
+				switch tokdata := tok.(type) {
+				// processQueryResponse may have delegated all the token reading to us
+				case []columnStruct:
+					rc.nextCols = tokdata
+					return io.EOF
+				case []interface{}:
+					for i := range dest {
+						dest[i] = tokdata[i]
+					}
+					return nil
+				case doneStruct:
+					if tokdata.isError() {
+						return rc.stmt.c.checkBadConn(rc.reader.ctx, tokdata.getError(), false)
+					}
+				case ReturnStatus:
+					if rc.reader.outs.returnStatus != nil {
+						*rc.reader.outs.returnStatus = tokdata
+					}
+				}
 			}
-			return nil
-		case doneStruct:
-			if tokdata.isError() {
-				return rc.stmt.c.checkBadConn(tokdata.getError())
-			}
-		case ReturnStatus:
-			rc.stmt.c.setReturnStatus(tokdata)
-		case error:
-			return rc.stmt.c.checkBadConn(tokdata)
+
+		} else {
+			return rc.stmt.c.checkBadConn(rc.reader.ctx, err, false)
 		}
 	}
-	return io.EOF
 }
 
 func (rc *Rows) HasNextResultSet() bool {
@@ -895,35 +992,41 @@ func (c *Conn) Ping(ctx context.Context) error {
 
 var _ driver.ConnBeginTx = &Conn{}
 
+func convertIsolationLevel(level sql.IsolationLevel) (isoLevel, error) {
+	switch level {
+	case sql.LevelDefault:
+		return isolationUseCurrent, nil
+	case sql.LevelReadUncommitted:
+		return isolationReadUncommited, nil
+	case sql.LevelReadCommitted:
+		return isolationReadCommited, nil
+	case sql.LevelWriteCommitted:
+		return isolationUseCurrent, errors.New("LevelWriteCommitted isolation level is not supported")
+	case sql.LevelRepeatableRead:
+		return isolationRepeatableRead, nil
+	case sql.LevelSnapshot:
+		return isolationSnapshot, nil
+	case sql.LevelSerializable:
+		return isolationSerializable, nil
+	case sql.LevelLinearizable:
+		return isolationUseCurrent, errors.New("LevelLinearizable isolation level is not supported")
+	default:
+		return isolationUseCurrent, errors.New("isolation level is not supported or unknown")
+	}
+}
+
 // BeginTx satisfies ConnBeginTx.
 func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	if !c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
 	if opts.ReadOnly {
-		return nil, errors.New("Read-only transactions are not supported")
+		return nil, errors.New("read-only transactions are not supported")
 	}
 
-	var tdsIsolation isoLevel
-	switch sql.IsolationLevel(opts.Isolation) {
-	case sql.LevelDefault:
-		tdsIsolation = isolationUseCurrent
-	case sql.LevelReadUncommitted:
-		tdsIsolation = isolationReadUncommited
-	case sql.LevelReadCommitted:
-		tdsIsolation = isolationReadCommited
-	case sql.LevelWriteCommitted:
-		return nil, errors.New("LevelWriteCommitted isolation level is not supported")
-	case sql.LevelRepeatableRead:
-		tdsIsolation = isolationRepeatableRead
-	case sql.LevelSnapshot:
-		tdsIsolation = isolationSnapshot
-	case sql.LevelSerializable:
-		tdsIsolation = isolationSerializable
-	case sql.LevelLinearizable:
-		return nil, errors.New("LevelLinearizable isolation level is not supported")
-	default:
-		return nil, errors.New("Isolation level is not supported or unknown")
+	tdsIsolation, err := convertIsolationLevel(sql.IsolationLevel(opts.Isolation))
+	if err != nil {
+		return nil, err
 	}
 	return c.begin(ctx, tdsIsolation)
 }
@@ -940,6 +1043,8 @@ func (c *Conn) PrepareContext(ctx context.Context, query string) (driver.Stmt, e
 }
 
 func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driver.Rows, error) {
+	defer s.c.clearOuts()
+
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -951,6 +1056,8 @@ func (s *Stmt) QueryContext(ctx context.Context, args []driver.NamedValue) (driv
 }
 
 func (s *Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (driver.Result, error) {
+	defer s.c.clearOuts()
+
 	if !s.c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
@@ -959,4 +1066,215 @@ func (s *Stmt) ExecContext(ctx context.Context, args []driver.NamedValue) (drive
 		list[i] = namedValue(nv)
 	}
 	return s.exec(ctx, list)
+}
+
+// Rowsq implements the sqlexp messages model for Query and QueryContext
+// Theory: We could also implement the non-experimental model this way
+type Rowsq struct {
+	stmt        *Stmt
+	cols        []columnStruct
+	reader      *tokenProcessor
+	nextCols    []columnStruct
+	cancel      func()
+	requestDone bool
+	inResultSet bool
+}
+
+func (rc *Rowsq) Close() error {
+	rc.cancel()
+
+	for {
+		tok, err := rc.reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				return nil
+			} else {
+				// continue consuming tokens
+				continue
+			}
+		} else {
+			if err == rc.reader.ctx.Err() {
+				return nil
+			} else {
+				return err
+			}
+		}
+	}
+}
+
+// data/sql calls Columns during the app's call to Next
+func (rc *Rowsq) Columns() (res []string) {
+	if rc.cols == nil {
+	scan:
+		for {
+			tok, err := rc.reader.nextToken()
+			if err == nil {
+				if rc.reader.sess.logFlags&logDebug != 0 {
+					rc.reader.sess.logger.Log(rc.reader.ctx, msdsn.LogDebug, fmt.Sprintf("Columns() token type:%v", reflect.TypeOf(tok)))
+				}
+				if tok == nil {
+					return []string{}
+				} else {
+					switch tokdata := tok.(type) {
+					case []columnStruct:
+						rc.cols = tokdata
+						rc.inResultSet = true
+						break scan
+					}
+				}
+			}
+		}
+	}
+	res = make([]string, len(rc.cols))
+	for i, col := range rc.cols {
+		res[i] = col.ColName
+	}
+	return
+}
+
+func (rc *Rowsq) Next(dest []driver.Value) error {
+	if !rc.stmt.c.connectionGood {
+		return driver.ErrBadConn
+	}
+	for {
+		tok, err := rc.reader.nextToken()
+		if rc.reader.sess.logFlags&logDebug != 0 {
+			rc.reader.sess.logger.Log(rc.reader.ctx, msdsn.LogDebug, fmt.Sprintf("Next() token type:%v", reflect.TypeOf(tok)))
+		}
+		if err == nil {
+			if tok == nil {
+				return io.EOF
+			} else {
+				switch tokdata := tok.(type) {
+				case []interface{}:
+					for i := range dest {
+						dest[i] = tokdata[i]
+					}
+					return nil
+				case doneStruct:
+					if tokdata.Status&doneMore == 0 {
+						rc.requestDone = true
+					}
+					if tokdata.isError() {
+						e := rc.stmt.c.checkBadConn(rc.reader.ctx, tokdata.getError(), false)
+						switch e.(type) {
+						case Error:
+							// Ignore non-fatal server errors. Fatal errors are of type ServerError
+						default:
+							return e
+						}
+					}
+					if rc.inResultSet {
+						rc.inResultSet = false
+						return io.EOF
+					}
+				case ReturnStatus:
+					if rc.reader.outs.returnStatus != nil {
+						*rc.reader.outs.returnStatus = tokdata
+					}
+				}
+			}
+
+		} else {
+			return rc.stmt.c.checkBadConn(rc.reader.ctx, err, false)
+		}
+	}
+}
+
+// In Message Queue mode, we always claim another resultset could be on the way
+// to avoid Rows being closed prematurely
+func (rc *Rowsq) HasNextResultSet() bool {
+	return !rc.requestDone
+}
+
+// Scans to the next set of columns in the stream
+// Note that the caller may not have read all the rows in the prior set
+func (rc *Rowsq) NextResultSet() error {
+	if rc.requestDone {
+		return io.EOF
+	}
+scan:
+	for {
+		// we should have a columns token in the channel if we aren't at the end
+		tok, err := rc.reader.nextToken()
+		if rc.reader.sess.logFlags&logDebug != 0 {
+			rc.reader.sess.logger.Log(rc.reader.ctx, msdsn.LogDebug, fmt.Sprintf("NextResultSet() token type:%v", reflect.TypeOf(tok)))
+		}
+
+		if err != nil {
+			return err
+		}
+		if tok == nil {
+			return io.EOF
+		}
+		switch tokdata := tok.(type) {
+		case []columnStruct:
+			rc.nextCols = tokdata
+			rc.inResultSet = true
+			break scan
+		case doneStruct:
+			if tokdata.Status&doneMore == 0 {
+				rc.nextCols = nil
+				rc.requestDone = true
+				break scan
+			}
+		}
+	}
+	rc.cols = rc.nextCols
+	rc.nextCols = nil
+	if rc.cols == nil {
+		return io.EOF
+	}
+	return nil
+}
+
+// It should return
+// the value type that can be used to scan types into. For example, the database
+// column type "bigint" this should return "reflect.TypeOf(int64(0))".
+func (r *Rowsq) ColumnTypeScanType(index int) reflect.Type {
+	return makeGoLangScanType(r.cols[index].ti)
+}
+
+// RowsColumnTypeDatabaseTypeName may be implemented by Rows. It should return the
+// database system type name without the length. Type names should be uppercase.
+// Examples of returned types: "VARCHAR", "NVARCHAR", "VARCHAR2", "CHAR", "TEXT",
+// "DECIMAL", "SMALLINT", "INT", "BIGINT", "BOOL", "[]BIGINT", "JSONB", "XML",
+// "TIMESTAMP".
+func (r *Rowsq) ColumnTypeDatabaseTypeName(index int) string {
+	return makeGoLangTypeName(r.cols[index].ti)
+}
+
+// RowsColumnTypeLength may be implemented by Rows. It should return the length
+// of the column type if the column is a variable length type. If the column is
+// not a variable length type ok should return false.
+// If length is not limited other than system limits, it should return math.MaxInt64.
+// The following are examples of returned values for various types:
+//   TEXT          (math.MaxInt64, true)
+//   varchar(10)   (10, true)
+//   nvarchar(10)  (10, true)
+//   decimal       (0, false)
+//   int           (0, false)
+//   bytea(30)     (30, true)
+func (r *Rowsq) ColumnTypeLength(index int) (int64, bool) {
+	return makeGoLangTypeLength(r.cols[index].ti)
+}
+
+// It should return
+// the precision and scale for decimal types. If not applicable, ok should be false.
+// The following are examples of returned values for various types:
+//   decimal(38, 4)    (38, 4, true)
+//   int               (0, 0, false)
+//   decimal           (math.MaxInt64, math.MaxInt64, true)
+func (r *Rowsq) ColumnTypePrecisionScale(index int) (int64, int64, bool) {
+	return makeGoLangTypePrecisionScale(r.cols[index].ti)
+}
+
+// The nullable value should
+// be true if it is known the column may be null, or false if the column is known
+// to be not nullable.
+// If the column nullability is unknown, ok should be false.
+func (r *Rowsq) ColumnTypeNullable(index int) (nullable, ok bool) {
+	nullable = r.cols[index].Flags&colFlagNullable != 0
+	ok = true
+	return
 }

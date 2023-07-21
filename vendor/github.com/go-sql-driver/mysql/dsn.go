@@ -14,6 +14,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"net/url"
 	"sort"
@@ -45,21 +46,23 @@ type Config struct {
 	ServerPubKey     string            // Server public key name
 	pubKey           *rsa.PublicKey    // Server public key
 	TLSConfig        string            // TLS configuration name
-	tls              *tls.Config       // TLS configuration
+	TLS              *tls.Config       // TLS configuration, its priority is higher than TLSConfig
 	Timeout          time.Duration     // Dial timeout
 	ReadTimeout      time.Duration     // I/O read timeout
 	WriteTimeout     time.Duration     // I/O write timeout
 
-	AllowAllFiles           bool // Allow all files to be used with LOAD DATA LOCAL INFILE
-	AllowCleartextPasswords bool // Allows the cleartext client side plugin
-	AllowNativePasswords    bool // Allows the native password authentication method
-	AllowOldPasswords       bool // Allows the old insecure password method
-	ClientFoundRows         bool // Return number of matching rows instead of rows changed
-	ColumnsWithAlias        bool // Prepend table alias to column names
-	InterpolateParams       bool // Interpolate placeholders into query string
-	MultiStatements         bool // Allow multiple statements in one query
-	ParseTime               bool // Parse time values to time.Time
-	RejectReadOnly          bool // Reject read-only connections
+	AllowAllFiles            bool // Allow all files to be used with LOAD DATA LOCAL INFILE
+	AllowCleartextPasswords  bool // Allows the cleartext client side plugin
+	AllowFallbackToPlaintext bool // Allows fallback to unencrypted connection if server does not support TLS
+	AllowNativePasswords     bool // Allows the native password authentication method
+	AllowOldPasswords        bool // Allows the old insecure password method
+	CheckConnLiveness        bool // Check connections for liveness before using them
+	ClientFoundRows          bool // Return number of matching rows instead of rows changed
+	ColumnsWithAlias         bool // Prepend table alias to column names
+	InterpolateParams        bool // Interpolate placeholders into query string
+	MultiStatements          bool // Allow multiple statements in one query
+	ParseTime                bool // Parse time values to time.Time
+	RejectReadOnly           bool // Reject read-only connections
 }
 
 // NewConfig creates a new Config and sets default values.
@@ -69,7 +72,28 @@ func NewConfig() *Config {
 		Loc:                  time.UTC,
 		MaxAllowedPacket:     defaultMaxAllowedPacket,
 		AllowNativePasswords: true,
+		CheckConnLiveness:    true,
 	}
+}
+
+func (cfg *Config) Clone() *Config {
+	cp := *cfg
+	if cp.TLS != nil {
+		cp.TLS = cfg.TLS.Clone()
+	}
+	if len(cp.Params) > 0 {
+		cp.Params = make(map[string]string, len(cfg.Params))
+		for k, v := range cfg.Params {
+			cp.Params[k] = v
+		}
+	}
+	if cfg.pubKey != nil {
+		cp.pubKey = &rsa.PublicKey{
+			N: new(big.Int).Set(cfg.pubKey.N),
+			E: cfg.pubKey.E,
+		}
+	}
+	return &cp
 }
 
 func (cfg *Config) normalize() error {
@@ -92,21 +116,57 @@ func (cfg *Config) normalize() error {
 		default:
 			return errors.New("default addr for network '" + cfg.Net + "' unknown")
 		}
-
 	} else if cfg.Net == "tcp" {
 		cfg.Addr = ensureHavePort(cfg.Addr)
 	}
 
-	if cfg.tls != nil {
-		if cfg.tls.ServerName == "" && !cfg.tls.InsecureSkipVerify {
-			host, _, err := net.SplitHostPort(cfg.Addr)
-			if err == nil {
-				cfg.tls.ServerName = host
+	if cfg.TLS == nil {
+		switch cfg.TLSConfig {
+		case "false", "":
+			// don't set anything
+		case "true":
+			cfg.TLS = &tls.Config{}
+		case "skip-verify":
+			cfg.TLS = &tls.Config{InsecureSkipVerify: true}
+		case "preferred":
+			cfg.TLS = &tls.Config{InsecureSkipVerify: true}
+			cfg.AllowFallbackToPlaintext = true
+		default:
+			cfg.TLS = getTLSConfigClone(cfg.TLSConfig)
+			if cfg.TLS == nil {
+				return errors.New("invalid value / unknown config name: " + cfg.TLSConfig)
 			}
 		}
 	}
 
+	if cfg.TLS != nil && cfg.TLS.ServerName == "" && !cfg.TLS.InsecureSkipVerify {
+		host, _, err := net.SplitHostPort(cfg.Addr)
+		if err == nil {
+			cfg.TLS.ServerName = host
+		}
+	}
+
+	if cfg.ServerPubKey != "" {
+		cfg.pubKey = getServerPubKey(cfg.ServerPubKey)
+		if cfg.pubKey == nil {
+			return errors.New("invalid value / unknown server pub key name: " + cfg.ServerPubKey)
+		}
+	}
+
 	return nil
+}
+
+func writeDSNParam(buf *bytes.Buffer, hasParam *bool, name, value string) {
+	buf.Grow(1 + len(name) + 1 + len(value))
+	if !*hasParam {
+		*hasParam = true
+		buf.WriteByte('?')
+	} else {
+		buf.WriteByte('&')
+	}
+	buf.WriteString(name)
+	buf.WriteByte('=')
+	buf.WriteString(value)
 }
 
 // FormatDSN formats the given Config into a DSN string which can be passed to
@@ -147,165 +207,79 @@ func (cfg *Config) FormatDSN() string {
 	}
 
 	if cfg.AllowCleartextPasswords {
-		if hasParam {
-			buf.WriteString("&allowCleartextPasswords=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?allowCleartextPasswords=true")
-		}
+		writeDSNParam(&buf, &hasParam, "allowCleartextPasswords", "true")
+	}
+
+	if cfg.AllowFallbackToPlaintext {
+		writeDSNParam(&buf, &hasParam, "allowFallbackToPlaintext", "true")
 	}
 
 	if !cfg.AllowNativePasswords {
-		if hasParam {
-			buf.WriteString("&allowNativePasswords=false")
-		} else {
-			hasParam = true
-			buf.WriteString("?allowNativePasswords=false")
-		}
+		writeDSNParam(&buf, &hasParam, "allowNativePasswords", "false")
 	}
 
 	if cfg.AllowOldPasswords {
-		if hasParam {
-			buf.WriteString("&allowOldPasswords=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?allowOldPasswords=true")
-		}
+		writeDSNParam(&buf, &hasParam, "allowOldPasswords", "true")
+	}
+
+	if !cfg.CheckConnLiveness {
+		writeDSNParam(&buf, &hasParam, "checkConnLiveness", "false")
 	}
 
 	if cfg.ClientFoundRows {
-		if hasParam {
-			buf.WriteString("&clientFoundRows=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?clientFoundRows=true")
-		}
+		writeDSNParam(&buf, &hasParam, "clientFoundRows", "true")
 	}
 
 	if col := cfg.Collation; col != defaultCollation && len(col) > 0 {
-		if hasParam {
-			buf.WriteString("&collation=")
-		} else {
-			hasParam = true
-			buf.WriteString("?collation=")
-		}
-		buf.WriteString(col)
+		writeDSNParam(&buf, &hasParam, "collation", col)
 	}
 
 	if cfg.ColumnsWithAlias {
-		if hasParam {
-			buf.WriteString("&columnsWithAlias=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?columnsWithAlias=true")
-		}
+		writeDSNParam(&buf, &hasParam, "columnsWithAlias", "true")
 	}
 
 	if cfg.InterpolateParams {
-		if hasParam {
-			buf.WriteString("&interpolateParams=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?interpolateParams=true")
-		}
+		writeDSNParam(&buf, &hasParam, "interpolateParams", "true")
 	}
 
 	if cfg.Loc != time.UTC && cfg.Loc != nil {
-		if hasParam {
-			buf.WriteString("&loc=")
-		} else {
-			hasParam = true
-			buf.WriteString("?loc=")
-		}
-		buf.WriteString(url.QueryEscape(cfg.Loc.String()))
+		writeDSNParam(&buf, &hasParam, "loc", url.QueryEscape(cfg.Loc.String()))
 	}
 
 	if cfg.MultiStatements {
-		if hasParam {
-			buf.WriteString("&multiStatements=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?multiStatements=true")
-		}
+		writeDSNParam(&buf, &hasParam, "multiStatements", "true")
 	}
 
 	if cfg.ParseTime {
-		if hasParam {
-			buf.WriteString("&parseTime=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?parseTime=true")
-		}
+		writeDSNParam(&buf, &hasParam, "parseTime", "true")
 	}
 
 	if cfg.ReadTimeout > 0 {
-		if hasParam {
-			buf.WriteString("&readTimeout=")
-		} else {
-			hasParam = true
-			buf.WriteString("?readTimeout=")
-		}
-		buf.WriteString(cfg.ReadTimeout.String())
+		writeDSNParam(&buf, &hasParam, "readTimeout", cfg.ReadTimeout.String())
 	}
 
 	if cfg.RejectReadOnly {
-		if hasParam {
-			buf.WriteString("&rejectReadOnly=true")
-		} else {
-			hasParam = true
-			buf.WriteString("?rejectReadOnly=true")
-		}
+		writeDSNParam(&buf, &hasParam, "rejectReadOnly", "true")
 	}
 
 	if len(cfg.ServerPubKey) > 0 {
-		if hasParam {
-			buf.WriteString("&serverPubKey=")
-		} else {
-			hasParam = true
-			buf.WriteString("?serverPubKey=")
-		}
-		buf.WriteString(url.QueryEscape(cfg.ServerPubKey))
+		writeDSNParam(&buf, &hasParam, "serverPubKey", url.QueryEscape(cfg.ServerPubKey))
 	}
 
 	if cfg.Timeout > 0 {
-		if hasParam {
-			buf.WriteString("&timeout=")
-		} else {
-			hasParam = true
-			buf.WriteString("?timeout=")
-		}
-		buf.WriteString(cfg.Timeout.String())
+		writeDSNParam(&buf, &hasParam, "timeout", cfg.Timeout.String())
 	}
 
 	if len(cfg.TLSConfig) > 0 {
-		if hasParam {
-			buf.WriteString("&tls=")
-		} else {
-			hasParam = true
-			buf.WriteString("?tls=")
-		}
-		buf.WriteString(url.QueryEscape(cfg.TLSConfig))
+		writeDSNParam(&buf, &hasParam, "tls", url.QueryEscape(cfg.TLSConfig))
 	}
 
 	if cfg.WriteTimeout > 0 {
-		if hasParam {
-			buf.WriteString("&writeTimeout=")
-		} else {
-			hasParam = true
-			buf.WriteString("?writeTimeout=")
-		}
-		buf.WriteString(cfg.WriteTimeout.String())
+		writeDSNParam(&buf, &hasParam, "writeTimeout", cfg.WriteTimeout.String())
 	}
 
 	if cfg.MaxAllowedPacket != defaultMaxAllowedPacket {
-		if hasParam {
-			buf.WriteString("&maxAllowedPacket=")
-		} else {
-			hasParam = true
-			buf.WriteString("?maxAllowedPacket=")
-		}
-		buf.WriteString(strconv.Itoa(cfg.MaxAllowedPacket))
-
+		writeDSNParam(&buf, &hasParam, "maxAllowedPacket", strconv.Itoa(cfg.MaxAllowedPacket))
 	}
 
 	// other params
@@ -316,16 +290,7 @@ func (cfg *Config) FormatDSN() string {
 		}
 		sort.Strings(params)
 		for _, param := range params {
-			if hasParam {
-				buf.WriteByte('&')
-			} else {
-				hasParam = true
-				buf.WriteByte('?')
-			}
-
-			buf.WriteString(param)
-			buf.WriteByte('=')
-			buf.WriteString(url.QueryEscape(cfg.Params[param]))
+			writeDSNParam(&buf, &hasParam, param, url.QueryEscape(cfg.Params[param]))
 		}
 	}
 
@@ -420,7 +385,7 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 
 		// cfg params
 		switch value := param[1]; param[0] {
-		// Disable INFILE whitelist / enable all files
+		// Disable INFILE allowlist / enable all files
 		case "allowAllFiles":
 			var isBool bool
 			cfg.AllowAllFiles, isBool = readBool(value)
@@ -432,6 +397,14 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 		case "allowCleartextPasswords":
 			var isBool bool
 			cfg.AllowCleartextPasswords, isBool = readBool(value)
+			if !isBool {
+				return errors.New("invalid bool value: " + value)
+			}
+
+		// Allow fallback to unencrypted connection if server does not support TLS
+		case "allowFallbackToPlaintext":
+			var isBool bool
+			cfg.AllowFallbackToPlaintext, isBool = readBool(value)
 			if !isBool {
 				return errors.New("invalid bool value: " + value)
 			}
@@ -452,6 +425,14 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 				return errors.New("invalid bool value: " + value)
 			}
 
+		// Check connections for Liveness before using them
+		case "checkConnLiveness":
+			var isBool bool
+			cfg.CheckConnLiveness, isBool = readBool(value)
+			if !isBool {
+				return errors.New("invalid bool value: " + value)
+			}
+
 		// Switch "rowsAffected" mode
 		case "clientFoundRows":
 			var isBool bool
@@ -463,7 +444,6 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 		// Collation
 		case "collation":
 			cfg.Collation = value
-			break
 
 		case "columnsWithAlias":
 			var isBool bool
@@ -531,13 +511,7 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 			if err != nil {
 				return fmt.Errorf("invalid value for server pub key name: %v", err)
 			}
-
-			if pubKey := getServerPubKey(name); pubKey != nil {
-				cfg.ServerPubKey = name
-				cfg.pubKey = pubKey
-			} else {
-				return errors.New("invalid value / unknown server pub key name: " + name)
-			}
+			cfg.ServerPubKey = name
 
 		// Strict mode
 		case "strict":
@@ -556,25 +530,17 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 			if isBool {
 				if boolValue {
 					cfg.TLSConfig = "true"
-					cfg.tls = &tls.Config{}
 				} else {
 					cfg.TLSConfig = "false"
 				}
-			} else if vl := strings.ToLower(value); vl == "skip-verify" {
+			} else if vl := strings.ToLower(value); vl == "skip-verify" || vl == "preferred" {
 				cfg.TLSConfig = vl
-				cfg.tls = &tls.Config{InsecureSkipVerify: true}
 			} else {
 				name, err := url.QueryUnescape(value)
 				if err != nil {
 					return fmt.Errorf("invalid value for TLS config name: %v", err)
 				}
-
-				if tlsConfig := getTLSConfigClone(name); tlsConfig != nil {
-					cfg.TLSConfig = name
-					cfg.tls = tlsConfig
-				} else {
-					return errors.New("invalid value / unknown config name: " + name)
-				}
+				cfg.TLSConfig = name
 			}
 
 		// I/O write Timeout

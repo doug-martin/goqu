@@ -79,6 +79,12 @@ const _PLP_TERMINATOR = 0x00000000
 const _TVP_END_TOKEN = 0x00
 const _TVP_ROW_TOKEN = 0x01
 
+// TVP_COLMETADATA definition
+// https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tds/0dfc5367-a388-4c92-9ba4-4d28e775acbc
+const (
+	fDefault = 0x200
+)
+
 // TYPE_INFO rule
 // http://msdn.microsoft.com/en-us/library/dd358284.aspx
 type typeInfo struct {
@@ -665,7 +671,7 @@ func readPLPType(ti *typeInfo, r *tdsBuffer) interface{} {
 	default:
 		buf = bytes.NewBuffer(make([]byte, 0, size))
 	}
-	for true {
+	for {
 		chunksize := r.uint32()
 		if chunksize == 0 {
 			break
@@ -690,6 +696,10 @@ func readPLPType(ti *typeInfo, r *tdsBuffer) interface{} {
 }
 
 func writePLPType(w io.Writer, ti typeInfo, buf []byte) (err error) {
+	if buf == nil {
+		err = binary.Write(w, binary.LittleEndian, uint64(_PLP_NULL))
+		return
+	}
 	if err = binary.Write(w, binary.LittleEndian, uint64(_UNKNOWN_PLP_LEN)); err != nil {
 		return
 	}
@@ -807,7 +817,6 @@ func readVarLen(ti *typeInfo, r *tdsBuffer) {
 	default:
 		badStreamPanicf("Invalid type %d", ti.TypeId)
 	}
-	return
 }
 
 func decodeMoney(buf []byte) []byte {
@@ -834,8 +843,7 @@ func decodeGuid(buf []byte) []byte {
 }
 
 func decodeDecimal(prec uint8, scale uint8, buf []byte) []byte {
-	var sign uint8
-	sign = buf[0]
+	sign := buf[0]
 	var dec decimal.Decimal
 	dec.SetPositive(sign != 0)
 	dec.SetPrec(prec)
@@ -1187,7 +1195,7 @@ func makeDecl(ti typeInfo) string {
 		return fmt.Sprintf("char(%d)", ti.Size)
 	case typeBigVarChar, typeVarChar:
 		if ti.Size > 8000 || ti.Size == 0 {
-			return fmt.Sprintf("varchar(max)")
+			return "varchar(max)"
 		} else {
 			return fmt.Sprintf("varchar(%d)", ti.Size)
 		}
@@ -1351,12 +1359,13 @@ func makeGoLangTypeName(ti typeInfo) string {
 // not a variable length type ok should return false.
 // If length is not limited other than system limits, it should return math.MaxInt64.
 // The following are examples of returned values for various types:
-//   TEXT          (math.MaxInt64, true)
-//   varchar(10)   (10, true)
-//   nvarchar(10)  (10, true)
-//   decimal       (0, false)
-//   int           (0, false)
-//   bytea(30)     (30, true)
+//
+//	TEXT          (math.MaxInt64, true)
+//	varchar(10)   (10, true)
+//	nvarchar(10)  (10, true)
+//	decimal       (0, false)
+//	int           (0, false)
+//	bytea(30)     (30, true)
 func makeGoLangTypeLength(ti typeInfo) (int64, bool) {
 	switch ti.TypeId {
 	case typeInt1:
@@ -1462,7 +1471,7 @@ func makeGoLangTypeLength(ti typeInfo) (int64, bool) {
 	case typeVariant:
 		return 0, false
 	case typeBigBinary:
-		return 0, false
+		return int64(ti.Size), true
 	default:
 		panic(fmt.Sprintf("not implemented makeGoLangTypeLength for type %d", ti.TypeId))
 	}
@@ -1474,12 +1483,13 @@ func makeGoLangTypeLength(ti typeInfo) (int64, bool) {
 // not a variable length type ok should return false.
 // If length is not limited other than system limits, it should return math.MaxInt64.
 // The following are examples of returned values for various types:
-//   TEXT          (math.MaxInt64, true)
-//   varchar(10)   (10, true)
-//   nvarchar(10)  (10, true)
-//   decimal       (0, false)
-//   int           (0, false)
-//   bytea(30)     (30, true)
+//
+//	TEXT          (math.MaxInt64, true)
+//	varchar(10)   (10, true)
+//	nvarchar(10)  (10, true)
+//	decimal       (0, false)
+//	int           (0, false)
+//	bytea(30)     (30, true)
 func makeGoLangTypePrecisionScale(ti typeInfo) (int64, int64, bool) {
 	switch ti.TypeId {
 	case typeInt1:
