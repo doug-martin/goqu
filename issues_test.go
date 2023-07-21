@@ -17,7 +17,7 @@ type githubIssuesSuite struct {
 	suite.Suite
 }
 
-func (gis *githubIssuesSuite) AfterTest(suiteName, testName string) {
+func (gis *githubIssuesSuite) AfterTest(_, _ string) {
 	goqu.SetColumnRenameFunction(strings.ToLower)
 }
 

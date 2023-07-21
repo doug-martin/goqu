@@ -25,8 +25,6 @@ linters-settings:
     min-complexity: 20
   goimports:
     local-prefixes: github.com/golangci/golangci-lint
-  golint:
-    min-confidence: 0
   gomnd:
     settings:
       mnd:
