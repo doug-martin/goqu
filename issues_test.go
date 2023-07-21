@@ -60,7 +60,7 @@ func (gis *githubIssuesSuite) TestIssue115() {
 func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFields() {
 	// struct is in a custom package
 	type SimpleRole struct {
-		sync.RWMutex
+		mu          sync.RWMutex
 		permissions []string // nolint:structcheck,unused //needed for test
 	}
 
@@ -130,7 +130,7 @@ func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFiel
 func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFields() {
 	// struct is in a custom package
 	type SimpleRole struct {
-		sync.RWMutex
+		mu          sync.RWMutex
 		permissions []string // nolint:structcheck,unused // needed for test
 		IDStr       string
 	}

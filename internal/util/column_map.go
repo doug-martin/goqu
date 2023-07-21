@@ -98,7 +98,8 @@ func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, 
 
 func getStructColumnMap(f *reflect.StructField, fieldIndex []int, fieldNames, prefixes []string) ColumnMap {
 	subFieldIndexes := concatFieldIndexes(fieldIndex, f.Index)
-	subPrefixes := append(prefixes, fieldNames...)
+	subPrefixes := prefixes
+	subPrefixes = append(subPrefixes, fieldNames...)
 	if f.Type.Kind() == reflect.Ptr {
 		return newColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
 	}

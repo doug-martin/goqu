@@ -26,7 +26,7 @@ func (vs ValueSlice) Equal(other ValueSlice) bool {
 func (vs ValueSlice) String() string {
 	vals := make([]string, vs.Len())
 	for i, key := range vs {
-		vals[i] = fmt.Sprintf(`"%s"`, key.String())
+		vals[i] = fmt.Sprintf("%q", key.String())
 	}
 	sort.Strings(vals)
 	return fmt.Sprintf("[%s]", strings.Join(vals, ","))
