@@ -34,7 +34,7 @@ services:
 
   goqu:
     image: "golang:${GO_VERSION}"
-    command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "go test -v -race ./..."]
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "./go.test.sh"]
     working_dir: /go/src/github.com/doug-martin/goqu
     volumes:
       - "./:/go/src/github.com/doug-martin/goqu"
@@ -48,7 +48,7 @@ services:
       - sqlserver
   goqu-coverage:
     image: "golang:${GO_VERSION}"
-    command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "./go.test.sh"]
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "./wait-for-it.sh", "mysql:3306", "--", "./go.coverage.sh"]
     working_dir: /go/src/github.com/doug-martin/goqu
     volumes:
       - "./:/go/src/github.com/doug-martin/goqu"
