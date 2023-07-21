@@ -157,7 +157,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	}
 }
 
-// nolint:gocyclo // not complex just long
+//nolint:gocyclo // not complex just long
 func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp.Expression) {
 	switch e := expression.(type) {
 	case exp.ColumnListExpression:

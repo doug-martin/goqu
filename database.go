@@ -27,7 +27,7 @@ type (
 	Database struct {
 		logger  Logger
 		dialect string
-		// nolint: stylecheck // keep for backwards compatibility
+		//nolint:stylecheck // keep for backwards compatibility
 		Db     SQLDatabase
 		qf     exec.QueryFactory
 		qfOnce sync.Once

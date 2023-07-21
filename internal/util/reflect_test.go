@@ -893,7 +893,7 @@ func (rt *reflectTest) TestGetColumnMap_withIgnoredEmbeddedPointerStruct() {
 
 func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
 	type TestStruct struct {
-		str    string // nolint:structcheck,unused // not used directly but needed for test
+		str    string //nolint:structcheck,unused // not used directly but needed for test
 		Int    int64
 		Bool   bool
 		Valuer *sql.NullString
@@ -910,7 +910,7 @@ func (rt *reflectTest) TestGetColumnMap_withPrivateFields() {
 
 func (rt *reflectTest) TestGetColumnMap_withPrivateEmbeddedFields() {
 	type TestEmbedded struct {
-		str string // nolint:structcheck,unused // not used directly but need for test
+		str string //nolint:structcheck,unused // not used directly but need for test
 		Int int64
 	}
 
