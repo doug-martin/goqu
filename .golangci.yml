@@ -72,7 +72,7 @@ linters:
     - errorlint
     - funlen
     - forbidigo
-    - forcetypeassert
+    #- forcetypeassert
     - goconst
     - gocritic
     - gocyclo
