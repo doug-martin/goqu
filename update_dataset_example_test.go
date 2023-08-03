@@ -6,6 +6,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	"github.com/doug-martin/goqu/v9/exp"
 )
 
 func ExampleUpdate_withStruct() {
@@ -40,6 +41,17 @@ func ExampleUpdate_withMap() {
 
 	// Output:
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+}
+
+func ExampleUpdate_withExpressions() {
+	sql, args, _ := goqu.Update("items").Set([]exp.UpdateExpression{
+		goqu.C("name").Set("Test"),
+		goqu.C("address").Set("111 Test Addr"),
+	}).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "name"='Test',"address"='111 Test Addr' []
 }
 
 func ExampleUpdate_withSkipUpdateTag() {
