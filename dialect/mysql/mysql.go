@@ -16,7 +16,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsConflictUpdateWhere = false
 	opts.SupportsInsertIgnoreSyntax = true
 	opts.SupportsConflictTarget = false
-	opts.SupportsWithCTE = false
+	opts.SupportsWithCTE = true
 	opts.SupportsWithCTERecursive = false
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
