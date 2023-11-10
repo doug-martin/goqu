@@ -275,6 +275,9 @@ type (
 		Expression
 		Action() ConflictAction
 	}
+	ConflictNoIgnore interface {
+		NoIgnore()
+	}
 	ConflictUpdateExpression interface {
 		ConflictExpression
 		TargetColumn() string
