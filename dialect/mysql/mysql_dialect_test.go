@@ -125,6 +125,19 @@ func (mds *mysqlDialectSuite) TestBitwiseOperations() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestFuns() {
+	col := goqu.C("a")
+	ds := mds.GetDs("test")
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Select(goqu.GREATEST(col, 2)), sql: "SELECT GREATEST(`a`, 2) FROM `test`"},
+		sqlTestCase{ds: ds.Select(goqu.LEAST(col, 2)), sql: "SELECT LEAST(`a`, 2) FROM `test`"},
+		sqlTestCase{ds: ds.Select(goqu.UPPER(col)), sql: "SELECT UCASE(`a`) FROM `test`"},
+		sqlTestCase{ds: ds.Select(goqu.UPPER("Val")), sql: "SELECT UCASE('Val') FROM `test`"},
+		sqlTestCase{ds: ds.Select(goqu.LOWER(col)), sql: "SELECT LCASE(`a`) FROM `test`"},
+		sqlTestCase{ds: ds.Select(goqu.LOWER("Val")), sql: "SELECT LCASE('Val') FROM `test`"},
+	)
+}
+
 func (mds *mysqlDialectSuite) TestUpdateSQL() {
 	ds := mds.GetDs("test").Update()
 	mds.assertSQL(

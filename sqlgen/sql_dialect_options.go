@@ -249,6 +249,14 @@ type (
 		// 		exp.CrossJoinType:        []byte(" CROSS JOIN "),
 		// 	})
 		JoinTypeLookup map[exp.JoinType][]byte
+		// A map used to look up Function name and their SQL equivalents
+		// (Default=map[string][]byte{
+		// 		exp.FunctionNameGreatest:    []byte("GREATEST"),
+		// 		exp.FunctionNameLeast:       []byte("LEAST"),
+		//      exp.FunctionNameUpper:       []byte("UPPER"),
+		//      exp.FunctionNameLower:       []byte("LOWER"),
+		// 	})
+		FunctionNameLookup map[string][]byte
 		// Whether or not boolean data type is supported
 		BooleanDataTypeSupported bool
 		// Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
@@ -547,6 +555,12 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			exp.NaturalRightJoinType: []byte(" NATURAL RIGHT JOIN "),
 			exp.NaturalFullJoinType:  []byte(" NATURAL FULL JOIN "),
 			exp.CrossJoinType:        []byte(" CROSS JOIN "),
+		},
+		FunctionNameLookup: map[string][]byte{
+			exp.FunctionNameGreatest: []byte("GREATEST"),
+			exp.FunctionNameLeast:    []byte("LEAST"),
+			exp.FunctionNameUpper:    []byte("UPPER"),
+			exp.FunctionNameLower:    []byte("LOWER"),
 		},
 
 		TimeFormat: time.RFC3339Nano,

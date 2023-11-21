@@ -65,53 +65,107 @@ func Func(name string, args ...interface{}) exp.SQLFunctionExpression {
 }
 
 // used internally to normalize the column name if passed in as a string it should be turned into an identifier
-func newIdentifierFunc(name string, col interface{}) exp.SQLFunctionExpression {
-	if s, ok := col.(string); ok {
-		col = I(s)
+func newIdentifierFunc(name string, autoCol bool, cols ...interface{}) exp.SQLFunctionExpression {
+	if autoCol {
+		for i := range cols {
+			if s, ok := cols[i].(string); ok {
+				cols[i] = I(s)
+			}
+		}
 	}
-	return Func(name, col)
+	return Func(name, cols...)
 }
 
 // Creates a new DISTINCT sql function
 //   DISTINCT("a") -> DISTINCT("a")
 //   DISTINCT(I("a")) -> DISTINCT("a")
-func DISTINCT(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("DISTINCT", col) }
+func DISTINCT(col interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc("DISTINCT", true, col)
+}
 
 // Creates a new COUNT sql function
 //   COUNT("a") -> COUNT("a")
 //   COUNT("*") -> COUNT("*")
 //   COUNT(I("a")) -> COUNT("a")
-func COUNT(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("COUNT", col) }
+func COUNT(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("COUNT", true, col) }
 
 // Creates a new MIN sql function
 //   MIN("a") -> MIN("a")
 //   MIN(I("a")) -> MIN("a")
-func MIN(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("MIN", col) }
+func MIN(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("MIN", true, col) }
 
 // Creates a new MAX sql function
 //   MAX("a") -> MAX("a")
 //   MAX(I("a")) -> MAX("a")
-func MAX(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("MAX", col) }
+func MAX(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("MAX", true, col) }
+
+// Creates a new GREATEST sql function
+//   GREATEST("a", "b") -> GREATEST('a', 'b')
+//   GREATEST(I("a"), I("b")) -> GREATEST("a", "b")
+func GREATEST(cols ...interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc(exp.FunctionNameGreatest, false, cols...)
+}
+
+// Creates a new LEAST sql function
+//   LEAST("a", "b") -> LEAST('a', 'b')
+//   LEAST(I("a"), I("b")) -> LEAST("a", "b")
+func LEAST(cols ...interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc(exp.FunctionNameLeast, false, cols...)
+}
+
+// Creates a new UPPER sql function
+//   UPPER("a") -> UPPER('a')
+//   UPPER(I("a")) -> UPPER("a")
+func UPPER(col interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc(exp.FunctionNameUpper, false, col)
+}
+
+// Creates a new LOWER sql function
+//   LOWER("a") -> LOWER('a')
+//   LOWER(I("a")) -> LOWER("a")
+func LOWER(col interface{}) exp.SQLFunctionExpression {
+	return newIdentifierFunc(exp.FunctionNameLower, false, col)
+}
+
+// Creates a new case insensitive equal sql boolean expression
+//   CaseInsensitiveEq("a", "A") -> LOWER('a') = LOWER('A')
+//   CaseInsensitiveEq(I("a"), "A") -> LOWER("a") = LOWER('A')
+func CaseInsensitiveEq(lval, rval interface{}) exp.BooleanExpression {
+	lvalLower := LOWER(lval)
+	rvalLower := LOWER(rval)
+
+	return lvalLower.Eq(rvalLower)
+}
+
+// Creates a new case insensitive not equal sql boolean expression
+//   CaseInsensitiveNeq("a", "A") -> LOWER('a') != LOWER('A')
+//   CaseInsensitiveNeq(I("a"), "A") -> LOWER("a") != LOWER('A')
+func CaseInsensitiveNeq(lval, rval interface{}) exp.BooleanExpression {
+	lvalLower := LOWER(lval)
+	rvalLower := LOWER(rval)
+
+	return lvalLower.Neq(rvalLower)
+}
 
 // Creates a new AVG sql function
 //   AVG("a") -> AVG("a")
 //   AVG(I("a")) -> AVG("a")
-func AVG(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("AVG", col) }
+func AVG(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("AVG", true, col) }
 
 // Creates a new FIRST sql function
 //   FIRST("a") -> FIRST("a")
 //   FIRST(I("a")) -> FIRST("a")
-func FIRST(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("FIRST", col) }
+func FIRST(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("FIRST", true, col) }
 
 // Creates a new LAST sql function
 //   LAST("a") -> LAST("a")
 //   LAST(I("a")) -> LAST("a")
-func LAST(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("LAST", col) }
+func LAST(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("LAST", true, col) }
 
 // Creates a new SUM sql function
 //   SUM("a") -> SUM("a")
 //   SUM(I("a")) -> SUM("a")
-func SUM(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("SUM", col) }
+func SUM(col interface{}) exp.SQLFunctionExpression { return newIdentifierFunc("SUM", true, col) }
 
 // Creates a new COALESCE sql function
 //   COALESCE(I("a"), "a") -> COALESCE("a", 'a')
@@ -150,12 +204,12 @@ func NTILE(n int) exp.SQLFunctionExpression {
 
 //nolint:stylecheck,golint //sql function name
 func FIRST_VALUE(val interface{}) exp.SQLFunctionExpression {
-	return newIdentifierFunc("FIRST_VALUE", val)
+	return newIdentifierFunc("FIRST_VALUE", true, val)
 }
 
 //nolint:stylecheck,golint //sql function name
 func LAST_VALUE(val interface{}) exp.SQLFunctionExpression {
-	return newIdentifierFunc("LAST_VALUE", val)
+	return newIdentifierFunc("LAST_VALUE", true, val)
 }
 
 //nolint:stylecheck,golint //sql function name

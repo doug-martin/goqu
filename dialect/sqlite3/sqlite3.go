@@ -58,6 +58,12 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		exp.BitwiseLeftShiftOp:  []byte("<<"),
 		exp.BitwiseRightShiftOp: []byte(">>"),
 	}
+	opts.FunctionNameLookup = map[string][]byte{
+		exp.FunctionNameGreatest: []byte("MAX"),
+		exp.FunctionNameLeast:    []byte("MIN"),
+		exp.FunctionNameUpper:    []byte("UPPER"),
+		exp.FunctionNameLower:    []byte("LOWER"),
+	}
 	opts.EscapedRunes = map[rune][]byte{
 		'\'': []byte("''"),
 	}
