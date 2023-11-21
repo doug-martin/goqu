@@ -257,6 +257,7 @@ func (id *InsertDataset) ReturnsColumns() bool {
 // Generates the INSERT sql, and returns an QueryExecutor struct with the sql set to the INSERT statement
 //    db.Insert("test").Rows(Record{"name":"Bob"}).Executor().Exec()
 //
+
 func (id *InsertDataset) Executor() exec.QueryExecutor {
 	return id.queryFactory.FromSQLBuilder(id.insertSQLBuilder())
 }

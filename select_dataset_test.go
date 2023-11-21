@@ -103,7 +103,7 @@ func (sds *selectDatasetSuite) TestUpdate() {
 		Order(order...)
 	ec := exp.NewUpdateClauses().
 		SetTable(goqu.C("test")).
-		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)).
+		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from.SetSubQuery(true))).
 		WhereAppend(ds.GetClauses().Where()).
 		SetLimit(limit).
 		SetOrder(order...)
@@ -122,7 +122,7 @@ func (sds *selectDatasetSuite) TestInsert() {
 		Order(order...)
 	ec := exp.NewInsertClauses().
 		SetInto(goqu.C("test")).
-		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from))
+		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from.SetSubQuery(true)))
 	sds.Equal(ec, ds.Insert().GetClauses())
 }
 
@@ -138,7 +138,7 @@ func (sds *selectDatasetSuite) TestDelete() {
 		Order(order...)
 	ec := exp.NewDeleteClauses().
 		SetFrom(goqu.C("test")).
-		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)).
+		CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from.SetSubQuery(true))).
 		WhereAppend(ds.GetClauses().Where()).
 		SetLimit(limit).
 		SetOrder(order...)
@@ -168,7 +168,7 @@ func (sds *selectDatasetSuite) TestWith() {
 			ds: bd.With("test-cte", from),
 			clauses: exp.NewSelectClauses().
 				SetFrom(exp.NewColumnListExpression("test")).
-				CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)),
+				CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from.SetSubQuery(true))),
 		},
 		selectTestCase{
 			ds:      bd,
@@ -1131,7 +1131,7 @@ func (sds *selectDatasetSuite) TestAs() {
 		selectTestCase{
 			ds: bd.As("t"),
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")).
-				SetAlias(goqu.T("t")),
+				SetAlias(goqu.T("t")).SetSubQuery(true),
 		},
 		selectTestCase{
 			ds:      bd,

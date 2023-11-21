@@ -72,7 +72,7 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 		case OrderSQLFragment:
 			ssg.OrderSQL(b, clauses.Order())
 		case OrderWithOffsetFetchSQLFragment:
-			ssg.OrderWithOffsetFetchSQL(b, clauses.Order(), clauses.Offset(), clauses.Limit())
+			ssg.OrderWithOffsetFetchSQL(b, clauses.Order(), clauses.Offset(), clauses.Limit(), clauses.IsSubQuery())
 		case LimitSQLFragment:
 			ssg.LimitSQL(b, clauses.Limit())
 		case OffsetSQLFragment:
@@ -85,10 +85,15 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 	}
 }
 
+func (ssg *selectSQLGenerator) selectSQLDistinctFragment(b sb.SQLBuilder, clauses exp.SelectClauses) {
+	if clauses.Distinct() != nil {
+		b.Write(ssg.DialectOptions().DistinctFragment)
+	}
+}
+
 func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	dc := clauses.Distinct()
 	if dc != nil {
-		b.Write(ssg.DialectOptions().DistinctFragment)
 		if !dc.IsEmpty() {
 			if ssg.DialectOptions().SupportsDistinctOn {
 				b.Write(ssg.DialectOptions().OnFragment).WriteRunes(ssg.DialectOptions().LeftParenRune)
@@ -113,13 +118,15 @@ func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.Sele
 // Adds the SELECT clause and columns to a sql statement
 func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	b.Write(ssg.DialectOptions().SelectClause).WriteRunes(ssg.DialectOptions().SpaceRune)
+	ssg.selectSQLDistinctFragment(b, clauses)
 	ssg.selectSQLCommon(b, clauses)
 }
 
 // Adds the SELECT clause along with LIMIT to a SQL statement (e.g. MSSQL dialect: SELECT TOP 10 ...)
 func (ssg *selectSQLGenerator) SelectWithLimitSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	b.Write(ssg.DialectOptions().SelectClause).WriteRunes(ssg.DialectOptions().SpaceRune)
-	if clauses.Offset() == 0 && clauses.Limit() != nil {
+	ssg.selectSQLDistinctFragment(b, clauses)
+	if clauses.Offset() == 0 && clauses.Limit() != nil && !clauses.IsSubQuery() {
 		ssg.LimitSQL(b, clauses.Limit())
 		b.WriteRunes(ssg.DialectOptions().SpaceRune)
 	}

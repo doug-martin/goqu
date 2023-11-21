@@ -60,6 +60,9 @@ type (
 		CommonTables() []CommonTableExpression
 		CommonTablesAppend(cte CommonTableExpression) SelectClauses
 
+		SetSubQuery(subQuery bool) SelectClauses
+		IsSubQuery() bool
+
 		Windows() []WindowExpression
 		SetWindows(ws []WindowExpression) SelectClauses
 		WindowsAppend(ws ...WindowExpression) SelectClauses
@@ -81,6 +84,7 @@ type (
 		compounds     []CompoundExpression
 		lock          Lock
 		windows       []WindowExpression
+		subQuery      bool
 	}
 )
 
@@ -124,6 +128,7 @@ func (c *selectClauses) clone() *selectClauses {
 		compounds:     c.compounds,
 		lock:          c.lock,
 		windows:       c.windows,
+		subQuery:      c.subQuery,
 	}
 }
 
@@ -135,6 +140,16 @@ func (c *selectClauses) CommonTablesAppend(cte CommonTableExpression) SelectClau
 	ret := c.clone()
 	ret.commonTables = append(ret.commonTables, cte)
 	return ret
+}
+
+func (c *selectClauses) SetSubQuery(subQuery bool) SelectClauses {
+	ret := c.clone()
+	ret.subQuery = subQuery
+	return ret
+}
+
+func (c *selectClauses) IsSubQuery() bool {
+	return c.subQuery
 }
 
 func (c *selectClauses) Select() ColumnListExpression {

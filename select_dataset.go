@@ -86,6 +86,10 @@ func (sd *SelectDataset) GetClauses() exp.SelectClauses {
 	return sd.clauses
 }
 
+func (sd *SelectDataset) SetSubQuery(subQuery bool) *SelectDataset {
+	return sd.copy(sd.clauses.SetSubQuery(subQuery))
+}
+
 // used interally to copy the dataset
 func (sd *SelectDataset) copy(clauses exp.SelectClauses) *SelectDataset {
 	return &SelectDataset{
@@ -183,6 +187,10 @@ func (sd *SelectDataset) Truncate() *TruncateDataset {
 //
 // The name will refer to the results of the specified subquery.
 func (sd *SelectDataset) With(name string, subquery exp.Expression) *SelectDataset {
+	if subQuerySelectDataset, ok := subquery.(*SelectDataset); ok {
+		subquery = subQuerySelectDataset.copy(subQuerySelectDataset.clauses.SetSubQuery(true))
+	}
+
 	return sd.copy(sd.clauses.CommonTablesAppend(exp.NewCommonTableExpression(false, name, subquery)))
 }
 
@@ -493,7 +501,7 @@ func (sd *SelectDataset) CompoundFromSelf() *SelectDataset {
 
 // Sets the alias for this dataset. This is typically used when using a Dataset as a subselect. See examples.
 func (sd *SelectDataset) As(alias string) *SelectDataset {
-	return sd.copy(sd.clauses.SetAlias(T(alias)))
+	return sd.copy(sd.clauses.SetAlias(T(alias)).SetSubQuery(true))
 }
 
 // Returns the alias value as an identiier expression

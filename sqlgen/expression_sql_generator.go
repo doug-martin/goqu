@@ -75,6 +75,7 @@ func (esg *expressionSQLGenerator) Dialect() string {
 
 var valuerReflectType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 
+// nolint:gocyclo // processing all possible types
 func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 	if b.Error() != nil {
 		return
@@ -92,6 +93,12 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		esg.literalInt(b, int64(v))
 	case int64:
 		esg.literalInt(b, v)
+	case uint:
+		esg.literalUint(b, uint64(v))
+	case uint32:
+		esg.literalUint(b, uint64(v))
+	case uint64:
+		esg.literalUint(b, v)
 	case float32:
 		esg.literalFloat(b, float64(v))
 	case float64:
@@ -145,7 +152,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsInt(valKind):
 		esg.Generate(b, v.Int())
 	case util.IsUint(valKind):
-		esg.Generate(b, int64(v.Uint()))
+		esg.Generate(b, v.Uint())
 	case util.IsFloat(valKind):
 		esg.Generate(b, v.Float())
 	case util.IsString(valKind):
@@ -305,7 +312,18 @@ func (esg *expressionSQLGenerator) literalTime(b sb.SQLBuilder, t time.Time) {
 		esg.placeHolderSQL(b, t)
 		return
 	}
-	esg.Generate(b, t.In(timeLocation).Format(esg.dialectOptions.TimeFormat))
+
+	s := t.In(timeLocation).Format(esg.dialectOptions.TimeFormat)
+	b.WriteRunes(esg.dialectOptions.StringQuote)
+	for _, char := range s {
+		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
+			b.Write(e)
+		} else {
+			b.WriteRunes(char)
+		}
+	}
+
+	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
 
 // Generates SQL for a Float Value
@@ -326,13 +344,22 @@ func (esg *expressionSQLGenerator) literalInt(b sb.SQLBuilder, i int64) {
 	b.WriteStrings(strconv.FormatInt(i, 10))
 }
 
+// Generates SQL for an uint value
+func (esg *expressionSQLGenerator) literalUint(b sb.SQLBuilder, i uint64) {
+	if b.IsPrepared() {
+		esg.placeHolderSQL(b, i)
+		return
+	}
+	b.WriteStrings(strconv.FormatUint(i, 10))
+}
+
 // Generates SQL for a string
 func (esg *expressionSQLGenerator) literalString(b sb.SQLBuilder, s string) {
 	if b.IsPrepared() {
 		esg.placeHolderSQL(b, s)
 		return
 	}
-	b.WriteRunes(esg.dialectOptions.StringQuote)
+	b.WriteRunes(esg.dialectOptions.StartStringQuote...)
 	for _, char := range s {
 		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
 			b.Write(e)
