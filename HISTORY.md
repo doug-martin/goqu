@@ -1,3 +1,6 @@
+# v9.19.0
+* [FEATURE] Add support for omitempty and omitnil struct tags [#309](https://github.com/doug-martin/goqu/pull/309) - [@randallmlough](https://github.com/randallmlough)
+
 # v9.18.0
 * [FEATURE] Add support for aliasing insert datasets to support upsert alias [#306](https://github.com/doug-martin/goqu/pull/306) - [@XIELongDragon](https://github.com/XIELongDragon)
 * [FEATURE] Add support for aliasing BooleanExpressions [#307](https://github.com/doug-martin/goqu/pull/307) - [@XIELongDragon](https://github.com/XIELongDragon)
