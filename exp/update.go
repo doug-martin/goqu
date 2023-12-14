@@ -20,6 +20,10 @@ func set(col IdentifierExpression, val interface{}) UpdateExpression {
 }
 
 func NewUpdateExpressions(update interface{}) (updates []UpdateExpression, err error) {
+	if us, ok := update.([]UpdateExpression); ok {
+		updates = append(updates, us...)
+		return updates, nil
+	}
 	if u, ok := update.(UpdateExpression); ok {
 		updates = append(updates, u)
 		return updates, nil

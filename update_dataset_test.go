@@ -163,6 +163,18 @@ func (uds *updateDatasetSuite) TestSet() {
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")),
 		},
+		updateTestCase{
+			ds: bd.Set([]exp.UpdateExpression{
+				goqu.C("name").Set("Test"),
+				goqu.C("address").Set("111 Test Addr"),
+			}),
+			clauses: exp.NewUpdateClauses().
+				SetTable(goqu.C("items")).
+				SetSetValues([]exp.UpdateExpression{
+					goqu.C("name").Set("Test"),
+					goqu.C("address").Set("111 Test Addr"),
+				}),
+		},
 	)
 }
 
