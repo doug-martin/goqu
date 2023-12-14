@@ -72,7 +72,14 @@ func (isg *insertSQLGenerator) Generate(
 
 // Adds the correct fragment to being an INSERT statement
 func (isg *insertSQLGenerator) InsertBeginSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
-	if isg.DialectOptions().SupportsInsertIgnoreSyntax && o != nil {
+	isUpdate := false
+	forceNoIgnore := false
+
+	if o != nil {
+		_, isUpdate = o.(exp.ConflictUpdateExpression)
+		_, forceNoIgnore = o.(exp.ConflictNoIgnore)
+	}
+	if isg.DialectOptions().SupportsInsertIgnoreSyntax && !isUpdate && !forceNoIgnore {
 		b.Write(isg.DialectOptions().InsertIgnoreClause)
 	} else {
 		b.Write(isg.DialectOptions().InsertClause)

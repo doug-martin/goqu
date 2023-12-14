@@ -77,6 +77,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 
 func DialectOptionsV8() *goqu.SQLDialectOptions {
 	opts := DialectOptions()
+	opts.SupportsWithCTE = true
+	opts.SupportsWithCTERecursive = true
 	opts.SupportsWindowFunction = true
 	return opts
 }
