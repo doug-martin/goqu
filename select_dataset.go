@@ -198,7 +198,7 @@ func (sd *SelectDataset) WithRecursive(name string, subquery exp.Expression) *Se
 	return sd.copy(sd.clauses.CommonTablesAppend(exp.NewCommonTableExpression(true, name, subquery)))
 }
 
-// Adds columns to the SELECT clause. See examples
+// Replaces columns of the SELECT clause. Empty list resets the clause. See examples
 // You can pass in the following.
 //
 //	string: Will automatically be turned into an identifier
@@ -215,7 +215,7 @@ func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)))
 }
 
-// Adds columns to the SELECT DISTINCT clause. See examples
+// Replaces columns of the SELECT DISTINCT clause. Empty list resets the clause. See examples
 // You can pass in the following.
 //
 //	string: Will automatically be turned into an identifier
