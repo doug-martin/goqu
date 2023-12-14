@@ -77,7 +77,8 @@ func (cl columnList) Columns() []Expression {
 
 func (cl columnList) Append(cols ...Expression) ColumnListExpression {
 	ret := columnList{}
-	exps := append(ret.columns, cl.columns...)
+	exps := ret.columns
+	exps = append(exps, cl.columns...)
 	exps = append(exps, cols...)
 	ret.columns = exps
 	return ret

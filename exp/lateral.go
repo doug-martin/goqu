@@ -7,7 +7,8 @@ type (
 )
 
 // Creates a new SQL lateral expression
-//   L(From("test")) -> LATERAL (SELECT * FROM "tests")
+//
+//	L(From("test")) -> LATERAL (SELECT * FROM "tests")
 func NewLateralExpression(table AppendableExpression) LateralExpression {
 	return lateral{table: table}
 }

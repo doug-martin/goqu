@@ -8,11 +8,16 @@ type (
 )
 
 // Creates a new SQL literal with the provided arguments.
-//   L("a = 1") -> a = 1
+//
+//	L("a = 1") -> a = 1
+//
 // You can also you placeholders. All placeholders within a Literal are represented by '?'
-//   L("a = ?", "b") -> a = 'b'
+//
+//	L("a = ?", "b") -> a = 'b'
+//
 // Literals can also contain placeholders for other expressions
-//   L("(? AND ?) OR (?)", I("a").Eq(1), I("b").Eq("b"), I("c").In([]string{"a", "b", "c"}))
+//
+//	L("(? AND ?) OR (?)", I("a").Eq(1), I("b").Eq("b"), I("c").In([]string{"a", "b", "c"}))
 func NewLiteralExpression(sql string, args ...interface{}) LiteralExpression {
 	return literal{literal: sql, args: args}
 }

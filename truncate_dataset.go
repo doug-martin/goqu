@@ -86,9 +86,10 @@ func (td *TruncateDataset) copy(clauses exp.TruncateClauses) *TruncateDataset {
 
 // Adds a FROM clause. This return a new dataset with the original sources replaced. See examples.
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   IdentifierExpression
-//   LiteralExpression: (See Literal) Will use the literal SQL
+//
+//	string: Will automatically be turned into an identifier
+//	IdentifierExpression
+//	LiteralExpression: (See Literal) Will use the literal SQL
 func (td *TruncateDataset) Table(table ...interface{}) *TruncateDataset {
 	return td.copy(td.clauses.SetTable(exp.NewColumnListExpression(table...)))
 }
@@ -148,13 +149,14 @@ func (td *TruncateDataset) SetError(err error) *TruncateDataset {
 // See examples.
 //
 // Errors:
-//  * There is an error generating the SQL
+//   - There is an error generating the SQL
 func (td *TruncateDataset) ToSQL() (sql string, params []interface{}, err error) {
 	return td.truncateSQLBuilder().ToSQL()
 }
 
 // Generates the TRUNCATE sql, and returns an Exec struct with the sql set to the TRUNCATE statement
-//    db.From("test").Truncate().Executor().Exec()
+//
+//	db.From("test").Truncate().Executor().Exec()
 func (td *TruncateDataset) Executor() exec.QueryExecutor {
 	return td.queryFactory.FromSQLBuilder(td.truncateSQLBuilder())
 }

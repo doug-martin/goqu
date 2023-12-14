@@ -104,7 +104,8 @@ type (
 )
 
 // Creates a new ON clause to be used within a join
-//    ds.Join(I("my_table"), On(I("my_table.fkey").Eq(I("other_table.id")))
+//
+//	ds.Join(I("my_table"), On(I("my_table.fkey").Eq(I("other_table.id")))
 func NewJoinOnCondition(expressions ...Expression) JoinCondition {
 	return joinOnCondition{on: NewExpressionList(AndType, expressions...)}
 }

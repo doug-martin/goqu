@@ -162,7 +162,7 @@ func (qes *queryExecutorSuite) TestScanStructs_withPointerFields() {
 
 func (qes *queryExecutorSuite) TestScanStructs_withPrivateFields() {
 	type StructWithPrivateTags struct {
-		private string // nolint:structcheck,unused // need for test
+		private string //nolint:structcheck,unused // need for test
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
