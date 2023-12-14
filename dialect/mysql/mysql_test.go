@@ -129,6 +129,11 @@ func (mt *mysqlTest) TestToSQL() {
 			ds:  ds.Prepared(true).Where(goqu.L("? = ?", goqu.C("int"), 10)),
 			sql: "SELECT * FROM `entry` WHERE `int` = ?", args: []interface{}{int64(10)},
 		},
+		sqlTestCase{
+			ds: ds.With("entrySubselect", goqu.From("entry").Select("id").Where(goqu.C("int").Gt(8))).
+				Select(goqu.Star()).Where(goqu.Ex{ "id": goqu.Op{ "in": goqu.From("entrySubselect").Select(goqu.Star()) } }),
+			sql: "WITH `entrySubselect` as (SELECT id from `entry` where int > 5) select * from `entry`",
+		},
 	)
 }
 
