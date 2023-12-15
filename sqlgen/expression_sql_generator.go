@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"reflect"
 	"strconv"
 	"time"
@@ -136,6 +137,8 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsSlice(valKind):
 		switch t := val.(type) {
 		case []byte:
+			esg.literalBytes(b, t)
+		case json.RawMessage:
 			esg.literalBytes(b, t)
 		case []exp.CommonTableExpression:
 			esg.commonTablesSliceSQL(b, t)
