@@ -47,7 +47,7 @@ The [`TxDatabase`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase)  al
 
 #### Wrap
 
-The [`TxDatabase.Wrap`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase.Wrap) is a convience method for automatically handling `COMMIT` and `ROLLBACK`
+The [`TxDatabase.Wrap`](http://godoc.org/github.com/doug-martin/goqu/#TxDatabase.Wrap) is a convenience method for automatically handling `COMMIT` and `ROLLBACK`
 
 ```go
 tx, err := db.Begin()
@@ -73,5 +73,5 @@ To enable trace logging of SQL statements use the [`Database.Logger`](http://god
 
 **NOTE** The logger must implement the [`Logger`](http://godoc.org/github.com/doug-martin/goqu/#Logger) interface
 
-**NOTE** If you start a transaction using a database your set a logger on the transaction will inherit that logger automatically
+**NOTE** If you start a transaction using a database, your set a logger on the transaction will inherit that logger automatically
 

@@ -7,7 +7,7 @@
 * [`S`](#S) - An Identifier that represents a schema. With a schema identifier you can fully qualify tables and columns.
 * [`T`](#T) - An Identifier that represents a Table. With a Table identifier you can fully qualify columns.
 * [`C`](#C) - An Identifier that represents a Column. See the docs for more examples
-* [`I`](#I) - An Identifier represents a schema, table, or column or any combination. I parses identifiers seperated by a . character.
+* [`I`](#I) - An Identifier represents a schema, table, or column or any combination. I parses identifiers separated by a . character.
 * [`L`](#L) - An SQL literal.
 * [`V`](#V) - An Value to be used in SQL. 
 * [`And`](#and) - AND multiple expressions together.
@@ -143,7 +143,7 @@ fmt.Println(sql)
 <a name="I"></a>
 **[`I()`](https://godoc.org/github.com/doug-martin/goqu#I)** 
 
-An Identifier represents a schema, table, or column or any combination. `I` parses identifiers seperated by a `.` character.
+An Identifier represents a schema, table, or column or any combination. `I` parses identifiers separated by a `.` character.
 
 ```go
 // with three parts it is assumed you have provided a schema, table and column

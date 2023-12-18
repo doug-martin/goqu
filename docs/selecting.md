@@ -17,10 +17,10 @@
   * [`ForUpdate`](#forupdate)
 * Executing Queries
   * [`ScanStructs`](#scan-structs) - Scans rows into a slice of structs
-  * [`ScanStruct`](#scan-struct) - Scans a row into a slice a struct, returns false if a row wasnt found
+  * [`ScanStruct`](#scan-struct) - Scans a row into a slice a struct, returns false if a row wasn't found
   * [`ScanVals`](#scan-vals)- Scans a rows of 1 column into a slice of primitive values
-  * [`ScanVal`](#scan-val) - Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
-  * [`Scanner`](#scanner) - Allows you to interatively scan rows into structs or values.
+  * [`ScanVal`](#scan-val) - Scans a row of 1 column into a primitive value, returns false if a row wasn't found.
+  * [`Scanner`](#scanner) - Allows you to iteratively scan rows into structs or values.
   * [`Count`](#count) - Returns the count for the current query
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
@@ -839,7 +839,7 @@ SELECT ROW_NUMBER() OVER "w" FROM "test" WINDOW "w" AS (PARTITION BY "a" ORDER B
 **[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.SetError)**
 
 Sometimes while building up a query with goqu you will encounter situations where certain
-preconditions are not met or some end-user contraint has been violated. While you could
+preconditions are not met or some end-user constraint has been violated. While you could
 track this error case separately, goqu provides a convenient built-in mechanism to set an
 error on a dataset if one has not already been set to simplify query building.
 
@@ -989,7 +989,7 @@ ds := db.
 		"goqu_user.id",
 		"goqu_user.first_name",
 		"goqu_user.last_name",
-		// alias the fully qualified identifier `C` is important here so it doesnt parse it
+		// alias the fully qualified identifier `C` is important here so it doesn't parse it
 		goqu.I("user_role.user_id").As(goqu.C("user_role.user_id")),
 		goqu.I("user_role.name").As(goqu.C("user_role.name")),
 	).
@@ -1009,7 +1009,7 @@ for _, u := range users {
 <a name="scan-struct"></a>
 **[`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStruct)**
 
-Scans a row into a slice a struct, returns false if a row wasnt found
+Scans a row into a slice a struct, returns false if a row wasn't found
 
 **NOTE** [`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStruct) will only select the columns that can be scanned in to the struct unless you have explicitly selected certain columns.
 
@@ -1091,7 +1091,7 @@ ds := db.
 		"goqu_user.id",
 		"goqu_user.first_name",
 		"goqu_user.last_name",
-		// alias the fully qualified identifier `C` is important here so it doesnt parse it
+		// alias the fully qualified identifier `C` is important here so it doesn't parse it
 		goqu.I("user_role.user_id").As(goqu.C("user_role.user_id")),
 		goqu.I("user_role.name").As(goqu.C("user_role.name")),
 	).
@@ -1164,7 +1164,7 @@ fmt.Printf("\n%+v", ids)
 <a name="scan-val"></a>
 [`ScanVal`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanVal)
 
-Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
+Scans a row of 1 column into a primitive value, returns false if a row wasn't found.
 
 **Note** when using the dataset a `LIMIT` of 1 is automatically applied.
 ```go

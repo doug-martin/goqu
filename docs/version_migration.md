@@ -6,14 +6,14 @@
 <a name="v8"></a>
 ### `v7 to v8`
 
-A major change the the API was made in `v8` to seperate concerns between the different SQL statement types. 
+A major change the the API was made in `v8` to separate concerns between the different SQL statement types. 
 
 **Why the change?**
 
 1. There were feature requests that could not be cleanly implemented with everything in a single dataset. 
 2. Too much functionality was encapsulated in a single datastructure.
     * It was unclear what methods could be used for each SQL statement type.
-    * Changing a feature for one statement type had the possiblity of breaking another statement type.
+    * Changing a feature for one statement type had the possibility of breaking another statement type.
     * Test coverage was decent but was almost solely concerned about SELECT statements, breaking them up allowed for focused testing on each statement type.
     * Most the SQL generation methods (`ToInsertSQL`, `ToUpdateSQL` etc.) took arguments which lead to an ugly API that was not uniform for each statement type, and proved to be inflexible.
 

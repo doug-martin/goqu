@@ -437,7 +437,7 @@ INSERT INTO "test" ("a", "b") VALUES ('a', 'b') RETURNING "test".*
 **[`SetError`](https://godoc.org/github.com/doug-martin/goqu/#InsertDataset.SetError)**
 
 Sometimes while building up a query with goqu you will encounter situations where certain
-preconditions are not met or some end-user contraint has been violated. While you could
+preconditions are not met or some end-user constraint has been violated. While you could
 track this error case separately, goqu provides a convenient built-in mechanism to set an
 error on a dataset if one has not already been set to simplify query building.
 
