@@ -40,8 +40,8 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/mock
 github.com/stretchr/testify/require
 github.com/stretchr/testify/suite
-# golang.org/x/crypto v0.11.0
-## explicit; go 1.17
+# golang.org/x/crypto v0.17.0
+## explicit; go 1.18
 golang.org/x/crypto/md4
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
