@@ -547,6 +547,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			exp.NaturalRightJoinType: []byte(" NATURAL RIGHT JOIN "),
 			exp.NaturalFullJoinType:  []byte(" NATURAL FULL JOIN "),
 			exp.CrossJoinType:        []byte(" CROSS JOIN "),
+			exp.ArrayJoinType:        []byte(" ARRAY JOIN "),
 		},
 
 		TimeFormat: time.RFC3339Nano,
