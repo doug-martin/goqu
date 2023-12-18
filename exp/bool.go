@@ -69,20 +69,27 @@ func lte(lhs Expression, rhs interface{}) BooleanExpression {
 	return NewBooleanExpression(LteOp, lhs, rhs)
 }
 
+func inNotIn(lhs Expression, op BooleanOperation, vals ...interface{}) BooleanExpression {
+	if len(vals) == 1 {
+		valType := reflect.Indirect(reflect.ValueOf(vals[0]))
+		if valType.Kind() == reflect.Slice {
+			return NewBooleanExpression(op, lhs, vals[0])
+		}
+		if _, ok := vals[0].(AppendableExpression); ok {
+			return NewBooleanExpression(op, lhs, vals[0])
+		}
+	}
+	return NewBooleanExpression(op, lhs, vals)
+}
+
 // used internally to create an IN BooleanExpression
 func in(lhs Expression, vals ...interface{}) BooleanExpression {
-	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return NewBooleanExpression(InOp, lhs, vals[0])
-	}
-	return NewBooleanExpression(InOp, lhs, vals)
+	return inNotIn(lhs, InOp, vals...)
 }
 
 // used internally to create a NOT IN BooleanExpression
 func notIn(lhs Expression, vals ...interface{}) BooleanExpression {
-	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return NewBooleanExpression(NotInOp, lhs, vals[0])
-	}
-	return NewBooleanExpression(NotInOp, lhs, vals)
+	return inNotIn(lhs, NotInOp, vals...)
 }
 
 // used internally to create an IS BooleanExpression

@@ -565,16 +565,16 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 			int64(1), int64(2), int64(3),
 		}},
 
-		expressionTestCase{val: ident.In(ae), sql: `("a" IN ((SELECT "id" FROM "test2")))`},
-		expressionTestCase{val: ident.In(ae), sql: `("a" IN ((SELECT "id" FROM "test2")))`, isPrepared: true},
+		expressionTestCase{val: ident.In(ae), sql: `("a" IN (SELECT "id" FROM "test2"))`},
+		expressionTestCase{val: ident.In(ae), sql: `("a" IN (SELECT "id" FROM "test2"))`, isPrepared: true},
 
 		expressionTestCase{val: ident.NotIn([]int64{1, 2, 3}), sql: `("a" NOT IN (1, 2, 3))`},
 		expressionTestCase{val: ident.NotIn([]int64{1, 2, 3}), sql: `("a" NOT IN (?, ?, ?))`, isPrepared: true, args: []interface{}{
 			int64(1), int64(2), int64(3),
 		}},
 
-		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN ((SELECT "id" FROM "test2")))`},
-		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN ((SELECT "id" FROM "test2")))`, isPrepared: true},
+		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN (SELECT "id" FROM "test2"))`},
+		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN (SELECT "id" FROM "test2"))`, isPrepared: true},
 
 		expressionTestCase{val: ident.Like("a%"), sql: `("a" LIKE 'a%')`},
 		expressionTestCase{val: ident.Like("a%"), sql: `("a" LIKE ?)`, isPrepared: true, args: []interface{}{"a%"}},
