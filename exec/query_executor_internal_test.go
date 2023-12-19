@@ -1050,6 +1050,52 @@ func (qes *queryExecutorSuite) TestScanStruct_taggedStructs() {
 	}, item)
 }
 
+func (qes *queryExecutorSuite) TestScanStruct_structWithInterfaceItemImplementingScanner() {
+	type TestStruct struct {
+		Value sql.Scanner
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).
+			AddRow(testName1),
+		)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).
+			AddRow(1234),
+		)
+
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+	var item TestStruct
+	item.Value = &sql.NullString{}
+
+	found, err := e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{
+		Value: &sql.NullString{
+			String: testName1,
+			Valid:  true,
+		},
+	}, item)
+
+	item.Value = &sql.NullInt32{}
+	found, err = e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{
+		Value: &sql.NullInt32{
+			Int32: 1234,
+			Valid: true,
+		},
+	}, item)
+}
+
 func (qes *queryExecutorSuite) TestScanVals() {
 	db, mock, err := sqlmock.New()
 	qes.NoError(err)
