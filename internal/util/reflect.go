@@ -211,7 +211,7 @@ func GetColumnMap(i interface{}) (ColumnMap, error) {
 	structMapCacheLock.Lock()
 	defer structMapCacheLock.Unlock()
 	if _, ok := structMapCache[t]; !ok {
-		structMapCache[t] = newColumnMap(t, []int{}, []string{})
+		structMapCache[t] = newColumnMap(val, t, []int{}, []string{})
 	}
 	return structMapCache[t], nil
 }
