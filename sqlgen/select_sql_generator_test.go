@@ -485,7 +485,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOffset() {
 	ssgs.assertCases(
 		sqlgen.NewSelectSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		selectTestCase{clause: sc, sql: `SELECT * FROM "test" OFFSET 10`},
-		selectTestCase{clause: sc, sql: `SELECT * FROM "test" OFFSET ?`, isPrepared: true, args: []interface{}{int64(10)}},
+		selectTestCase{clause: sc, sql: `SELECT * FROM "test" OFFSET ?`, isPrepared: true, args: []interface{}{uint64(10)}},
 	)
 }
 
