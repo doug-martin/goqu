@@ -227,6 +227,14 @@ type (
 		// 		exp.BitwiseRightShiftOp: []byte(">>"),
 		// }),
 		BitwiseOperatorLookup map[exp.BitwiseOperation][]byte
+		// A map used to look up ArithmeticOperations and their SQL equivalents
+		// (Default=map[exp.ArithmeticOperatorLookup][]byte{
+		// 		exp.ArithmeticAddOp: []byte("+"),
+		// 		exp.ArithmeticSubOp: []byte("-"),
+		// 		exp.ArithmeticMulOp: []byte("*"),
+		// 		exp.ArithmeticDivOp: []byte("/"),
+		// }),
+		ArithmeticOperatorLookup map[exp.ArithmeticOperation][]byte
 		// A map used to look up RangeOperations and their SQL equivalents
 		// (Default=map[exp.RangeOperation][]byte{
 		// 		exp.BetweenOp:    []byte("BETWEEN"),
@@ -529,6 +537,12 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			exp.BitwiseXorOp:        []byte("#"),
 			exp.BitwiseLeftShiftOp:  []byte("<<"),
 			exp.BitwiseRightShiftOp: []byte(">>"),
+		},
+		ArithmeticOperatorLookup: map[exp.ArithmeticOperation][]byte{
+			exp.ArithmeticAddOp: []byte("+"),
+			exp.ArithmeticSubOp: []byte("-"),
+			exp.ArithmeticMulOp: []byte("*"),
+			exp.ArithmeticDivOp: []byte("/"),
 		},
 		RangeOperatorLookup: map[exp.RangeOperation][]byte{
 			exp.BetweenOp:    []byte("BETWEEN"),

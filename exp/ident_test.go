@@ -239,6 +239,10 @@ func (ies *identifierExpressionSuite) TestAllOthers() {
 		{Ex: ident.BitwiseXor(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseXorOp, ident, bitwiseVals)},
 		{Ex: ident.BitwiseLeftShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseLeftShiftOp, ident, bitwiseVals)},
 		{Ex: ident.BitwiseRightShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseRightShiftOp, ident, bitwiseVals)},
+		{Ex: ident.Add(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticAddOp, ident, 1)},
+		{Ex: ident.Sub(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticSubOp, ident, 1)},
+		{Ex: ident.Mul(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticMulOp, ident, 1)},
+		{Ex: ident.Div(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticDivOp, ident, 1)},
 	}
 
 	for _, tc := range testCases {

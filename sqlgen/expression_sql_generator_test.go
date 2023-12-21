@@ -661,6 +661,34 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BitwiseExpression() {
 		expressionTestCase{val: ident.BitwiseRightShift(1), err: "goqu: bitwise operator 'Right Shift' not supported"},
 	)
 }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ArithmeticExpression() {
+	ident := exp.NewIdentifierExpression("", "", "a")
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: ident.Add(1), sql: `("a" + 1)`},
+		expressionTestCase{val: ident.Add(1), sql: `("a" + ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.Sub(1), sql: `("a" - 1)`},
+		expressionTestCase{val: ident.Sub(1), sql: `("a" - ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.Mul(1), sql: `("a" * 1)`},
+		expressionTestCase{val: ident.Mul(1), sql: `("a" * ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+
+		expressionTestCase{val: ident.Div(1), sql: `("a" / 1)`},
+		expressionTestCase{val: ident.Div(1), sql: `("a" / ?)`, isPrepared: true, args: []interface{}{int64(1)}},
+	)
+	opts := sqlgen.DefaultDialectOptions()
+	opts.ArithmeticOperatorLookup = map[exp.ArithmeticOperation][]byte{}
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{val: ident.Add(1), err: "goqu: arithmetic operator 'Addition' not supported"},
+		expressionTestCase{val: ident.Sub(1), err: "goqu: arithmetic operator 'Subtraction' not supported"},
+		expressionTestCase{val: ident.Mul(1), err: "goqu: arithmetic operator 'Multiplication' not supported"},
+		expressionTestCase{val: ident.Div(1), err: "goqu: arithmetic operator 'Division' not supported"},
+	)
+}
+
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_RangeExpression() {
 	betweenNum := exp.NewIdentifierExpression("", "", "a").
 		Between(exp.NewRangeVal(1, 2))

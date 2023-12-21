@@ -57,6 +57,10 @@ func (b bitwise) IsNotFalse() BooleanExpression                    { return isNo
 func (b bitwise) Distinct() SQLFunctionExpression                  { return NewSQLFunctionExpression("DISTINCT", b) }
 func (b bitwise) Between(val RangeVal) RangeExpression             { return between(b, val) }
 func (b bitwise) NotBetween(val RangeVal) RangeExpression          { return notBetween(b, val) }
+func (b bitwise) Add(val interface{}) ArithmeticExpression         { return arithmeticAdd(b, val) }
+func (b bitwise) Sub(val interface{}) ArithmeticExpression         { return arithmeticSub(b, val) }
+func (b bitwise) Mul(val interface{}) ArithmeticExpression         { return arithmeticMul(b, val) }
+func (b bitwise) Div(val interface{}) ArithmeticExpression         { return arithmeticDiv(b, val) }
 
 // used internally to create a Bitwise Inversion BitwiseExpression
 func bitwiseInversion(rhs Expression) BitwiseExpression {

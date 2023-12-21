@@ -87,3 +87,16 @@ func (sfe sqlFunctionExpression) OverName(windowName IdentifierExpression) SQLWi
 
 func (sfe sqlFunctionExpression) Asc() OrderedExpression  { return asc(sfe) }
 func (sfe sqlFunctionExpression) Desc() OrderedExpression { return desc(sfe) }
+
+func (sfe sqlFunctionExpression) Add(val interface{}) ArithmeticExpression {
+	return arithmeticAdd(sfe, val)
+}
+func (sfe sqlFunctionExpression) Sub(val interface{}) ArithmeticExpression {
+	return arithmeticSub(sfe, val)
+}
+func (sfe sqlFunctionExpression) Mul(val interface{}) ArithmeticExpression {
+	return arithmeticMul(sfe, val)
+}
+func (sfe sqlFunctionExpression) Div(val interface{}) ArithmeticExpression {
+	return arithmeticDiv(sfe, val)
+}

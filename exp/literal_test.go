@@ -79,6 +79,10 @@ func (les *literalExpressionSuite) TestAllOthers() {
 		{Ex: le.BitwiseXor(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseXorOp, le, bitwiseVals)},
 		{Ex: le.BitwiseLeftShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseLeftShiftOp, le, bitwiseVals)},
 		{Ex: le.BitwiseRightShift(bitwiseVals), Expected: exp.NewBitwiseExpression(exp.BitwiseRightShiftOp, le, bitwiseVals)},
+		{Ex: le.Add(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticAddOp, le, 1)},
+		{Ex: le.Sub(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticSubOp, le, 1)},
+		{Ex: le.Mul(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticMulOp, le, 1)},
+		{Ex: le.Div(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticDivOp, le, 1)},
 	}
 
 	for _, tc := range testCases {

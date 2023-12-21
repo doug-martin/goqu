@@ -112,6 +112,17 @@ func (mds *mysqlDialectSuite) TestBooleanOperations() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestArithmeticOperations() {
+	col := goqu.C("a")
+	ds := mds.GetDs("test")
+	mds.assertSQL(
+		sqlTestCase{ds: ds.Where(col.Add(1).Eq(2)), sql: "SELECT * FROM `test` WHERE ((`a` + 1) = 2)"},
+		sqlTestCase{ds: ds.Where(col.Sub(1).Gte(3)), sql: "SELECT * FROM `test` WHERE ((`a` - 1) >= 3)"},
+		sqlTestCase{ds: ds.Where(col.Mul(1)), sql: "SELECT * FROM `test` WHERE (`a` * 1)"},
+		sqlTestCase{ds: ds.Where(col.Div(1)), sql: "SELECT * FROM `test` WHERE (`a` / 1)"},
+	)
+}
+
 func (mds *mysqlDialectSuite) TestBitwiseOperations() {
 	col := goqu.C("a")
 	ds := mds.GetDs("test")

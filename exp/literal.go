@@ -83,3 +83,7 @@ func (l literal) BitwiseLeftShift(val interface{}) BitwiseExpression { return bi
 func (l literal) BitwiseRightShift(val interface{}) BitwiseExpression {
 	return bitwiseRightShift(l, val)
 }
+func (l literal) Add(val interface{}) ArithmeticExpression { return arithmeticAdd(l, val) }
+func (l literal) Sub(val interface{}) ArithmeticExpression { return arithmeticSub(l, val) }
+func (l literal) Mul(val interface{}) ArithmeticExpression { return arithmeticMul(l, val) }
+func (l literal) Div(val interface{}) ArithmeticExpression { return arithmeticDiv(l, val) }

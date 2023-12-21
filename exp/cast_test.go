@@ -73,6 +73,10 @@ func (ces *castExpressionSuite) TestAllOthers() {
 		{Ex: ce.IsFalse(), Expected: exp.NewBooleanExpression(exp.IsOp, ce, false)},
 		{Ex: ce.IsNotFalse(), Expected: exp.NewBooleanExpression(exp.IsNotOp, ce, false)},
 		{Ex: ce.Distinct(), Expected: exp.NewSQLFunctionExpression("DISTINCT", ce)},
+		{Ex: ce.Add(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticAddOp, ce, 1)},
+		{Ex: ce.Sub(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticSubOp, ce, 1)},
+		{Ex: ce.Mul(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticMulOp, ce, 1)},
+		{Ex: ce.Div(1), Expected: exp.NewArithmeticExpression(exp.ArithmeticDivOp, ce, 1)},
 	}
 
 	for _, tc := range testCases {
