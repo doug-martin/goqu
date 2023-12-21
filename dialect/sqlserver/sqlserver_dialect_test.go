@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/dialect/sqlserver"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
@@ -22,7 +23,7 @@ type (
 )
 
 func (sds *sqlserverDialectSuite) GetDs(table string) *goqu.SelectDataset {
-	return goqu.Dialect("sqlserver").From(table)
+	return goqu.Dialect(sqlserver.DialectName).From(table)
 }
 
 func (sds *sqlserverDialectSuite) assertSQL(cases ...sqlTestCase) {

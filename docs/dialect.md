@@ -18,11 +18,11 @@ import (
   "fmt"
   "github.com/doug-martin/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+  "github.com/doug-martin/goqu/v9/dialect/postgres"
 )
 
 // look up the dialect
-dialect := goqu.Dialect("postgres")
+dialect := goqu.Dialect(postgres.DialectName)
 
 // use dialect.From to get a dataset to build your SQL
 ds := dialect.From("test").Where(goqu.Ex{"id": 10})
@@ -46,11 +46,11 @@ import (
   "fmt"
   "github.com/doug-martin/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/mysql"
+  "github.com/doug-martin/goqu/v9/dialect/mysql"
 )
 
 // look up the dialect
-dialect := goqu.Dialect("mysql")
+dialect := goqu.Dialect(mysql.DialectName)
 
 // use dialect.From to get a dataset to build your SQL
 ds := dialect.From("test").Where(goqu.Ex{"id": 10})
@@ -74,11 +74,11 @@ import (
   "fmt"
   "github.com/doug-martin/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/sqlite3"
+  "github.com/doug-martin/goqu/v9/dialect/sqlite3"
 )
 
 // look up the dialect
-dialect := goqu.Dialect("sqlite3")
+dialect := goqu.Dialect(sqlite3.DialectName)
 
 // use dialect.From to get a dataset to build your SQL
 ds := dialect.From("test").Where(goqu.Ex{"id": 10})
@@ -102,11 +102,11 @@ import (
   "fmt"
   "github.com/doug-martin/goqu/v9"
   // import the dialect
-  _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+  "github.com/doug-martin/goqu/v9/dialect/sqlserver"
 )
 
 // look up the dialect
-dialect := goqu.Dialect("sqlserver")
+dialect := goqu.Dialect(sqlserver.DialectName)
 
 // use dialect.From to get a dataset to build your SQL
 ds := dialect.From("test").Where(goqu.Ex{"id": 10})
@@ -123,7 +123,7 @@ Output:
 SELECT * FROM "test" WHERE "id" = 10 []
 ```
 
-### Executing Queries 
+### Executing Queries
 
 You can also create a `goqu.Database` instance to query records.
 
@@ -133,11 +133,11 @@ In the example below notice that we imported the dialect and driver for side eff
 import (
   "database/sql"
   "github.com/doug-martin/goqu/v9"
-  _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+  "github.com/doug-martin/goqu/v9/dialect/postgres"
   _ "github.com/lib/pq"
 )
 
-dialect := goqu.Dialect("postgres")
+dialect := goqu.Dialect(postgres.DialectName)
 
 pgDb, err := sql.Open("postgres", "user=postgres dbname=goqupostgres sslmode=disable ")
 if err != nil {
@@ -193,4 +193,3 @@ SELECT * FROM `test` []
 ```
 
 For more examples look at [`postgres`](./dialect/postgres/postgres.go), [`mysql`](./dialect/mysql/mysql.go) and [`sqlite3`](./dialect/sqlite3/sqlite3.go) for examples.
-

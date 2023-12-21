@@ -6,6 +6,8 @@ import (
 	"github.com/doug-martin/goqu/v9/sqlgen"
 )
 
+const DialectName = "sqlserver"
+
 func DialectOptions() *goqu.SQLDialectOptions {
 	opts := goqu.DefaultDialectOptions()
 
@@ -95,5 +97,5 @@ func DialectOptions() *goqu.SQLDialectOptions {
 }
 
 func init() {
-	goqu.RegisterDialect("sqlserver", DialectOptions())
+	goqu.RegisterDialect(DialectName, DialectOptions())
 }

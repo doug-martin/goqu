@@ -5,6 +5,9 @@ import (
 	"github.com/doug-martin/goqu/v9/exp"
 )
 
+const DialectName = "mysql"
+const MySQL8DialectName = "mysql8"
+
 func DialectOptions() *goqu.SQLDialectOptions {
 	opts := goqu.DefaultDialectOptions()
 
@@ -82,6 +85,6 @@ func DialectOptionsV8() *goqu.SQLDialectOptions {
 }
 
 func init() {
-	goqu.RegisterDialect("mysql", DialectOptions())
-	goqu.RegisterDialect("mysql8", DialectOptionsV8())
+	goqu.RegisterDialect(DialectName, DialectOptions())
+	goqu.RegisterDialect(MySQL8DialectName, DialectOptionsV8())
 }

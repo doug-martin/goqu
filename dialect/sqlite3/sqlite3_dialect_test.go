@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/dialect/sqlite3"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
 )
@@ -23,7 +24,7 @@ type (
 )
 
 func (sds *sqlite3DialectSuite) GetDs(table string) *goqu.SelectDataset {
-	return goqu.Dialect("sqlite3").From(table)
+	return goqu.Dialect(sqlite3.DialectName).From(table)
 }
 
 func (sds *sqlite3DialectSuite) assertSQL(cases ...sqlTestCase) {

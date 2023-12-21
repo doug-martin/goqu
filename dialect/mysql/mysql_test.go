@@ -465,7 +465,7 @@ func (mt *mysqlTest) TestWindowFunction() {
 		Window(goqu.W("w").OrderBy(goqu.I("int").Desc()))
 
 	var entries []entry
-	mt.NoError(ds.WithDialect("mysql8").ScanStructs(&entries))
+	mt.NoError(ds.WithDialect(mysql.MySQL8DialectName).ScanStructs(&entries))
 
 	mt.Equal([]entry{
 		{Int: 9, ID: 1},
@@ -480,7 +480,7 @@ func (mt *mysqlTest) TestWindowFunction() {
 		{Int: 0, ID: 10},
 	}, entries)
 
-	mt.Error(ds.WithDialect("mysql").ScanStructs(&entries), "goqu: adapter does not support window function clause")
+	mt.Error(ds.WithDialect(mysql.DialectName).ScanStructs(&entries), "goqu: adapter does not support window function clause")
 }
 
 func (mt *mysqlTest) TestInsertFromSelect() {
