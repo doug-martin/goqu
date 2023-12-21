@@ -177,6 +177,10 @@ type (
 		SetOperatorRune rune
 		// The placeholder fragment to use when generating a non interpolated statement (DEFAULT=[]byte"?")
 		PlaceHolderFragment []byte
+		// Set non-empty value if dialect support setting ESCAPE for like operation
+		LikeEscapeKey string
+		// Set non-empty value if dialect support setting ESCAPE for like operation
+		LikeEscapeValue string
 		// Empty string (DEFAULT="")
 		EmptyString string
 		// Comma rune (DEFAULT=',')
@@ -500,6 +504,8 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		RightParenRune:      ')',
 		StarRune:            '*',
 		PeriodRune:          '.',
+		LikeEscapeKey:       "",
+		LikeEscapeValue:     "",
 		EmptyString:         "",
 
 		BooleanOperatorLookup: map[exp.BooleanOperation][]byte{

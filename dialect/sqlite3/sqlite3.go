@@ -68,6 +68,9 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.ForUpdateFragment = []byte("")
 	opts.OfFragment = []byte("")
 	opts.NowaitFragment = []byte("")
+
+	opts.LikeEscapeKey = "ESCAPE"
+	opts.LikeEscapeValue = "\\"
 	return opts
 }
 
