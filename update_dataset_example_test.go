@@ -1,11 +1,13 @@
-// nolint:lll // sql statements are long
+//nolint:lll // sql statements are long
 package goqu_test
 
 import (
+	dbsql "database/sql"
 	"fmt"
 
 	"github.com/slessard/goqu/v9"
 	_ "github.com/slessard/goqu/v9/dialect/mysql"
+	"github.com/slessard/goqu/v9/exp"
 )
 
 func ExampleUpdate_withStruct() {
@@ -20,6 +22,83 @@ func ExampleUpdate_withStruct() {
 
 	// Output:
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+}
+
+func ExampleUpdate_withOmitNilTag() {
+	type item struct {
+		FirstName string  `db:"first_name" goqu:"omitnil"`
+		LastName  string  `db:"last_name" goqu:"omitnil"`
+		Address1  *string `db:"address1" goqu:"omitnil"`
+		Address2  *string `db:"address2" goqu:"omitnil"`
+		Address3  *string `db:"address3" goqu:"omitnil"`
+	}
+	address1 := "113 Test Addr"
+	var emptyString string
+	sql, args, _ := goqu.Update("items").Set(
+		item{
+			FirstName: "Test First Name",
+			LastName:  "",
+			Address1:  &address1,
+			Address2:  &emptyString,
+			Address3:  nil, // will omit nil pointer
+		},
+	).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "address1"='113 Test Addr',"address2"='',"first_name"='Test First Name',"last_name"='' []
+}
+
+func ExampleUpdate_withOmitEmptyTag() {
+	type item struct {
+		FirstName string  `db:"first_name" goqu:"omitempty"`
+		LastName  string  `db:"last_name" goqu:"omitempty"`
+		Address1  *string `db:"address1" goqu:"omitempty"`
+		Address2  *string `db:"address2" goqu:"omitempty"`
+		Address3  *string `db:"address3" goqu:"omitempty"`
+	}
+	address1 := "114 Test Addr"
+	var emptyString string
+	sql, args, _ := goqu.Update("items").Set(
+		item{
+			FirstName: "Test First Name",
+			LastName:  "", // will omit zero field
+			Address1:  &address1,
+			Address2:  &emptyString,
+			Address3:  nil, // will omit nil pointer
+		},
+	).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "address1"='114 Test Addr',"address2"='',"first_name"='Test First Name' []
+}
+
+func ExampleUpdate_withOmitEmptyTag_valuer() {
+	type item struct {
+		FirstName  dbsql.NullString  `db:"first_name" goqu:"omitempty"`
+		MiddleName dbsql.NullString  `db:"middle_name" goqu:"omitempty"`
+		LastName   dbsql.NullString  `db:"last_name" goqu:"omitempty"`
+		Address1   *dbsql.NullString `db:"address1" goqu:"omitempty"`
+		Address2   *dbsql.NullString `db:"address2" goqu:"omitempty"`
+		Address3   *dbsql.NullString `db:"address3" goqu:"omitempty"`
+		Address4   *dbsql.NullString `db:"address4" goqu:"omitempty"`
+	}
+	query, args, _ := goqu.Update("items").Set(
+		item{
+			FirstName:  dbsql.NullString{Valid: true, String: "Test First Name"},
+			MiddleName: dbsql.NullString{Valid: true, String: ""},
+			LastName:   dbsql.NullString{}, // will omit zero valuer struct
+			Address1:   &dbsql.NullString{Valid: true, String: "Test Address 1"},
+			Address2:   &dbsql.NullString{Valid: true, String: ""},
+			Address3:   &dbsql.NullString{},
+			Address4:   nil, // will omit nil pointer
+		},
+	).ToSQL()
+	fmt.Println(query, args)
+
+	// Output:
+	// UPDATE "items" SET "address1"='Test Address 1',"address2"='',"address3"=NULL,"first_name"='Test First Name',"middle_name"='' []
 }
 
 func ExampleUpdate_withGoquRecord() {
@@ -40,6 +119,17 @@ func ExampleUpdate_withMap() {
 
 	// Output:
 	// UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
+}
+
+func ExampleUpdate_withExpressions() {
+	sql, args, _ := goqu.Update("items").Set([]exp.UpdateExpression{
+		goqu.C("name").Set("Test"),
+		goqu.C("address").Set("111 Test Addr"),
+	}).ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// UPDATE "items" SET "name"='Test',"address"='111 Test Addr' []
 }
 
 func ExampleUpdate_withSkipUpdateTag() {

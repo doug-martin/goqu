@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	"github.com/slessard/goqu/v9"
 	"github.com/slessard/goqu/v9/dialect/mysql"
 	"github.com/slessard/goqu/v9/dialect/sqlite3"
-	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -362,13 +363,13 @@ func (st *sqlite3Suite) TestUpdateReturning() {
 	ds := st.db.From("entry")
 	var id uint32
 	_, err := ds.
-		Where(goqu.C("int").Eq(11)).
+		Where(goqu.C("id").Eq(1)).
 		Update().
-		Set(map[string]interface{}{"int": 9}).
+		Set(goqu.Record{"int": 11}).
 		Returning("id").
 		Executor().ScanVal(&id)
-	st.Error(err)
-	st.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlite3]")
+	st.NoError(err)
+	st.GreaterOrEqual(id, uint32(0))
 }
 
 func (st *sqlite3Suite) TestDelete() {
@@ -397,7 +398,8 @@ func (st *sqlite3Suite) TestDelete() {
 
 	id = 0
 	_, err = ds.Where(goqu.C("id").Eq(e.ID)).Delete().Returning("id").Executor().ScanVal(&id)
-	st.EqualError(err, "goqu: dialect does not support RETURNING clause [dialect=sqlite3]")
+	st.NoError(err)
+	st.GreaterOrEqual(id, uint32(0))
 }
 
 func (st *sqlite3Suite) TestInsert_OnConflict() {

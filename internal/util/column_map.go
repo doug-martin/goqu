@@ -15,6 +15,8 @@ type (
 		ShouldInsert   bool
 		ShouldUpdate   bool
 		DefaultIfEmpty bool
+		OmitNil        bool
+		OmitEmpty      bool
 		GoType         reflect.Type
 	}
 	ColumnMap map[string]ColumnData
@@ -91,6 +93,8 @@ func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, 
 		ShouldInsert:   !goquTag.Contains(skipInsertTagName),
 		ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
 		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
+		OmitNil:        goquTag.Contains(omitNilTagName),
+		OmitEmpty:      goquTag.Contains(omitEmptyTagName),
 		FieldIndex:     concatFieldIndexes(fieldIndex, f.Index),
 		GoType:         f.Type,
 	}
@@ -98,7 +102,8 @@ func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, 
 
 func getStructColumnMap(f *reflect.StructField, fieldIndex []int, fieldNames, prefixes []string) ColumnMap {
 	subFieldIndexes := concatFieldIndexes(fieldIndex, f.Index)
-	subPrefixes := append(prefixes, fieldNames...)
+	subPrefixes := prefixes
+	subPrefixes = append(subPrefixes, fieldNames...)
 	if f.Type.Kind() == reflect.Ptr {
 		return newColumnMap(f.Type.Elem(), subFieldIndexes, subPrefixes)
 	}

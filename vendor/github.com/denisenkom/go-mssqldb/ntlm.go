@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf16"
 
+	//lint:ignore SA1019 MD4 is used by legacy NTLM
 	"golang.org/x/crypto/md4"
 )
 
@@ -126,18 +127,6 @@ func createDesKey(bytes, material []byte) {
 	material[7] = (byte)(bytes[6] << 1)
 }
 
-func oddParity(bytes []byte) {
-	for i := 0; i < len(bytes); i++ {
-		b := bytes[i]
-		needsParity := (((b >> 7) ^ (b >> 6) ^ (b >> 5) ^ (b >> 4) ^ (b >> 3) ^ (b >> 2) ^ (b >> 1)) & 0x01) == 0
-		if needsParity {
-			bytes[i] = bytes[i] | byte(0x01)
-		} else {
-			bytes[i] = bytes[i] & byte(0xfe)
-		}
-	}
-}
-
 func encryptDes(key []byte, cleartext []byte, ciphertext []byte) {
 	var desKey [8]byte
 	createDesKey(key, desKey[:])
@@ -217,11 +206,11 @@ func hmacMD5(passwordHash, data []byte) []byte {
 	return hmacEntity.Sum(nil)
 }
 
-func getNTLMv2AndLMv2ResponsePayloads(target, username, password string, challenge, nonce [8]byte, targetInfoFields []byte, timestamp time.Time) (ntlmV2Payload, lmV2Payload []byte) {
+func getNTLMv2AndLMv2ResponsePayloads(userDomain, username, password string, challenge, nonce [8]byte, targetInfoFields []byte, timestamp time.Time) (ntlmV2Payload, lmV2Payload []byte) {
 	// NTLMv2 response payload: http://davenport.sourceforge.net/ntlm.html#theNtlmv2Response
 
 	ntlmHash := ntlmHashNoPadding(password)
-	usernameAndTargetBytes := utf16le(strings.ToUpper(username) + target)
+	usernameAndTargetBytes := utf16le(strings.ToUpper(username) + userDomain)
 	ntlmV2Hash := hmacMD5(ntlmHash, usernameAndTargetBytes)
 	targetInfoLength := len(targetInfoFields)
 	blob := make([]byte, 32+targetInfoLength)
@@ -234,7 +223,7 @@ func getNTLMv2AndLMv2ResponsePayloads(target, username, password string, challen
 	binary.BigEndian.PutUint32(blob[28+targetInfoLength:], 0x00000000)
 	challengeLength := len(challenge)
 	blobLength := len(blob)
-	challengeAndBlob := make([]byte, challengeLength + blobLength)
+	challengeAndBlob := make([]byte, challengeLength+blobLength)
 	copy(challengeAndBlob[:challengeLength], challenge[:])
 	copy(challengeAndBlob[challengeLength:], blob)
 	hashedChallenge := hmacMD5(ntlmV2Hash, challengeAndBlob)
@@ -251,18 +240,18 @@ func getNTLMv2AndLMv2ResponsePayloads(target, username, password string, challen
 	return
 }
 
-func negotiateExtendedSessionSecurity(flags uint32, message []byte, challenge [8]byte, username, password string) (lm, nt []byte, err error) {
+func negotiateExtendedSessionSecurity(flags uint32, message []byte, challenge [8]byte, username, password, userDom string) (lm, nt []byte, err error) {
 	nonce := clientChallenge()
 
 	// Official specification: https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-nlmp/b38c36ed-2804-4868-a9ff-8dd3182128e4
 	// Unofficial walk through referenced by https://www.freetds.org/userguide/domains.htm: http://davenport.sourceforge.net/ntlm.html
 	if (flags & _NEGOTIATE_TARGET_INFO) != 0 {
-		targetInfoFields, target, err := getNTLMv2TargetInfoFields(message)
+		targetInfoFields, err := getNTLMv2TargetInfoFields(message)
 		if err != nil {
 			return lm, nt, err
 		}
 
-		nt, lm = getNTLMv2AndLMv2ResponsePayloads(target, username, password, challenge, nonce, targetInfoFields, time.Now())
+		nt, lm = getNTLMv2AndLMv2ResponsePayloads(userDom, username, password, challenge, nonce, targetInfoFields, time.Now())
 
 		return lm, nt, nil
 	}
@@ -276,36 +265,31 @@ func negotiateExtendedSessionSecurity(flags uint32, message []byte, challenge [8
 	return lm, nt, nil
 }
 
-func getNTLMv2TargetInfoFields(type2Message []byte) (info []byte, target string, err error) {
+func getNTLMv2TargetInfoFields(type2Message []byte) (info []byte, err error) {
 	type2MessageError := "mssql: while parsing NTLMv2 type 2 message, length %d too small for offset %d"
 	type2MessageLength := len(type2Message)
 	if type2MessageLength < 20 {
-		return nil, target, fmt.Errorf(type2MessageError, type2MessageLength, 20)
+		return nil, fmt.Errorf(type2MessageError, type2MessageLength, 20)
 	}
 
 	targetNameAllocated := binary.LittleEndian.Uint16(type2Message[14:16])
 	targetNameOffset := binary.LittleEndian.Uint32(type2Message[16:20])
 	endOfOffset := int(targetNameOffset + uint32(targetNameAllocated))
 	if type2MessageLength < endOfOffset {
-		return nil, target, fmt.Errorf(type2MessageError, type2MessageLength, endOfOffset)
-	}
-
-	target, err = ucs22str(type2Message[targetNameOffset:targetNameOffset+uint32(targetNameAllocated)])
-	if err != nil {
-		return nil, target, err
+		return nil, fmt.Errorf(type2MessageError, type2MessageLength, endOfOffset)
 	}
 
 	targetInformationAllocated := binary.LittleEndian.Uint16(type2Message[42:44])
 	targetInformationDataOffset := binary.LittleEndian.Uint32(type2Message[44:48])
 	endOfOffset = int(targetInformationDataOffset + uint32(targetInformationAllocated))
 	if type2MessageLength < endOfOffset {
-		return nil, target, fmt.Errorf(type2MessageError, type2MessageLength, endOfOffset)
+		return nil, fmt.Errorf(type2MessageError, type2MessageLength, endOfOffset)
 	}
 
 	targetInformationBytes := make([]byte, targetInformationAllocated)
 	copy(targetInformationBytes, type2Message[targetInformationDataOffset:targetInformationDataOffset+uint32(targetInformationAllocated)])
 
-	return targetInformationBytes, target, nil
+	return targetInformationBytes, nil
 }
 
 func buildNTLMResponsePayload(lm, nt []byte, flags uint32, domain, workstation, username string) ([]byte, error) {
@@ -389,7 +373,7 @@ func (auth *ntlmAuth) NextBytes(bytes []byte) ([]byte, error) {
 	copy(challenge[:], bytes[24:32])
 	flags := binary.LittleEndian.Uint32(bytes[20:24])
 	if (flags & _NEGOTIATE_EXTENDED_SESSIONSECURITY) != 0 {
-		lm, nt, err := negotiateExtendedSessionSecurity(flags, bytes, challenge, auth.UserName, auth.Password)
+		lm, nt, err := negotiateExtendedSessionSecurity(flags, bytes, challenge, auth.UserName, auth.Password, auth.Domain)
 		if err != nil {
 			return nil, err
 		}

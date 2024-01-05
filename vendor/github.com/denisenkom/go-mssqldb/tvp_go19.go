@@ -1,9 +1,11 @@
+//go:build go1.9
 // +build go1.9
 
 package mssql
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -15,6 +17,7 @@ import (
 const (
 	jsonTag      = "json"
 	tvpTag       = "tvp"
+	tvpIdentity  = "@identity"
 	skipTagValue = "-"
 	sqlSeparator = "."
 )
@@ -28,7 +31,7 @@ var (
 	ErrorWrongTyping      = errors.New("the number of elements in columnStr and tvpFieldIndexes do not align")
 )
 
-//TVP is driver type, which allows supporting Table Valued Parameters (TVP) in SQL Server
+// TVP is driver type, which allows supporting Table Valued Parameters (TVP) in SQL Server
 type TVP struct {
 	//TypeName mustn't be default value
 	TypeName string
@@ -75,8 +78,8 @@ func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldInd
 	binary.Write(buf, binary.LittleEndian, uint16(len(columnStr)))
 
 	for i, column := range columnStr {
-		binary.Write(buf, binary.LittleEndian, uint32(column.UserType))
-		binary.Write(buf, binary.LittleEndian, uint16(column.Flags))
+		binary.Write(buf, binary.LittleEndian, column.UserType)
+		binary.Write(buf, binary.LittleEndian, column.Flags)
 		writeTypeInfo(buf, &columnStr[i].ti)
 		writeBVarChar(buf, "")
 	}
@@ -95,13 +98,20 @@ func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldInd
 		refStr := reflect.ValueOf(val.Index(i).Interface())
 		buf.WriteByte(_TVP_ROW_TOKEN)
 		for columnStrIdx, fieldIdx := range tvpFieldIndexes {
+			if columnStr[columnStrIdx].Flags == fDefault {
+				continue
+			}
 			field := refStr.Field(fieldIdx)
 			tvpVal := field.Interface()
+			if tvp.verifyStandardTypeOnNull(buf, tvpVal) {
+				continue
+			}
 			valOf := reflect.ValueOf(tvpVal)
 			elemKind := field.Kind()
 			if elemKind == reflect.Ptr && valOf.IsNil() {
 				switch tvpVal.(type) {
-				case *bool, *time.Time, *int8, *int16, *int32, *int64, *float32, *float64, *int:
+				case *bool, *time.Time, *int8, *int16, *int32, *int64, *float32, *float64, *int,
+					*uint8, *uint16, *uint32, *uint64, *uint:
 					binary.Write(buf, binary.LittleEndian, uint8(0))
 					continue
 				default:
@@ -130,6 +140,11 @@ func (tvp TVP) encode(schema, name string, columnStr []columnStruct, tvpFieldInd
 }
 
 func (tvp TVP) columnTypes() ([]columnStruct, []int, error) {
+	type fieldDetailStore struct {
+		defaultValue interface{}
+		isIdentity   bool
+	}
+
 	val := reflect.ValueOf(tvp.Value)
 	var firstRow interface{}
 	if val.Len() != 0 {
@@ -140,7 +155,7 @@ func (tvp TVP) columnTypes() ([]columnStruct, []int, error) {
 
 	tvpRow := reflect.TypeOf(firstRow)
 	columnCount := tvpRow.NumField()
-	defaultValues := make([]interface{}, 0, columnCount)
+	defaultValues := make([]fieldDetailStore, 0, columnCount)
 	tvpFieldIndexes := make([]int, 0, columnCount)
 	for i := 0; i < columnCount; i++ {
 		field := tvpRow.Field(i)
@@ -150,12 +165,19 @@ func (tvp TVP) columnTypes() ([]columnStruct, []int, error) {
 			continue
 		}
 		tvpFieldIndexes = append(tvpFieldIndexes, i)
+		isIdentity := tvpTagValue == tvpIdentity
 		if field.Type.Kind() == reflect.Ptr {
 			v := reflect.New(field.Type.Elem())
-			defaultValues = append(defaultValues, v.Interface())
+			defaultValues = append(defaultValues, fieldDetailStore{
+				defaultValue: v.Interface(),
+				isIdentity:   isIdentity,
+			})
 			continue
 		}
-		defaultValues = append(defaultValues, reflect.Zero(field.Type).Interface())
+		defaultValues = append(defaultValues, fieldDetailStore{
+			defaultValue: tvp.createZeroType(reflect.Zero(field.Type).Interface()),
+			isIdentity:   isIdentity,
+		})
 	}
 
 	if columnCount-len(tvpFieldIndexes) == columnCount {
@@ -171,9 +193,9 @@ func (tvp TVP) columnTypes() ([]columnStruct, []int, error) {
 
 	columnConfiguration := make([]columnStruct, 0, columnCount)
 	for index, val := range defaultValues {
-		cval, err := convertInputParameter(val)
+		cval, err := convertInputParameter(val.defaultValue)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to convert tvp parameter row %d col %d: %s", index, val, err)
+			return nil, nil, fmt.Errorf("failed to convert tvp parameter row %d col %d: %s", index, val.defaultValue, err)
 		}
 		param, err := stmt.makeParam(cval)
 		if err != nil {
@@ -181,6 +203,9 @@ func (tvp TVP) columnTypes() ([]columnStruct, []int, error) {
 		}
 		column := columnStruct{
 			ti: param.ti,
+		}
+		if val.isIdentity {
+			column.Flags = fDefault
 		}
 		switch param.ti.TypeId {
 		case typeNVarChar, typeBigVarBin:
@@ -209,23 +234,80 @@ func getSchemeAndName(tvpName string) (string, string, error) {
 	}
 	splitVal := strings.Split(tvpName, ".")
 	if len(splitVal) > 2 {
-		return "", "", errors.New("wrong tvp name")
+		return "", "", ErrorObjectName
 	}
+	const (
+		openSquareBrackets  = "["
+		closeSquareBrackets = "]"
+	)
 	if len(splitVal) == 2 {
 		res := make([]string, 2)
 		for key, value := range splitVal {
-			tmp := strings.Replace(value, "[", "", -1)
-			tmp = strings.Replace(tmp, "]", "", -1)
+			tmp := strings.Replace(value, openSquareBrackets, "", -1)
+			tmp = strings.Replace(tmp, closeSquareBrackets, "", -1)
 			res[key] = tmp
 		}
 		return res[0], res[1], nil
 	}
-	tmp := strings.Replace(splitVal[0], "[", "", -1)
-	tmp = strings.Replace(tmp, "]", "", -1)
+	tmp := strings.Replace(splitVal[0], openSquareBrackets, "", -1)
+	tmp = strings.Replace(tmp, closeSquareBrackets, "", -1)
 
 	return "", tmp, nil
 }
 
 func getCountSQLSeparators(str string) int {
 	return strings.Count(str, sqlSeparator)
+}
+
+// verify types https://golang.org/pkg/database/sql/
+func (tvp TVP) createZeroType(fieldVal interface{}) interface{} {
+	const (
+		defaultBool    = false
+		defaultFloat64 = float64(0)
+		defaultInt64   = int64(0)
+		defaultString  = ""
+	)
+
+	switch fieldVal.(type) {
+	case sql.NullBool:
+		return defaultBool
+	case sql.NullFloat64:
+		return defaultFloat64
+	case sql.NullInt64:
+		return defaultInt64
+	case sql.NullString:
+		return defaultString
+	}
+	return fieldVal
+}
+
+// verify types https://golang.org/pkg/database/sql/
+func (tvp TVP) verifyStandardTypeOnNull(buf *bytes.Buffer, tvpVal interface{}) bool {
+	const (
+		defaultNull = uint8(0)
+	)
+
+	switch val := tvpVal.(type) {
+	case sql.NullBool:
+		if !val.Valid {
+			binary.Write(buf, binary.LittleEndian, defaultNull)
+			return true
+		}
+	case sql.NullFloat64:
+		if !val.Valid {
+			binary.Write(buf, binary.LittleEndian, defaultNull)
+			return true
+		}
+	case sql.NullInt64:
+		if !val.Valid {
+			binary.Write(buf, binary.LittleEndian, defaultNull)
+			return true
+		}
+	case sql.NullString:
+		if !val.Valid {
+			binary.Write(buf, binary.LittleEndian, uint64(_PLP_NULL))
+			return true
+		}
+	}
+	return false
 }

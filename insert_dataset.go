@@ -115,8 +115,9 @@ func (id *InsertDataset) WithRecursive(name string, subquery exp.Expression) *In
 
 // Sets the table to insert INTO. This return a new dataset with the original table replaced. See examples.
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   Expression: Any valid expression (IdentifierExpression, AliasedExpression, Literal, etc.)
+//
+//	string: Will automatically be turned into an identifier
+//	Expression: Any valid expression (IdentifierExpression, AliasedExpression, Literal, etc.)
 func (id *InsertDataset) Into(into interface{}) *InsertDataset {
 	switch t := into.(type) {
 	case exp.Expression:
@@ -213,20 +214,21 @@ func (id *InsertDataset) SetError(err error) *InsertDataset {
 // Generates the default INSERT statement. If Prepared has been called with true then the statement will not be
 // interpolated. See examples. When using structs you may specify a column to be skipped in the insert, (e.g. id) by
 // specifying a goqu tag with `skipinsert`
-//    type Item struct{
-//       Id   uint32 `db:"id" goqu:"skipinsert"`
-//       Name string `db:"name"`
-//    }
+//
+//	type Item struct{
+//	   Id   uint32 `db:"id" goqu:"skipinsert"`
+//	   Name string `db:"name"`
+//	}
 //
 // rows: variable number arguments of either map[string]interface, Record, struct, or a single slice argument of the
 // accepted types.
 //
 // Errors:
-//  * There is no INTO clause
-//  * Different row types passed in, all rows must be of the same type
-//  * Maps with different numbers of K/V pairs
-//  * Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
-//  * Error generating SQL
+//   - There is no INTO clause
+//   - Different row types passed in, all rows must be of the same type
+//   - Maps with different numbers of K/V pairs
+//   - Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
+//   - Error generating SQL
 func (id *InsertDataset) ToSQL() (sql string, params []interface{}, err error) {
 	return id.insertSQLBuilder().ToSQL()
 }
@@ -255,8 +257,8 @@ func (id *InsertDataset) ReturnsColumns() bool {
 }
 
 // Generates the INSERT sql, and returns an QueryExecutor struct with the sql set to the INSERT statement
-//    db.Insert("test").Rows(Record{"name":"Bob"}).Executor().Exec()
 //
+//	db.Insert("test").Rows(Record{"name":"Bob"}).Executor().Exec()
 func (id *InsertDataset) Executor() exec.QueryExecutor {
 	return id.queryFactory.FromSQLBuilder(id.insertSQLBuilder())
 }

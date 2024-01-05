@@ -361,7 +361,7 @@ const (
 	WindowSQLFragment
 )
 
-// nolint:gocyclo // simple type to string conversion
+//nolint:gocyclo // simple type to string conversion
 func (sf SQLFragmentType) String() string {
 	switch sf {
 	case CommonTableSQLFragment:

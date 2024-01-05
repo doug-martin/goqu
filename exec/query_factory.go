@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	// nolint:stylecheck // keep name for backwards compatibility
+	//nolint:stylecheck // keep name for backwards compatibility
 	DbExecutor interface {
 		ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 		QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)

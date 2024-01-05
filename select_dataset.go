@@ -198,15 +198,16 @@ func (sd *SelectDataset) WithRecursive(name string, subquery exp.Expression) *Se
 	return sd.copy(sd.clauses.CommonTablesAppend(exp.NewCommonTableExpression(true, name, subquery)))
 }
 
-// Adds columns to the SELECT clause. See examples
+// Replaces columns of the SELECT clause. Empty list resets the clause. See examples
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the
-//   column name.
-//   LiteralExpression: (See Literal) Will use the literal SQL
-//   SQLFunction: (See Func, MIN, MAX, COUNT....)
-//   Struct: If passing in an instance of a struct, we will parse the struct for the column names to select.
-//   See examples
+//
+//	string: Will automatically be turned into an identifier
+//	Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the
+//	column name.
+//	LiteralExpression: (See Literal) Will use the literal SQL
+//	SQLFunction: (See Func, MIN, MAX, COUNT....)
+//	Struct: If passing in an instance of a struct, we will parse the struct for the column names to select.
+//	See examples
 func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 	if len(selects) == 0 {
 		return sd.ClearSelect()
@@ -214,15 +215,17 @@ func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)))
 }
 
-// Adds columns to the SELECT DISTINCT clause. See examples
+// Replaces columns of the SELECT DISTINCT clause. Empty list resets the clause. See examples
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the
-//   column name.
-//   LiteralExpression: (See Literal) Will use the literal SQL
-//   SQLFunction: (See Func, MIN, MAX, COUNT....)
-//   Struct: If passing in an instance of a struct, we will parse the struct for the column names to select.
-//   See examples
+//
+//	string: Will automatically be turned into an identifier
+//	Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the
+//	column name.
+//	LiteralExpression: (See Literal) Will use the literal SQL
+//	SQLFunction: (See Func, MIN, MAX, COUNT....)
+//	Struct: If passing in an instance of a struct, we will parse the struct for the column names to select.
+//	See examples
+//
 // Deprecated: Use Distinct() instead.
 func (sd *SelectDataset) SelectDistinct(selects ...interface{}) *SelectDataset {
 	if len(selects) == 0 {
@@ -240,11 +243,12 @@ func (sd *SelectDataset) ClearSelect() *SelectDataset {
 
 // Adds columns to the SELECT clause. See examples
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the
-//   column name.
-//   LiteralExpression: (See Literal) Will use the literal SQL
-//   SQLFunction: (See Func, MIN, MAX, COUNT....)
+//
+//	string: Will automatically be turned into an identifier
+//	Dataset: Will use the SQL generated from that Dataset. If the dataset is aliased it will use that alias as the
+//	column name.
+//	LiteralExpression: (See Literal) Will use the literal SQL
+//	SQLFunction: (See Func, MIN, MAX, COUNT....)
 func (sd *SelectDataset) SelectAppend(selects ...interface{}) *SelectDataset {
 	return sd.copy(sd.clauses.SelectAppend(exp.NewColumnListExpression(selects...)))
 }
@@ -255,9 +259,10 @@ func (sd *SelectDataset) Distinct(on ...interface{}) *SelectDataset {
 
 // Adds a FROM clause. This return a new dataset with the original sources replaced. See examples.
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
-//   LiteralExpression: (See Literal) Will use the literal SQL
+//
+//	string: Will automatically be turned into an identifier
+//	Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
+//	LiteralExpression: (See Literal) Will use the literal SQL
 func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
 	var sources []interface{}
 	numSources := 0
@@ -542,13 +547,14 @@ func (sd *SelectDataset) SetError(err error) *SelectDataset {
 // See examples.
 //
 // Errors:
-//  * There is an error generating the SQL
+//   - There is an error generating the SQL
 func (sd *SelectDataset) ToSQL() (sql string, params []interface{}, err error) {
 	return sd.selectSQLBuilder().ToSQL()
 }
 
 // Generates the SELECT sql, and returns an Exec struct with the sql set to the SELECT statement
-//    db.From("test").Select("col").Executor()
+//
+//	db.From("test").Select("col").Executor()
 //
 // See Dataset#ToUpdateSQL for arguments
 func (sd *SelectDataset) Executor() exec.QueryExecutor {

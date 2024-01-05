@@ -40,7 +40,7 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 					cols = append(cols, sc)
 				}
 			} else {
-				panic(fmt.Sprintf("Cannot created expression from  %+v", val))
+				panic(fmt.Sprintf("Cannot create expression from  %+v", val))
 			}
 		}
 	}
@@ -77,7 +77,8 @@ func (cl columnList) Columns() []Expression {
 
 func (cl columnList) Append(cols ...Expression) ColumnListExpression {
 	ret := columnList{}
-	exps := append(ret.columns, cl.columns...)
+	exps := ret.columns
+	exps = append(exps, cl.columns...)
 	exps = append(exps, cols...)
 	ret.columns = exps
 	return ret

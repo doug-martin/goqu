@@ -31,8 +31,10 @@ func NewRecordFromStruct(i interface{}, forInsert, forUpdate bool) (r Record, er
 		for _, col := range cols {
 			f := cm[col]
 			if !shouldSkipField(f, forInsert, forUpdate) {
-				if ok, fieldVal := getFieldValue(value, f); ok {
-					r[f.ColumnName] = fieldVal
+				if fieldValue, isAvailable := util.SafeGetFieldByIndex(value, f.FieldIndex); isAvailable {
+					if !shouldOmitField(fieldValue, f) {
+						r[f.ColumnName] = getRecordValue(fieldValue, f)
+					}
 				}
 			}
 		}
@@ -46,14 +48,21 @@ func shouldSkipField(f util.ColumnData, forInsert, forUpdate bool) bool {
 	return shouldSkipInsert || shouldSkipUpdate
 }
 
-func getFieldValue(val reflect.Value, f util.ColumnData) (ok bool, fieldVal interface{}) {
-	if v, isAvailable := util.SafeGetFieldByIndex(val, f.FieldIndex); !isAvailable {
-		return false, nil
-	} else if f.DefaultIfEmpty && util.IsEmptyValue(v) {
-		return true, Default()
-	} else if v.IsValid() {
-		return true, v.Interface()
+func shouldOmitField(val reflect.Value, f util.ColumnData) bool {
+	if f.OmitNil && util.IsNil(val) {
+		return true
+	} else if f.OmitEmpty && util.IsEmptyValue(val) {
+		return true
+	}
+	return false
+}
+
+func getRecordValue(val reflect.Value, f util.ColumnData) interface{} {
+	if f.DefaultIfEmpty && util.IsEmptyValue(val) {
+		return Default()
+	} else if val.IsValid() {
+		return val.Interface()
 	} else {
-		return true, reflect.Zero(f.GoType).Interface()
+		return reflect.Zero(f.GoType).Interface()
 	}
 }
