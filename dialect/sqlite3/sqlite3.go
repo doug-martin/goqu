@@ -23,6 +23,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
 	opts.SupportsLateral = false
+	opts.SupportsQualify = false
 
 	opts.PlaceHolderFragment = []byte("?")
 	opts.IncludePlaceholderNum = false

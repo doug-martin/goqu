@@ -680,6 +680,22 @@ Output:
 SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 ```
 
+
+<a name="qualify"></a>
+**[`Qualify`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Qualify)**
+
+```go
+sql, _, _ = goqu.From("test").GroupBy("age").Qualify(goqu.SUM("income").Gt(1000)).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT * FROM "test" GROUP BY "age" Qualify (SUM("income") > 1000)
+```
+
+
 <a name="with"></a>
 **[`With`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.With)**
 
