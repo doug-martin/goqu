@@ -940,8 +940,8 @@ fmt.Printf("\n%+v", users)
 
  ```go
 type Role struct {
-  Id     uint64 `db:"id"`
-	UserID uint64 `db:"user_id"`
+  	Id     uint64 `db:"id"`
+	UserId uint64 `db:"user_id"`
 	Name   string `db:"name"`
 }
 type User struct {
@@ -973,7 +973,7 @@ You can alternatively manually select the columns with the appropriate aliases u
 
 ```go
 type Role struct {
-	UserID uint64 `db:"user_id"`
+	UserId uint64 `db:"user_id"`
 	Name   string `db:"name"`
 }
 type User struct {
@@ -1040,11 +1040,11 @@ if !found {
 
  ```go
 type Role struct {
-	UserID uint64 `db:"user_id"`
+	UserId uint64 `db:"user_id"`
 	Name   string `db:"name"`
 }
 type User struct {
-	ID        uint64 `db:"id"`
+	Id        uint64 `db:"id"`
 	FirstName string `db:"first_name"`
 	LastName  string `db:"last_name"`
 }
@@ -1075,11 +1075,11 @@ You can alternatively manually select the columns with the appropriate aliases u
 
 ```go
 type Role struct {
-	UserID uint64 `db:"user_id"`
+	UserId uint64 `db:"user_id"`
 	Name   string `db:"name"`
 }
 type User struct {
-	ID        uint64 `db:"id"`
+	Id        uint64 `db:"id"`
 	FirstName string `db:"first_name"`
 	LastName  string `db:"last_name"`
 	Role      Role   `db:"user_role"` // tag as "user_role" table
