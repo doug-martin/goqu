@@ -32,12 +32,12 @@ func (bes *bitwiseExpressionSuite) TestAs() {
 
 func (bes *bitwiseExpressionSuite) TestAsc() {
 	be := exp.NewBitwiseExpression(exp.BitwiseAndOp, exp.NewIdentifierExpression("", "", "col"), 1)
-	bes.Equal(exp.NewOrderedExpression(be, exp.AscDir, exp.NoNullsSortType), be.Asc())
+	bes.Equal(exp.NewOrderedExpression(be, exp.AscDir, exp.NoNullsSortType, exp.NoCollation), be.Asc())
 }
 
 func (bes *bitwiseExpressionSuite) TestDesc() {
 	be := exp.NewBitwiseExpression(exp.BitwiseOrOp, exp.NewIdentifierExpression("", "", "col"), 1)
-	bes.Equal(exp.NewOrderedExpression(be, exp.DescSortDir, exp.NoNullsSortType), be.Desc())
+	bes.Equal(exp.NewOrderedExpression(be, exp.DescSortDir, exp.NoNullsSortType, exp.NoCollation), be.Desc())
 }
 
 func (bes *bitwiseExpressionSuite) TestAllOthers() {

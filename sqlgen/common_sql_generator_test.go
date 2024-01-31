@@ -210,6 +210,7 @@ func (csgs *commonSQLGeneratorSuite) TestOrderSQL() {
 	opts.OrderByFragment = []byte(" order by ")
 	opts.AscFragment = []byte(" asc")
 	opts.DescFragment = []byte(" desc")
+	opts.CollateFragment = []byte(" collate")
 	opts.NullsFirstFragment = []byte(" nulls first")
 	opts.NullsLastFragment = []byte(" nulls last")
 	csgCustom := sqlgen.NewCommonSQLGenerator("test", opts)
@@ -222,6 +223,14 @@ func (csgs *commonSQLGeneratorSuite) TestOrderSQL() {
 	od := ident.Desc()
 	odnf := ident.Desc().NullsFirst()
 	odnl := ident.Desc().NullsLast()
+
+	oac := ident.Asc().Collate("en_GB")
+	oanfc := ident.Asc().NullsFirst().Collate("en_GB")
+	oanlc := ident.Asc().NullsLast().Collate("en_GB")
+
+	odc := ident.Desc().Collate("en_GB")
+	odnfc := ident.Desc().NullsFirst().Collate("en_GB")
+	odnlc := ident.Desc().NullsLast().Collate("en_GB")
 
 	csgs.assertCases(
 		commonSQLTestCase{gen: orderGen(csg), sql: ``},
@@ -245,8 +254,26 @@ func (csgs *commonSQLGeneratorSuite) TestOrderSQL() {
 		commonSQLTestCase{gen: orderGen(csg, odnl), sql: ` ORDER BY "a" DESC NULLS LAST`},
 		commonSQLTestCase{gen: orderGen(csg, odnl), sql: ` ORDER BY "a" DESC NULLS LAST`, isPrepared: true, args: emptyArgs},
 
-		commonSQLTestCase{gen: orderGen(csg, oa, od), sql: ` ORDER BY "a" ASC, "a" DESC`},
-		commonSQLTestCase{gen: orderGen(csg, oa, od), sql: ` ORDER BY "a" ASC, "a" DESC`, isPrepared: true, args: emptyArgs},
+		commonSQLTestCase{gen: orderGen(csg, oac), sql: ` ORDER BY "a" COLLATE en_GB ASC`},
+		commonSQLTestCase{gen: orderGen(csg, oac), sql: ` ORDER BY "a" COLLATE en_GB ASC`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csg, oanfc), sql: ` ORDER BY "a" COLLATE en_GB ASC NULLS FIRST`},
+		commonSQLTestCase{gen: orderGen(csg, oanfc), sql: ` ORDER BY "a" COLLATE en_GB ASC NULLS FIRST`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csg, oanlc), sql: ` ORDER BY "a" COLLATE en_GB ASC NULLS LAST`},
+		commonSQLTestCase{gen: orderGen(csg, oanlc), sql: ` ORDER BY "a" COLLATE en_GB ASC NULLS LAST`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csg, odc), sql: ` ORDER BY "a" COLLATE en_GB DESC`},
+		commonSQLTestCase{gen: orderGen(csg, odc), sql: ` ORDER BY "a" COLLATE en_GB DESC`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csg, odnfc), sql: ` ORDER BY "a" COLLATE en_GB DESC NULLS FIRST`},
+		commonSQLTestCase{gen: orderGen(csg, odnfc), sql: ` ORDER BY "a" COLLATE en_GB DESC NULLS FIRST`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csg, odnlc), sql: ` ORDER BY "a" COLLATE en_GB DESC NULLS LAST`},
+		commonSQLTestCase{gen: orderGen(csg, odnlc), sql: ` ORDER BY "a" COLLATE en_GB DESC NULLS LAST`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csg, oa, od, oanfc), sql: ` ORDER BY "a" ASC, "a" DESC, "a" COLLATE en_GB ASC NULLS FIRST`},
+		commonSQLTestCase{gen: orderGen(csg, oa, od, oanfc), sql: ` ORDER BY "a" ASC, "a" DESC, "a" COLLATE en_GB ASC NULLS FIRST`, isPrepared: true, args: emptyArgs},
 
 		commonSQLTestCase{gen: orderGen(csgCustom), sql: ``},
 		commonSQLTestCase{gen: orderGen(csgCustom), sql: ``, isPrepared: true, args: emptyArgs},
@@ -269,8 +296,26 @@ func (csgs *commonSQLGeneratorSuite) TestOrderSQL() {
 		commonSQLTestCase{gen: orderGen(csgCustom, odnl), sql: ` order by "a" desc nulls last`},
 		commonSQLTestCase{gen: orderGen(csgCustom, odnl), sql: ` order by "a" desc nulls last`, isPrepared: true, args: emptyArgs},
 
-		commonSQLTestCase{gen: orderGen(csgCustom, oa, od), sql: ` order by "a" asc, "a" desc`},
-		commonSQLTestCase{gen: orderGen(csgCustom, oa, od), sql: ` order by "a" asc, "a" desc`, isPrepared: true, args: emptyArgs},
+		commonSQLTestCase{gen: orderGen(csgCustom, oac), sql: ` order by "a" collate en_GB asc`},
+		commonSQLTestCase{gen: orderGen(csgCustom, oac), sql: ` order by "a" collate en_GB asc`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csgCustom, oanfc), sql: ` order by "a" collate en_GB asc nulls first`},
+		commonSQLTestCase{gen: orderGen(csgCustom, oanfc), sql: ` order by "a" collate en_GB asc nulls first`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csgCustom, oanlc), sql: ` order by "a" collate en_GB asc nulls last`},
+		commonSQLTestCase{gen: orderGen(csgCustom, oanlc), sql: ` order by "a" collate en_GB asc nulls last`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csgCustom, odc), sql: ` order by "a" collate en_GB desc`},
+		commonSQLTestCase{gen: orderGen(csgCustom, odc), sql: ` order by "a" collate en_GB desc`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csgCustom, odnfc), sql: ` order by "a" collate en_GB desc nulls first`},
+		commonSQLTestCase{gen: orderGen(csgCustom, odnfc), sql: ` order by "a" collate en_GB desc nulls first`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csgCustom, odnlc), sql: ` order by "a" collate en_GB desc nulls last`},
+		commonSQLTestCase{gen: orderGen(csgCustom, odnlc), sql: ` order by "a" collate en_GB desc nulls last`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: orderGen(csgCustom, oa, od, oanfc), sql: ` order by "a" asc, "a" desc, "a" collate en_GB asc nulls first`},
+		commonSQLTestCase{gen: orderGen(csgCustom, oa, od, oanfc), sql: ` order by "a" asc, "a" desc, "a" collate en_GB asc nulls first`, isPrepared: true, args: emptyArgs},
 	)
 }
 

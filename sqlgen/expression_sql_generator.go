@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -471,6 +472,10 @@ func (esg *expressionSQLGenerator) rangeExpressionSQL(b sb.SQLBuilder, operator 
 // Generates SQL for an OrderedExpression (e.g. I("a").Asc() -> "a" ASC)
 func (esg *expressionSQLGenerator) orderedExpressionSQL(b sb.SQLBuilder, order exp.OrderedExpression) {
 	esg.Generate(b, order.SortExpression())
+	hasCollation, collation := order.HasCollation()
+	if hasCollation {
+		b.Write([]byte(fmt.Sprintf("%s %s", esg.dialectOptions.CollateFragment, collation)))
+	}
 	if order.IsAsc() {
 		b.Write(esg.dialectOptions.AscFragment)
 	} else {

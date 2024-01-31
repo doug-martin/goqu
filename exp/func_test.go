@@ -71,8 +71,8 @@ func (sfes *sqlFunctionExpressionSuite) TestAllOthers() {
 		{Ex: fn.IsNotTrue(), Expected: exp.NewBooleanExpression(exp.IsNotOp, fn, true)},
 		{Ex: fn.IsFalse(), Expected: exp.NewBooleanExpression(exp.IsOp, fn, false)},
 		{Ex: fn.IsNotFalse(), Expected: exp.NewBooleanExpression(exp.IsNotOp, fn, false)},
-		{Ex: fn.Desc(), Expected: exp.NewOrderedExpression(fn, exp.DescSortDir, exp.NoNullsSortType)},
-		{Ex: fn.Asc(), Expected: exp.NewOrderedExpression(fn, exp.AscDir, exp.NoNullsSortType)},
+		{Ex: fn.Desc(), Expected: exp.NewOrderedExpression(fn, exp.DescSortDir, exp.NoNullsSortType, exp.NoCollation)},
+		{Ex: fn.Asc(), Expected: exp.NewOrderedExpression(fn, exp.AscDir, exp.NoNullsSortType, exp.NoCollation)},
 	}
 
 	for _, tc := range testCases {

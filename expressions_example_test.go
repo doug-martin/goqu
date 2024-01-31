@@ -186,6 +186,9 @@ func ExampleC_ordering() {
 	sql, args, _ = goqu.From("test").Order(goqu.C("a").Desc().NullsLast()).ToSQL()
 	fmt.Println(sql, args)
 
+	sql, args, _ = goqu.From("test").Order(goqu.C("a").Asc().NullsFirst().Collate("en_GB")).ToSQL()
+	fmt.Println(sql, args)
+
 	// Output:
 	// SELECT * FROM "test" ORDER BY "a" ASC []
 	// SELECT * FROM "test" ORDER BY "a" ASC NULLS FIRST []
@@ -193,6 +196,7 @@ func ExampleC_ordering() {
 	// SELECT * FROM "test" ORDER BY "a" DESC []
 	// SELECT * FROM "test" ORDER BY "a" DESC NULLS FIRST []
 	// SELECT * FROM "test" ORDER BY "a" DESC NULLS LAST []
+	// SELECT * FROM "test" ORDER BY "a" COLLATE en_GB ASC NULLS FIRST []
 }
 
 func ExampleC_cast() {
