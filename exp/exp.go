@@ -395,6 +395,8 @@ type (
 		Args() []interface{}
 	}
 
+	Collation string
+
 	NullSortType  int
 	SortDirection int
 	// An expression for specifying sort order and options
@@ -410,6 +412,10 @@ type (
 		NullsFirst() OrderedExpression
 		// Returns a new OrderedExpression with NullSortType set to NULLS_LAST
 		NullsLast() OrderedExpression
+		// Returns the OrderedExpression with Collation set to Collation
+		Collate(Collation) OrderedExpression
+		// If the expression has a Collation
+		HasCollation() (bool, Collation)
 	}
 
 	RangeOperation  int
@@ -547,6 +553,7 @@ const (
 	AscDir SortDirection = iota
 	// DESC
 	DescSortDir
+	NoCollation = ""
 
 	// BETWEEN
 	BetweenOp RangeOperation = iota

@@ -59,12 +59,12 @@ func (ces *caseExpressionSuite) TestElse() {
 
 func (ces *caseExpressionSuite) TestAsc() {
 	ce := exp.NewCaseExpression()
-	ces.Equal(exp.NewOrderedExpression(ce, exp.AscDir, exp.NoNullsSortType), ce.Asc())
+	ces.Equal(exp.NewOrderedExpression(ce, exp.AscDir, exp.NoNullsSortType, exp.NoCollation), ce.Asc())
 }
 
 func (ces *caseExpressionSuite) TestDesc() {
 	ce := exp.NewCaseExpression()
-	ces.Equal(exp.NewOrderedExpression(ce, exp.DescSortDir, exp.NoNullsSortType), ce.Desc())
+	ces.Equal(exp.NewOrderedExpression(ce, exp.DescSortDir, exp.NoNullsSortType, exp.NoCollation), ce.Desc())
 }
 
 type caseWhenSuite struct {

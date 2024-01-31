@@ -725,6 +725,14 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderedExpression() {
 	descNf := exp.NewIdentifierExpression("", "", "a").Desc().NullsFirst()
 	descNl := exp.NewIdentifierExpression("", "", "a").Desc().NullsLast()
 
+	ascC := exp.NewIdentifierExpression("", "", "a").Asc().Collate("en_GB")
+	ascNfC := exp.NewIdentifierExpression("", "", "a").Asc().NullsFirst().Collate("en_GB")
+	ascNlC := exp.NewIdentifierExpression("", "", "a").Asc().NullsLast().Collate("en_GB")
+
+	descC := exp.NewIdentifierExpression("", "", "a").Desc().Collate("en_GB")
+	descNfC := exp.NewIdentifierExpression("", "", "a").Desc().NullsFirst().Collate("en_GB")
+	descNlC := exp.NewIdentifierExpression("", "", "a").Desc().NullsLast().Collate("en_GB")
+
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: asc, sql: `"a" ASC`},
@@ -744,6 +752,24 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderedExpression() {
 
 		expressionTestCase{val: descNl, sql: `"a" DESC NULLS LAST`},
 		expressionTestCase{val: descNl, sql: `"a" DESC NULLS LAST`, isPrepared: true},
+
+		expressionTestCase{val: ascC, sql: `"a" COLLATE en_GB ASC`},
+		expressionTestCase{val: ascC, sql: `"a" COLLATE en_GB ASC`, isPrepared: true},
+
+		expressionTestCase{val: ascNfC, sql: `"a" COLLATE en_GB ASC NULLS FIRST`},
+		expressionTestCase{val: ascNfC, sql: `"a" COLLATE en_GB ASC NULLS FIRST`, isPrepared: true},
+
+		expressionTestCase{val: ascNlC, sql: `"a" COLLATE en_GB ASC NULLS LAST`},
+		expressionTestCase{val: ascNlC, sql: `"a" COLLATE en_GB ASC NULLS LAST`, isPrepared: true},
+
+		expressionTestCase{val: descC, sql: `"a" COLLATE en_GB DESC`},
+		expressionTestCase{val: descC, sql: `"a" COLLATE en_GB DESC`, isPrepared: true},
+
+		expressionTestCase{val: descNfC, sql: `"a" COLLATE en_GB DESC NULLS FIRST`},
+		expressionTestCase{val: descNfC, sql: `"a" COLLATE en_GB DESC NULLS FIRST`, isPrepared: true},
+
+		expressionTestCase{val: descNlC, sql: `"a" COLLATE en_GB DESC NULLS LAST`},
+		expressionTestCase{val: descNlC, sql: `"a" COLLATE en_GB DESC NULLS LAST`, isPrepared: true},
 	)
 }
 

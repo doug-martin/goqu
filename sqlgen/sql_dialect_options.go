@@ -147,6 +147,8 @@ type (
 		NullsFirstFragment []byte
 		// The NULLS LAST fragment when specifying column order (DEFAULT=[]byte(" NULLS LAST"))
 		NullsLastFragment []byte
+		// The COLLATE fragment when specifying collation (DEFAULT=[]byte(" COLLATE"))
+		CollateFragment []byte
 		// The AND keyword used when joining ExpressionLists (DEFAULT=[]byte(" AND "))
 		AndFragment []byte
 		// The OR keyword used when joining ExpressionLists (DEFAULT=[]byte(" OR "))
@@ -469,6 +471,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		AsFragment:                []byte(" AS "),
 		AscFragment:               []byte(" ASC"),
 		DescFragment:              []byte(" DESC"),
+		CollateFragment:           []byte(" COLLATE"),
 		NullsFirstFragment:        []byte(" NULLS FIRST"),
 		NullsLastFragment:         []byte(" NULLS LAST"),
 		AndFragment:               []byte(" AND "),
