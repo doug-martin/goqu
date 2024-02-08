@@ -133,6 +133,14 @@ func COALESCE(vals ...interface{}) exp.SQLFunctionExpression {
 	return Func("COALESCE", vals...)
 }
 
+// Creates a new NULLIF sql function
+//
+//	NULLIF(I("a"), "a") -> NULLIF("a", 'a')
+//	NULLIF("a", "a") -> NULLIF("a", 'a')
+func NULLIF(column interface{}, value interface{}) exp.SQLFunctionExpression {
+	return Func("NULLIF", column, value)
+}
+
 //nolint:stylecheck,revive // sql function name
 func ROW_NUMBER() exp.SQLFunctionExpression {
 	return Func("ROW_NUMBER")
