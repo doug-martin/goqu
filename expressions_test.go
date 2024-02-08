@@ -78,6 +78,10 @@ func (ges *goquExpressionsSuite) TestCOALESCE() {
 	ges.Equal(exp.NewSQLFunctionExpression("COALESCE", goqu.I("col"), nil), goqu.COALESCE(goqu.I("col"), nil))
 }
 
+func (ges *goquExpressionsSuite) TestNULLIF() {
+	ges.Equal(exp.NewSQLFunctionExpression("NULLIF", goqu.I("col"), "test"), goqu.NULLIF(goqu.I("col"), "test"))
+}
+
 func (ges *goquExpressionsSuite) TestROW_NUMBER() {
 	ges.Equal(exp.NewSQLFunctionExpression("ROW_NUMBER"), goqu.ROW_NUMBER())
 }

@@ -937,6 +937,21 @@ func ExampleMIN_havingClause() {
 	// SELECT MIN("a") AS "MIN" FROM "test" GROUP BY "a" HAVING (MIN("a") > ?) [10]
 }
 
+func ExampleNULLIF() {
+	ds := goqu.From("test").Select(
+		goqu.NULLIF(goqu.C("a"), "a"),
+		goqu.NULLIF(goqu.C("a"), goqu.C("b")),
+	)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT NULLIF("a", 'a'), NULLIF("a", "b") FROM "test" []
+	// SELECT NULLIF("a", ?), NULLIF("a", "b") FROM "test" [a]
+}
+
 func ExampleOn() {
 	ds := goqu.From("test").Join(
 		goqu.T("my_table"),
