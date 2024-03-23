@@ -1557,6 +1557,18 @@ func ExampleSelectDataset_Count() {
 	// Count is 4
 }
 
+func ExampleSelectDataset_Exists() {
+	exists, err := getDB().From("goqu_user").Exists()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("Exists is %t", exists)
+
+	// Output:
+	// Exists is true
+}
+
 func ExampleSelectDataset_Pluck() {
 	var lastNames []string
 	if err := getDB().From("goqu_user").Pluck(&lastNames, "last_name"); err != nil {
