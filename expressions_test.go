@@ -185,6 +185,13 @@ func (ges *goquExpressionsSuite) TestAll() {
 	ges.Equal(exp.NewSQLFunctionExpression("ALL ", ds), goqu.All(ds))
 }
 
+func (ges *goquExpressionsSuite) TestExists() {
+	ds := goqu.From("test").Where(
+		goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
+	)
+	ges.Equal(exp.NewSQLFunctionExpression("EXISTS ", ds), goqu.Exists(ds))
+}
+
 func TestGoquExpressions(t *testing.T) {
 	suite.Run(t, new(goquExpressionsSuite))
 }

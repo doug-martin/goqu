@@ -328,6 +328,10 @@ func All(val interface{}) exp.SQLFunctionExpression {
 	return Func("ALL ", val)
 }
 
+func Exists(val interface{}) exp.SQLFunctionExpression {
+	return Func("EXISTS ", val)
+}
+
 func Case() exp.CaseExpression {
 	return exp.NewCaseExpression()
 }

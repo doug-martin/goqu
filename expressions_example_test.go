@@ -1807,6 +1807,32 @@ func ExampleAny() {
 	// SELECT * FROM "test" WHERE ("id" = ANY ((SELECT "test_id" FROM "other"))) []
 }
 
+func ExampleExists() {
+	ds := goqu.Select(goqu.Exists(goqu.From("test")))
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT EXISTS ((SELECT * FROM "test")) []
+	// SELECT EXISTS ((SELECT * FROM "test")) []
+}
+
+func ExampleExists_inWhereClauses() {
+	ds := goqu.From("test").Where(
+		goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
+	)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "test" WHERE EXISTS ((SELECT * FROM "other" WHERE ("test_id" = "id"))) []
+	// SELECT * FROM "test" WHERE EXISTS ((SELECT * FROM "other" WHERE ("test_id" = "id"))) []
+}
+
 func ExampleAll() {
 	ds := goqu.From("test").Where(goqu.Ex{
 		"id": goqu.All(goqu.From("other").Select("test_id")),

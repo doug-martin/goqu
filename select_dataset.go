@@ -671,6 +671,18 @@ func (sd *SelectDataset) CountContext(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+// Generates the SELECT EXISTS(...) sql for this dataset and uses Exec#ScanVal to scan the result into an bool.
+func (sd *SelectDataset) Exists() (bool, error) {
+	return sd.ExistsContext(context.Background())
+}
+
+// Generates the SELECT EXISTS(...) sql for this dataset and uses Exec#ScanValContext to scan the result into an bool.
+func (sd *SelectDataset) ExistsContext(ctx context.Context) (bool, error) {
+	var exists bool
+	_, err := newDataset(sd.dialect.Dialect(), sd.queryFactory).Select(Exists(sd)).Prepared(sd.IsPrepared()).ScanValContext(ctx, &exists)
+	return exists, err
+}
+
 // Generates the SELECT sql only selecting the passed in column and uses Exec#ScanVals to scan the result into a slice
 // of primitive values.
 //
