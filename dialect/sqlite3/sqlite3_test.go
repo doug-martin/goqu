@@ -452,16 +452,22 @@ func (st *sqlite3Suite) TestInsert_OnConflict() {
 	st.NoError(err)
 	st.Equal("upsert", entryActual.String)
 
-	// UPDATE ... ON CONFLICT (...) WHERE ... SET ... should result in error for now
+	// Test DoUpdate with WHERE clause
 	entries := []entry{
 		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
 		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
 	_, err = ds.Insert().
 		Rows(entries).
-		OnConflict(goqu.DoUpdate("id", goqu.Record{"string": "upsert"}).Where(goqu.C("id").Eq(9))).
+		OnConflict(goqu.DoUpdate("id", goqu.Record{"string": "upsert"}).Where(goqu.C("id").Eq(11))).
 		Executor().Exec()
-	st.EqualError(err, "goqu: dialect does not support upsert with where clause [dialect=sqlite3]")
+	st.NoError(err)
+
+	// Verify the record with ID=11 was updated (DoUpdate worked)
+	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
+	st.NoError(err)
+	st.Equal("upsert", entryActual.String)
+
 }
 
 func TestSqlite3Suite(t *testing.T) {
