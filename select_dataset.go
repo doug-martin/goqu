@@ -543,7 +543,9 @@ func (sd *SelectDataset) SetError(err error) *SelectDataset {
 // Errors:
 //   - There is an error generating the SQL
 func (sd *SelectDataset) ToSQL() (sql string, params []interface{}, err error) {
-	return sd.selectSQLBuilder().ToSQL()
+	builder := sd.selectSQLBuilder()
+	defer sb.ReleaseSQLBuilder(builder)
+	return builder.ToSQL()
 }
 
 // Generates the SELECT sql, and returns an Exec struct with the sql set to the SELECT statement

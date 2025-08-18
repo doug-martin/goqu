@@ -151,7 +151,9 @@ func (td *TruncateDataset) SetError(err error) *TruncateDataset {
 // Errors:
 //   - There is an error generating the SQL
 func (td *TruncateDataset) ToSQL() (sql string, params []interface{}, err error) {
-	return td.truncateSQLBuilder().ToSQL()
+	builder := td.truncateSQLBuilder()
+	defer sb.ReleaseSQLBuilder(builder)
+	return builder.ToSQL()
 }
 
 // Generates the TRUNCATE sql, and returns an Exec struct with the sql set to the TRUNCATE statement

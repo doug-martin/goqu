@@ -230,7 +230,9 @@ func (id *InsertDataset) SetError(err error) *InsertDataset {
 //   - Rows of different lengths, (i.e. (Record{"name": "a"}, Record{"name": "a", "age": 10})
 //   - Error generating SQL
 func (id *InsertDataset) ToSQL() (sql string, params []interface{}, err error) {
-	return id.insertSQLBuilder().ToSQL()
+	builder := id.insertSQLBuilder()
+	defer sb.ReleaseSQLBuilder(builder)
+	return builder.ToSQL()
 }
 
 // Appends this Dataset's INSERT statement to the SQLBuilder
@@ -267,6 +269,20 @@ func (id *InsertDataset) insertSQLBuilder() sb.SQLBuilder {
 	buf := sb.NewSQLBuilder(id.isPrepared.Bool())
 	if id.err != nil {
 		return buf.SetError(id.err)
+	}
+	if vals := id.clauses.Vals(); len(vals) > 0 {
+		maxCols := 0
+		totalArgs := 0
+		for _, row := range vals {
+			c := len(row)
+			totalArgs += c
+			if c > maxCols {
+				maxCols = c
+			}
+		}
+		if totalArgs > 0 {
+			buf.GrowArgs(totalArgs)
+		}
 	}
 	id.dialect.ToInsertSQL(buf, id.clauses)
 	return buf

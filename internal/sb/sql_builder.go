@@ -2,6 +2,7 @@ package sb
 
 import (
 	"bytes"
+	"sync"
 )
 
 // Builder that is composed of a bytes.Buffer. It is used internally and by adapters to build SQL statements
@@ -13,6 +14,8 @@ type (
 		Write(p []byte) SQLBuilder
 		WriteStrings(ss ...string) SQLBuilder
 		WriteRunes(r ...rune) SQLBuilder
+		GrowArgs(n int) SQLBuilder
+		GrowBuffer(n int) SQLBuilder
 		IsPrepared() bool
 		CurrentArgPosition() int
 		ToSQL() (sql string, args []interface{}, err error)
@@ -23,17 +26,23 @@ type (
 		isPrepared bool
 		// Current Number of arguments, used by adapters that need positional placeholders
 		currentArgPosition int
-		args               []interface{}
+		args               []any
 		err                error
 	}
 )
 
 func NewSQLBuilder(isPrepared bool) SQLBuilder {
+	sb := builderPool.Get().(*sqlBuilder)
+	sb.isPrepared = isPrepared
+	return sb
+}
+
+func newSQLBuilder(isPrepared bool) *sqlBuilder {
 	return &sqlBuilder{
 		buf:                &bytes.Buffer{},
-		isPrepared:         isPrepared,
-		args:               make([]interface{}, 0),
+		args:               make([]any, 0, 4),
 		currentArgPosition: 1,
+		isPrepared:         isPrepared,
 	}
 }
 
@@ -57,8 +66,20 @@ func (b *sqlBuilder) Write(bs []byte) SQLBuilder {
 
 func (b *sqlBuilder) WriteStrings(ss ...string) SQLBuilder {
 	if b.err == nil {
-		for _, s := range ss {
-			b.buf.WriteString(s)
+		switch len(ss) {
+		case 0:
+			return b
+		case 1:
+			b.buf.WriteString(ss[0])
+		default:
+			totalSize := 0
+			for _, s := range ss {
+				totalSize += len(s)
+			}
+			b.buf.Grow(totalSize)
+			for _, s := range ss {
+				b.buf.WriteString(s)
+			}
 		}
 	}
 	return b
@@ -66,9 +87,47 @@ func (b *sqlBuilder) WriteStrings(ss ...string) SQLBuilder {
 
 func (b *sqlBuilder) WriteRunes(rs ...rune) SQLBuilder {
 	if b.err == nil {
-		for _, r := range rs {
-			b.buf.WriteRune(r)
+		switch len(rs) {
+		case 0:
+			return b
+		case 1:
+			b.buf.WriteRune(rs[0])
+		case 2:
+			b.buf.Grow(2)
+			b.buf.WriteRune(rs[0])
+			b.buf.WriteRune(rs[1])
+		default:
+			b.buf.WriteString(string(rs))
 		}
+	}
+	return b
+}
+
+func (b *sqlBuilder) GrowArgs(n int) SQLBuilder {
+	if b.err != nil || n <= 0 {
+		return b
+	}
+	currentLen := len(b.args)
+	needed := currentLen + n
+	if cap(b.args) >= needed {
+		return b
+	}
+	newCap := cap(b.args)
+	if newCap == 0 {
+		newCap = 1
+	}
+	for newCap < needed {
+		newCap *= 2
+	}
+	na := make([]interface{}, currentLen, newCap)
+	copy(na, b.args)
+	b.args = na
+	return b
+}
+
+func (b *sqlBuilder) GrowBuffer(n int) SQLBuilder {
+	if b.err == nil && n > 0 {
+		b.buf.Grow(n)
 	}
 	return b
 }
@@ -98,4 +157,25 @@ func (b *sqlBuilder) ToSQL() (sql string, args []interface{}, err error) {
 		return sql, args, b.err
 	}
 	return b.buf.String(), b.args, nil
+}
+
+var builderPool = sync.Pool{
+	New: func() interface{} {
+		return newSQLBuilder(false)
+	},
+}
+
+func (b *sqlBuilder) reset() {
+	b.buf.Reset()
+	b.args = make([]any, 0, 4)
+	b.err = nil
+	b.isPrepared = false
+	b.currentArgPosition = 1
+}
+
+func ReleaseSQLBuilder(b SQLBuilder) {
+	if sbImpl, ok := b.(*sqlBuilder); ok {
+		sbImpl.reset()
+		builderPool.Put(sbImpl)
+	}
 }

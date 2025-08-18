@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -26,6 +27,7 @@ type (
 	expressionSQLGenerator struct {
 		dialect        string
 		dialectOptions *SQLDialectOptions
+		scratchBuffer  []byte
 	}
 )
 
@@ -66,7 +68,7 @@ func errLateralNotSupported(dialect string) error {
 }
 
 func NewExpressionSQLGenerator(dialect string, do *SQLDialectOptions) ExpressionSQLGenerator {
-	return &expressionSQLGenerator{dialect: dialect, dialectOptions: do}
+	return &expressionSQLGenerator{dialect: dialect, dialectOptions: do, scratchBuffer: make([]byte, 0, 32)}
 }
 
 func (esg *expressionSQLGenerator) Dialect() string {
@@ -86,6 +88,20 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 	switch v := val.(type) {
 	case exp.Expression:
 		esg.expressionSQL(b, v)
+	case driver.Valuer:
+		// See https://github.com/golang/go/commit/0ce1d79a6a771f7449ec493b993ed2a720917870
+		if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr &&
+			rv.IsNil() &&
+			rv.Type().Elem().Implements(valuerReflectType) {
+			esg.literalNil(b)
+			return
+		}
+		dVal, err := v.Value()
+		if err != nil {
+			b.SetError(err)
+			return
+		}
+		esg.Generate(b, dVal)
 	case int:
 		esg.literalInt(b, int64(v))
 	case int32:
@@ -108,23 +124,133 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 			return
 		}
 		esg.literalTime(b, *v)
-	case driver.Valuer:
-		// See https://github.com/golang/go/commit/0ce1d79a6a771f7449ec493b993ed2a720917870
-		if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr &&
-			rv.IsNil() &&
-			rv.Type().Elem().Implements(valuerReflectType) {
-			esg.literalNil(b)
-			return
-		}
-		dVal, err := v.Value()
-		if err != nil {
-			b.SetError(err)
-			return
-		}
-		esg.Generate(b, dVal)
+	case []interface{}:
+		esg.sliceInterfaceSQL(b, v)
+	case []int64:
+		esg.sliceInt64SQL(b, v)
+	case []int:
+		esg.sliceIntSQL(b, v)
+	case []string:
+		esg.sliceStringSQL(b, v)
+	case []float64:
+		esg.sliceFloat64SQL(b, v)
+	case []bool:
+		esg.sliceBoolSQL(b, v)
+	case []time.Time:
+		esg.sliceTimeSQL(b, v)
+	case []byte:
+		esg.literalBytes(b, v)
+	case []exp.CommonTableExpression:
+		esg.commonTablesSliceSQL(b, v)
 	default:
 		esg.reflectSQL(b, val)
 	}
+}
+
+// Typed slice fast paths to avoid reflection-heavy paths in hot loops
+func (esg *expressionSQLGenerator) sliceInt64SQL(b sb.SQLBuilder, s []int64) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 16)
+	for i, v := range s {
+		esg.Generate(b, v)
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+func (esg *expressionSQLGenerator) sliceIntSQL(b sb.SQLBuilder, s []int) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 16)
+	for i, v := range s {
+		esg.Generate(b, int64(v))
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+func (esg *expressionSQLGenerator) sliceStringSQL(b sb.SQLBuilder, s []string) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 16)
+	for i, v := range s {
+		esg.Generate(b, v)
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+func (esg *expressionSQLGenerator) sliceFloat64SQL(b sb.SQLBuilder, s []float64) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 16)
+	for i, v := range s {
+		esg.Generate(b, v)
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+func (esg *expressionSQLGenerator) sliceBoolSQL(b sb.SQLBuilder, s []bool) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 10)
+	for i, v := range s {
+		esg.Generate(b, v)
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+func (esg *expressionSQLGenerator) sliceTimeSQL(b sb.SQLBuilder, s []time.Time) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 32)
+	for i, v := range s {
+		esg.Generate(b, v)
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+func (esg *expressionSQLGenerator) sliceInterfaceSQL(b sb.SQLBuilder, s []interface{}) {
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	if b.IsPrepared() {
+		b.GrowArgs(len(s))
+	}
+	b.GrowBuffer(len(s) * 16)
+	for i, v := range s {
+		esg.Generate(b, v)
+		if i < len(s)-1 {
+			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
+		}
+	}
+	b.WriteRunes(esg.dialectOptions.RightParenRune)
 }
 
 func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) {
@@ -134,14 +260,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsInvalid(valKind):
 		esg.literalNil(b)
 	case util.IsSlice(valKind):
-		switch t := val.(type) {
-		case []byte:
-			esg.literalBytes(b, t)
-		case []exp.CommonTableExpression:
-			esg.commonTablesSliceSQL(b, t)
-		default:
-			esg.sliceValueSQL(b, v)
-		}
+		esg.sliceValueSQL(b, v)
 	case util.IsInt(valKind):
 		esg.Generate(b, v.Int())
 	case util.IsUint(valKind):
@@ -211,7 +330,8 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}) {
 	b.Write(esg.dialectOptions.PlaceHolderFragment)
 	if esg.dialectOptions.IncludePlaceholderNum {
-		b.WriteStrings(strconv.FormatInt(int64(b.CurrentArgPosition()), 10))
+		nb := strconv.AppendInt(esg.scratchBuffer[:0], int64(b.CurrentArgPosition()), 10)
+		b.Write(nb)
 	}
 	b.WriteArg(i)
 }
@@ -234,6 +354,7 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 		return
 	}
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
+	b.GrowBuffer(len(schema) + len(table) + 32)
 	if schema != esg.dialectOptions.EmptyString {
 		b.WriteRunes(esg.dialectOptions.QuoteRune).
 			WriteStrings(schema).
@@ -314,7 +435,9 @@ func (esg *expressionSQLGenerator) literalFloat(b sb.SQLBuilder, f float64) {
 		esg.placeHolderSQL(b, f)
 		return
 	}
-	b.WriteStrings(strconv.FormatFloat(f, 'f', -1, 64))
+	buf := esg.scratchBuffer[:0]
+	buf = strconv.AppendFloat(buf, f, 'f', -1, 64)
+	b.Write(buf)
 }
 
 // Generates SQL for an int value
@@ -323,7 +446,9 @@ func (esg *expressionSQLGenerator) literalInt(b sb.SQLBuilder, i int64) {
 		esg.placeHolderSQL(b, i)
 		return
 	}
-	b.WriteStrings(strconv.FormatInt(i, 10))
+	buf := esg.scratchBuffer[:0]
+	buf = strconv.AppendInt(buf, i, 10)
+	b.Write(buf)
 }
 
 // Generates SQL for a string
@@ -332,6 +457,7 @@ func (esg *expressionSQLGenerator) literalString(b sb.SQLBuilder, s string) {
 		esg.placeHolderSQL(b, s)
 		return
 	}
+	b.GrowBuffer(len(s) * 2)
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 	for _, char := range s {
 		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
@@ -340,7 +466,6 @@ func (esg *expressionSQLGenerator) literalString(b sb.SQLBuilder, s string) {
 			b.WriteRunes(char)
 		}
 	}
-
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
 
@@ -350,6 +475,7 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 		esg.placeHolderSQL(b, bs)
 		return
 	}
+	b.GrowBuffer(len(bs) * 2)
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 	i := 0
 	for len(bs) > 0 {
@@ -542,13 +668,26 @@ func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal
 	args := literal.Args()
 	if argsLen := len(args); argsLen > 0 {
 		currIndex := 0
-		for _, char := range l {
-			if char == replacementRune && currIndex < argsLen {
+		start := 0
+		for {
+			i := strings.IndexByte(l[start:], byte(replacementRune))
+			if i == -1 {
+				break
+			}
+			i += start
+			if i > start {
+				b.WriteStrings(l[start:i])
+			}
+			if currIndex < argsLen {
 				esg.Generate(b, args[currIndex])
 				currIndex++
 			} else {
-				b.WriteRunes(char)
+				b.WriteRunes(replacementRune)
 			}
+			start = i + 1
+		}
+		if start < len(l) {
+			b.WriteStrings(l[start:])
 		}
 		return
 	}
