@@ -992,6 +992,12 @@ func (sds *selectDatasetSuite) TestLimit() {
 			ds:      bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
 		},
+		selectTestCase{
+			ds: bd.Limit(goqu.L("1")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLimit(goqu.L("1")),
+		},
 	)
 }
 

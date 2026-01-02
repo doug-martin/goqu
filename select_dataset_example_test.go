@@ -353,8 +353,26 @@ func ExampleSelectDataset_Limit() {
 	ds := goqu.From("test").Limit(10)
 	sql, _, _ := ds.ToSQL()
 	fmt.Println(sql)
+
+	// In prepared mode, LIMIT becomes a placeholder
+	ds = goqu.From("test").Prepared(true).Limit(1)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql)
+	fmt.Println(args)
+
+	// Using a literal expression keeps the value as a constant
+	// This is useful for query plan optimization (e.g., LIMIT 1)
+	ds = goqu.From("test").Prepared(true).Limit(goqu.L("1"))
+	sql, args, _ = ds.ToSQL()
+	fmt.Println(sql)
+	fmt.Println(args)
+
 	// Output:
 	// SELECT * FROM "test" LIMIT 10
+	// SELECT * FROM "test" LIMIT ?
+	// [1]
+	// SELECT * FROM "test" LIMIT 1
+	// []
 }
 
 func ExampleSelectDataset_LimitAll() {
