@@ -424,12 +424,75 @@ func (sd *SelectDataset) ClearOrder() *SelectDataset {
 	return sd.copy(sd.clauses.ClearOrder())
 }
 
-// Adds a LIMIT clause. If the LIMIT is currently set it replaces it. See examples.
-func (sd *SelectDataset) Limit(limit uint) *SelectDataset {
-	if limit > 0 {
-		return sd.copy(sd.clauses.SetLimit(limit))
+type limitUintSmall interface{ uint8 | uint16 | uint32 }
+type limitIntSmall interface{ int8 | int16 | int32 }
+
+func limitConvertUintSmall[T limitUintSmall](v T) (uint, error) { return uint(v), nil }
+func limitConvertIntSmall[T limitIntSmall](v T) (uint, error) {
+	if v < 0 {
+		return 0, errors.New("limit value %d is negative", v)
 	}
-	return sd.copy(sd.clauses.ClearLimit())
+	return uint(v), nil
+}
+func limitConvertUint64(v uint64) (uint, error) {
+	if v > uint64(^uint(0)) {
+		return 0, errors.New("limit value %d overflows uint", v)
+	}
+	return uint(v), nil
+}
+func limitConvertInt64(v int64) (uint, error) {
+	if v < 0 {
+		return 0, errors.New("limit value %d is negative", v)
+	}
+	if uint64(v) > uint64(^uint(0)) {
+		return 0, errors.New("limit value %d overflows uint", v)
+	}
+	return uint(v), nil
+}
+
+// Adds a LIMIT clause. If the LIMIT is currently set it replaces it. See examples.
+//
+// The limit parameter can be:
+//   - An integer type (uint, int, etc.): value of 0 clears the limit, negative values return an error
+//   - An expression (e.g., goqu.L("1")): used as-is, allowing literal values in prepared statements
+func (sd *SelectDataset) Limit(limit interface{}) *SelectDataset {
+	var out uint
+	var err error
+	switch v := limit.(type) {
+	case uint:
+		out = v
+	case uint8:
+		out, err = limitConvertUintSmall(v)
+	case uint16:
+		out, err = limitConvertUintSmall(v)
+	case uint32:
+		out, err = limitConvertUintSmall(v)
+	case uintptr:
+		out, err = limitConvertUint64(uint64(v))
+	case uint64:
+		out, err = limitConvertUint64(v)
+	case int:
+		out, err = limitConvertInt64(int64(v))
+	case int8:
+		out, err = limitConvertIntSmall(v)
+	case int16:
+		out, err = limitConvertIntSmall(v)
+	case int32:
+		out, err = limitConvertIntSmall(v)
+	case int64:
+		out, err = limitConvertInt64(v)
+	case exp.Expression:
+		return sd.copy(sd.clauses.SetLimit(v))
+	default:
+		return sd.SetError(errors.New("invalid limit type %T, expected integer or expression", limit))
+	}
+	if err != nil {
+		return sd.SetError(err)
+	}
+	if out == 0 {
+		return sd.copy(sd.clauses.ClearLimit())
+	}
+	return sd.copy(sd.clauses.SetLimit(out))
 }
 
 // Adds a LIMIT ALL clause. If the LIMIT is currently set it replaces it. See examples.
