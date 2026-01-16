@@ -11,7 +11,7 @@ type (
 //
 //	L("a = 1") -> a = 1
 //
-// You can also you placeholders. All placeholders within a Literal are represented by '?'
+// You can also use placeholders. All placeholders within a Literal are represented by '?'
 //
 //	L("a = ?", "b") -> a = 'b'
 //
