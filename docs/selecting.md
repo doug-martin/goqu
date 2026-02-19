@@ -795,7 +795,7 @@ SELECT "a", ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) AS "rn" FROM "
 
 To use CTEs in `SELECT` statements you can use the `With` method.
 
-**NOTE** Common table expressions are not supported by the `mysql` dialect (MySQL 5.x); use the `mysql8` dialect for MySQL 8.0+.
+**NOTE** The `mysql` and `mysql8` dialects both generate `WITH` and `WITH RECURSIVE` clauses, but the MySQL server only accepts them from version 8.0.
 
 Simple Example
 

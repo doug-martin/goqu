@@ -175,21 +175,19 @@ func (mds *mysqlDialectSuite) TestWithCTE() {
 	cte := func(dialect string) *goqu.SelectDataset {
 		return goqu.Dialect(dialect).From("a").Select("x")
 	}
-	// MySQL 8 supports common table expressions, plain mysql (5.x) does not.
-	mds.assertSQL(
-		sqlTestCase{
-			ds:  goqu.Dialect("mysql8").From("c").With("c", cte("mysql8")),
-			sql: "WITH c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
-		},
-		sqlTestCase{
-			ds:  goqu.Dialect("mysql8").From("c").WithRecursive("c", cte("mysql8")),
-			sql: "WITH RECURSIVE c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
-		},
-		sqlTestCase{
-			ds:  goqu.Dialect("mysql").From("c").With("c", cte("mysql")),
-			err: "goqu: dialect does not support CTE WITH clause [dialect=mysql]",
-		},
-	)
+	// Both the mysql and mysql8 dialects support common table expressions.
+	for _, dialect := range []string{"mysql", "mysql8"} {
+		mds.assertSQL(
+			sqlTestCase{
+				ds:  goqu.Dialect(dialect).From("c").With("c", cte(dialect)),
+				sql: "WITH c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
+			},
+			sqlTestCase{
+				ds:  goqu.Dialect(dialect).From("c").WithRecursive("c", cte(dialect)),
+				sql: "WITH RECURSIVE c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
+			},
+		)
+	}
 }
 
 func TestDatasetAdapterSuite(t *testing.T) {
