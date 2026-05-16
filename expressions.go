@@ -2,6 +2,7 @@ package goqu
 
 import (
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/internal/sb"
 )
 
 type (
@@ -13,6 +14,10 @@ type (
 	Vals       = exp.Vals
 	// Options to use when generating a TRUNCATE statement
 	TruncateOptions = exp.TruncateOptions
+	// SQLBuilder is the interface passed to AppendSQL methods, allowing external
+	// packages to implement exp.AppendableExpression and plug custom SQL fragments
+	// into goqu queries (From, With, Join, etc.).
+	SQLBuilder = sb.SQLBuilder
 )
 
 // emptyWindow is an empty WINDOW clause without name
