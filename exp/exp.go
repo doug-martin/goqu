@@ -278,6 +278,7 @@ type (
 	ConflictUpdateExpression interface {
 		ConflictExpression
 		TargetColumn() string
+		ConflictTargetClause() *ConflictTarget
 		Where(expressions ...Expression) ConflictUpdateExpression
 		WhereClause() ExpressionList
 		Update() interface{}

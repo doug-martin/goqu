@@ -36,6 +36,10 @@ func errUpsertWithWhereNotSupported(dialect string) error {
 	return errors.New("dialect does not support upsert with where clause [dialect=%s]", dialect)
 }
 
+func errConflictTargetWhereNotSupported(dialect string) error {
+	return errors.New("dialect does not support where clause on conflict target [dialect=%s]", dialect)
+}
+
 func NewInsertSQLGenerator(dialect string, do *SQLDialectOptions) InsertSQLGenerator {
 	return &insertSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
@@ -172,6 +176,13 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 					WriteRunes(isg.DialectOptions().RightParenRune)
 			} else {
 				b.Write([]byte(target))
+			}
+			if ct := t.ConflictTargetClause(); ct != nil && ct.WhereClause() != nil {
+				if !isg.DialectOptions().SupportsConflictTargetWhere {
+					b.SetError(errConflictTargetWhereNotSupported(isg.Dialect()))
+					return
+				}
+				isg.WhereSQL(b, ct.WhereClause())
 			}
 		}
 		isg.onConflictDoUpdateSQL(b, t)
