@@ -268,6 +268,25 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 	icDuNil := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("test", nil))
 	icDuBad := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("test", true))
 
+	// ConflictTarget (new): without index predicate — behaves like plain string
+	icDuCt := ic.SetOnConflict(
+		exp.NewDoUpdateConflictExpressionWithTarget(exp.NewConflictTarget("test"), exp.Record{"a": "b"}),
+	)
+	// ConflictTarget with index predicate WHERE clause
+	icDuCtW := ic.SetOnConflict(
+		exp.NewDoUpdateConflictExpressionWithTarget(
+			exp.NewConflictTarget("col1, col2").Where(exp.Ex{"deleted_at": nil}),
+			exp.Record{"a": "b"},
+		),
+	)
+	// ConflictTarget with both target WHERE and DO UPDATE WHERE
+	icDuCtWW := ic.SetOnConflict(
+		exp.NewDoUpdateConflictExpressionWithTarget(
+			exp.NewConflictTarget("col1, col2").Where(exp.Ex{"deleted_at": nil}),
+			exp.Record{"a": "b"},
+		).Where(exp.Ex{"allow_update": true}),
+	)
+
 	igs.assertCases(
 		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icDn, sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict do nothing`},
@@ -318,6 +337,39 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 
 		insertTestCase{clause: icDuBad, err: "goqu: unsupported update interface type bool"},
 		insertTestCase{clause: icDuBad, err: "goqu: unsupported update interface type bool", isPrepared: true},
+
+		// ConflictTarget without index predicate — same output as plain string
+		insertTestCase{clause: icDuCt, sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict (test) do update set "a"='b'`},
+		insertTestCase{
+			clause:     icDuCt,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (test) do update set "a"=?`,
+			isPrepared: true,
+			args:       []interface{}{"a1", "b"},
+		},
+
+		// ConflictTarget with index predicate WHERE
+		insertTestCase{
+			clause: icDuCtW,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (col1, col2) WHERE ("deleted_at" IS NULL) do update set "a"='b'`,
+		},
+		insertTestCase{
+			clause:     icDuCtW,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (col1, col2) WHERE ("deleted_at" IS NULL) do update set "a"=?`,
+			isPrepared: true,
+			args:       []interface{}{"a1", "b"},
+		},
+
+		// ConflictTarget with both target WHERE and DO UPDATE WHERE
+		insertTestCase{
+			clause: icDuCtWW,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (col1, col2) WHERE ("deleted_at" IS NULL) do update set "a"='b' WHERE ("allow_update" IS TRUE)`,
+		},
+		insertTestCase{
+			clause:     icDuCtWW,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict (col1, col2) WHERE ("deleted_at" IS NULL) do update set "a"=? WHERE ("allow_update" IS TRUE)`,
+			isPrepared: true,
+			args:       []interface{}{"a1", "b"},
+		},
 	)
 	opts.SupportsInsertIgnoreSyntax = true
 	opts.InsertIgnoreClause = []byte("insert ignore into")
@@ -377,6 +429,17 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icDuw, err: expectedErr},
 		insertTestCase{clause: icDuw, err: expectedErr, isPrepared: true},
+	)
+
+	opts2 := sqlgen.DefaultDialectOptions()
+	opts2.ConflictFragment = []byte(" on conflict")
+	opts2.ConflictDoUpdateFragment = []byte(" do update set ")
+	opts2.SupportsConflictTargetWhere = false
+	expectedTargetWhereErr := "goqu: dialect does not support where clause on conflict target [dialect=test]"
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", opts2),
+		insertTestCase{clause: icDuCtW, err: expectedTargetWhereErr},
+		insertTestCase{clause: icDuCtW, err: expectedTargetWhereErr, isPrepared: true},
 	)
 }
 

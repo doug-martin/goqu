@@ -45,8 +45,26 @@ func DoNothing() exp.ConflictExpression {
 //		INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
 //	InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) ->
 //		INSERT INTO ... ON CONFLICT DO UPDATE SET a=b WHERE a=1
-func DoUpdate(target string, update interface{}) exp.ConflictUpdateExpression {
-	return exp.NewDoUpdateConflictExpression(target, update)
+//	InsertConflict(DoUpdate(ConflictTarget("col").Where(C("deleted_at").IsNull()), update),...) ->
+//		INSERT INTO ... ON CONFLICT (col) WHERE ("deleted_at" IS NULL) DO UPDATE SET a=b
+func DoUpdate(target interface{}, update interface{}) exp.ConflictUpdateExpression {
+	switch t := target.(type) {
+	case *exp.ConflictTarget:
+		return exp.NewDoUpdateConflictExpressionWithTarget(t, update)
+	case string:
+		return exp.NewDoUpdateConflictExpression(t, update)
+	default:
+		panic("goqu: DoUpdate target must be a string or *exp.ConflictTarget")
+	}
+}
+
+// ConflictTarget creates a conflict target expression for use with DoUpdate.
+// Call .Where(...) on the result to add an index predicate to the conflict target.
+//
+//	DoUpdate(ConflictTarget("col1, col2").Where(C("deleted_at").IsNull()), record)
+//	  -> ON CONFLICT (col1, col2) WHERE ("deleted_at" IS NULL) DO UPDATE SET ...
+func ConflictTarget(target string) *exp.ConflictTarget {
+	return exp.NewConflictTarget(target)
 }
 
 // A list of expressions that should be ORed together

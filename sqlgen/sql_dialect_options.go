@@ -24,6 +24,8 @@ type (
 		SupportsReturn bool
 		// Set to true if the dialect supports Conflict Target (DEFAULT=true)
 		SupportsConflictTarget bool
+		// Set to true if the dialect supports WHERE predicate on conflict target / index predicate (DEFAULT=true)
+		SupportsConflictTargetWhere bool
 		// Set to true if the dialect supports Conflict Target (DEFAULT=true)
 		SupportsConflictUpdateWhere bool
 		// Set to true if the dialect supports Insert Ignore syntax (DEFAULT=false)
@@ -416,6 +418,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		SupportsLimitOnUpdate:       false,
 		SupportsReturn:              true,
 		SupportsConflictUpdateWhere: true,
+		SupportsConflictTargetWhere: true,
 		SupportsInsertIgnoreSyntax:  false,
 		SupportsConflictTarget:      true,
 		SupportsWithCTE:             true,
