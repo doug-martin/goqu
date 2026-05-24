@@ -130,7 +130,7 @@ func getSubqueryKey(subqueryTag tag.Options) string {
 	if subqueryTag.IsEmpty() {
 		return ""
 	}
-	return subqueryTag.Values()[0]
+	return string(subqueryTag)
 }
 
 func shouldIgnoreField(dbTag tag.Options) bool {
