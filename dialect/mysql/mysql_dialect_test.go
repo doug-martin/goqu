@@ -138,6 +138,16 @@ func (mds *mysqlDialectSuite) TestUpdateSQL() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestStraightJoin() {
+	ds := mds.GetDs("test")
+	mds.assertSQL(
+		sqlTestCase{
+			ds:  ds.StraightJoin(goqu.T("foo"), goqu.On(goqu.I("test.id").Eq(goqu.I("foo.test_id")))),
+			sql: "SELECT * FROM `test` STRAIGHT_JOIN `foo` ON (`test`.`id` = `foo`.`test_id`)",
+		},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(mysqlDialectSuite))
 }

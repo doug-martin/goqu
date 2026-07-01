@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/lib/pq"
 )
@@ -966,6 +967,41 @@ func ExampleSelectDataset_CrossJoin() {
 	// SELECT * FROM "test" CROSS JOIN "test2"
 	// SELECT * FROM "test" CROSS JOIN (SELECT * FROM "test2" WHERE ("amount" > 0))
 	// SELECT * FROM "test" CROSS JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
+}
+
+func ExampleSelectDataset_StraightJoin() {
+	dialect := goqu.Dialect("mysql")
+
+	sql, _, _ := dialect.From("test").StraightJoin(
+		goqu.T("test2"),
+		goqu.On(goqu.Ex{
+			"test.fkey": goqu.I("test2.Id"),
+		}),
+	).ToSQL()
+	fmt.Println(sql)
+
+	sql, _, _ = dialect.From("test").StraightJoin(
+		goqu.T("test2"),
+		goqu.Using("common_column"),
+	).ToSQL()
+	fmt.Println(sql)
+
+	sql, _, _ = dialect.From("test").StraightJoin(
+		goqu.From("test2").Where(goqu.C("amount").Gt(0)),
+		goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id"))),
+	).ToSQL()
+	fmt.Println(sql)
+
+	sql, _, _ = dialect.From("test").StraightJoin(
+		goqu.From("test2").Where(goqu.C("amount").Gt(0)).As("t"),
+		goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id"))),
+	).ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
+	// SELECT * FROM `test` STRAIGHT_JOIN `test2` USING (`common_column`)
+	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON (`test`.`fkey` = `test2`.`Id`)
+	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS `t` ON (`test`.`fkey` = `t`.`Id`)
 }
 
 func ExampleSelectDataset_FromSelf() {

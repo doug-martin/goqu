@@ -533,6 +533,7 @@ const (
 	NaturalRightJoinType
 	NaturalFullJoinType
 	CrossJoinType
+	StraightJoinType
 
 	UsingJoinCondType JoinConditionType = iota
 	OnJoinCondType
@@ -609,6 +610,7 @@ var (
 		FullJoinType:       true,
 		RightJoinType:      true,
 		LeftJoinType:       true,
+		StraightJoinType:   true,
 	}
 	// used internally for inverting operators
 	operatorInversions = map[BooleanOperation]BooleanOperation{
@@ -729,6 +731,8 @@ func (jt JoinType) String() string {
 		return "NaturalFullJoinType"
 	case CrossJoinType:
 		return "CrossJoinType"
+	case StraightJoinType:
+		return "StraightJoinType"
 	}
 	return fmt.Sprintf("%d", jt)
 }

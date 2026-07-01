@@ -486,6 +486,23 @@ Output:
 SELECT * FROM "test" CROSS JOIN "test2"
 ```
 
+[`StraightJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.StraightJoin)
+
+**NOTE** `STRAIGHT_JOIN` is only supported by the `mysql` and `mysql8` dialects.
+
+```go
+sql, _, _ := goqu.Dialect("mysql").From("test").StraightJoin(
+	goqu.T("test2"),
+	goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")}),
+).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
+```
+
 Join with a Lateral
 
 ```go
