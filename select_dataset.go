@@ -348,6 +348,11 @@ func (sd *SelectDataset) CrossJoin(table exp.Expression) *SelectDataset {
 	return sd.joinTable(exp.NewUnConditionedJoinExpression(exp.CrossJoinType, table))
 }
 
+// Adds a STRAIGHT_JOIN clause (MySQL only). See examples.
+func (sd *SelectDataset) StraightJoin(table exp.Expression, condition exp.JoinCondition) *SelectDataset {
+	return sd.joinTable(exp.NewConditionedJoinExpression(exp.StraightJoinType, table, condition))
+}
+
 // Joins this Datasets table with another
 func (sd *SelectDataset) joinTable(join exp.JoinExpression) *SelectDataset {
 	return sd.copy(sd.clauses.JoinsAppend(join))
