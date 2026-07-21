@@ -1,6 +1,7 @@
 package sqlgen_test
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"regexp"
@@ -501,6 +502,15 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 
 		expressionTestCase{val: ident.Eq(nil), sql: `("a" IS NULL)`},
 		expressionTestCase{val: ident.Eq(nil), sql: `("a" IS NULL)`, isPrepared: true},
+		// sql.Null* with Valid=false must become IS NULL (not "= NULL")
+		expressionTestCase{val: ident.Eq(sql.NullInt32{}), sql: `("a" IS NULL)`},
+		expressionTestCase{val: ident.Eq(sql.NullInt32{}), sql: `("a" IS NULL)`, isPrepared: true},
+		expressionTestCase{val: ident.Eq(sql.NullString{}), sql: `("a" IS NULL)`},
+		expressionTestCase{val: ident.Eq(sql.NullString{String: "x", Valid: true}), sql: `("a" = 'x')`},
+		expressionTestCase{val: ident.Eq(sql.NullInt64{Int64: 7, Valid: true}), sql: `("a" = 7)`},
+		expressionTestCase{val: ident.Neq(sql.NullInt32{}), sql: `("a" IS NOT NULL)`},
+		expressionTestCase{val: exp.Ex{"a": sql.NullInt32{}}, sql: `("a" IS NULL)`},
+
 
 		expressionTestCase{val: ident.Eq([]int64{1, 2, 3}), sql: `("a" IN (1, 2, 3))`},
 		expressionTestCase{val: ident.Eq([]int64{1, 2, 3}), sql: `("a" IN (?, ?, ?))`, isPrepared: true, args: []interface{}{

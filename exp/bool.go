@@ -1,6 +1,7 @@
 package exp
 
 import (
+	"database/sql/driver"
 	"reflect"
 	"regexp"
 )
@@ -153,8 +154,31 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	return NewBooleanExpression(op, lhs, rhs)
 }
 
+// unwrapValuerRHS expands driver.Valuer values (e.g. sql.Null*) so null
+// comparisons become IS NULL instead of "= NULL".
+func unwrapValuerRHS(rhs interface{}) interface{} {
+	if rhs == nil {
+		return nil
+	}
+	v, ok := rhs.(driver.Valuer)
+	if !ok {
+		return rhs
+	}
+	// Typed-nil pointer valuers are treated as SQL NULL (same as generator).
+	if rv := reflect.ValueOf(rhs); rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return nil
+	}
+	dVal, err := v.Value()
+	if err != nil {
+		// Leave the original value; encoding will surface the error later.
+		return rhs
+	}
+	return dVal
+}
+
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
+	rhs = unwrapValuerRHS(rhs)
 	if rhs == nil {
 		op = IsOp
 	} else {
