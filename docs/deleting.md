@@ -175,6 +175,21 @@ Output:
 DELETE FROM `test` LIMIT 10
 ```
 
+Dialects that spell a row-limited delete differently render it in their own syntax. `sqlserver` emits `TOP` directly after `DELETE`:
+
+```go
+// import _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+
+ds := goqu.Dialect("sqlserver").Delete("test").Limit(10)
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+DELETE TOP (10) FROM "test"
+```
+
 <a name="returning"></a>
 **[`Returning`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Returning)**
 
