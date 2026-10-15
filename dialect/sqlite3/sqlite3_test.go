@@ -359,6 +359,56 @@ func (st *sqlite3Suite) TestUpdate() {
 	st.Equal(int64(1), count)
 }
 
+func (st *sqlite3Suite) TestUpdateFrom() {
+	_, err := st.db.Exec("CREATE TABLE entry_update (id INTEGER PRIMARY KEY, amount INTEGER NOT NULL)")
+	st.Require().NoError(err)
+	st.T().Cleanup(func() {
+		_, err := st.db.Exec("DROP TABLE entry_update")
+		st.NoError(err)
+	})
+	_, err = st.db.Exec("INSERT INTO entry_update (id, amount) VALUES (1, 10), (2, 20), (3, 30)")
+	st.Require().NoError(err)
+
+	for _, prepared := range []bool{false, true} {
+		for _, tc := range []struct {
+			name    string
+			source  interface{}
+			updated int64
+			values  []int
+		}{
+			{
+				name: "table", source: goqu.T("entry_update"), updated: 2,
+				values: []int{11, 21, 2, 3, 4, 5, 6, 7, 8, 9},
+			},
+			{
+				name: "subquery",
+				source: st.db.From("entry_update").Select("id", "amount").
+					Where(goqu.C("amount").Gt(15)).As("entry_update"),
+				updated: 1,
+				values:  []int{0, 21, 2, 3, 4, 5, 6, 7, 8, 9},
+			},
+		} {
+			st.Run(fmt.Sprintf("%s/prepared=%t", tc.name, prepared), func() {
+				_, err := st.db.Exec("UPDATE entry SET `int` = id - 1")
+				st.Require().NoError(err)
+				result, err := st.db.Update("entry").
+					Set(goqu.Record{"int": goqu.L("? + ?", goqu.I("entry_update.amount"), 1)}).
+					From(tc.source).
+					Where(goqu.I("entry.id").Eq(goqu.I("entry_update.id")), goqu.I("entry_update.amount").Lt(25)).
+					Prepared(prepared).Executor().Exec()
+				st.Require().NoError(err)
+				affected, err := result.RowsAffected()
+				st.NoError(err)
+				st.Equal(tc.updated, affected)
+
+				var values []int
+				st.NoError(st.db.From("entry").Select("int").Order(goqu.C("id").Asc()).ScanVals(&values))
+				st.Equal(tc.values, values)
+			})
+		}
+	}
+}
+
 func (st *sqlite3Suite) TestUpdateReturning() {
 	ds := st.db.From("entry")
 	var id uint32

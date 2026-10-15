@@ -345,7 +345,7 @@ UPDATE "items" SET "name"='Test',"address"='111 Test Addr' []
 
 `goqu` allows joining multiple tables in a update clause through `From`.
 
-**NOTE** The `sqlite3` adapter does not support a multi table syntax.
+**NOTE** The `sqlite3` adapter supports `UPDATE ... FROM` with SQLite 3.33.0 or later.
 
 `Postgres` Example
 
