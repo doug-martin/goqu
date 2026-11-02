@@ -22,13 +22,14 @@ const (
 // state is preparedNoPreference, the value depends on the last value that
 // SetDefaultPrepared was called with which is false by default.
 func (p prepared) Bool() bool {
-	if p == preparedNoPreference {
+	switch p {
+	case preparedNoPreference:
 		return defaultPrepared
-	} else if p == preparedEnabled {
+	case preparedEnabled:
 		return true
+	default:
+		return false
 	}
-
-	return false
 }
 
 // preparedFromBool converts a bool from e.g. Prepared(true) into a prepared

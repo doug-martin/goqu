@@ -28,7 +28,7 @@ func (tsgs *truncateSQLGeneratorSuite) assertCases(tsg sqlgen.TruncateSQLGenerat
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		tsg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			tsgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			tsgs.assertPreparedSQL(b, tc.sql, tc.args)

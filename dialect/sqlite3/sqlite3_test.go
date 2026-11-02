@@ -157,7 +157,7 @@ func (st *sqlite3Suite) TestQuery() {
 	st.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			st.Equal(uint32(index+1), entry.ID)
+			st.EqualValues(index+1, entry.ID)
 			st.Equal(index, entry.Int)
 			st.Equal(f, fmt.Sprintf("%f", entry.Float))
 			st.Equal(f, entry.String)
@@ -194,7 +194,7 @@ func (st *sqlite3Suite) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			st.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			st.Fail("Should not have returned any records")
 		}},
 	)
@@ -208,7 +208,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 	st.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			st.Equal(uint32(index+1), entry.ID)
+			st.EqualValues(index+1, entry.ID)
 			st.Equal(index, entry.Int)
 			st.Equal(f, fmt.Sprintf("%f", entry.Float))
 			st.Equal(f, entry.String)
@@ -245,7 +245,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			st.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			st.Fail("Should not have returned any records")
 		}},
 	)
@@ -340,8 +340,10 @@ func (st *sqlite3Suite) TestInsert_returning() {
 	ds := st.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	_, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
-	st.Error(err)
+	found, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
+	st.NoError(err)
+	st.True(found)
+	st.Greater(e.ID, uint32(0))
 }
 
 func (st *sqlite3Suite) TestUpdate() {

@@ -27,7 +27,7 @@ func (igs *insertSQLGeneratorSuite) assertCases(isg sqlgen.InsertSQLGenerator, t
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		isg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			igs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			igs.assertPreparedSQL(b, tc.sql, tc.args)

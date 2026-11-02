@@ -28,7 +28,7 @@ func (dsgs *deleteSQLGeneratorSuite) assertCases(dsg sqlgen.DeleteSQLGenerator, 
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		dsg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			dsgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			dsgs.assertPreparedSQL(b, tc.sql, tc.args)
