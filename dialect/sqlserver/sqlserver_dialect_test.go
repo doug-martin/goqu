@@ -55,6 +55,31 @@ func (sds *sqlserverDialectSuite) TestBitwiseOperations() {
 	)
 }
 
+func (sds *sqlserverDialectSuite) TestDeleteWithLimit() {
+	ds := goqu.Dialect("sqlserver").Delete("test")
+	sds.assertSQL(
+		sqlTestCase{
+			ds:  ds.Where(goqu.C("a").Gt(1)).Limit(10),
+			sql: `DELETE TOP (10) FROM "test" WHERE ("a" > 1)`,
+		},
+		sqlTestCase{
+			ds:  ds.Limit(10),
+			sql: `DELETE TOP (10) FROM "test"`,
+		},
+		// Without a limit the statement is unchanged.
+		sqlTestCase{
+			ds:  ds.Where(goqu.C("a").Gt(1)),
+			sql: `DELETE FROM "test" WHERE ("a" > 1)`,
+		},
+		sqlTestCase{
+			ds:         ds.Where(goqu.C("a").Gt(1)).Limit(10).Prepared(true),
+			sql:        `DELETE TOP (@p1) FROM "test" WHERE ("a" > @p2)`,
+			isPrepared: true,
+			args:       []interface{}{int64(10), int64(1)},
+		},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlserverDialectSuite))
 }
