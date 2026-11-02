@@ -34,7 +34,7 @@ jobs:
     - name: checkout
       uses: actions/checkout@v3
     - name: Test
-      run: docker-compose run goqu-coverage
+      run: docker compose run goqu-coverage
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:

@@ -3,6 +3,7 @@ package sqlgen_test
 import (
 	"database/sql/driver"
 	"fmt"
+	"math"
 	"regexp"
 	"testing"
 	"time"
@@ -195,6 +196,15 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: &i, sql: "0"},
 		expressionTestCase{val: &i, sql: "?", isPrepared: true, args: []interface{}{i}},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_Uint64AboveInt64() {
+	value := uint64(math.MaxInt64) + 1
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: value, err: "goqu_encode_error: Unable to encode value 9223372036854775808"},
+		expressionTestCase{val: value, err: "goqu_encode_error: Unable to encode value 9223372036854775808", isPrepared: true},
 	)
 }
 
@@ -757,12 +767,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_UpdateExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLFunctionExpression() {
-	min := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
+	minimum := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
 	coalesce := exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a")
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
-		expressionTestCase{val: min, sql: `MIN("a")`},
-		expressionTestCase{val: min, sql: `MIN("a")`, isPrepared: true},
+		expressionTestCase{val: minimum, sql: `MIN("a")`},
+		expressionTestCase{val: minimum, sql: `MIN("a")`, isPrepared: true},
 
 		expressionTestCase{val: coalesce, sql: `COALESCE("a", 'a')`},
 		expressionTestCase{val: coalesce, sql: `COALESCE("a", ?)`, isPrepared: true, args: []interface{}{"a"}},

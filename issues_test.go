@@ -47,7 +47,7 @@ func (gis *githubIssuesSuite) TestIssue115() {
 	type TestStruct struct {
 		Field string
 	}
-	goqu.SetColumnRenameFunction(func(col string) string {
+	goqu.SetColumnRenameFunction(func(string) string {
 		return ""
 	})
 
@@ -59,7 +59,7 @@ func (gis *githubIssuesSuite) TestIssue115() {
 func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFields() {
 	// struct is in a custom package
 	type SimpleRole struct {
-		permissions []string //nolint:structcheck,unused //needed for test
+		permissions []string //nolint:unused //needed for test
 	}
 
 	// .....
@@ -128,7 +128,7 @@ func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFiel
 func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFields() {
 	// struct is in a custom package
 	type SimpleRole struct {
-		permissions []string //nolint:structcheck,unused // needed for test
+		permissions []string //nolint:unused // needed for test
 		IDStr       string
 	}
 

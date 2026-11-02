@@ -29,7 +29,7 @@ func (ssgs *selectSQLGeneratorSuite) assertCases(ssg sqlgen.SelectSQLGenerator, 
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		ssg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			ssgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			ssgs.assertPreparedSQL(b, tc.sql, tc.args)

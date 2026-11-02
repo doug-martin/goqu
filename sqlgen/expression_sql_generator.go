@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -145,7 +146,12 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsInt(valKind):
 		esg.Generate(b, v.Int())
 	case util.IsUint(valKind):
-		esg.Generate(b, int64(v.Uint()))
+		u := v.Uint()
+		if u > uint64(math.MaxInt64) {
+			b.SetError(errors.NewEncodeError(val))
+			return
+		}
+		esg.Generate(b, int64(u))
 	case util.IsFloat(valKind):
 		esg.Generate(b, v.Float())
 	case util.IsString(valKind):

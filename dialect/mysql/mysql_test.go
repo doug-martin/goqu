@@ -143,7 +143,7 @@ func (mt *mysqlTest) TestQuery() {
 	mt.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			mt.Equal(uint32(index+1), entry.ID)
+			mt.EqualValues(index+1, entry.ID)
 			mt.Equal(index, entry.Int)
 			mt.Equal(f, fmt.Sprintf("%f", entry.Float))
 			mt.Equal(f, entry.String)
@@ -180,7 +180,7 @@ func (mt *mysqlTest) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			mt.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			mt.Fail("Should not have returned any records")
 		}},
 	)
@@ -197,7 +197,7 @@ func (mt *mysqlTest) TestQuery_Prepared() {
 	mt.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			mt.Equal(uint32(index+1), entry.ID)
+			mt.EqualValues(index+1, entry.ID)
 			mt.Equal(index, entry.Int)
 			mt.Equal(f, fmt.Sprintf("%f", entry.Float))
 			mt.Equal(f, entry.String)
@@ -234,7 +234,7 @@ func (mt *mysqlTest) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			mt.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			mt.Fail("Should not have returned any records")
 		}},
 	)
