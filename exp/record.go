@@ -61,8 +61,5 @@ func getRecordValue(val reflect.Value, f util.ColumnData) interface{} {
 	if f.DefaultIfEmpty && util.IsEmptyValue(val) {
 		return Default()
 	}
-	if val.IsValid() {
-		return val.Interface()
-	}
-	return reflect.Zero(f.GoType).Interface()
+	return val.Interface()
 }
