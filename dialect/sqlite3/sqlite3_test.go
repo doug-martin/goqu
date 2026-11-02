@@ -157,7 +157,7 @@ func (st *sqlite3Suite) TestQuery() {
 	st.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			st.Equal(uint32(index+1), entry.ID)
+			st.EqualValues(index+1, entry.ID)
 			st.Equal(index, entry.Int)
 			st.Equal(f, fmt.Sprintf("%f", entry.Float))
 			st.Equal(f, entry.String)
@@ -194,7 +194,7 @@ func (st *sqlite3Suite) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			st.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			st.Fail("Should not have returned any records")
 		}},
 	)
@@ -208,7 +208,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 	st.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			st.Equal(uint32(index+1), entry.ID)
+			st.EqualValues(index+1, entry.ID)
 			st.Equal(index, entry.Int)
 			st.Equal(f, fmt.Sprintf("%f", entry.Float))
 			st.Equal(f, entry.String)
@@ -245,7 +245,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			st.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			st.Fail("Should not have returned any records")
 		}},
 	)

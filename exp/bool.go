@@ -140,10 +140,13 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	rhs := val
 
 	if t, ok := val.(*regexp.Regexp); ok {
-		if op == LikeOp {
+		switch op {
+		case LikeOp:
 			op = RegexpLikeOp
-		} else if op == ILikeOp {
+		case ILikeOp:
 			op = RegexpILikeOp
+		default:
+			// Other operators stay as written.
 		}
 		rhs = t.String()
 	}
