@@ -1169,7 +1169,7 @@ func (sds *selectDatasetSuite) TestToSQL() {
 	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Return(nil).Once()
 	sql, args, err := ds.ToSQL()
 	sds.Empty(sql)
 	sds.Empty(args)
@@ -1182,7 +1182,7 @@ func (sds *selectDatasetSuite) TestToSQL_prepared() {
 	ds := goqu.From("test").Prepared(true).SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
-	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Return(nil).Once()
 	sql, args, err := ds.ToSQL()
 	sds.Empty(sql)
 	sds.Empty(args)
@@ -1196,7 +1196,7 @@ func (sds *selectDatasetSuite) TestToSQL_ReturnedError() {
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	ee := errors.New("expected error")
-	md.On("ToSelectSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(ee)
 	}).Once()
 
@@ -1212,7 +1212,7 @@ func (sds *selectDatasetSuite) TestAppendSQL() {
 	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Return(nil).Once()
 	ds.AppendSQL(sqlB)
 	sds.NoError(sqlB.Error())
 	md.AssertExpectations(sds.T())
@@ -1663,7 +1663,7 @@ func (sds *selectDatasetSuite) TestSetError() {
 	// Deeper errors inside SQL generation should still return original error
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToInsertSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(err3)
 	}).Once()
 

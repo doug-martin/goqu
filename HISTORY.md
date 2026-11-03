@@ -1,3 +1,7 @@
+# Unreleased
+
+* [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed slice fast paths, and pre-sized buffers (based on [#444](https://github.com/doug-martin/goqu/pull/444))
+
 # v9.21.0
 
 * [FEATURE] Add `EXISTS` support: `goqu.Exists(subquery)` and `SelectDataset.Exists()` [#204](https://github.com/doug-martin/goqu/issues/204), [#412](https://github.com/doug-martin/goqu/pull/412), [#477](https://github.com/doug-martin/goqu/pull/477) - [@Yakov-Varnaev](https://github.com/Yakov-Varnaev), [@funkyshu](https://github.com/funkyshu)
