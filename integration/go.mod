@@ -19,3 +19,5 @@ require (
 )
 
 replace github.com/doug-martin/goqu/v9 => ../
+
+godebug x509negativeserial=1
