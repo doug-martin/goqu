@@ -55,6 +55,32 @@ func (sds *sqlserverDialectSuite) TestBitwiseOperations() {
 	)
 }
 
+func (sds *sqlserverDialectSuite) TestSelectDistinctWithLimit() {
+	ds := sds.GetDs("test")
+	sds.assertSQL(
+		// DISTINCT has to come before TOP.
+		sqlTestCase{ds: ds.Select("a").Distinct().Limit(1), sql: `SELECT DISTINCT  TOP (1) "a" FROM "test"`},
+		sqlTestCase{ds: ds.Distinct().Limit(5), sql: `SELECT DISTINCT  TOP (5) * FROM "test"`},
+		sqlTestCase{
+			ds:         ds.Select("a").Distinct().Limit(1).Prepared(true),
+			sql:        `SELECT DISTINCT  TOP (@p1) "a" FROM "test"`,
+			isPrepared: true,
+			args:       []interface{}{int64(1)},
+		},
+		// Without a limit, or with an offset (OFFSET/FETCH instead of TOP), nothing changes.
+		sqlTestCase{ds: ds.Select("a").Distinct(), sql: `SELECT DISTINCT "a" FROM "test"`},
+		sqlTestCase{
+			ds:  ds.Select("a").Distinct().Order(goqu.C("a").Asc()).Limit(1).Offset(2),
+			sql: `SELECT DISTINCT "a" FROM "test" ORDER BY "a" ASC OFFSET 2 ROWS FETCH FIRST 1 ROWS ONLY`,
+		},
+		// DISTINCT ON is still not supported.
+		sqlTestCase{
+			ds:  ds.Select("a").Distinct("a").Limit(1),
+			err: "goqu: dialect does not support DISTINCT ON clause [dialect=sqlserver]",
+		},
+	)
+}
+
 func (sds *sqlserverDialectSuite) TestDeleteWithLimit() {
 	ds := goqu.Dialect("sqlserver").Delete("test")
 	sds.assertSQL(
