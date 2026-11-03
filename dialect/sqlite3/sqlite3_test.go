@@ -424,6 +424,20 @@ func (st *sqlite3Suite) TestUpdateReturning() {
 	st.GreaterOrEqual(id, uint32(0))
 }
 
+func (st *sqlite3Suite) TestTruncate() {
+	ds := st.db.From("entry")
+	count, err := ds.Count()
+	st.NoError(err)
+	st.Equal(int64(10), count)
+
+	_, err = ds.Truncate().Executor().Exec()
+	st.NoError(err)
+
+	count, err = ds.Count()
+	st.NoError(err)
+	st.Equal(int64(0), count)
+}
+
 func (st *sqlite3Suite) TestDelete() {
 	ds := st.db.From("entry")
 	var e entry
