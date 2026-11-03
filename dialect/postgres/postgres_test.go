@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
@@ -435,6 +436,25 @@ func (pt *postgresTest) TestInsert_OnConflict() {
 	e = entry{Int: 10, Float: 2.100000, String: "2.100000", Time: now.Add(time.Hour * 100), Bool: false, Bytes: []byte("2.100000")}
 	_, err = ds.Insert().Rows(e).OnConflict(goqu.DoNothing()).Executor().Exec()
 	pt.NoError(err)
+
+	// DO NOTHING with a conflict target on the duplicated column
+	e = entry{Int: 10, Float: 3.100000, String: "3.100000", Time: now.Add(time.Hour * 200), Bool: false, Bytes: []byte("3.100000")}
+	_, err = ds.Insert().
+		Rows(e).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("int"))).
+		Executor().Exec()
+	pt.NoError(err)
+	var count int64
+	count, err = ds.Where(goqu.C("int").Eq(10)).Count()
+	pt.NoError(err)
+	pt.Equal(int64(1), count)
+
+	// DO NOTHING with a conflict target that does not match the violated constraint still errors
+	_, err = ds.Insert().
+		Rows(e).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("id"))).
+		Executor().Exec()
+	pt.Error(err)
 
 	// DO NOTHING update
 	var entryActual entry

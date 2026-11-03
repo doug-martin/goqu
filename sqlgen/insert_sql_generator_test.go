@@ -380,6 +380,31 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 	)
 }
 
+func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictDoNothingTarget() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.ConflictFragment = []byte(" on conflict")
+	opts.ConflictDoNothingFragment = []byte(" do nothing")
+
+	ic := exp.NewInsertClauses().
+		SetInto(exp.NewIdentifierExpression("", "test", "")).
+		SetCols(exp.NewColumnListExpression("a")).
+		SetVals([][]any{{"a1"}})
+	icDnCols := ic.SetOnConflict(exp.NewDoNothingConflictExpression().SetCols(exp.NewColumnListExpression("a", "b")))
+	icDnEmptyCols := ic.SetOnConflict(exp.NewDoNothingConflictExpression().SetCols(exp.NewColumnListExpression()))
+
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", opts),
+		insertTestCase{clause: icDnCols, sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") do nothing`},
+		insertTestCase{
+			clause:     icDnCols,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") do nothing`,
+			isPrepared: true,
+			args:       []any{"a1"},
+		},
+		insertTestCase{clause: icDnEmptyCols, sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict do nothing`},
+	)
+}
+
 // MySQL style: plain INSERT for upserts, INSERT IGNORE only for DO NOTHING.
 func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictOnDuplicateKey() {
 	opts := sqlgen.DefaultDialectOptions()
@@ -397,10 +422,17 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictOnDuplicateKey() {
 			{"a1"},
 		})
 	icDn := ic.SetOnConflict(exp.NewDoNothingConflictExpression())
+	icDnCols := ic.SetOnConflict(exp.NewDoNothingConflictExpression().SetCols(exp.NewColumnListExpression("a")))
+	icDnEmptyCols := ic.SetOnConflict(exp.NewDoNothingConflictExpression().SetCols(exp.NewColumnListExpression()))
 	icDu := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("test", exp.Record{"a": "b"}))
 	igs.assertCases(
 		sqlgen.NewInsertSQLGenerator("test", opts),
+		insertTestCase{clause: icDnEmptyCols, sql: `INSERT IGNORE INTO "test" ("a") VALUES ('a1')`},
 		insertTestCase{clause: icDn, sql: `INSERT IGNORE INTO "test" ("a") VALUES ('a1')`},
+		insertTestCase{
+			clause: icDnCols,
+			err:    "goqu: dialect does not support Conflict Target clause [dialect=test]",
+		},
 		insertTestCase{
 			clause:     icDu,
 			sql:        `INSERT INTO "test" ("a") VALUES (?) ON DUPLICATE KEY UPDATE "a"=?`,

@@ -44,7 +44,7 @@ func Cast(e exp.Expression, t string) exp.CastExpression {
 // Creates a conflict struct to be passed to InsertConflict to ignore constraint errors
 //
 //	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
-func DoNothing() exp.ConflictExpression {
+func DoNothing() exp.ConflictNothingExpression {
 	return exp.NewDoNothingConflictExpression()
 }
 

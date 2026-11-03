@@ -8,6 +8,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
+	"github.com/doug-martin/goqu/v9/exp"
 )
 
 func ExampleInsert_goquRecord() {
@@ -576,6 +577,17 @@ func ExampleInsertDataset_OnConflict_doNothing() {
 
 	// Output:
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1'), ('112 Test Addr', 'Test2') ON CONFLICT DO NOTHING []
+}
+
+func ExampleInsertDataset_OnConflict_doNothingWithTarget() {
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("name"))).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1') ON CONFLICT ("name") DO NOTHING []
 }
 
 func ExampleInsertDataset_OnConflict_doUpdate() {
