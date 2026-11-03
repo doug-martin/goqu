@@ -22,6 +22,7 @@
   * [`ScanVal`](#scan-val) - Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
   * [`Scanner`](#scanner) - Allows you to interatively scan rows into structs or values.
   * [`Count`](#count) - Returns the count for the current query
+  * [`Exists`](#exists) - Reports whether the current query returns at least one row
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
 <a name="create"></a>
@@ -702,6 +703,8 @@ SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 
 To use CTEs in `SELECT` statements you can use the `With` method.
 
+**NOTE** Common table expressions are not supported by the `mysql` dialect (MySQL 5.x); use the `mysql8` dialect for MySQL 8.0+.
+
 Simple Example
 
 ```go
@@ -1295,6 +1298,26 @@ if err != nil{
   return
 }
 fmt.Printf("\nCount:= %d", count)
+```
+
+<a name="exists"></a>
+**[`Exists`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Exists)**
+
+Reports whether the current query returns at least one row
+
+```go
+exists, err := db.From("user").Where(goqu.C("last_name").Eq("Yukon")).Exists()
+if err != nil{
+  fmt.Println(err.Error())
+  return
+}
+fmt.Printf("\nExists:= %t", exists)
+```
+
+The dataset is wrapped in an `EXISTS` subquery, so it is evaluated exactly as written. The result is selected with `CASE WHEN`, which keeps the SQL valid on every dialect (including those that cannot select a boolean expression directly, such as SQL Server):
+
+```sql
+SELECT CASE WHEN EXISTS (SELECT * FROM "user" WHERE ("last_name" = 'Yukon')) THEN 1 ELSE 0 END LIMIT 1
 ```
 
 <a name="pluck"></a>

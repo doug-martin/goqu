@@ -6,6 +6,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -148,6 +149,42 @@ func (mds *mysqlDialectSuite) TestStraightJoin() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestWithCTE() {
+	cte := func(dialect string) *goqu.SelectDataset {
+		return goqu.Dialect(dialect).From("a").Select("x")
+	}
+	// MySQL 8 supports common table expressions, plain mysql (5.x) does not.
+	mds.assertSQL(
+		sqlTestCase{
+			ds:  goqu.Dialect("mysql8").From("c").With("c", cte("mysql8")),
+			sql: "WITH c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
+		},
+		sqlTestCase{
+			ds:  goqu.Dialect("mysql8").From("c").WithRecursive("c", cte("mysql8")),
+			sql: "WITH RECURSIVE c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
+		},
+		sqlTestCase{
+			ds:  goqu.Dialect("mysql").From("c").With("c", cte("mysql")),
+			err: "goqu: dialect does not support CTE WITH clause [dialect=mysql]",
+		},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(mysqlDialectSuite))
+}
+
+func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("mysql").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).
+		ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=mysql]")
+
+	// no target is still fine
+	_, _, err = goqu.Dialect("mysql").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing()).
+		ToSQL()
+	assert.NoError(t, err)
 }

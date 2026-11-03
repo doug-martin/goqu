@@ -27,7 +27,7 @@ func (usgs *updateSQLGeneratorSuite) assertCases(usg sqlgen.UpdateSQLGenerator, 
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		usg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			usgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			usgs.assertPreparedSQL(b, tc.sql, tc.args)
