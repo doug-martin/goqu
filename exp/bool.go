@@ -2,6 +2,7 @@ package exp
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"reflect"
 	"regexp"
 )
@@ -164,6 +165,16 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	return NewBooleanExpression(op, lhs, rhs)
 }
 
+// isBytesValue returns true for values that are a single binary/JSON value rather than a list of values.
+func isBytesValue(v any) bool {
+	switch v.(type) {
+	case []byte, *[]byte, json.RawMessage, *json.RawMessage:
+		return true
+	default:
+		return false
+	}
+}
+
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
 	if isNullValue(rhs) {
@@ -176,8 +187,8 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 		case reflect.Bool:
 			op = IsOp
 		case reflect.Slice:
-			// if its a slice of bytes dont treat as an IN
-			if _, ok := rhs.([]byte); !ok {
+			// if its a slice of bytes (or JSON) dont treat as an IN
+			if !isBytesValue(rhs) {
 				op = InOp
 			}
 		case reflect.Struct:

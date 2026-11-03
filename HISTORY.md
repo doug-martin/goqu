@@ -1,7 +1,7 @@
 # Unreleased
 
 * [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed slice fast paths, and pre-sized buffers (based on [#444](https://github.com/doug-martin/goqu/pull/444))
-* [FIX] Generate SQL for `json.RawMessage` values like `[]byte` instead of a list of numbers ([#351](https://github.com/doug-martin/goqu/pull/351), fixes [#350](https://github.com/doug-martin/goqu/issues/350))
+* [FIX] Generate SQL for `json.RawMessage` values (and pointers to byte slices) like `[]byte` instead of a list of numbers, do not turn `Eq`/`Neq` on them into `IN`, and write a nil `json.RawMessage` as `NULL` ([#351](https://github.com/doug-martin/goqu/pull/351), fixes [#350](https://github.com/doug-martin/goqu/issues/350))
 
 # v9.21.0
 

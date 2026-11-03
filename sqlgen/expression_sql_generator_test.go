@@ -274,6 +274,16 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BytesTypes() {
 
 		expressionTestCase{val: json.RawMessage("Hello'"), sql: "'Hello'''"},
 		expressionTestCase{val: json.RawMessage("Hello'"), sql: "?", isPrepared: true, args: []interface{}{[]byte("Hello'")}},
+
+		expressionTestCase{val: json.RawMessage(nil), sql: "NULL"},
+		expressionTestCase{val: json.RawMessage(nil), sql: "?", isPrepared: true, args: []interface{}{nil}},
+		expressionTestCase{val: json.RawMessage{}, sql: "''"},
+
+		expressionTestCase{val: ptrTo(json.RawMessage(`{"a":1}`)), sql: `'{"a":1}'`},
+		expressionTestCase{
+			val: ptrTo(json.RawMessage(`{"a":1}`)), sql: "?", isPrepared: true, args: []interface{}{[]byte(`{"a":1}`)},
+		},
+		expressionTestCase{val: ptrTo([]byte("Hello")), sql: "'Hello'"},
 	)
 }
 
@@ -1809,3 +1819,5 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ExpressionOrMap() {
 func TestExpressionSQLGenerator(t *testing.T) {
 	suite.Run(t, new(expressionSQLGeneratorSuite))
 }
+
+func ptrTo[T any](v T) *T { return &v }
