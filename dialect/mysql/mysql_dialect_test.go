@@ -139,6 +139,38 @@ func (mds *mysqlDialectSuite) TestUpdateSQL() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestStraightJoin() {
+	on := goqu.On(goqu.I("test.id").Eq(goqu.I("foo.test_id")))
+	for _, dialect := range []string{"mysql", "mysql8"} {
+		ds := goqu.Dialect(dialect).From("test")
+		mds.assertSQL(
+			sqlTestCase{
+				ds:  ds.StraightJoin(goqu.T("foo"), on),
+				sql: "SELECT * FROM `test` STRAIGHT_JOIN `foo` ON (`test`.`id` = `foo`.`test_id`)",
+			},
+			sqlTestCase{
+				// MySQL 5.7 does not accept USING for STRAIGHT_JOIN
+				ds:  ds.StraightJoin(goqu.T("foo"), goqu.Using("test_id")),
+				err: "goqu: USING is not supported for StraightJoinType, use an ON condition",
+			},
+			sqlTestCase{
+				ds:         ds.Prepared(true).StraightJoin(goqu.T("foo"), goqu.On(goqu.I("test.id").Eq(5))),
+				sql:        "SELECT * FROM `test` STRAIGHT_JOIN `foo` ON (`test`.`id` = ?)",
+				isPrepared: true,
+				args:       []any{int64(5)},
+			},
+			sqlTestCase{
+				ds:  ds.Join(goqu.T("a"), goqu.Using("id")).StraightJoin(goqu.T("b"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))),
+				sql: "SELECT * FROM `test` INNER JOIN `a` USING (`id`) STRAIGHT_JOIN `b` ON (`a`.`id` = `b`.`id`)",
+			},
+			sqlTestCase{
+				ds:  ds.StraightJoin(goqu.T("foo"), nil),
+				err: "goqu: join condition required for conditioned join StraightJoinType",
+			},
+		)
+	}
+}
+
 func (mds *mysqlDialectSuite) TestWithCTE() {
 	cte := func(dialect string) *goqu.SelectDataset {
 		return goqu.Dialect(dialect).From("a").Select("x")

@@ -68,6 +68,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		0:    []byte("\\x00"),
 		0x1a: []byte("\\x1a"),
 	}
+	opts.JoinTypeLookup[exp.StraightJoinType] = []byte(" STRAIGHT_JOIN ")
 	opts.InsertIgnoreClause = []byte("INSERT IGNORE INTO")
 	opts.ConflictFragment = []byte("")
 	opts.ConflictDoUpdateFragment = []byte(" ON DUPLICATE KEY UPDATE ")

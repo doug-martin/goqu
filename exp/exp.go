@@ -632,6 +632,14 @@ const (
 	BitwiseRightShiftOp
 )
 
+// StraightJoinType is the STRAIGHT_JOIN join type (MySQL only).
+//
+// It is intentionally declared outside the iota block above: that block is a single iota sequence shared by all of the
+// exported enums, so adding a constant inside it would shift the numeric value of every enum declared after it
+// (boolean/bitwise operators, sort directions, join conditions...). New join types must be added the same way
+// (CrossJoinType + n) to keep the existing exported values stable.
+const StraightJoinType = CrossJoinType + 1
+
 var (
 	ConditionedJoinTypes = map[JoinType]bool{
 		InnerJoinType:      true,
@@ -641,6 +649,7 @@ var (
 		FullJoinType:       true,
 		RightJoinType:      true,
 		LeftJoinType:       true,
+		StraightJoinType:   true,
 	}
 	// used internally for inverting operators
 	operatorInversions = map[BooleanOperation]BooleanOperation{
@@ -761,6 +770,8 @@ func (jt JoinType) String() string {
 		return "NaturalFullJoinType"
 	case CrossJoinType:
 		return "CrossJoinType"
+	case StraightJoinType:
+		return "StraightJoinType"
 	}
 	return fmt.Sprintf("%d", jt)
 }

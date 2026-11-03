@@ -29,6 +29,10 @@ func ErrJoinConditionRequired(j exp.JoinExpression) error {
 	return errors.New("join condition required for conditioned join %v", j.JoinType())
 }
 
+func ErrJoinUsingNotSupported(j exp.JoinExpression) error {
+	return errors.New("USING is not supported for %v, use an ON condition", j.JoinType())
+}
+
 func ErrDistinctOnNotSupported(dialect string) error {
 	return errors.New("dialect does not support DISTINCT ON clause [dialect=%s]", dialect)
 }
@@ -157,6 +161,11 @@ func (ssg *selectSQLGenerator) JoinSQL(b sb.SQLBuilder, joins exp.JoinExpression
 			if t, ok := j.(exp.ConditionedJoinExpression); ok {
 				if t.IsConditionEmpty() {
 					b.SetError(ErrJoinConditionRequired(j))
+					return
+				}
+				// MySQL 5.7 rejects STRAIGHT_JOIN ... USING (...); only ON is portable across supported versions
+				if _, isUsing := t.Condition().(exp.JoinUsingCondition); isUsing && j.JoinType() == exp.StraightJoinType {
+					b.SetError(ErrJoinUsingNotSupported(j))
 					return
 				}
 				ssg.joinConditionSQL(b, t.Condition())

@@ -497,6 +497,31 @@ func (mt *mysqlTest) TestWindowFunction() {
 	mt.Error(ds.WithDialect("mysql").ScanStructs(&entries), "goqu: adapter does not support window function clause")
 }
 
+func (mt *mysqlTest) TestStraightJoin() {
+	ds := mt.db.From("entry").
+		StraightJoin(
+			goqu.T("entry").As("e2"),
+			goqu.On(goqu.I("entry.id").Eq(goqu.I("e2.id"))),
+		)
+	// joining a table to itself on its primary key must not change the row count
+	expected, err := mt.db.From("entry").Count()
+	mt.NoError(err)
+	mt.Positive(expected)
+	count, err := ds.Count()
+	mt.NoError(err)
+	mt.Equal(expected, count)
+
+	var e entry
+	found, err := ds.Select("entry.*").Where(goqu.I("e2.id").Eq(1)).ScanStruct(&e)
+	mt.NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(1), e.ID)
+
+	// MySQL 5.7 rejects USING for STRAIGHT_JOIN, so goqu refuses to generate it
+	_, err = mt.db.From("entry").StraightJoin(goqu.T("entry").As("e2"), goqu.Using("id")).Count()
+	mt.EqualError(err, "goqu: USING is not supported for StraightJoinType, use an ON condition")
+}
+
 func (mt *mysqlTest) TestInsertFromSelect() {
 	ds := mt.db.From("entry")
 
