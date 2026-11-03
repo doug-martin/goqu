@@ -3,7 +3,6 @@ package sqlgen_test
 import (
 	"database/sql/driver"
 	"fmt"
-	"math"
 	"regexp"
 	"testing"
 	"time"
@@ -180,10 +179,6 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 		int16(10),
 		int32(10),
 		int64(10),
-		uint(10),
-		uint16(10),
-		uint32(10),
-		uint64(10),
 	}
 	for _, i := range ints {
 		esgs.assertCases(
@@ -199,12 +194,37 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 	)
 }
 
-func (esgs *expressionSQLGeneratorSuite) TestGenerate_Uint64AboveInt64() {
-	value := uint64(math.MaxInt64) + 1
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_UintTypes() {
+	var u uint64
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
-		expressionTestCase{val: value, err: "goqu_encode_error: Unable to encode value 9223372036854775808"},
-		expressionTestCase{val: value, err: "goqu_encode_error: Unable to encode value 9223372036854775808", isPrepared: true},
+		expressionTestCase{val: uint(65535), sql: "65535"},
+		expressionTestCase{val: uint(65535), sql: "?", isPrepared: true, args: []interface{}{int64(65535)}},
+
+		expressionTestCase{val: uint16(65535), sql: "65535"},
+		expressionTestCase{val: uint16(65535), sql: "?", isPrepared: true, args: []interface{}{int64(65535)}},
+
+		expressionTestCase{val: uint32(4294967295), sql: "4294967295"},
+		expressionTestCase{val: uint32(4294967295), sql: "?", isPrepared: true, args: []interface{}{int64(4294967295)}},
+
+		expressionTestCase{val: uint64(18446744073709551615), sql: "18446744073709551615"},
+		expressionTestCase{val: uint64(18446744073709551615), sql: "?", isPrepared: true, args: []interface{}{uint64(18446744073709551615)}},
+
+		expressionTestCase{val: &u, sql: "0"},
+		expressionTestCase{val: &u, sql: "?", isPrepared: true, args: []interface{}{int64(0)}},
+	)
+}
+
+// Named unsigned types are not matched by the type switch and go through reflection.
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_NamedUintTypes() {
+	type id uint64
+	type small uint8
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: id(18446744073709551615), sql: "18446744073709551615"},
+		expressionTestCase{val: id(18446744073709551615), sql: "?", isPrepared: true, args: []interface{}{uint64(18446744073709551615)}},
+		expressionTestCase{val: small(255), sql: "255"},
+		expressionTestCase{val: small(255), sql: "?", isPrepared: true, args: []interface{}{int64(255)}},
 	)
 }
 

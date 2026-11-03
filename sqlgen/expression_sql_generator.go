@@ -93,6 +93,9 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		esg.literalInt(b, int64(v))
 	case int64:
 		esg.literalInt(b, v)
+	case uint64:
+		// uint and uint32 (and named unsigned types) reach here through reflectSQL.
+		esg.literalUint(b, v)
 	case float32:
 		esg.literalFloat(b, float64(v))
 	case float64:
@@ -146,12 +149,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsInt(valKind):
 		esg.Generate(b, v.Int())
 	case util.IsUint(valKind):
-		u := v.Uint()
-		if u > uint64(math.MaxInt64) {
-			b.SetError(errors.NewEncodeError(val))
-			return
-		}
-		esg.Generate(b, int64(u))
+		esg.Generate(b, v.Uint())
 	case util.IsFloat(valKind):
 		esg.Generate(b, v.Float())
 	case util.IsString(valKind):
@@ -330,6 +328,22 @@ func (esg *expressionSQLGenerator) literalInt(b sb.SQLBuilder, i int64) {
 		return
 	}
 	b.WriteStrings(strconv.FormatInt(i, 10))
+}
+
+// Generates SQL for an uint value
+// Values that fit in an int64 are sent as int64, as they always have been, so existing
+// prepared-statement arguments keep their type. Only larger values stay uint64, since
+// converting them to int64 would overflow into a negative number.
+func (esg *expressionSQLGenerator) literalUint(b sb.SQLBuilder, i uint64) {
+	if b.IsPrepared() {
+		if i <= math.MaxInt64 {
+			esg.placeHolderSQL(b, int64(i))
+		} else {
+			esg.placeHolderSQL(b, i)
+		}
+		return
+	}
+	b.WriteStrings(strconv.FormatUint(i, 10))
 }
 
 // Generates SQL for a string
