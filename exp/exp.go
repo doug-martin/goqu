@@ -565,9 +565,6 @@ const (
 	NaturalRightJoinType
 	NaturalFullJoinType
 	CrossJoinType
-	// MySQL only. Note: these enums share one iota sequence, so the numeric values are not stable across versions;
-	// always compare against the named constants.
-	StraightJoinType
 
 	UsingJoinCondType JoinConditionType = iota
 	OnJoinCondType
@@ -634,6 +631,14 @@ const (
 	BitwiseLeftShiftOp
 	BitwiseRightShiftOp
 )
+
+// StraightJoinType is the STRAIGHT_JOIN join type (MySQL only).
+//
+// It is intentionally declared outside the iota block above: that block is a single iota sequence shared by all of the
+// exported enums, so adding a constant inside it would shift the numeric value of every enum declared after it
+// (boolean/bitwise operators, sort directions, join conditions...). New join types must be added the same way
+// (CrossJoinType + n) to keep the existing exported values stable.
+const StraightJoinType = CrossJoinType + 1
 
 var (
 	ConditionedJoinTypes = map[JoinType]bool{

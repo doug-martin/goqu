@@ -516,6 +516,11 @@ func (mt *mysqlTest) TestStraightJoin() {
 	mt.NoError(err)
 	mt.True(found)
 	mt.Equal(uint32(1), e.ID)
+
+	// USING is accepted by MySQL servers for STRAIGHT_JOIN as well
+	count, err = mt.db.From("entry").StraightJoin(goqu.T("entry").As("e2"), goqu.Using("id")).Count()
+	mt.NoError(err)
+	mt.Equal(expected, count)
 }
 
 func (mt *mysqlTest) TestInsertFromSelect() {
