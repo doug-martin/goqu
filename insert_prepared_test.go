@@ -19,3 +19,15 @@ func TestInsertDataset_preparedBulkInsertArgs(t *testing.T) {
 	assert.Equal(t, `INSERT INTO "t" ("a", "b") VALUES (?, ?), (?, ?), (?, ?)`, sql)
 	assert.Equal(t, []any{int64(1), "x", int64(2), "y", int64(3), "z"}, args)
 }
+
+func TestInsertDataset_preparedColsValsArgs(t *testing.T) {
+	ds := goqu.Insert("t").Prepared(true).Cols("a", "b").Vals(
+		goqu.Vals{1, "x"},
+		goqu.Vals{2, "y"},
+		goqu.Vals{3, "z"},
+	)
+	sql, args, err := ds.ToSQL()
+	require.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "t" ("a", "b") VALUES (?, ?), (?, ?), (?, ?)`, sql)
+	assert.Equal(t, []any{int64(1), "x", int64(2), "y", int64(3), "z"}, args)
+}
