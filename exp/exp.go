@@ -565,6 +565,8 @@ const (
 	NaturalRightJoinType
 	NaturalFullJoinType
 	CrossJoinType
+	// MySQL only. Note: these enums share one iota sequence, so the numeric values are not stable across versions;
+	// always compare against the named constants.
 	StraightJoinType
 
 	UsingJoinCondType JoinConditionType = iota

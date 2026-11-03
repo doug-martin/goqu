@@ -503,9 +503,13 @@ func (mt *mysqlTest) TestStraightJoin() {
 			goqu.T("entry").As("e2"),
 			goqu.On(goqu.I("entry.id").Eq(goqu.I("e2.id"))),
 		)
+	// joining a table to itself on its primary key must not change the row count
+	expected, err := mt.db.From("entry").Count()
+	mt.NoError(err)
+	mt.Positive(expected)
 	count, err := ds.Count()
 	mt.NoError(err)
-	mt.Equal(int64(10), count)
+	mt.Equal(expected, count)
 
 	var e entry
 	found, err := ds.Select("entry.*").Where(goqu.I("e2.id").Eq(1)).ScanStruct(&e)
