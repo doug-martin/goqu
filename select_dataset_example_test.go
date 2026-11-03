@@ -976,12 +976,6 @@ func ExampleSelectDataset_StraightJoin() {
 	).ToSQL()
 	fmt.Println(sql)
 
-	sql, _, _ = dialect.From("test").StraightJoin(
-		goqu.T("test2"),
-		goqu.Using("common_column"),
-	).ToSQL()
-	fmt.Println(sql)
-
 	// MySQL requires derived tables to have an alias
 	sql, _, _ = dialect.From("test").StraightJoin(
 		dialect.From("test2").Where(goqu.C("amount").Gt(0)).As("t"),
@@ -991,7 +985,6 @@ func ExampleSelectDataset_StraightJoin() {
 
 	// Output:
 	// SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
-	// SELECT * FROM `test` STRAIGHT_JOIN `test2` USING (`common_column`)
 	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM `test2` WHERE (`amount` > 0)) AS `t` ON (`test`.`fkey` = `t`.`Id`)
 }
 

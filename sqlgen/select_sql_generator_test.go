@@ -208,6 +208,37 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withFromSQL() {
 	)
 }
 
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withStraightJoin() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.UsingFragment = []byte(" using ")
+	opts.OnFragment = []byte(" on ")
+	opts.JoinTypeLookup = map[exp.JoinType][]byte{exp.StraightJoinType: []byte(" straight_join ")}
+
+	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test"))
+	ti := exp.NewIdentifierExpression("", "test2", "")
+	on := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinOnCondition(exp.Ex{"a": "foo"}))
+	using := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinUsingCondition("a"))
+	empty := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinOnCondition())
+	usingErr := "goqu: USING is not supported for StraightJoinType, use an ON condition"
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", opts),
+		selectTestCase{clause: sc.JoinsAppend(on), sql: `SELECT * FROM "test" straight_join "test2" on ("a" = 'foo')`},
+		selectTestCase{
+			clause:     sc.JoinsAppend(on),
+			sql:        `SELECT * FROM "test" straight_join "test2" on ("a" = ?)`,
+			isPrepared: true,
+			args:       []any{"foo"},
+		},
+		selectTestCase{clause: sc.JoinsAppend(using), err: usingErr},
+		selectTestCase{clause: sc.JoinsAppend(using), err: usingErr, isPrepared: true},
+		selectTestCase{
+			clause: sc.JoinsAppend(empty),
+			err:    "goqu: join condition required for conditioned join StraightJoinType",
+		},
+	)
+}
+
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withJoin() {
 	opts := sqlgen.DefaultDialectOptions()
 	// override fragements to make sure dialect is used

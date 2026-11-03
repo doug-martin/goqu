@@ -350,8 +350,8 @@ func (sd *SelectDataset) CrossJoin(table exp.Expression) *SelectDataset {
 
 // Adds a STRAIGHT_JOIN clause. STRAIGHT_JOIN is like INNER JOIN but forces the left table to be read before the
 // right table, which can help when the MySQL optimizer picks a poor join order. Only supported by the mysql and
-// mysql8 dialects (other dialects return an error), and like the other conditioned joins it requires an On or
-// Using condition. See examples.
+// mysql8 dialects (other dialects return an error). It requires an On condition: Using is rejected because MySQL 5.7
+// does not accept it for STRAIGHT_JOIN. See examples.
 func (sd *SelectDataset) StraightJoin(table exp.Expression, condition exp.JoinCondition) *SelectDataset {
 	return sd.joinTable(exp.NewConditionedJoinExpression(exp.StraightJoinType, table, condition))
 }
