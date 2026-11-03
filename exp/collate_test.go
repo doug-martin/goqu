@@ -50,7 +50,7 @@ func (ces *collateExpressionSuite) TestAllOthers() {
 	ce := ces.ce
 	rv := exp.NewRangeVal(1, 2)
 	pattern := "collate like%"
-	inVals := []interface{}{1, 2}
+	inVals := []any{1, 2}
 	testCases := []struct {
 		Ex       exp.Expression
 		Expected exp.Expression

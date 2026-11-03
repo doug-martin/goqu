@@ -971,7 +971,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
 		expressionTestCase{val: collate.Desc(), sql: `"a" COLLATE en_US DESC`},
 		expressionTestCase{val: collate.Eq("b"), sql: `("a" COLLATE en_US = 'b')`},
 		expressionTestCase{
-			val: collate.Eq("b"), sql: `("a" COLLATE en_US = ?)`, isPrepared: true, args: []interface{}{"b"},
+			val: collate.Eq("b"), sql: `("a" COLLATE en_US = ?)`, isPrepared: true, args: []any{"b"},
 		},
 		// a literal could be any expression, so it is wrapped to make sure the whole thing is collated
 		expressionTestCase{val: exp.NewCollateExpression(exp.NewLiteralExpression("a || b"), "en_US"), sql: `(a || b) COLLATE en_US`},
@@ -1008,7 +1008,7 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
 		)
 	}
 	// only strings and identifiers (with plain string parts) are valid collations
-	for _, collation := range []interface{}{
+	for _, collation := range []any{
 		1, nil, exp.NewIdentifierExpression("", "", ""), exp.NewIdentifierExpression("", "", exp.NewLiteralExpression("x")),
 	} {
 		esgs.assertCases(

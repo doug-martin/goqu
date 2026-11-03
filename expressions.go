@@ -34,7 +34,7 @@ const (
 //
 //	Collate(I("a"), "en_US") -> "a" COLLATE "en_US" (Postgres), "a" COLLATE en_US (others)
 //	Collate(I("a"), I("pg_catalog.default")) -> "a" COLLATE "pg_catalog"."default" (Postgres)
-func Collate(e exp.Expression, collation interface{}) exp.CollateExpression {
+func Collate(e exp.Expression, collation any) exp.CollateExpression {
 	return exp.NewCollateExpression(e, collation)
 }
 

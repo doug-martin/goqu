@@ -714,7 +714,7 @@ func (esg *expressionSQLGenerator) collateExpressionSQL(b sb.SQLBuilder, collate
 //
 // A string is a single quoted name for dialects that quote collations (it may contain anything, e.g.
 // "en_US.utf8"), otherwise it is split on '.' into schema qualified parts. An identifier is always split into its parts.
-func (esg *expressionSQLGenerator) collationParts(collation interface{}) (parts []string, ok bool) {
+func (esg *expressionSQLGenerator) collationParts(collation any) (parts []string, ok bool) {
 	quote := esg.dialectOptions.QuoteCollation
 	switch c := collation.(type) {
 	case string:
@@ -726,7 +726,7 @@ func (esg *expressionSQLGenerator) collationParts(collation interface{}) (parts 
 		if c.IsEmpty() {
 			return nil, false
 		}
-		for _, part := range []interface{}{c.GetSchema(), c.GetTable(), c.GetCol()} {
+		for _, part := range []any{c.GetSchema(), c.GetTable(), c.GetCol()} {
 			switch p := part.(type) {
 			case nil:
 			case string:
