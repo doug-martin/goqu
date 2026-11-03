@@ -247,6 +247,27 @@ func (sst *sqlserverTest) TestQuery_ValueExpressions() {
 	}, we)
 }
 
+func (sst *sqlserverTest) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := sst.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("'abc'"), "Latin1_General_CS_AS").Eq("ABC")).Count()
+	sst.NoError(err)
+	sst.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "Latin1_General_CS_AS").Eq("abc")).Count()
+	sst.NoError(err)
+	sst.Equal(int64(10), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "Latin1_General_CI_AS").Eq("ABC")).Count()
+	sst.NoError(err)
+	sst.Equal(int64(10), count)
+
+	// and in ORDER BY
+	var last string
+	found, err := ds.Select("string").Order(goqu.C("string").Collate("Latin1_General_CS_AS").Desc()).ScanVal(&last)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal("0.900000", last)
+}
+
 func (sst *sqlserverTest) TestCount() {
 	ds := sst.db.From("entry")
 	count, err := ds.Count()

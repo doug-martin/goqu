@@ -24,6 +24,16 @@ const (
 	SkipLocked = exp.SkipLocked
 )
 
+// Applies a collation to an expression. The collation is either a name (string) or, to qualify it with a schema
+// (e.g. Postgres pg_catalog."default"), an identifier. It is validated, and quoted where the dialect requires it, when
+// the SQL is generated.
+//
+//	Collate(I("a"), "en_US") -> "a" COLLATE "en_US" (Postgres), "a" COLLATE en_US (others)
+//	Collate(I("a"), I("pg_catalog.default")) -> "a" COLLATE "pg_catalog"."default" (Postgres)
+func Collate(e exp.Expression, collation any) exp.CollateExpression {
+	return exp.NewCollateExpression(e, collation)
+}
+
 // Creates a new Casted expression
 //
 //	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)

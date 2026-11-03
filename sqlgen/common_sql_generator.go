@@ -8,6 +8,10 @@ import (
 
 var ErrNoUpdatedValuesProvided = errors.New("no update values provided")
 
+func ErrInvalidCollation(collation string) error {
+	return errors.New("invalid collation name %q", collation)
+}
+
 func ErrCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH clause [dialect=%s]", dialect)
 }
