@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -92,6 +93,9 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		esg.literalInt(b, int64(v))
 	case int64:
 		esg.literalInt(b, v)
+	case uint64:
+		// uint and uint32 (and named unsigned types) reach here through reflectSQL.
+		esg.literalUint(b, v)
 	case float32:
 		esg.literalFloat(b, float64(v))
 	case float64:
@@ -145,7 +149,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsInt(valKind):
 		esg.Generate(b, v.Int())
 	case util.IsUint(valKind):
-		esg.Generate(b, int64(v.Uint()))
+		esg.Generate(b, v.Uint())
 	case util.IsFloat(valKind):
 		esg.Generate(b, v.Float())
 	case util.IsString(valKind):
@@ -157,7 +161,7 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	}
 }
 
-// nolint:gocyclo // not complex just long
+//nolint:gocyclo // not complex just long
 func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp.Expression) {
 	switch e := expression.(type) {
 	case exp.ColumnListExpression:
@@ -324,6 +328,22 @@ func (esg *expressionSQLGenerator) literalInt(b sb.SQLBuilder, i int64) {
 		return
 	}
 	b.WriteStrings(strconv.FormatInt(i, 10))
+}
+
+// Generates SQL for an uint value
+// Values that fit in an int64 are sent as int64, as they always have been, so existing
+// prepared-statement arguments keep their type. Only larger values stay uint64, since
+// converting them to int64 would overflow into a negative number.
+func (esg *expressionSQLGenerator) literalUint(b sb.SQLBuilder, i uint64) {
+	if b.IsPrepared() {
+		if i <= math.MaxInt64 {
+			esg.placeHolderSQL(b, int64(i))
+		} else {
+			esg.placeHolderSQL(b, i)
+		}
+		return
+	}
+	b.WriteStrings(strconv.FormatUint(i, 10))
 }
 
 // Generates SQL for a string
@@ -534,8 +554,9 @@ func (esg *expressionSQLGenerator) updateExpressionSQL(b sb.SQLBuilder, update e
 }
 
 // Generates SQL for a LiteralExpression
-//    L("a + b") -> a + b
-//    L("a = ?", 1) -> a = 1
+//
+//	L("a + b") -> a + b
+//	L("a = ?", 1) -> a = 1
 func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal exp.LiteralExpression) {
 	l := literal.Literal()
 	args := literal.Args()
@@ -555,7 +576,8 @@ func (esg *expressionSQLGenerator) literalExpressionSQL(b sb.SQLBuilder, literal
 }
 
 // Generates SQL for a SQLFunctionExpression
-//   COUNT(I("a")) -> COUNT("a")
+//
+//	COUNT(I("a")) -> COUNT("a")
 func (esg *expressionSQLGenerator) sqlFunctionExpressionSQL(b sb.SQLBuilder, sqlFunc exp.SQLFunctionExpression) {
 	b.WriteStrings(sqlFunc.Name())
 	esg.Generate(b, sqlFunc.Args())
@@ -619,7 +641,8 @@ func (esg *expressionSQLGenerator) windowExpressionSQL(b sb.SQLBuilder, we exp.W
 }
 
 // Generates SQL for a CastExpression
-//   I("a").Cast("NUMERIC") -> CAST("a" AS NUMERIC)
+//
+//	I("a").Cast("NUMERIC") -> CAST("a" AS NUMERIC)
 func (esg *expressionSQLGenerator) castExpressionSQL(b sb.SQLBuilder, cast exp.CastExpression) {
 	b.Write(esg.dialectOptions.CastFragment).WriteRunes(esg.dialectOptions.LeftParenRune)
 	esg.Generate(b, cast.Casted())

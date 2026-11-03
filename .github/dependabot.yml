@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Root module: the library itself. Its `go` line is the minimum Go version
+  # for every consumer, so review any update that raises it before merging.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      go-dependencies:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
