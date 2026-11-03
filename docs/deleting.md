@@ -204,7 +204,7 @@ fmt.Println(sql)
 
 Output:
 ```
-DELETE FROM "test" WHERE ("id" IN ((SELECT  TOP (10) "id" FROM "test" ORDER BY "created" ASC)))
+DELETE FROM "test" WHERE ("id" IN (SELECT  TOP (10) "id" FROM "test" ORDER BY "created" ASC))
 ```
 
 <a name="returning"></a>
