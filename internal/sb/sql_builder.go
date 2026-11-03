@@ -7,13 +7,13 @@ import (
 	"sync"
 )
 
-// maxPooledBufferCap is the largest buffer capacity that is kept when a builder is released back to the pool.
-// Larger buffers (e.g. from a huge bulk insert) are dropped so a single big statement does not pin memory.
 const (
 	decimalBase = 10
 	float64Bits = 64
 )
 
+// maxPooledBufferCap is the largest buffer capacity that is kept when a builder is released back to the pool.
+// Larger buffers (e.g. from a huge bulk insert) are dropped so a single big statement does not pin memory.
 const maxPooledBufferCap = 64 << 10
 
 // Builder that is composed of a bytes.Buffer. It is used internally and by adapters to build SQL statements
@@ -45,6 +45,8 @@ type (
 		currentArgPosition int
 		args               []any
 		err                error
+		// released is true while the builder sits in the pool, it guards against a double release
+		released bool
 	}
 )
 
@@ -58,6 +60,7 @@ var builderPool = sync.Pool{
 // (after ToSQL) to make it available for reuse. Not releasing a builder is always safe, it is just garbage collected.
 func NewSQLBuilder(isPrepared bool) SQLBuilder {
 	b, _ := builderPool.Get().(*sqlBuilder)
+	b.released = false
 	b.isPrepared = isPrepared
 	return b
 }
@@ -72,13 +75,15 @@ func newSQLBuilder(isPrepared bool) *sqlBuilder {
 }
 
 // ReleaseSQLBuilder returns a builder to the pool. The builder must not be used afterwards. The sql string and the
-// args returned from ToSQL stay valid: the string is a copy and the args slice is never reused.
+// args returned from ToSQL stay valid: the string is a copy and the args slice is never reused. Releasing a builder
+// that is already in the pool is a no-op.
 func ReleaseSQLBuilder(b SQLBuilder) {
 	sbImpl, ok := b.(*sqlBuilder)
-	if !ok || sbImpl.buf.Cap() > maxPooledBufferCap {
+	if !ok || sbImpl.released || sbImpl.buf.Cap() > maxPooledBufferCap {
 		return
 	}
 	sbImpl.reset()
+	sbImpl.released = true
 	builderPool.Put(sbImpl)
 }
 

@@ -161,3 +161,19 @@ func TestExpressionSQLGenerator_isSafeForConcurrentUse(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestExpressionSQLGenerator_numberedPlaceholdersPastNine(t *testing.T) {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.PlaceHolderFragment = []byte("$")
+	opts.IncludePlaceholderNum = true
+	esg := sqlgen.NewExpressionSQLGenerator("test", opts)
+	b := sb.NewSQLBuilder(true)
+	esg.Generate(b, []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12})
+	sql, args, err := b.ToSQL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"; sql != want || len(args) != 12 {
+		t.Fatalf("got %q with %d args, want %q with 12", sql, len(args), want)
+	}
+}

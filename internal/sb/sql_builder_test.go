@@ -212,3 +212,13 @@ func itoa(i int) string {
 	s, _, _ := b.ToSQL()
 	return s
 }
+
+func TestReleaseSQLBuilder_doubleReleaseIsIgnored(t *testing.T) {
+	b := NewSQLBuilder(false)
+	ReleaseSQLBuilder(b)
+	ReleaseSQLBuilder(b) // must not put the same builder in the pool twice
+	first, second := NewSQLBuilder(false), NewSQLBuilder(false)
+	if first == second {
+		t.Fatal("the same builder was handed out twice")
+	}
+}
