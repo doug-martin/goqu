@@ -24,10 +24,6 @@ const (
 	SkipLocked = exp.SkipLocked
 )
 
-// Creates a new Casted expression
-//
-//	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
-//
 // Applies a collation to an expression. The collation is either a name (string) or, to qualify it with a schema
 // (e.g. Postgres pg_catalog."default"), an identifier. It is validated, and quoted where the dialect requires it, when
 // the SQL is generated.
@@ -38,6 +34,9 @@ func Collate(e exp.Expression, collation any) exp.CollateExpression {
 	return exp.NewCollateExpression(e, collation)
 }
 
+// Creates a new Casted expression
+//
+//	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
 func Cast(e exp.Expression, t string) exp.CastExpression {
 	return exp.NewCastExpression(e, t)
 }

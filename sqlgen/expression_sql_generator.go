@@ -683,7 +683,7 @@ func (esg *expressionSQLGenerator) collateExpressionSQL(b sb.SQLBuilder, collate
 	opts := esg.dialectOptions
 	parts, ok := esg.collationParts(collate.Collation())
 	if !ok {
-		b.SetError(ErrInvalidCollation(fmt.Sprintf("%v", collate.Collation())))
+		b.SetError(ErrInvalidCollation(describeCollation(collate.Collation())))
 		return
 	}
 
@@ -753,6 +753,20 @@ func (esg *expressionSQLGenerator) collationParts(collation any) (parts []string
 		}
 	}
 	return parts, true
+}
+
+// describes a collation for error messages, identifiers are shown as their dotted name rather than as a struct
+func describeCollation(collation any) string {
+	if ident, ok := collation.(exp.IdentifierExpression); ok {
+		var parts []string
+		for _, part := range []any{ident.GetSchema(), ident.GetTable(), ident.GetCol()} {
+			if p, isString := part.(string); isString && p != "" {
+				parts = append(parts, p)
+			}
+		}
+		return strings.Join(parts, ".")
+	}
+	return fmt.Sprintf("%v", collation)
 }
 
 // unquoted collation name parts are restricted to simple identifiers

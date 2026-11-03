@@ -1008,17 +1008,31 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
 		)
 	}
 	// only strings and identifiers (with plain string parts) are valid collations
-	for _, collation := range []any{
-		1, nil, exp.NewIdentifierExpression("", "", ""), exp.NewIdentifierExpression("", "", exp.NewLiteralExpression("x")),
-	} {
-		esgs.assertCases(
-			sqlgen.NewExpressionSQLGenerator("test", quoted),
-			expressionTestCase{val: ident.Collate(collation), err: fmt.Sprintf("goqu: invalid collation name %q", fmt.Sprintf("%v", collation))},
-		)
-	}
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", quoted),
+		expressionTestCase{val: ident.Collate(1), err: `goqu: invalid collation name "1"`},
+		expressionTestCase{val: ident.Collate(nil), err: `goqu: invalid collation name "<nil>"`},
+		expressionTestCase{val: ident.Collate(exp.NewIdentifierExpression("", "", "")), err: `goqu: invalid collation name ""`},
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("", "", exp.NewLiteralExpression("x"))),
+			err: `goqu: invalid collation name ""`,
+		},
+	)
+	// unquoted dialects validate every part of an identifier
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("my schema", "", "en_US")),
+			err: `goqu: invalid collation name "my schema.en_US"`,
+		},
+	)
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", quoted),
 		expressionTestCase{val: ident.Collate(""), err: `goqu: invalid collation name ""`},
+		expressionTestCase{val: ident.Collate("a\x00b"), err: "goqu: invalid collation name \"a\\x00b\""},
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("", "", "a\x00b")), err: "goqu: invalid collation name \"a\\x00b\"",
+		},
 	)
 }
 
