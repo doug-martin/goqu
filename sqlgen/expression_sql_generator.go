@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"math"
 	"reflect"
@@ -170,6 +171,13 @@ func (esg *expressionSQLGenerator) typedSliceSQL(b sb.SQLBuilder, val any) bool 
 		sliceSQL(esg, b, v, sliceElemHint)
 	case []byte:
 		esg.literalBytes(b, v)
+	case json.RawMessage:
+		if v == nil {
+			// an unset RawMessage is not valid JSON, so write NULL instead of an empty string
+			esg.literalNil(b)
+		} else {
+			esg.literalBytes(b, v)
+		}
 	case []exp.CommonTableExpression:
 		esg.commonTablesSliceSQL(b, v)
 	default:
@@ -220,6 +228,10 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsInvalid(valKind):
 		esg.literalNil(b)
 	case util.IsSlice(valKind):
+		// pointers to byte slices reach here (the pointer is dereferenced above)
+		if v.CanInterface() && esg.typedSliceSQL(b, v.Interface()) {
+			return
+		}
 		esg.sliceValueSQL(b, v)
 	case util.IsInt(valKind):
 		esg.Generate(b, v.Int())

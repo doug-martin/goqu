@@ -2,6 +2,7 @@ package exp
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"reflect"
 	"regexp"
 )
@@ -73,7 +74,8 @@ func lte(lhs Expression, rhs interface{}) BooleanExpression {
 func inNotIn(lhs Expression, op BooleanOperation, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 {
 		valType := reflect.Indirect(reflect.ValueOf(vals[0]))
-		if valType.Kind() == reflect.Slice {
+		// a single binary/JSON value is one element of the list, not the list itself
+		if valType.Kind() == reflect.Slice && !isBytesValue(vals[0]) {
 			return NewBooleanExpression(op, lhs, vals[0])
 		}
 		if _, ok := vals[0].(AppendableExpression); ok {
@@ -164,6 +166,16 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	return NewBooleanExpression(op, lhs, rhs)
 }
 
+// isBytesValue returns true for values that are a single binary/JSON value rather than a list of values.
+func isBytesValue(v any) bool {
+	switch v.(type) {
+	case []byte, *[]byte, json.RawMessage, *json.RawMessage:
+		return true
+	default:
+		return false
+	}
+}
+
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
 	if isNullValue(rhs) {
@@ -176,8 +188,8 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 		case reflect.Bool:
 			op = IsOp
 		case reflect.Slice:
-			// if its a slice of bytes dont treat as an IN
-			if _, ok := rhs.([]byte); !ok {
+			// if its a slice of bytes (or JSON) dont treat as an IN
+			if !isBytesValue(rhs) {
 				op = InOp
 			}
 		case reflect.Struct:
@@ -206,6 +218,13 @@ func isNullValue(val interface{}) bool {
 	}
 	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr && rv.IsNil() {
 		return true
+	}
+	// an unset json.RawMessage is written as NULL
+	switch t := val.(type) {
+	case json.RawMessage:
+		return t == nil
+	case *json.RawMessage:
+		return *t == nil
 	}
 	if valuer, ok := val.(driver.Valuer); ok {
 		v, err := valuer.Value()
