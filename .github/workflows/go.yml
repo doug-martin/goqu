@@ -33,11 +33,11 @@ jobs:
       SQLSERVER_VERSION: ${{ matrix.db_versions.sqlserver_version }}
     steps:
     - name: checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v7
     - name: Test
       run: docker compose run goqu-coverage
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests
