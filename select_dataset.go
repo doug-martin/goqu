@@ -597,7 +597,7 @@ func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) 
 	return ds.Executor().ScanStructsContext(ctx, i)
 }
 
-// Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a slice of structs
+// Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a struct
 //
 // ScanStruct will only select the columns that can be scanned in to the struct unless you have explicitly selected
 // certain columns. See examples.
@@ -607,7 +607,7 @@ func (sd *SelectDataset) ScanStruct(i interface{}) (bool, error) {
 	return sd.ScanStructContext(context.Background(), i)
 }
 
-// Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a slice of structs
+// Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a struct
 //
 // ScanStructContext will only select the columns that can be scanned in to the struct unless you have explicitly
 // selected certain columns. See examples.
@@ -669,6 +669,28 @@ func (sd *SelectDataset) CountContext(ctx context.Context) (int64, error) {
 	var count int64
 	_, err := sd.Select(COUNT(Star()).As("count")).ScanValContext(ctx, &count)
 	return count, err
+}
+
+// Reports whether this dataset returns at least one row.
+//
+// The dataset is wrapped in an EXISTS subquery, so it is evaluated exactly as written (WHERE, GROUP BY, HAVING,
+// LIMIT, compound queries, ...). The result is selected through CASE WHEN so the same SQL is valid on every dialect,
+// including those that cannot select a boolean expression directly (e.g. SQL Server):
+//
+//	SELECT CASE WHEN EXISTS (SELECT * FROM "user" WHERE ("last_name" = 'Yukon')) THEN 1 ELSE 0 END LIMIT 1
+func (sd *SelectDataset) Exists() (bool, error) {
+	return sd.ExistsContext(context.Background())
+}
+
+// Reports whether this dataset returns at least one row, using the given context. See Exists.
+func (sd *SelectDataset) ExistsContext(ctx context.Context) (bool, error) {
+	var exists bool
+	existsExpr := L("CASE WHEN ? THEN 1 ELSE 0 END", Exists(sd))
+	_, err := newDataset(sd.dialect.Dialect(), sd.queryFactory).
+		Select(existsExpr).
+		Prepared(sd.IsPrepared()).
+		ScanValContext(ctx, &exists)
+	return exists, err
 }
 
 // Generates the SELECT sql only selecting the passed in column and uses Exec#ScanVals to scan the result into a slice

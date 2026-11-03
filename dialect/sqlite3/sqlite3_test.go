@@ -157,7 +157,7 @@ func (st *sqlite3Suite) TestQuery() {
 	st.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			st.Equal(uint32(index+1), entry.ID)
+			st.EqualValues(index+1, entry.ID)
 			st.Equal(index, entry.Int)
 			st.Equal(f, fmt.Sprintf("%f", entry.Float))
 			st.Equal(f, entry.String)
@@ -194,7 +194,7 @@ func (st *sqlite3Suite) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			st.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			st.Fail("Should not have returned any records")
 		}},
 	)
@@ -208,7 +208,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 	st.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			st.Equal(uint32(index+1), entry.ID)
+			st.EqualValues(index+1, entry.ID)
 			st.Equal(index, entry.Int)
 			st.Equal(f, fmt.Sprintf("%f", entry.Float))
 			st.Equal(f, entry.String)
@@ -245,7 +245,7 @@ func (st *sqlite3Suite) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			st.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			st.Fail("Should not have returned any records")
 		}},
 	)
@@ -340,8 +340,10 @@ func (st *sqlite3Suite) TestInsert_returning() {
 	ds := st.db.From("entry")
 	now := time.Now()
 	e := entry{Int: 10, Float: 1.000000, String: "1.000000", Time: now, Bool: true, Bytes: []byte("1.000000")}
-	_, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
-	st.Error(err)
+	found, err := ds.Insert().Rows(e).Returning(goqu.Star()).Executor().ScanStruct(&e)
+	st.NoError(err)
+	st.True(found)
+	st.Greater(e.ID, uint32(0))
 }
 
 func (st *sqlite3Suite) TestUpdate() {
@@ -359,6 +361,56 @@ func (st *sqlite3Suite) TestUpdate() {
 	st.Equal(int64(1), count)
 }
 
+func (st *sqlite3Suite) TestUpdateFrom() {
+	_, err := st.db.Exec("CREATE TABLE entry_update (id INTEGER PRIMARY KEY, amount INTEGER NOT NULL)")
+	st.Require().NoError(err)
+	st.T().Cleanup(func() {
+		_, err := st.db.Exec("DROP TABLE entry_update")
+		st.NoError(err)
+	})
+	_, err = st.db.Exec("INSERT INTO entry_update (id, amount) VALUES (1, 10), (2, 20), (3, 30)")
+	st.Require().NoError(err)
+
+	for _, prepared := range []bool{false, true} {
+		for _, tc := range []struct {
+			name    string
+			source  interface{}
+			updated int64
+			values  []int
+		}{
+			{
+				name: "table", source: goqu.T("entry_update"), updated: 2,
+				values: []int{11, 21, 2, 3, 4, 5, 6, 7, 8, 9},
+			},
+			{
+				name: "subquery",
+				source: st.db.From("entry_update").Select("id", "amount").
+					Where(goqu.C("amount").Gt(15)).As("entry_update"),
+				updated: 1,
+				values:  []int{0, 21, 2, 3, 4, 5, 6, 7, 8, 9},
+			},
+		} {
+			st.Run(fmt.Sprintf("%s/prepared=%t", tc.name, prepared), func() {
+				_, err := st.db.Exec("UPDATE entry SET `int` = id - 1")
+				st.Require().NoError(err)
+				result, err := st.db.Update("entry").
+					Set(goqu.Record{"int": goqu.L("? + ?", goqu.I("entry_update.amount"), 1)}).
+					From(tc.source).
+					Where(goqu.I("entry.id").Eq(goqu.I("entry_update.id")), goqu.I("entry_update.amount").Lt(25)).
+					Prepared(prepared).Executor().Exec()
+				st.Require().NoError(err)
+				affected, err := result.RowsAffected()
+				st.NoError(err)
+				st.Equal(tc.updated, affected)
+
+				var values []int
+				st.NoError(st.db.From("entry").Select("int").Order(goqu.C("id").Asc()).ScanVals(&values))
+				st.Equal(tc.values, values)
+			})
+		}
+	}
+}
+
 func (st *sqlite3Suite) TestUpdateReturning() {
 	ds := st.db.From("entry")
 	var id uint32
@@ -370,6 +422,20 @@ func (st *sqlite3Suite) TestUpdateReturning() {
 		Executor().ScanVal(&id)
 	st.NoError(err)
 	st.GreaterOrEqual(id, uint32(0))
+}
+
+func (st *sqlite3Suite) TestTruncate() {
+	ds := st.db.From("entry")
+	count, err := ds.Count()
+	st.NoError(err)
+	st.Equal(int64(10), count)
+
+	_, err = ds.Truncate().Executor().Exec()
+	st.NoError(err)
+
+	count, err = ds.Count()
+	st.NoError(err)
+	st.Equal(int64(0), count)
 }
 
 func (st *sqlite3Suite) TestDelete() {
@@ -452,16 +518,21 @@ func (st *sqlite3Suite) TestInsert_OnConflict() {
 	st.NoError(err)
 	st.Equal("upsert", entryActual.String)
 
-	// UPDATE ... ON CONFLICT (...) WHERE ... SET ... should result in error for now
+	// Test DoUpdate with WHERE clause
 	entries := []entry{
 		{Int: 8, Float: 6.100000, String: "6.100000", Time: now, Bytes: []byte("6.100000")},
 		{Int: 9, Float: 7.200000, String: "7.200000", Time: now, Bytes: []byte("7.200000")},
 	}
 	_, err = ds.Insert().
 		Rows(entries).
-		OnConflict(goqu.DoUpdate("id", goqu.Record{"string": "upsert"}).Where(goqu.C("id").Eq(9))).
+		OnConflict(goqu.DoUpdate("id", goqu.Record{"string": "upsert"}).Where(goqu.C("id").Eq(11))).
 		Executor().Exec()
-	st.EqualError(err, "goqu: dialect does not support upsert with where clause [dialect=sqlite3]")
+	st.NoError(err)
+
+	// Verify the record with ID=11 was updated (DoUpdate worked)
+	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
+	st.NoError(err)
+	st.Equal("upsert", entryActual.String)
 }
 
 func TestSqlite3Suite(t *testing.T) {

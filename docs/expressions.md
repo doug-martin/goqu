@@ -12,6 +12,7 @@
 * [`V`](#V) - An Value to be used in SQL. 
 * [`And`](#and) - AND multiple expressions together.
 * [`Or`](#or) - OR multiple expressions together.
+* [`Exists`](#exists) - An `EXISTS` condition for a subquery.
 * [Complex Example](#complex) - Complex Example using most of the Expression DSL.
 
 The entry points for expressions are:
@@ -361,6 +362,30 @@ Output:
 SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo'))) []
 SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?))) [1 foo]
 ```
+
+<a name="exists"></a>
+**[`Exists()`](https://godoc.org/github.com/doug-martin/goqu#Exists)**
+
+You can use the `Exists` function to create an `EXISTS` condition for a subquery.
+
+```go
+ds := goqu.From("test").Where(
+  goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
+)
+sql, args, _ := ds.ToSQL()
+fmt.Println(sql, args)
+
+sql, args, _ = ds.Prepared(true).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```sql
+SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
+SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
+```
+
+To check whether a dataset returns any rows, see [`Exists`](./selecting.md#exists) on the dataset.
 
 <a name="complex"></a>
 ## Complex Example

@@ -12,6 +12,9 @@ type (
 	SQLDialectOptions struct {
 		// Set to true if the dialect supports ORDER BY expressions in DELETE statements (DEFAULT=false)
 		SupportsOrderByOnDelete bool
+		// Set to true to return an error, instead of silently dropping the clause, when ORDER BY is used on a
+		// DELETE and SupportsOrderByOnDelete is false (DEFAULT=false)
+		ErrorOnUnsupportedOrderByOnDelete bool
 		// Set to true if the dialect supports table hint for DELETE statements (DELETE t FROM t ...), DEFAULT=false
 		SupportsDeleteTableHint bool
 		// Set to true if the dialect supports ORDER BY expressions in UPDATE statements (DEFAULT=false)

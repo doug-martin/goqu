@@ -27,10 +27,9 @@ type (
 	Database struct {
 		logger  Logger
 		dialect string
-		//nolint:stylecheck // keep for backwards compatibility
-		Db     SQLDatabase
-		qf     exec.QueryFactory
-		qfOnce sync.Once
+		Db      SQLDatabase
+		qf      exec.QueryFactory
+		qfOnce  sync.Once
 	}
 )
 
