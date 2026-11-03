@@ -27,7 +27,7 @@ func (csgs *commonSQLGeneratorSuite) assertCases(testCases ...commonSQLTestCase)
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		tc.gen(b)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			csgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			csgs.assertPreparedSQL(b, tc.sql, tc.args)

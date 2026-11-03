@@ -9,7 +9,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -81,11 +81,7 @@ func (pt *postgresTest) SetupSuite() {
 	if dbURI == "" {
 		dbURI = defaultDBURI
 	}
-	uri, err := pq.ParseURL(dbURI)
-	if err != nil {
-		panic(err)
-	}
-	db, err := sql.Open("postgres", uri)
+	db, err := sql.Open("postgres", dbURI)
 	if err != nil {
 		panic(err)
 	}
@@ -123,7 +119,7 @@ func (pt *postgresTest) TestQuery() {
 	pt.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			pt.Equal(uint32(index+1), entry.ID)
+			pt.EqualValues(index+1, entry.ID)
 			pt.Equal(index, entry.Int)
 			pt.Equal(f, fmt.Sprintf("%f", entry.Float))
 			pt.Equal(f, entry.String)
@@ -160,7 +156,7 @@ func (pt *postgresTest) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			pt.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			pt.Fail("Should not have returned any records")
 		}},
 	)
@@ -175,7 +171,7 @@ func (pt *postgresTest) TestQuery_Prepared() {
 	pt.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			pt.Equal(uint32(index+1), entry.ID)
+			pt.EqualValues(index+1, entry.ID)
 			pt.Equal(index, entry.Int)
 			pt.Equal(f, fmt.Sprintf("%f", entry.Float))
 			pt.Equal(f, entry.String)
@@ -212,7 +208,7 @@ func (pt *postgresTest) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			pt.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			pt.Fail("Should not have returned any records")
 		}},
 	)
@@ -237,6 +233,29 @@ func (pt *postgresTest) TestQuery_ValueExpressions() {
 	pt.Equal(false, we.Bool)
 	pt.Equal([]byte("0.100000"), we.Bytes)
 	pt.True(we.BoolValue)
+}
+
+func (pt *postgresTest) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := pt.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("'abc'"), "C").Eq("ABC")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "C").Eq("abc")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(10), count)
+
+	// and in ORDER BY
+	var last string
+	found, err := ds.Select("string").Order(goqu.C("string").Collate("C").Desc()).ScanVal(&last)
+	pt.NoError(err)
+	pt.True(found)
+	pt.Equal("0.900000", last)
+
+	// schema qualified names are quoted part by part
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), goqu.I("pg_catalog.default")).Eq("abc")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(10), count)
 }
 
 func (pt *postgresTest) TestCount() {

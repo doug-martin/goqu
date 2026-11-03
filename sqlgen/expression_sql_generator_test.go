@@ -123,13 +123,29 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_Invalid() {
 	)
 }
 
-func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnsupportedType() {
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_OtherType() {
 	type strct struct{}
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}"},
-		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}", isPrepared: true},
+		expressionTestCase{val: strct{}, sql: "?", isPrepared: true, args: []interface{}{strct{}}},
+		expressionTestCase{val: map[string]int{"a": 1}, err: "goqu_encode_error: Unable to encode value map[a:1]"},
+		expressionTestCase{
+			val: map[string]int{"a": 1}, sql: "?", isPrepared: true, args: []interface{}{map[string]int{"a": 1}},
+		},
+		expressionTestCase{val: [2]byte{1, 2}, err: "goqu_encode_error: Unable to encode value [1 2]"},
+		expressionTestCase{val: [2]byte{1, 2}, sql: "?", isPrepared: true, args: []interface{}{[2]byte{1, 2}}},
 	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnbindableType() {
+	// no driver can bind these, so they are rejected even in prepared mode
+	for _, val := range []interface{}{func() {}, make(chan int), complex(1, 2)} {
+		esgs.assertCases(
+			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+			expressionTestCase{val: val, err: fmt.Sprintf("goqu_encode_error: Unable to encode value %+v", val), isPrepared: true},
+		)
+	}
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {
@@ -179,10 +195,6 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 		int16(10),
 		int32(10),
 		int64(10),
-		uint(10),
-		uint16(10),
-		uint32(10),
-		uint64(10),
 	}
 	for _, i := range ints {
 		esgs.assertCases(
@@ -195,6 +207,40 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: &i, sql: "0"},
 		expressionTestCase{val: &i, sql: "?", isPrepared: true, args: []interface{}{i}},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_UintTypes() {
+	var u uint64
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: uint(65535), sql: "65535"},
+		expressionTestCase{val: uint(65535), sql: "?", isPrepared: true, args: []interface{}{int64(65535)}},
+
+		expressionTestCase{val: uint16(65535), sql: "65535"},
+		expressionTestCase{val: uint16(65535), sql: "?", isPrepared: true, args: []interface{}{int64(65535)}},
+
+		expressionTestCase{val: uint32(4294967295), sql: "4294967295"},
+		expressionTestCase{val: uint32(4294967295), sql: "?", isPrepared: true, args: []interface{}{int64(4294967295)}},
+
+		expressionTestCase{val: uint64(18446744073709551615), sql: "18446744073709551615"},
+		expressionTestCase{val: uint64(18446744073709551615), sql: "?", isPrepared: true, args: []interface{}{uint64(18446744073709551615)}},
+
+		expressionTestCase{val: &u, sql: "0"},
+		expressionTestCase{val: &u, sql: "?", isPrepared: true, args: []interface{}{int64(0)}},
+	)
+}
+
+// Named unsigned types are not matched by the type switch and go through reflection.
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_NamedUintTypes() {
+	type id uint64
+	type small uint8
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: id(18446744073709551615), sql: "18446744073709551615"},
+		expressionTestCase{val: id(18446744073709551615), sql: "?", isPrepared: true, args: []interface{}{uint64(18446744073709551615)}},
+		expressionTestCase{val: small(255), sql: "255"},
+		expressionTestCase{val: small(255), sql: "?", isPrepared: true, args: []interface{}{int64(255)}},
 	)
 }
 
@@ -565,16 +611,16 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_BooleanExpression() {
 			int64(1), int64(2), int64(3),
 		}},
 
-		expressionTestCase{val: ident.In(ae), sql: `("a" IN ((SELECT "id" FROM "test2")))`},
-		expressionTestCase{val: ident.In(ae), sql: `("a" IN ((SELECT "id" FROM "test2")))`, isPrepared: true},
+		expressionTestCase{val: ident.In(ae), sql: `("a" IN (SELECT "id" FROM "test2"))`},
+		expressionTestCase{val: ident.In(ae), sql: `("a" IN (SELECT "id" FROM "test2"))`, isPrepared: true},
 
 		expressionTestCase{val: ident.NotIn([]int64{1, 2, 3}), sql: `("a" NOT IN (1, 2, 3))`},
 		expressionTestCase{val: ident.NotIn([]int64{1, 2, 3}), sql: `("a" NOT IN (?, ?, ?))`, isPrepared: true, args: []interface{}{
 			int64(1), int64(2), int64(3),
 		}},
 
-		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN ((SELECT "id" FROM "test2")))`},
-		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN ((SELECT "id" FROM "test2")))`, isPrepared: true},
+		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN (SELECT "id" FROM "test2"))`},
+		expressionTestCase{val: ident.NotIn(ae), sql: `("a" NOT IN (SELECT "id" FROM "test2"))`, isPrepared: true},
 
 		expressionTestCase{val: ident.Like("a%"), sql: `("a" LIKE 'a%')`},
 		expressionTestCase{val: ident.Like("a%"), sql: `("a" LIKE ?)`, isPrepared: true, args: []interface{}{"a%"}},
@@ -757,12 +803,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_UpdateExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLFunctionExpression() {
-	min := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
+	minimum := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
 	coalesce := exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a")
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
-		expressionTestCase{val: min, sql: `MIN("a")`},
-		expressionTestCase{val: min, sql: `MIN("a")`, isPrepared: true},
+		expressionTestCase{val: minimum, sql: `MIN("a")`},
+		expressionTestCase{val: minimum, sql: `MIN("a")`, isPrepared: true},
 
 		expressionTestCase{val: coalesce, sql: `COALESCE("a", 'a')`},
 		expressionTestCase{val: coalesce, sql: `COALESCE("a", ?)`, isPrepared: true, args: []interface{}{"a"}},
@@ -899,6 +945,94 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CastExpression() {
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: cast, sql: `CAST("a" AS DATE)`},
 		expressionTestCase{val: cast, sql: `CAST("a" AS DATE)`, isPrepared: true},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
+	ident := exp.NewIdentifierExpression("", "", "a")
+	collate := ident.Collate("en_US")
+	quoted := sqlgen.DefaultDialectOptions()
+	quoted.QuoteCollation = true
+	custom := sqlgen.DefaultDialectOptions()
+	custom.CollateFragment = []byte(" collate ")
+
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: collate, sql: `"a" COLLATE en_US`},
+		expressionTestCase{val: collate, sql: `"a" COLLATE en_US`, isPrepared: true},
+		expressionTestCase{val: ident.Collate("Latin1_General_CS_AS"), sql: `"a" COLLATE Latin1_General_CS_AS`},
+		expressionTestCase{val: ident.Collate("pg_catalog.C1"), sql: `"a" COLLATE pg_catalog.C1`},
+		expressionTestCase{val: ident.Collate("s.t.c"), sql: `"a" COLLATE s.t.c`},
+		expressionTestCase{val: ident.Collate(exp.NewIdentifierExpression("", "", "en_US")), sql: `"a" COLLATE en_US`},
+		expressionTestCase{
+			val: ident.Collate(exp.ParseIdentifier("pg_catalog.default")), sql: `"a" COLLATE pg_catalog.default`,
+		},
+		expressionTestCase{val: collate.Asc(), sql: `"a" COLLATE en_US ASC`},
+		expressionTestCase{val: collate.Desc(), sql: `"a" COLLATE en_US DESC`},
+		expressionTestCase{val: collate.Eq("b"), sql: `("a" COLLATE en_US = 'b')`},
+		expressionTestCase{
+			val: collate.Eq("b"), sql: `("a" COLLATE en_US = ?)`, isPrepared: true, args: []any{"b"},
+		},
+		// a literal could be any expression, so it is wrapped to make sure the whole thing is collated
+		expressionTestCase{val: exp.NewCollateExpression(exp.NewLiteralExpression("a || b"), "en_US"), sql: `(a || b) COLLATE en_US`},
+	)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", quoted),
+		expressionTestCase{val: collate, sql: `"a" COLLATE "en_US"`},
+		expressionTestCase{val: collate, sql: `"a" COLLATE "en_US"`, isPrepared: true},
+		expressionTestCase{val: ident.Collate("en_US.utf8"), sql: `"a" COLLATE "en_US.utf8"`},
+		expressionTestCase{val: ident.Collate(`we"ird`), sql: `"a" COLLATE "we""ird"`},
+		expressionTestCase{val: ident.Collate("English_United States.1252"), sql: `"a" COLLATE "English_United States.1252"`},
+		expressionTestCase{
+			val: ident.Collate(exp.ParseIdentifier("pg_catalog.default")), sql: `"a" COLLATE "pg_catalog"."default"`,
+		},
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("my_schema", "", "en_US")), sql: `"a" COLLATE "my_schema"."en_US"`,
+		},
+		expressionTestCase{
+			val: exp.NewCollateExpression(exp.NewLiteralExpression("a || b"), "C"), sql: `(a || b) COLLATE "C"`,
+		},
+	)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", custom),
+		expressionTestCase{val: collate, sql: `"a" collate en_US`},
+	)
+
+	// names that are not simple identifiers are rejected when unquoted (they would end up verbatim in the SQL)
+	for _, name := range []string{
+		"", "en US", "en_US; DROP TABLE a", `en"US`, "1abc", "a-b", "a'b", "a.", ".a", "a..b", "a.b.c.d", "a$", "ü",
+	} {
+		esgs.assertCases(
+			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+			expressionTestCase{val: ident.Collate(name), err: fmt.Sprintf("goqu: invalid collation name %q", name)},
+		)
+	}
+	// only strings and identifiers (with plain string parts) are valid collations
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", quoted),
+		expressionTestCase{val: ident.Collate(1), err: `goqu: invalid collation name "1"`},
+		expressionTestCase{val: ident.Collate(nil), err: `goqu: invalid collation name "<nil>"`},
+		expressionTestCase{val: ident.Collate(exp.NewIdentifierExpression("", "", "")), err: `goqu: invalid collation name ""`},
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("", "", exp.NewLiteralExpression("x"))),
+			err: `goqu: invalid collation name ""`,
+		},
+	)
+	// unquoted dialects validate every part of an identifier
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("my schema", "", "en_US")),
+			err: `goqu: invalid collation name "my schema.en_US"`,
+		},
+	)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", quoted),
+		expressionTestCase{val: ident.Collate(""), err: `goqu: invalid collation name ""`},
+		expressionTestCase{val: ident.Collate("a\x00b"), err: "goqu: invalid collation name \"a\\x00b\""},
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("", "", "a\x00b")), err: "goqu: invalid collation name \"a\\x00b\"",
+		},
 	)
 }
 
