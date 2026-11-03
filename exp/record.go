@@ -60,9 +60,6 @@ func shouldOmitField(val reflect.Value, f util.ColumnData) bool {
 func getRecordValue(val reflect.Value, f util.ColumnData) interface{} {
 	if f.DefaultIfEmpty && util.IsEmptyValue(val) {
 		return Default()
-	} else if val.IsValid() {
-		return val.Interface()
-	} else {
-		return reflect.Zero(f.GoType).Interface()
 	}
+	return val.Interface()
 }
