@@ -56,14 +56,39 @@ func (sds *sqlite3DialectSuite) TestIdentifiers() {
 }
 
 func (sds *sqlite3DialectSuite) TestUpdateSQL_multipleTables() {
-	ds := sds.GetDs("test").Update()
+	ds := sds.GetDs("test").Update().
+		Set(goqu.Record{"foo": "bar"}).
+		From("test_2").
+		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id")))
+	subquery := sds.GetDs("test_2").Select("test_id").Where(goqu.C("foo").Eq("baz")).As("other")
+	dsWithSubquery := sds.GetDs("test").Update().
+		Set(goqu.Record{"foo": "bar"}).
+		From(subquery).
+		Where(goqu.I("test.id").Eq(goqu.I("other.test_id")), goqu.I("test.id").Gt(10))
 	sds.assertSQL(
 		sqlTestCase{
-			ds: ds.
-				Set(goqu.Record{"foo": "bar"}).
-				From("test_2").
-				Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))),
-			err: "goqu: sqlite3 dialect does not support multiple tables in UPDATE",
+			ds:  ds,
+			sql: "UPDATE `test` SET `foo`='bar' FROM `test_2` WHERE (`test`.`id` = `test_2`.`test_id`)",
+		},
+		sqlTestCase{
+			ds:         ds.Prepared(true),
+			sql:        "UPDATE `test` SET `foo`=? FROM `test_2` WHERE (`test`.`id` = `test_2`.`test_id`)",
+			isPrepared: true,
+			args:       []interface{}{"bar"},
+		},
+		sqlTestCase{
+			ds: dsWithSubquery,
+			sql: "UPDATE `test` SET `foo`='bar' FROM " +
+				"(SELECT `test_id` FROM `test_2` WHERE (`foo` = 'baz')) AS `other` " +
+				"WHERE ((`test`.`id` = `other`.`test_id`) AND (`test`.`id` > 10))",
+		},
+		sqlTestCase{
+			ds: dsWithSubquery.Prepared(true),
+			sql: "UPDATE `test` SET `foo`=? FROM " +
+				"(SELECT `test_id` FROM `test_2` WHERE (`foo` = ?)) AS `other` " +
+				"WHERE ((`test`.`id` = `other`.`test_id`) AND (`test`.`id` > ?))",
+			isPrepared: true,
+			args:       []interface{}{"bar", "baz", int64(10)},
 		},
 	)
 }
