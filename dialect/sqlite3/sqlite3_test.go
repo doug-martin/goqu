@@ -519,7 +519,6 @@ func (st *sqlite3Suite) TestInsert_OnConflict() {
 	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
 	st.NoError(err)
 	st.Equal("upsert", entryActual.String)
-
 }
 
 func TestSqlite3Suite(t *testing.T) {
