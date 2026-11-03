@@ -93,6 +93,16 @@ func (sds *sqlite3DialectSuite) TestUpdateSQL_multipleTables() {
 	)
 }
 
+func (sds *sqlite3DialectSuite) TestTruncate() {
+	ds := goqu.Dialect("sqlite3").From("test")
+	sds.assertSQL(
+		sqlTestCase{ds: ds.Truncate(), sql: "DELETE FROM `test`"},
+		// CASCADE and RESTRICT do not apply to DELETE and are dropped.
+		sqlTestCase{ds: ds.Truncate().Cascade(), sql: "DELETE FROM `test`"},
+		sqlTestCase{ds: ds.Truncate().Restrict(), sql: "DELETE FROM `test`"},
+	)
+}
+
 func (sds *sqlite3DialectSuite) TestCompoundExpressions() {
 	ds1 := sds.GetDs("test").Select("a")
 	ds2 := sds.GetDs("test2").Select("b")
