@@ -199,19 +199,32 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_UintTypes() {
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: uint(65535), sql: "65535"},
-		expressionTestCase{val: uint(65535), sql: "?", isPrepared: true, args: []interface{}{uint64(65535)}},
+		expressionTestCase{val: uint(65535), sql: "?", isPrepared: true, args: []interface{}{int64(65535)}},
 
 		expressionTestCase{val: uint16(65535), sql: "65535"},
-		expressionTestCase{val: uint16(65535), sql: "?", isPrepared: true, args: []interface{}{uint64(65535)}},
+		expressionTestCase{val: uint16(65535), sql: "?", isPrepared: true, args: []interface{}{int64(65535)}},
 
 		expressionTestCase{val: uint32(4294967295), sql: "4294967295"},
-		expressionTestCase{val: uint32(4294967295), sql: "?", isPrepared: true, args: []interface{}{uint64(4294967295)}},
+		expressionTestCase{val: uint32(4294967295), sql: "?", isPrepared: true, args: []interface{}{int64(4294967295)}},
 
 		expressionTestCase{val: uint64(18446744073709551615), sql: "18446744073709551615"},
 		expressionTestCase{val: uint64(18446744073709551615), sql: "?", isPrepared: true, args: []interface{}{uint64(18446744073709551615)}},
 
 		expressionTestCase{val: &u, sql: "0"},
-		expressionTestCase{val: &u, sql: "?", isPrepared: true, args: []interface{}{u}},
+		expressionTestCase{val: &u, sql: "?", isPrepared: true, args: []interface{}{int64(0)}},
+	)
+}
+
+// Named unsigned types are not matched by the type switch and go through reflection.
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_NamedUintTypes() {
+	type id uint64
+	type small uint8
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: id(18446744073709551615), sql: "18446744073709551615"},
+		expressionTestCase{val: id(18446744073709551615), sql: "?", isPrepared: true, args: []interface{}{uint64(18446744073709551615)}},
+		expressionTestCase{val: small(255), sql: "255"},
+		expressionTestCase{val: small(255), sql: "?", isPrepared: true, args: []interface{}{int64(255)}},
 	)
 }
 
@@ -774,12 +787,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_UpdateExpression() {
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_SQLFunctionExpression() {
-	min := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
+	minimum := exp.NewSQLFunctionExpression("MIN", exp.NewIdentifierExpression("", "", "a"))
 	coalesce := exp.NewSQLFunctionExpression("COALESCE", exp.NewIdentifierExpression("", "", "a"), "a")
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
-		expressionTestCase{val: min, sql: `MIN("a")`},
-		expressionTestCase{val: min, sql: `MIN("a")`, isPrepared: true},
+		expressionTestCase{val: minimum, sql: `MIN("a")`},
+		expressionTestCase{val: minimum, sql: `MIN("a")`, isPrepared: true},
 
 		expressionTestCase{val: coalesce, sql: `COALESCE("a", 'a')`},
 		expressionTestCase{val: coalesce, sql: `COALESCE("a", ?)`, isPrepared: true, args: []interface{}{"a"}},

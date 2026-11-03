@@ -130,7 +130,7 @@ func (sst *sqlserverTest) TestQuery() {
 	sst.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			sst.Equal(uint32(index+1), entry.ID)
+			sst.EqualValues(index+1, entry.ID)
 			sst.Equal(index, entry.Int)
 			sst.Equal(f, fmt.Sprintf("%f", entry.Float))
 			sst.Equal(f, entry.String)
@@ -168,7 +168,7 @@ func (sst *sqlserverTest) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			sst.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			sst.Fail("Should not have returned any records")
 		}},
 	)
@@ -185,7 +185,7 @@ func (sst *sqlserverTest) TestQuery_Prepared() {
 	sst.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			sst.Equal(uint32(index+1), entry.ID)
+			sst.EqualValues(index+1, entry.ID)
 			sst.Equal(index, entry.Int)
 			sst.Equal(f, fmt.Sprintf("%f", entry.Float))
 			sst.Equal(f, entry.String)
@@ -223,7 +223,7 @@ func (sst *sqlserverTest) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			sst.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			sst.Fail("Should not have returned any records")
 		}},
 	)

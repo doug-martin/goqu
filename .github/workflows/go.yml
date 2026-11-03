@@ -32,15 +32,15 @@ jobs:
       SQLSERVER_VERSION: ${{ matrix.db_versions.sqlserver_version }}
     steps:
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v5
     - name: Test
-      run: docker-compose run goqu-coverage
+      run: docker compose run goqu-coverage
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests
-        env_vars: OS,MYSQL_VERSION,POSTGRES_VERSION,SQLSERVER_VERSION
         name: codecov-umbrella
-        fail_ci_if_error: true
+        # Fork PRs do not receive repo secrets, so the upload can legitimately fail there.
+        fail_ci_if_error: ${{ github.event.pull_request.head.repo.fork != true }}
         verbose: true

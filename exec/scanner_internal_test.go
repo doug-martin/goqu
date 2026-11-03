@@ -1,6 +1,7 @@
 package exec
 
 import (
+	"context"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -29,7 +30,7 @@ func (s *scannerSuite) TestScanStructs() {
 			AddRow(testAddr1, testName1).
 			AddRow(testAddr2, testName2),
 		)
-	rows, err := db.Query(`SELECT * FROM "items"`)
+	rows, err := db.QueryContext(context.Background(), `SELECT * FROM "items"`)
 	s.Require().NoError(err)
 
 	sc := NewScanner(rows)
@@ -54,7 +55,7 @@ func (s *scannerSuite) TestScanVals() {
 		WithArgs().
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1).AddRow(2))
 
-	rows, err := db.Query(`SELECT "id" FROM "items"`)
+	rows, err := db.QueryContext(context.Background(), `SELECT "id" FROM "items"`)
 	s.Require().NoError(err)
 
 	sc := NewScanner(rows)

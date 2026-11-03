@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -92,11 +93,8 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		esg.literalInt(b, int64(v))
 	case int64:
 		esg.literalInt(b, v)
-	case uint:
-		esg.literalUint(b, uint64(v))
-	case uint32:
-		esg.literalUint(b, uint64(v))
 	case uint64:
+		// uint and uint32 (and named unsigned types) reach here through reflectSQL.
 		esg.literalUint(b, v)
 	case float32:
 		esg.literalFloat(b, float64(v))
@@ -333,9 +331,16 @@ func (esg *expressionSQLGenerator) literalInt(b sb.SQLBuilder, i int64) {
 }
 
 // Generates SQL for an uint value
+// Values that fit in an int64 are sent as int64, as they always have been, so existing
+// prepared-statement arguments keep their type. Only larger values stay uint64, since
+// converting them to int64 would overflow into a negative number.
 func (esg *expressionSQLGenerator) literalUint(b sb.SQLBuilder, i uint64) {
 	if b.IsPrepared() {
-		esg.placeHolderSQL(b, i)
+		if i <= math.MaxInt64 {
+			esg.placeHolderSQL(b, int64(i))
+		} else {
+			esg.placeHolderSQL(b, i)
+		}
 		return
 	}
 	b.WriteStrings(strconv.FormatUint(i, 10))

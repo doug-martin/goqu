@@ -45,15 +45,15 @@ func (i identifier) IsQualified() bool {
 	switch c := col.(type) {
 	case string:
 		if c != "" {
-			return len(table) > 0 || len(schema) > 0
+			return table != "" || schema != ""
 		}
 	default:
 		if c != nil {
-			return len(table) > 0 || len(schema) > 0
+			return table != "" || schema != ""
 		}
 	}
-	if len(table) > 0 {
-		return len(schema) > 0
+	if table != "" {
+		return schema != ""
 	}
 	return false
 }
