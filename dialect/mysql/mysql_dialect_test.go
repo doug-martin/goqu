@@ -6,6 +6,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -161,4 +162,19 @@ func (mds *mysqlDialectSuite) TestWithCTE() {
 
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(mysqlDialectSuite))
+}
+
+func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("mysql").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).
+		ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=mysql]")
+
+	// no target is still fine
+	_, _, err = goqu.Dialect("mysql").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing()).
+		ToSQL()
+	assert.NoError(t, err)
 }

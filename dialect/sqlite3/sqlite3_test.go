@@ -11,6 +11,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/dialect/mysql"
 	"github.com/doug-martin/goqu/v9/dialect/sqlite3"
+	"github.com/doug-martin/goqu/v9/exp"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -489,6 +490,33 @@ func (st *sqlite3Suite) TestDelete() {
 	st.GreaterOrEqual(id, uint32(0))
 }
 
+func (st *sqlite3Suite) TestInsert_OnConflictDoNothingTarget() {
+	_, err := st.db.Exec("CREATE TABLE conflict_target (id INTEGER PRIMARY KEY, u INTEGER NOT NULL UNIQUE)")
+	st.Require().NoError(err)
+	ds := st.db.From("conflict_target")
+
+	_, err = ds.Insert().Rows(goqu.Record{"id": 1, "u": 1}).Executor().Exec()
+	st.Require().NoError(err)
+
+	// violation of the targeted constraint is ignored
+	_, err = ds.Insert().
+		Rows(goqu.Record{"id": 1, "u": 2}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("id"))).
+		Executor().Exec()
+	st.NoError(err)
+
+	// violation of a different constraint is NOT ignored (no INSERT OR IGNORE)
+	_, err = ds.Insert().
+		Rows(goqu.Record{"id": 2, "u": 1}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("id"))).
+		Executor().Exec()
+	st.Error(err)
+
+	count, err := ds.Count()
+	st.NoError(err)
+	st.Equal(int64(1), count)
+}
+
 func (st *sqlite3Suite) TestInsert_OnConflict() {
 	ds := st.db.From("entry")
 	now := time.Now()
@@ -515,6 +543,24 @@ func (st *sqlite3Suite) TestInsert_OnConflict() {
 			"bytes":  []byte("0.99999999"),
 		},
 	).OnConflict(goqu.DoNothing()).Executor().Exec()
+	st.NoError(err)
+
+	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)
+	st.NoError(err)
+	st.Equal("1.100000", entryActual.String)
+
+	// duplicate with ON CONFLICT (id) DO NOTHING should not be actually inserted
+	_, err = ds.Insert().Rows(
+		goqu.Record{
+			"id":     11,
+			"int":    99999999,
+			"float":  "99999999",
+			"string": "99999999",
+			"time":   now,
+			"bool":   true,
+			"bytes":  []byte("0.99999999"),
+		},
+	).OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("id"))).Executor().Exec()
 	st.NoError(err)
 
 	_, err = ds.Where(goqu.C("id").Eq(11)).ScanStruct(&entryActual)

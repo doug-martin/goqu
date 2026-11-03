@@ -405,7 +405,12 @@ Output:
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT DO NOTHING
 ```
 
-To specify columns to be used in the conflict handling
+To specify the conflict target columns, use `SetCols`. This is supported by dialects that support a conflict target
+(Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead of silently
+ignoring the target.
+
+`SetCols` only supports a list of columns. To target a named constraint (`ON CONSTRAINT name`), use
+`DoUpdate` with a constraint target instead.
 
 ```go
 sql, _, _ := goqu.Insert("test").

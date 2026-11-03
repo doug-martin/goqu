@@ -38,7 +38,7 @@ type (
 		DialectOptions() *SQLDialectOptions
 		ExpressionSQLGenerator() ExpressionSQLGenerator
 		ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpression)
-		ConflictTargetSQL(b sb.SQLBuilder, returns exp.ColumnListExpression)
+		ConflictTargetSQL(b sb.SQLBuilder, targets exp.ColumnListExpression)
 		FromSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
 		SourcesSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
 		WhereSQL(b sb.SQLBuilder, where exp.ExpressionList)

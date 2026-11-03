@@ -20,24 +20,33 @@ func NewDoNothingConflictExpression() ConflictNothingExpression {
 	return &doNothingConflict{}
 }
 
-func (c doNothingConflict) Expression() Expression {
+func (c *doNothingConflict) Expression() Expression {
 	return c
 }
 
-func (c doNothingConflict) Clone() Expression {
-	return c
+func (c *doNothingConflict) Clone() Expression {
+	clone := &doNothingConflict{}
+	if c.cols != nil {
+		clone.cols = c.cols.Clone().(ColumnListExpression)
+	}
+	return clone
 }
 
-func (c doNothingConflict) Action() ConflictAction {
+func (c *doNothingConflict) Action() ConflictAction {
 	return DoNothingConflictAction
 }
 
+// Sets the conflict target columns. Only supported by dialects that support a conflict target (e.g. Postgres,
+// SQLite); other dialects return an error when generating SQL.
+//
+//	DoNothing().SetCols(exp.NewColumnListExpression("a")) -> ON CONFLICT ("a") DO NOTHING
 func (c *doNothingConflict) SetCols(cl ColumnListExpression) ConflictNothingExpression {
 	c.cols = cl
 	return c
 }
 
-func (c doNothingConflict) Cols() ColumnListExpression {
+// Returns the conflict target columns, or nil if none were set.
+func (c *doNothingConflict) Cols() ColumnListExpression {
 	return c.cols
 }
 

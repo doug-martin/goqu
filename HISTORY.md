@@ -1,3 +1,7 @@
+# Unreleased
+
+* [FEATURE] Allow conflict targets in `ON CONFLICT DO NOTHING` via `goqu.DoNothing().SetCols(...)`. Dialects without conflict target support (MySQL, SQL Server) return an error when a target is set. **Note:** `goqu.DoNothing()` and `exp.NewDoNothingConflictExpression()` now return `exp.ConflictNothingExpression` (a superset of `exp.ConflictExpression`); code that reassigns the result to a different conflict type through type inference (`c := goqu.DoNothing(); c = goqu.DoUpdate(...)`) needs an explicit `exp.ConflictExpression` declaration. [#422](https://github.com/doug-martin/goqu/pull/422) - [@pedrohavay](https://github.com/pedrohavay)
+
 # v9.20.0
 
 **NOTE** The minimum supported Go version is now **1.26** (previously 1.19). See [Supported Go versions](./README.md#supported-go-versions).

@@ -5,6 +5,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -122,4 +123,19 @@ func (sds *sqlserverDialectSuite) TestDeleteWithOrderIsAnError() {
 
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlserverDialectSuite))
+}
+
+func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("sqlserver").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).
+		ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=sqlserver]")
+
+	// no target is still fine
+	_, _, err = goqu.Dialect("sqlserver").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing()).
+		ToSQL()
+	assert.NoError(t, err)
 }
