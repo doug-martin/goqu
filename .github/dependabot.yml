@@ -1,15 +1,15 @@
 version: 2
 updates:
   # Root module: the library itself. Its `go` line is the minimum Go version
-  # for every consumer, so review any update that raises it before merging.
+  # for every consumer, and Dependabot version bumps raise it as a side effect
+  # (e.g. go 1.19 -> 1.24). Version updates are therefore disabled here
+  # (limit 0); security updates still open PRs. Review any such PR for a
+  # change to the `go` line before merging, and raise the floor deliberately.
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: monthly
-    open-pull-requests-limit: 5
-    groups:
-      go-dependencies:
-        patterns: ["*"]
+    open-pull-requests-limit: 0
 
   # Nested module holding the database integration tests (requires newer Go).
   - package-ecosystem: gomod
