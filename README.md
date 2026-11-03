@@ -300,11 +300,15 @@ The test suite requires a postgres, mysql and sqlserver databases. You can overr
 go test -v -race ./...
 ```
 
-You can also run the tests in a container using [docker-compose](https://docs.docker.com/compose/).
+You can also run the tests in a container using [Docker Compose](https://docs.docker.com/compose/) (v2, the `docker compose` command). These are the versions CI uses:
 
 ```sh
-MYSQL_VERSION=8 POSTGRES_VERSION=13.4 SQLSERVER_VERSION=2017-CU8-ubuntu GO_VERSION=latest docker-compose run goqu
+MYSQL_VERSION=8 POSTGRES_VERSION=15 SQLSERVER_VERSION=2022-latest GO_VERSION=latest docker compose run --rm goqu
 ```
+
+When you are done, stop the databases with `docker compose down`.
+
+**NOTE** The SQL Server image is only published for `amd64`. On Apple Silicon it runs under emulation, which can be slow to start or unstable; in that case run the SQL Server tests on an `amd64` machine or let CI run them.
 
 ## License
 
