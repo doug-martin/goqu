@@ -489,7 +489,7 @@ SELECT * FROM "test" CROSS JOIN "test2"
 
 [`StraightJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.StraightJoin)
 
-**NOTE** `STRAIGHT_JOIN` is only supported by the `mysql` and `mysql8` dialects.
+**NOTE** `STRAIGHT_JOIN` is only supported by the `mysql` and `mysql8` dialects; other dialects return an error. Like `Join`, it requires an `On` or `Using` condition.
 
 ```go
 sql, _, _ := goqu.Dialect("mysql").From("test").StraightJoin(

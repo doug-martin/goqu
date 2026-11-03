@@ -982,22 +982,17 @@ func ExampleSelectDataset_StraightJoin() {
 	).ToSQL()
 	fmt.Println(sql)
 
+	// MySQL requires derived tables to have an alias
 	sql, _, _ = dialect.From("test").StraightJoin(
-		goqu.From("test2").Where(goqu.C("amount").Gt(0)),
-		goqu.On(goqu.I("test.fkey").Eq(goqu.I("test2.Id"))),
-	).ToSQL()
-	fmt.Println(sql)
-
-	sql, _, _ = dialect.From("test").StraightJoin(
-		goqu.From("test2").Where(goqu.C("amount").Gt(0)).As("t"),
+		dialect.From("test2").Where(goqu.C("amount").Gt(0)).As("t"),
 		goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id"))),
 	).ToSQL()
 	fmt.Println(sql)
+
 	// Output:
 	// SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
 	// SELECT * FROM `test` STRAIGHT_JOIN `test2` USING (`common_column`)
-	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) ON (`test`.`fkey` = `test2`.`Id`)
-	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS `t` ON (`test`.`fkey` = `t`.`Id`)
+	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM `test2` WHERE (`amount` > 0)) AS `t` ON (`test`.`fkey` = `t`.`Id`)
 }
 
 func ExampleSelectDataset_FromSelf() {

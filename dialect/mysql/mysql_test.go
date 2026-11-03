@@ -497,6 +497,23 @@ func (mt *mysqlTest) TestWindowFunction() {
 	mt.Error(ds.WithDialect("mysql").ScanStructs(&entries), "goqu: adapter does not support window function clause")
 }
 
+func (mt *mysqlTest) TestStraightJoin() {
+	ds := mt.db.From("entry").
+		StraightJoin(
+			goqu.T("entry").As("e2"),
+			goqu.On(goqu.I("entry.id").Eq(goqu.I("e2.id"))),
+		)
+	count, err := ds.Count()
+	mt.NoError(err)
+	mt.Equal(int64(10), count)
+
+	var e entry
+	found, err := ds.Select("entry.*").Where(goqu.I("e2.id").Eq(1)).ScanStruct(&e)
+	mt.NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(1), e.ID)
+}
+
 func (mt *mysqlTest) TestInsertFromSelect() {
 	ds := mt.db.From("entry")
 
