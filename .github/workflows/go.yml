@@ -10,6 +10,7 @@ jobs:
     name: Test go - ${{ matrix.go_version }} mysql - ${{ matrix.db_versions.mysql_version}} postgres - ${{ matrix.db_versions.postgres_version}} sqlserver- ${{ matrix.db_versions.sqlserver_version}}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         go_version: ["1.19", "latest"]
         db_versions:
