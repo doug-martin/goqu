@@ -954,7 +954,9 @@ if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
 fmt.Printf("\n%+v", users)
 ```
 
-Fields whose type is an interface such as `sql.Scanner` can be scanned into by setting them to a pointer to a concrete type before calling `ScanStruct`; the column is scanned straight into that value. A `nil` interface field, and `ScanStructs` (which creates new structs), cannot be scanned into this way and return an error. The value is scanned in place, so when iterating with a [`Scanner`](#scanner) set a new value for every row, otherwise all of the items you collect share the same value.
+Fields whose type is a non-empty interface that `sql.Scanner` values can be stored in (such as `sql.Scanner` itself) can be scanned into by setting the field to a **non-nil pointer to a value that implements `sql.Scanner`** before calling `ScanStruct`; the column is scanned straight into that value. If the field is `nil`, holds a non-pointer, or you use `ScanStructs` (which creates new structs), `ScanStruct`/`ScanStructs` return an error. The value is scanned in place, so when iterating with a [`Scanner`](#scanner) set a new value for every row, otherwise all of the items you collect share the same value.
+
+**NOTE** Fields of type `interface{}` are not scanned in place: they keep receiving the value returned by the driver (even when they already hold a pointer), and a `nil` `interface{}` field is fine.
 
 ```go
 type Item struct {
