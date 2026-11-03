@@ -5,6 +5,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -213,6 +214,8 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 		esg.windowExpressionSQL(b, e)
 	case exp.CastExpression:
 		esg.castExpressionSQL(b, e)
+	case exp.CollateExpression:
+		esg.collateExpressionSQL(b, e)
 	case exp.AppendableExpression:
 		esg.appendableExpressionSQL(b, e)
 	case exp.CommonTableExpression:
@@ -668,6 +671,58 @@ func (esg *expressionSQLGenerator) castExpressionSQL(b sb.SQLBuilder, cast exp.C
 	b.Write(esg.dialectOptions.AsFragment)
 	esg.Generate(b, cast.Type())
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
+}
+
+// Generates SQL for a CollateExpression
+//
+//	I("a").Collate("en_US") -> "a" COLLATE en_US
+//	I("a").Collate("en_US") -> "a" COLLATE "en_US" (dialects with QuoteCollation)
+func (esg *expressionSQLGenerator) collateExpressionSQL(b sb.SQLBuilder, collate exp.CollateExpression) {
+	name := collate.Collation()
+	opts := esg.dialectOptions
+	switch {
+	case name == "":
+		b.SetError(ErrInvalidCollation(name))
+		return
+	case opts.QuoteCollation:
+		if strings.ContainsRune(name, 0) {
+			b.SetError(ErrInvalidCollation(name))
+			return
+		}
+	case !validCollationName(name):
+		b.SetError(ErrInvalidCollation(name))
+		return
+	}
+
+	// a bare literal could be an arbitrary expression (e.g. a || b), only the last term would be collated
+	_, isLiteral := collate.Collated().(exp.LiteralExpression)
+	if isLiteral {
+		b.WriteRunes(opts.LeftParenRune)
+	}
+	esg.Generate(b, collate.Collated())
+	if isLiteral {
+		b.WriteRunes(opts.RightParenRune)
+	}
+	b.Write(opts.CollateFragment)
+	if opts.QuoteCollation {
+		quote := string(opts.QuoteRune)
+		b.WriteStrings(quote, strings.ReplaceAll(name, quote, quote+quote), quote)
+		return
+	}
+	b.WriteStrings(name)
+}
+
+// unquoted collation names are restricted to simple (optionally schema qualified) identifiers
+func validCollationName(name string) bool {
+	for i, r := range name {
+		switch {
+		case r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z'):
+		case i > 0 && (r == '.' || r == '$' || (r >= '0' && r <= '9')):
+		default:
+			return false
+		}
+	}
+	return name != ""
 }
 
 // Generates the sql for the WITH clauses for common table expressions (CTE)

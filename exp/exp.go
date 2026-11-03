@@ -24,6 +24,13 @@ type (
 		Cast(val string) CastExpression
 	}
 
+	// Interface that an expression should implement if it can have a collation applied to it.
+	Collateable interface {
+		// Applies a collation to an expression
+		//   I("a").Collate("en_US")//"a" COLLATE "en_US" (quoting depends on the dialect)
+		Collate(collation string) CollateExpression
+	}
+
 	Inable interface {
 		// Creates a Boolean expression for IN clauses
 		//    I("col").In([]string{"a", "b", "c"}) //("col" IN ('a', 'b', 'c'))
@@ -253,6 +260,23 @@ type (
 		// The the SQL type to cast the expression to
 		Type() LiteralExpression
 	}
+	// An Expression that represents another Expression with a collation applied to it (e.g. "a" COLLATE "en_US").
+	// It can be used anywhere the underlying expression can: comparisons, ORDER BY, GROUP BY, etc.
+	CollateExpression interface {
+		Expression
+		Aliaseable
+		Comparable
+		Inable
+		Isable
+		Likeable
+		Orderable
+		Distinctable
+		Rangeable
+		// The expression the collation is applied to
+		Collated() Expression
+		// The name of the collation
+		Collation() string
+	}
 	// A list of columns. Typically used internally by Select, Order, From
 	ColumnListExpression interface {
 		Expression
@@ -318,6 +342,7 @@ type (
 		Updateable
 		Distinctable
 		Castable
+		Collateable
 		Bitwiseable
 		// returns true if this identifier has more more than on part (Schema, Table or Col)
 		//	"schema" -> true //cant qualify anymore

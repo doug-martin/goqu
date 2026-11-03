@@ -18,6 +18,10 @@ func (ges *goquExpressionsSuite) TestCast() {
 	ges.Equal(exp.NewCastExpression(goqu.C("test"), "string"), goqu.Cast(goqu.C("test"), "string"))
 }
 
+func (ges *goquExpressionsSuite) TestCollate() {
+	ges.Equal(exp.NewCollateExpression(goqu.C("test"), "en_US"), goqu.Collate(goqu.C("test"), "en_US"))
+}
+
 func (ges *goquExpressionsSuite) TestDoNothing() {
 	ges.Equal(exp.NewDoNothingConflictExpression(), goqu.DoNothing())
 }

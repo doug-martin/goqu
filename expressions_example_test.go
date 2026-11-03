@@ -438,6 +438,46 @@ func ExampleCOUNT_havingClause() {
 	// SELECT COUNT("a") AS "COUNT" FROM "test" GROUP BY "a" HAVING (COUNT("a") > ?) [10]
 }
 
+func ExampleCollate() {
+	ds := goqu.From("test").
+		Select(goqu.C("name")).
+		Where(goqu.Collate(goqu.C("name"), "utf8mb4_bin").Eq("Bob")).
+		Order(goqu.Collate(goqu.C("name"), "utf8mb4_bin").Desc())
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT "name" FROM "test" WHERE ("name" COLLATE utf8mb4_bin = 'Bob') ORDER BY "name" COLLATE utf8mb4_bin DESC []
+	// SELECT "name" FROM "test" WHERE ("name" COLLATE utf8mb4_bin = ?) ORDER BY "name" COLLATE utf8mb4_bin DESC [Bob]
+}
+
+func ExampleCollate_dialects() {
+	// Postgres requires collation names to be quoted, other dialects write them as is.
+	for _, dialect := range []string{"postgres", "mysql", "sqlite3"} {
+		sql, _, _ := goqu.Dialect(dialect).
+			From("test").
+			Order(goqu.C("name").Collate("C").Asc()).
+			ToSQL()
+		fmt.Println(sql)
+	}
+	// Output:
+	// SELECT * FROM "test" ORDER BY "name" COLLATE "C" ASC
+	// SELECT * FROM `test` ORDER BY `name` COLLATE C ASC
+	// SELECT * FROM `test` ORDER BY `name` COLLATE C ASC
+}
+
+func ExampleIdentifierExpression_collate() {
+	sql, _, _ := goqu.From("Locations").
+		Select(goqu.I("Place")).
+		Order(goqu.I("Place").Collate("Latin1_General_CS_AS_KS_WS").Asc()).
+		ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT "Place" FROM "Locations" ORDER BY "Place" COLLATE Latin1_General_CS_AS_KS_WS ASC
+}
+
 func ExampleCast() {
 	sql, _, _ := goqu.From("test").
 		Select(goqu.Cast(goqu.C("json1"), "TEXT").As("json_text")).

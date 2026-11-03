@@ -948,6 +948,55 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CastExpression() {
 	)
 }
 
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
+	ident := exp.NewIdentifierExpression("", "", "a")
+	collate := ident.Collate("en_US")
+	quoted := sqlgen.DefaultDialectOptions()
+	quoted.QuoteCollation = true
+	custom := sqlgen.DefaultDialectOptions()
+	custom.CollateFragment = []byte(" collate ")
+
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: collate, sql: `"a" COLLATE en_US`},
+		expressionTestCase{val: collate, sql: `"a" COLLATE en_US`, isPrepared: true},
+		expressionTestCase{val: ident.Collate("Latin1_General_CS_AS"), sql: `"a" COLLATE Latin1_General_CS_AS`},
+		expressionTestCase{val: ident.Collate("pg_catalog.C$1"), sql: `"a" COLLATE pg_catalog.C$1`},
+		expressionTestCase{val: collate.Asc(), sql: `"a" COLLATE en_US ASC`},
+		expressionTestCase{val: collate.Desc(), sql: `"a" COLLATE en_US DESC`},
+		expressionTestCase{val: collate.Eq("b"), sql: `("a" COLLATE en_US = 'b')`},
+		expressionTestCase{
+			val: collate.Eq("b"), sql: `("a" COLLATE en_US = ?)`, isPrepared: true, args: []interface{}{"b"},
+		},
+		// a literal could be any expression, so it is wrapped to make sure the whole thing is collated
+		expressionTestCase{val: exp.NewCollateExpression(exp.NewLiteralExpression("a || b"), "en_US"), sql: `(a || b) COLLATE en_US`},
+	)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", quoted),
+		expressionTestCase{val: collate, sql: `"a" COLLATE "en_US"`},
+		expressionTestCase{val: collate, sql: `"a" COLLATE "en_US"`, isPrepared: true},
+		expressionTestCase{val: ident.Collate("en_US.utf8"), sql: `"a" COLLATE "en_US.utf8"`},
+		expressionTestCase{val: ident.Collate(`we"ird`), sql: `"a" COLLATE "we""ird"`},
+		expressionTestCase{val: ident.Collate("English_United States.1252"), sql: `"a" COLLATE "English_United States.1252"`},
+	)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", custom),
+		expressionTestCase{val: collate, sql: `"a" collate en_US`},
+	)
+
+	// names that are not simple identifiers are rejected when unquoted (they would end up verbatim in the SQL)
+	for _, name := range []string{"", "en US", "en_US; DROP TABLE a", `en"US`, "1abc", "a-b", "a'b"} {
+		esgs.assertCases(
+			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+			expressionTestCase{val: ident.Collate(name), err: fmt.Sprintf("goqu: invalid collation name %q", name)},
+		)
+	}
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", quoted),
+		expressionTestCase{val: ident.Collate(""), err: `goqu: invalid collation name ""`},
+	)
+}
+
 // Generates the sql for the WITH clauses for common table expressions (CTE)
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_CommonTableExpressionSlice() {
 	ae := newTestAppendableExpression(`SELECT * FROM "b"`, emptyArgs, nil, nil)

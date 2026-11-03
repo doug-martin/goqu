@@ -27,6 +27,15 @@ const (
 // Creates a new Casted expression
 //
 //	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
+//
+// Applies a collation to an expression. The name is validated (and quoted where the dialect requires it) when the SQL
+// is generated.
+//
+//	Collate(I("a"), "en_US") -> "a" COLLATE "en_US" (Postgres), "a" COLLATE en_US (others)
+func Collate(e exp.Expression, collation string) exp.CollateExpression {
+	return exp.NewCollateExpression(e, collation)
+}
+
 func Cast(e exp.Expression, t string) exp.CastExpression {
 	return exp.NewCastExpression(e, t)
 }
