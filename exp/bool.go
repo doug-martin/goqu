@@ -74,7 +74,8 @@ func lte(lhs Expression, rhs interface{}) BooleanExpression {
 func inNotIn(lhs Expression, op BooleanOperation, vals ...interface{}) BooleanExpression {
 	if len(vals) == 1 {
 		valType := reflect.Indirect(reflect.ValueOf(vals[0]))
-		if valType.Kind() == reflect.Slice {
+		// a single binary/JSON value is one element of the list, not the list itself
+		if valType.Kind() == reflect.Slice && !isBytesValue(vals[0]) {
 			return NewBooleanExpression(op, lhs, vals[0])
 		}
 		if _, ok := vals[0].(AppendableExpression); ok {
@@ -217,6 +218,13 @@ func isNullValue(val interface{}) bool {
 	}
 	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr && rv.IsNil() {
 		return true
+	}
+	// an unset json.RawMessage is written as NULL
+	switch t := val.(type) {
+	case json.RawMessage:
+		return t == nil
+	case *json.RawMessage:
+		return *t == nil
 	}
 	if valuer, ok := val.(driver.Valuer); ok {
 		v, err := valuer.Value()
