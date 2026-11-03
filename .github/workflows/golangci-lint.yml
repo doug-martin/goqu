@@ -25,10 +25,3 @@ jobs:
         with:
           version: v2.15.0
           args: --timeout 5m
-      # ./integration is a separate module, so the run above does not cover it.
-      - name: golangci-lint (integration)
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.15.0
-          args: --timeout 5m
-          working-directory: integration

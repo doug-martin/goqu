@@ -11,16 +11,6 @@ updates:
       go-dependencies:
         patterns: ["*"]
 
-  # Nested module holding the database integration tests.
-  - package-ecosystem: gomod
-    directory: /integration
-    schedule:
-      interval: monthly
-    open-pull-requests-limit: 5
-    groups:
-      integration-dependencies:
-        patterns: ["*"]
-
   - package-ecosystem: github-actions
     directory: /
     schedule:
