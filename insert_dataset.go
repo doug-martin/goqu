@@ -270,19 +270,13 @@ func (id *InsertDataset) insertSQLBuilder() sb.SQLBuilder {
 	if id.err != nil {
 		return buf.SetError(id.err)
 	}
-	if vals := id.clauses.Vals(); len(vals) > 0 {
-		maxCols := 0
+	if buf.IsPrepared() {
+		// every value becomes an argument: allocate them once instead of growing repeatedly for bulk inserts
 		totalArgs := 0
-		for _, row := range vals {
-			c := len(row)
-			totalArgs += c
-			if c > maxCols {
-				maxCols = c
-			}
+		for _, row := range id.clauses.Vals() {
+			totalArgs += len(row)
 		}
-		if totalArgs > 0 {
-			buf.GrowArgs(totalArgs)
-		}
+		buf.GrowArgs(totalArgs)
 	}
 	id.dialect.ToInsertSQL(buf, id.clauses)
 	return buf
