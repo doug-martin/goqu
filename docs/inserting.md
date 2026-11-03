@@ -175,6 +175,65 @@ Output:
 ```
 INSERT INTO "user" ("last_name") VALUES ('Farley'), ('Stewart'), ('Jeffers') []
 ```
+If you do not want to set the database field when the struct field is a nil pointer you can use the `omitnil` tag.
+
+```go
+type item struct {
+    FirstName string  `db:"first_name" goqu:"omitnil"`
+    LastName  string  `db:"last_name" goqu:"omitnil"`
+    Address1  *string `db:"address1" goqu:"omitnil"`
+    Address2  *string `db:"address2" goqu:"omitnil"`
+    Address3  *string `db:"address3" goqu:"omitnil"`
+}
+address1 := "111 Test Addr"
+var emptyString string
+i := item{
+    FirstName: "Test First Name",
+    LastName:  "",
+    Address1:  &address1,
+    Address2:  &emptyString,
+    Address3:  nil, // will omit nil pointer
+}
+
+insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "items" ("address1", "address2", "first_name", "last_name") VALUES ('111 Test Addr', '', 'Test First Name', '') []
+```
+
+If you do not want to set the database field when the struct field is a zero value (including nil pointers) you can use
+the `omitempty` tag.
+
+Empty embedded structs implementing the `Valuer` interface (eg. `sql.NullString`) will also be omitted.
+
+```go
+type item struct {
+    FirstName string  `db:"first_name" goqu:"omitempty"`
+    LastName  string  `db:"last_name" goqu:"omitempty"`
+    Address1  *string `db:"address1" goqu:"omitempty"`
+    Address2  *string `db:"address2" goqu:"omitempty"`
+    Address3  *string `db:"address3" goqu:"omitempty"`
+}
+address1 := "112 Test Addr"
+var emptyString string
+i := item{
+    FirstName: "Test First Name",
+    LastName:  "", // will omit zero field
+    Address1:  &address1,
+    Address2:  &emptyString,
+    Address3:  nil, // will omit nil pointer
+}
+insertSQL, args, _ := goqu.Insert("items").Rows(i).ToSQL()
+fmt.Println(insertSQL, args)
+```
+
+Output:
+```
+INSERT INTO "items" ("address1", "address2", "first_name") VALUES ('112 Test Addr', '', 'Test First Name') []
+```
 
 If you want to use the database `DEFAULT` when the struct field is a zero value you can use the `defaultifempty` tag.
 

@@ -1,4 +1,4 @@
-// nolint:lll // sql statements are long
+//nolint:lll // sql statements are long
 package goqu_test
 
 import (
@@ -10,7 +10,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 const schema = `
@@ -40,11 +40,7 @@ func getDB() *goqu.Database {
 		if dbURI == "" {
 			dbURI = defaultDBURI
 		}
-		uri, err := pq.ParseURL(dbURI)
-		if err != nil {
-			panic(err)
-		}
-		pdb, err := goSQL.Open("postgres", uri)
+		pdb, err := goSQL.Open("postgres", dbURI)
 		if err != nil {
 			panic(err)
 		}
@@ -67,8 +63,8 @@ func getDB() *goqu.Database {
 		{FirstName: "Vinita", LastName: "Yukon"},
 		{FirstName: "John", LastName: "Doe"},
 	}
-	var userIds []int64
-	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIds)
+	var userIDs []int64
+	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIDs)
 	if err != nil {
 		panic(err)
 	}
@@ -80,10 +76,10 @@ func getDB() *goqu.Database {
 	}
 
 	roles := []userRole{
-		{UserID: userIds[0], Name: "Admin"},
-		{UserID: userIds[1], Name: "Manager"},
-		{UserID: userIds[2], Name: "Manager"},
-		{UserID: userIds[3], Name: "User"},
+		{UserID: userIDs[0], Name: "Admin"},
+		{UserID: userIDs[1], Name: "Manager"},
+		{UserID: userIDs[2], Name: "Manager"},
+		{UserID: userIDs[3], Name: "User"},
 	}
 	_, err = goquDB.Insert("user_role").Rows(roles).Executor().Exec()
 	if err != nil {
@@ -119,7 +115,7 @@ func ExampleSelectDataset() {
 
 	sql, args, _ = ds.Prepared(true).ToSQL()
 	fmt.Println(sql, args)
-	// nolint:lll // SQL statements are long
+	//nolint:lll // SQL statements are long
 	// Output:
 	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ '^[ab]') AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN ('passed', 'active', 'registered')))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > 10) ORDER BY "test"."created" DESC NULLS LAST []
 	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^[ab] passed active registered 10]
@@ -1252,7 +1248,7 @@ func ExampleSelectDataset_Prepared() {
 		"col5": []string{"a", "b", "c"},
 	}).ToSQL()
 	fmt.Println(sql, args)
-	// nolint:lll // sql statements are long
+	//nolint:lll // sql statements are long
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
 }

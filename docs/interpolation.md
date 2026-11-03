@@ -54,3 +54,12 @@ sql, args, _ := db.From("items").Prepared(true).Where(goqu.Ex{
 db.ScanStructs(&items, `SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?))`,  "a", 1)
 ```
 
+
+## Unsigned integers
+
+Unsigned integer values (`uint`, `uint8`...`uint64`) are supported in both interpolated and prepared queries.
+
+* A value that fits in an `int64` (up to `9223372036854775807`) is written, or passed as an argument, as an `int64`, so the generated SQL and arguments are the same as for the equivalent signed value.
+* A `uint64` greater than `math.MaxInt64` is written as its decimal literal when interpolated (e.g. `9223372036854775808`) and passed to the driver as a `uint64` when using `Prepared(true)`.
+
+Whether the database accepts a value that large depends on the driver and the column type. Many databases (for example SQL Server `BIGINT`, PostgreSQL `BIGINT`) only store signed 64-bit integers, so such a value is typically rejected by the database or the driver rather than by `goqu`.

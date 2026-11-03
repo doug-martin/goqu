@@ -12,7 +12,8 @@ type (
 )
 
 // Creates a conflict struct to be passed to InsertConflict to ignore constraint errors
-//  InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
+//
+//	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
 func NewDoNothingConflictExpression() ConflictExpression {
 	return &doNothingConflict{}
 }
@@ -32,10 +33,10 @@ func (c doNothingConflict) Action() ConflictAction {
 // Creates a ConflictUpdate struct to be passed to InsertConflict
 // Represents a ON CONFLICT DO UPDATE portion of an INSERT statement (ON DUPLICATE KEY UPDATE for mysql)
 //
-//  InsertConflict(DoUpdate("target_column", update),...) ->
-//  	INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
-//  InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) ->
-//  	INSERT INTO ... ON CONFLICT DO UPDATE SET a=b WHERE a=1
+//	InsertConflict(DoUpdate("target_column", update),...) ->
+//		INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
+//	InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) ->
+//		INSERT INTO ... ON CONFLICT DO UPDATE SET a=b WHERE a=1
 func NewDoUpdateConflictExpression(target string, update interface{}) ConflictUpdateExpression {
 	return &conflictUpdate{target: target, update: update}
 }
@@ -69,7 +70,8 @@ func (c conflictUpdate) Update() interface{} {
 }
 
 // Append to the existing Where clause for an ON CONFLICT DO UPDATE ... WHERE ...
-//  InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
+//
+//	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
 func (c *conflictUpdate) Where(expressions ...Expression) ConflictUpdateExpression {
 	if c.whereClause == nil {
 		c.whereClause = NewExpressionList(AndType, expressions...)
@@ -80,7 +82,8 @@ func (c *conflictUpdate) Where(expressions ...Expression) ConflictUpdateExpressi
 }
 
 // Append to the existing Where clause for an ON CONFLICT DO UPDATE ... WHERE ...
-//  InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
+//
+//	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
 func (c *conflictUpdate) WhereClause() ExpressionList {
 	return c.whereClause
 }

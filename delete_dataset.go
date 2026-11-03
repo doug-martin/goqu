@@ -114,9 +114,10 @@ func (dd *DeleteDataset) WithRecursive(name string, subquery exp.Expression) *De
 
 // Adds a FROM clause. This return a new dataset with the original sources replaced. See examples.
 // You can pass in the following.
-//   string: Will automatically be turned into an identifier
-//   Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
-//   LiteralExpression: (See Literal) Will use the literal SQL
+//
+//	string: Will automatically be turned into an identifier
+//	Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
+//	LiteralExpression: (See Literal) Will use the literal SQL
 func (dd *DeleteDataset) From(table interface{}) *DeleteDataset {
 	switch t := table.(type) {
 	case exp.IdentifierExpression:
@@ -203,7 +204,7 @@ func (dd *DeleteDataset) SetError(err error) *DeleteDataset {
 // See examples.
 //
 // Errors:
-//  * There is an error generating the SQL
+//   - There is an error generating the SQL
 func (dd *DeleteDataset) ToSQL() (sql string, params []interface{}, err error) {
 	return dd.deleteSQLBuilder().ToSQL()
 }
@@ -227,7 +228,8 @@ func (dd *DeleteDataset) ReturnsColumns() bool {
 }
 
 // Creates an QueryExecutor to execute the query.
-//    db.Delete("test").Exec()
+//
+//	db.Delete("test").Exec()
 //
 // See Dataset#ToUpdateSQL for arguments
 func (dd *DeleteDataset) Executor() exec.QueryExecutor {

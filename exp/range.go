@@ -47,7 +47,8 @@ func (r ranged) Op() RangeOperation {
 }
 
 // Creates a new Range to be used with a Between expression
-//    exp.C("col").Between(exp.Range(1, 10))
+//
+//	exp.C("col").Between(exp.Range(1, 10))
 func NewRangeVal(start, end interface{}) RangeVal {
 	return rangeVal{start: start, end: end}
 }
