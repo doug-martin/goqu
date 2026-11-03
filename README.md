@@ -36,7 +36,7 @@ go get -u github.com/doug-martin/goqu
 
 The `go` directive in the root `go.mod` (currently Go 1.26) is the minimum Go version for using `goqu`. CI tests against that version and the latest Go release.
 
-Raising that minimum is treated as a notable change: it is made deliberately, not as a side effect of a dependency update, and is called out in the release notes. Database-driver test dependencies live in the separate `./integration` module so they never become requirements of users of the library.
+Raising that minimum is treated as a notable change: it is made deliberately, not as a side effect of a dependency update, and is called out in the release notes.
 
 ### [Migrating Between Versions](./docs/version_migration.md)
 
@@ -298,12 +298,6 @@ The test suite requires a postgres, mysql and sqlserver databases. You can overr
 
 ```sh
 go test -v -race ./...
-```
-
-The SQL Server integration tests live in their own module under `./integration`, so the root `go.mod` does not depend on a SQL Server driver:
-
-```sh
-cd integration && go test -v -race ./...
 ```
 
 You can also run the tests in a container using [docker-compose](https://docs.docker.com/compose/).
