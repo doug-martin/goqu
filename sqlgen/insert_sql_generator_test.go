@@ -378,12 +378,26 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 		insertTestCase{clause: icDuw, err: expectedErr},
 		insertTestCase{clause: icDuw, err: expectedErr, isPrepared: true},
 	)
+}
 
+// MySQL style: plain INSERT for upserts, INSERT IGNORE only for DO NOTHING.
+func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictOnDuplicateKey() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsInsertIgnoreSyntax = true
 	opts.InsertIgnoreClause = []byte("INSERT IGNORE INTO")
 	opts.ConflictFragment = []byte("")
 	opts.ConflictDoUpdateFragment = []byte(" ON DUPLICATE KEY UPDATE ")
 	opts.ConflictDoNothingFragment = []byte("")
 	opts.SupportsConflictTarget = false
+
+	ic := exp.NewInsertClauses().
+		SetInto(exp.NewIdentifierExpression("", "test", "")).
+		SetCols(exp.NewColumnListExpression("a")).
+		SetVals([][]interface{}{
+			{"a1"},
+		})
+	icDn := ic.SetOnConflict(exp.NewDoNothingConflictExpression())
+	icDu := ic.SetOnConflict(exp.NewDoUpdateConflictExpression("test", exp.Record{"a": "b"}))
 	igs.assertCases(
 		sqlgen.NewInsertSQLGenerator("test", opts),
 		insertTestCase{clause: icDn, sql: `INSERT IGNORE INTO "test" ("a") VALUES ('a1')`},
@@ -392,6 +406,10 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflict() {
 			sql:        `INSERT INTO "test" ("a") VALUES (?) ON DUPLICATE KEY UPDATE "a"=?`,
 			isPrepared: true,
 			args:       []interface{}{"a1", "b"},
+		},
+		insertTestCase{
+			clause: icDu,
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') ON DUPLICATE KEY UPDATE "a"='b'`,
 		},
 	)
 }
