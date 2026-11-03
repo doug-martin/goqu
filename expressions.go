@@ -328,6 +328,17 @@ func All(val interface{}) exp.SQLFunctionExpression {
 	return Func("ALL ", val)
 }
 
+// Creates a new EXISTS expression for the given subquery.
+//
+//	goqu.From("test").Where(goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})))
+//	// SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id"))
+//
+// The subquery is written with a single set of parentheses. This is intentional: EXISTS((SELECT ...)) is rejected by
+// some databases (e.g. SQLite and SQL Server).
+func Exists(subquery exp.AppendableExpression) exp.LiteralExpression {
+	return exp.NewLiteralExpression("EXISTS ?", subquery)
+}
+
 func Case() exp.CaseExpression {
 	return exp.NewCaseExpression()
 }
