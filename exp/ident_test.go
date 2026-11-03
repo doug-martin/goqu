@@ -1,6 +1,7 @@
 package exp_test
 
 import (
+	"database/sql"
 	"regexp"
 	"testing"
 
@@ -10,6 +11,33 @@ import (
 
 type identifierExpressionSuite struct {
 	suite.Suite
+}
+
+func (ies *identifierExpressionSuite) TestEqWithTypedNulls() {
+	ident := exp.ParseIdentifier("a")
+	var nilInt *int
+	var nilString *string
+	val := 1
+	isNull := exp.NewBooleanExpression(exp.IsOp, ident, nil)
+	isNotNull := exp.NewBooleanExpression(exp.IsNotOp, ident, nil)
+
+	// typed nils and null driver.Valuers are treated as NULL, like an untyped nil
+	ies.Equal(isNull, ident.Eq(nil))
+	ies.Equal(isNull, ident.Eq(nilInt))
+	ies.Equal(isNull, ident.Eq(nilString))
+	ies.Equal(isNull, ident.Eq(sql.NullInt32{}))
+	ies.Equal(isNull, ident.Eq(sql.NullString{}))
+	ies.Equal(isNull, ident.Is(nilInt))
+	ies.Equal(isNotNull, ident.Neq(nil))
+	ies.Equal(isNotNull, ident.Neq(nilInt))
+	ies.Equal(isNotNull, ident.Neq(sql.NullInt32{}))
+	ies.Equal(isNotNull, ident.IsNot(sql.NullInt64{}))
+
+	// values that are not NULL keep their normal comparison
+	ies.Equal(exp.NewBooleanExpression(exp.EqOp, ident, &val), ident.Eq(&val))
+	valid := sql.NullInt32{Int32: 1, Valid: true}
+	ies.Equal(exp.NewBooleanExpression(exp.EqOp, ident, valid), ident.Eq(valid))
+	ies.Equal(exp.NewBooleanExpression(exp.NeqOp, ident, valid), ident.Neq(valid))
 }
 
 func TestIdentifierExpressionSuite(t *testing.T) {
