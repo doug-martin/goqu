@@ -9,9 +9,9 @@ import (
 
 	"github.com/doug-martin/goqu/v9/dialect/mysql"
 
-	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+	_ "github.com/microsoft/go-mssqldb"
 	"github.com/stretchr/testify/suite"
 )
 

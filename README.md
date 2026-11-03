@@ -294,6 +294,12 @@ The test suite requires a postgres, mysql and sqlserver databases. You can overr
 go test -v -race ./...
 ```
 
+The SQL Server integration tests live in their own module under `./integration`, so the root `go.mod` does not depend on a SQL Server driver. That module needs Go 1.25 or newer:
+
+```sh
+cd integration && go test -v -race ./...
+```
+
 You can also run the tests in a container using [docker-compose](https://docs.docker.com/compose/).
 
 ```sh
