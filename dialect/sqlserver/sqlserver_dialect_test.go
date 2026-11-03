@@ -80,6 +80,20 @@ func (sds *sqlserverDialectSuite) TestDeleteWithLimit() {
 	)
 }
 
+func (sds *sqlserverDialectSuite) TestDeleteWithOrderIsAnError() {
+	ds := goqu.Dialect("sqlserver").Delete("test")
+	sds.assertSQL(
+		sqlTestCase{
+			ds:  ds.Order(goqu.C("a").Asc()),
+			err: "goqu: dialect does not support ORDER BY on DELETE [dialect=sqlserver]",
+		},
+		sqlTestCase{
+			ds:  ds.Order(goqu.C("a").Asc()).Limit(10),
+			err: "goqu: dialect does not support ORDER BY on DELETE [dialect=sqlserver]",
+		},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlserverDialectSuite))
 }

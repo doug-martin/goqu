@@ -183,6 +183,27 @@ func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withOrder() {
 	)
 }
 
+func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withOrderErrorOnUnsupported() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsOrderByOnDelete = false
+	opts.ErrorOnUnsupportedOrderByOnDelete = true
+
+	dc := exp.NewDeleteClauses().
+		SetFrom(exp.NewIdentifierExpression("", "test", "")).
+		SetOrder(exp.NewIdentifierExpression("", "", "c").Desc())
+
+	dsgs.assertCases(
+		sqlgen.NewDeleteSQLGenerator("test", opts),
+		deleteTestCase{clause: dc, err: "goqu: dialect does not support ORDER BY on DELETE [dialect=test]"},
+		deleteTestCase{clause: dc, err: "goqu: dialect does not support ORDER BY on DELETE [dialect=test]", isPrepared: true},
+		// No ORDER BY, no error.
+		deleteTestCase{
+			clause: exp.NewDeleteClauses().SetFrom(exp.NewIdentifierExpression("", "test", "")),
+			sql:    `DELETE FROM "test"`,
+		},
+	)
+}
+
 func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withLimit() {
 	opts := sqlgen.DefaultDialectOptions()
 	opts.SupportsLimitOnDelete = true
