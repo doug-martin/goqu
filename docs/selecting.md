@@ -954,7 +954,7 @@ if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
 fmt.Printf("\n%+v", users)
 ```
 
-Fields whose type is an interface such as `sql.Scanner` can be scanned into by setting them to a pointer to a concrete type before calling `ScanStruct`; the column is scanned straight into that value. A `nil` interface field, and `ScanStructs` (which creates new structs), cannot be scanned into this way.
+Fields whose type is an interface such as `sql.Scanner` can be scanned into by setting them to a pointer to a concrete type before calling `ScanStruct`; the column is scanned straight into that value. A `nil` interface field, and `ScanStructs` (which creates new structs), cannot be scanned into this way and return an error. The value is scanned in place, so when iterating with a [`Scanner`](#scanner) set a new value for every row, otherwise all of the items you collect share the same value.
 
 ```go
 type Item struct {

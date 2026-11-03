@@ -2,6 +2,7 @@ package util_test
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -1366,4 +1367,11 @@ func (rt *reflectTest) TestInterfaceScanTarget() {
 	target, ok = util.InterfaceScanTarget(&outer{inner: &inner{V: ns}}, []int{0, 0})
 	rt.True(ok)
 	rt.Same(ns, target)
+}
+
+func (rt *reflectTest) TestIsScannerInterface() {
+	rt.True(util.IsScannerInterface(reflect.TypeOf((*sql.Scanner)(nil)).Elem()))
+	rt.False(util.IsScannerInterface(reflect.TypeOf((*interface{})(nil)).Elem()))
+	rt.False(util.IsScannerInterface(reflect.TypeOf((*fmt.Stringer)(nil)).Elem()))
+	rt.False(util.IsScannerInterface(reflect.TypeOf(sql.NullString{})))
 }

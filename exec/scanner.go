@@ -68,8 +68,8 @@ func (s *scanner) ScanStruct(i interface{}) error {
 	}
 
 	scans := make([]interface{}, 0, len(s.columns))
-	// columns that were scanned straight into a value that is already set on the struct
-	scannedInPlace := make(map[int]bool)
+	// columns that were scanned straight into a value that is already set on the struct (allocated when needed)
+	var scannedInPlace []bool
 	for index, col := range s.columns {
 		data, ok := s.columnMap[col]
 		if !ok {
@@ -80,9 +80,19 @@ func (s *scanner) ScanStruct(i interface{}) error {
 			// Scan into the value the caller already put in the field (e.g. &sql.NullString{}). Empty interfaces
 			// (interface{}) keep receiving the driver value.
 			if target, ok := util.InterfaceScanTarget(i, data.FieldIndex); ok {
+				if scannedInPlace == nil {
+					scannedInPlace = make([]bool, len(s.columns))
+				}
 				scans = append(scans, target)
 				scannedInPlace[index] = true
 				continue
+			}
+			if util.IsScannerInterface(data.GoType) {
+				return errors.New(
+					`unable to scan column "%s" into %s field: it must hold a non-nil pointer to a value that `+
+						`implements sql.Scanner (ScanStructs cannot do this)`,
+					col, data.GoType,
+				)
 			}
 		}
 		scans = append(scans, reflect.New(data.GoType).Interface())
@@ -94,7 +104,7 @@ func (s *scanner) ScanStruct(i interface{}) error {
 
 	record := exp.Record{}
 	for index, col := range s.columns {
-		if !scannedInPlace[index] {
+		if len(scannedInPlace) == 0 || !scannedInPlace[index] {
 			record[col] = scans[index]
 		}
 	}
