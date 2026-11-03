@@ -1,8 +1,15 @@
-# Unreleased
+# v9.22.0
 
-* [FIX] `ScanStruct` can scan into struct fields of an interface type such as `sql.Scanner` when the field already holds a pointer to a concrete value ([#399](https://github.com/doug-martin/goqu/pull/399) - [@arkamar](https://github.com/arkamar))
-* [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed slice fast paths, and pre-sized buffers (based on [#444](https://github.com/doug-martin/goqu/pull/444))
-* [FIX] Generate SQL for `json.RawMessage` values (and pointers to byte slices) like `[]byte` instead of a list of numbers, do not turn `Eq`/`Neq` on them into `IN`, treat single `[]byte`/`json.RawMessage` arguments to `In`/`NotIn` as one value, and write a nil `json.RawMessage` as `NULL` (comparing it with `Eq`/`Neq` becomes `IS NULL`/`IS NOT NULL`) ([#351](https://github.com/doug-martin/goqu/pull/351), fixes [#350](https://github.com/doug-martin/goqu/issues/350))
+* [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed fast paths for common slice types, bytewise placeholder scanning and pre-sized buffers. Roughly 10-25% faster `ToSQL` with up to 40% fewer allocations in the benchmarks [#444](https://github.com/doug-martin/goqu/pull/444) - [@pquerna](https://github.com/pquerna), [@funkyshu](https://github.com/funkyshu)
+* [FIX] Generate SQL for `json.RawMessage` values (and pointers to byte slices) like `[]byte` instead of a list of numbers, and do not turn `Eq`/`Neq`/`In`/`NotIn` on them into a list comparison [#350](https://github.com/doug-martin/goqu/issues/350), [#351](https://github.com/doug-martin/goqu/pull/351) - [@lefinal](https://github.com/lefinal), [@funkyshu](https://github.com/funkyshu)
+* [FIX] `ScanStruct` can scan into struct fields of a non-empty interface type such as `sql.Scanner` when the field already holds a non-nil pointer implementing `sql.Scanner` [#399](https://github.com/doug-martin/goqu/pull/399) - [@arkamar](https://github.com/arkamar), [@funkyshu](https://github.com/funkyshu)
+* [DOCS] Update the Docker Compose instructions for running the tests and raise the database wait timeouts [#341](https://github.com/doug-martin/goqu/issues/341), [#480](https://github.com/doug-martin/goqu/pull/480)
+
+## Behavior changes to be aware of
+
+* A nil `json.RawMessage` is now written as `NULL` (it used to be an empty string, which is not valid JSON) and compares with `IS NULL` / `IS NOT NULL` in `Eq`/`Neq`.
+* `In`/`NotIn` with a single `[]byte` or `json.RawMessage` argument now treats it as one value (`IN ('...')`) instead of generating `IN '...'`.
+* `ScanStruct` into a `nil` `sql.Scanner` interface field (or a non-pointer value) now returns a descriptive error instead of the `database/sql` error `unsupported Scan, storing driver.Value type ... into type *sql.Scanner`.
 
 # v9.21.0
 
