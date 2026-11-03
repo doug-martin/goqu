@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go_version: ["1.19", "latest"]
+        go_version: ["1.26", "latest"]
         db_versions:
           - mysql_version: 5.7
             postgres_version: 9
