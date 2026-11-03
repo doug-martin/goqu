@@ -22,6 +22,7 @@
   * [`ScanVal`](#scan-val) - Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
   * [`Scanner`](#scanner) - Allows you to interatively scan rows into structs or values.
   * [`Count`](#count) - Returns the count for the current query
+  * [`Exists`](#exists) - Reports whether the current query returns at least one row
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
 <a name="create"></a>
@@ -486,6 +487,23 @@ Output:
 SELECT * FROM "test" CROSS JOIN "test2"
 ```
 
+[`StraightJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.StraightJoin)
+
+**NOTE** `STRAIGHT_JOIN` is only supported by the `mysql` and `mysql8` dialects; other dialects return an error. It requires an `On` condition; `Using` is rejected because MySQL 5.7 does not accept it for `STRAIGHT_JOIN`.
+
+```go
+sql, _, _ := goqu.Dialect("mysql").From("test").StraightJoin(
+	goqu.T("test2"),
+	goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")}),
+).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
+```
+
 Join with a Lateral
 
 ```go
@@ -684,6 +702,8 @@ SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 **[`With`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.With)**
 
 To use CTEs in `SELECT` statements you can use the `With` method.
+
+**NOTE** Common table expressions are not supported by the `mysql` dialect (MySQL 5.x); use the `mysql8` dialect for MySQL 8.0+.
 
 Simple Example
 
@@ -1278,6 +1298,26 @@ if err != nil{
   return
 }
 fmt.Printf("\nCount:= %d", count)
+```
+
+<a name="exists"></a>
+**[`Exists`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Exists)**
+
+Reports whether the current query returns at least one row
+
+```go
+exists, err := db.From("user").Where(goqu.C("last_name").Eq("Yukon")).Exists()
+if err != nil{
+  fmt.Println(err.Error())
+  return
+}
+fmt.Printf("\nExists:= %t", exists)
+```
+
+The dataset is wrapped in an `EXISTS` subquery, so it is evaluated exactly as written. The result is selected with `CASE WHEN`, which keeps the SQL valid on every dialect (including those that cannot select a boolean expression directly, such as SQL Server):
+
+```sql
+SELECT CASE WHEN EXISTS (SELECT * FROM "user" WHERE ("last_name" = 'Yukon')) THEN 1 ELSE 0 END LIMIT 1
 ```
 
 <a name="pluck"></a>

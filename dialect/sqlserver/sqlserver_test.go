@@ -9,9 +9,9 @@ import (
 
 	"github.com/doug-martin/goqu/v9/dialect/mysql"
 
-	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+	_ "github.com/microsoft/go-mssqldb"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -130,7 +130,7 @@ func (sst *sqlserverTest) TestQuery() {
 	sst.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			sst.Equal(uint32(index+1), entry.ID)
+			sst.EqualValues(index+1, entry.ID)
 			sst.Equal(index, entry.Int)
 			sst.Equal(f, fmt.Sprintf("%f", entry.Float))
 			sst.Equal(f, entry.String)
@@ -168,7 +168,7 @@ func (sst *sqlserverTest) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			sst.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			sst.Fail("Should not have returned any records")
 		}},
 	)
@@ -185,7 +185,7 @@ func (sst *sqlserverTest) TestQuery_Prepared() {
 	sst.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			sst.Equal(uint32(index+1), entry.ID)
+			sst.EqualValues(index+1, entry.ID)
 			sst.Equal(index, entry.Int)
 			sst.Equal(f, fmt.Sprintf("%f", entry.Float))
 			sst.Equal(f, entry.String)
@@ -223,7 +223,7 @@ func (sst *sqlserverTest) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			sst.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			sst.Fail("Should not have returned any records")
 		}},
 	)
@@ -245,6 +245,27 @@ func (sst *sqlserverTest) TestQuery_ValueExpressions() {
 		entry{2, 1, 0.100000, "0.100000", expectedDate, false, []byte("0.100000")},
 		true,
 	}, we)
+}
+
+func (sst *sqlserverTest) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := sst.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("'abc'"), "Latin1_General_CS_AS").Eq("ABC")).Count()
+	sst.NoError(err)
+	sst.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "Latin1_General_CS_AS").Eq("abc")).Count()
+	sst.NoError(err)
+	sst.Equal(int64(10), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "Latin1_General_CI_AS").Eq("ABC")).Count()
+	sst.NoError(err)
+	sst.Equal(int64(10), count)
+
+	// and in ORDER BY
+	var last string
+	found, err := ds.Select("string").Order(goqu.C("string").Collate("Latin1_General_CS_AS").Desc()).ScanVal(&last)
+	sst.NoError(err)
+	sst.True(found)
+	sst.Equal("0.900000", last)
 }
 
 func (sst *sqlserverTest) TestCount() {

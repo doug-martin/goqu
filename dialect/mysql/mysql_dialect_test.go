@@ -6,6 +6,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -138,6 +139,74 @@ func (mds *mysqlDialectSuite) TestUpdateSQL() {
 	)
 }
 
+func (mds *mysqlDialectSuite) TestStraightJoin() {
+	on := goqu.On(goqu.I("test.id").Eq(goqu.I("foo.test_id")))
+	for _, dialect := range []string{"mysql", "mysql8"} {
+		ds := goqu.Dialect(dialect).From("test")
+		mds.assertSQL(
+			sqlTestCase{
+				ds:  ds.StraightJoin(goqu.T("foo"), on),
+				sql: "SELECT * FROM `test` STRAIGHT_JOIN `foo` ON (`test`.`id` = `foo`.`test_id`)",
+			},
+			sqlTestCase{
+				// MySQL 5.7 does not accept USING for STRAIGHT_JOIN
+				ds:  ds.StraightJoin(goqu.T("foo"), goqu.Using("test_id")),
+				err: "goqu: USING is not supported for StraightJoinType, use an ON condition",
+			},
+			sqlTestCase{
+				ds:         ds.Prepared(true).StraightJoin(goqu.T("foo"), goqu.On(goqu.I("test.id").Eq(5))),
+				sql:        "SELECT * FROM `test` STRAIGHT_JOIN `foo` ON (`test`.`id` = ?)",
+				isPrepared: true,
+				args:       []any{int64(5)},
+			},
+			sqlTestCase{
+				ds:  ds.Join(goqu.T("a"), goqu.Using("id")).StraightJoin(goqu.T("b"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))),
+				sql: "SELECT * FROM `test` INNER JOIN `a` USING (`id`) STRAIGHT_JOIN `b` ON (`a`.`id` = `b`.`id`)",
+			},
+			sqlTestCase{
+				ds:  ds.StraightJoin(goqu.T("foo"), nil),
+				err: "goqu: join condition required for conditioned join StraightJoinType",
+			},
+		)
+	}
+}
+
+func (mds *mysqlDialectSuite) TestWithCTE() {
+	cte := func(dialect string) *goqu.SelectDataset {
+		return goqu.Dialect(dialect).From("a").Select("x")
+	}
+	// MySQL 8 supports common table expressions, plain mysql (5.x) does not.
+	mds.assertSQL(
+		sqlTestCase{
+			ds:  goqu.Dialect("mysql8").From("c").With("c", cte("mysql8")),
+			sql: "WITH c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
+		},
+		sqlTestCase{
+			ds:  goqu.Dialect("mysql8").From("c").WithRecursive("c", cte("mysql8")),
+			sql: "WITH RECURSIVE c AS (SELECT `x` FROM `a`) SELECT * FROM `c`",
+		},
+		sqlTestCase{
+			ds:  goqu.Dialect("mysql").From("c").With("c", cte("mysql")),
+			err: "goqu: dialect does not support CTE WITH clause [dialect=mysql]",
+		},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(mysqlDialectSuite))
+}
+
+func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("mysql").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).
+		ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=mysql]")
+
+	// no target is still fine
+	_, _, err = goqu.Dialect("mysql").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing()).
+		ToSQL()
+	assert.NoError(t, err)
 }

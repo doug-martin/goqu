@@ -397,7 +397,7 @@ func (dds *deleteDatasetSuite) TestToSQL() {
 	ds := goqu.Delete("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToDeleteSQL", sqlB, c).Return(nil).Once()
+	md.On("ToDeleteSQL", builderMatching(sqlB), c).Return(nil).Once()
 
 	sql, args, err := ds.ToSQL()
 	dds.Empty(sql)
@@ -411,7 +411,7 @@ func (dds *deleteDatasetSuite) TestToSQL_Prepared() {
 	ds := goqu.Delete("test").Prepared(true).SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
-	md.On("ToDeleteSQL", sqlB, c).Return(nil).Once()
+	md.On("ToDeleteSQL", builderMatching(sqlB), c).Return(nil).Once()
 
 	sql, args, err := ds.ToSQL()
 	dds.Empty(sql)
@@ -426,7 +426,7 @@ func (dds *deleteDatasetSuite) TestToSQL_WithError() {
 	c := ds.GetClauses()
 	ee := errors.New("expected error")
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToDeleteSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToDeleteSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(ee)
 	}).Once()
 
@@ -496,7 +496,7 @@ func (dds *deleteDatasetSuite) TestSetError() {
 	// Deeper errors inside SQL generation should still return original error
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToDeleteSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToDeleteSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(err3)
 	}).Once()
 

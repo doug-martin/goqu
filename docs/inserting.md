@@ -7,6 +7,7 @@
   * [Insert Structs](#insert-structs)
   * [Insert Map](#insert-map)
   * [Insert From Query](#insert-from-query)
+  * [On Conflict](#onconflict)
   * [Returning](#returning)
   * [SetError](#seterror)
   * [Executing](#executing)
@@ -383,6 +384,46 @@ fmt.Println(insertSQL, args)
 Output:
 ```
 INSERT INTO "user" ("first_name", "last_name") SELECT "fn", "ln" FROM "other_table" []
+```
+
+<a name="onconflict"></a>
+**On Conflict Clause**
+
+You can handle conflicts using the `OnConflict` clause. For example, to ignore conflicts, you can use `DoNothing()`.
+
+```go
+sql, _, _ := goqu.Insert("test").
+	Rows(goqu.Record{"a": "a", "b": "b"}).
+	OnConflict(goqu.DoNothing()).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT DO NOTHING
+```
+
+To specify the conflict target columns, use `SetCols`. This is supported by dialects that support a conflict target
+(Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead of silently
+ignoring the target.
+
+`SetCols` only supports a list of columns. To target a named constraint (`ON CONSTRAINT name`), use
+`DoUpdate` with a constraint target instead.
+
+```go
+sql, _, _ := goqu.Insert("test").
+	Rows(goqu.Record{"a": "a", "b": "b"}).
+	OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a", "b"))).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a", "b") DO NOTHING
 ```
 
 <a name="returning"></a>

@@ -1,3 +1,58 @@
+# Unreleased
+
+* [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed slice fast paths, and pre-sized buffers (based on [#444](https://github.com/doug-martin/goqu/pull/444))
+* [FIX] Generate SQL for `json.RawMessage` values (and pointers to byte slices) like `[]byte` instead of a list of numbers, do not turn `Eq`/`Neq` on them into `IN`, treat single `[]byte`/`json.RawMessage` arguments to `In`/`NotIn` as one value, and write a nil `json.RawMessage` as `NULL` (comparing it with `Eq`/`Neq` becomes `IS NULL`/`IS NOT NULL`) ([#351](https://github.com/doug-martin/goqu/pull/351), fixes [#350](https://github.com/doug-martin/goqu/issues/350))
+
+# v9.21.0
+
+* [FEATURE] Add `EXISTS` support: `goqu.Exists(subquery)` and `SelectDataset.Exists()` [#204](https://github.com/doug-martin/goqu/issues/204), [#412](https://github.com/doug-martin/goqu/pull/412), [#477](https://github.com/doug-martin/goqu/pull/477) - [@Yakov-Varnaev](https://github.com/Yakov-Varnaev), [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] Add a `Collate` expression (`goqu.Collate(expr, collation)` / `identifier.Collate(collation)`) usable in `WHERE`, `ORDER BY`, etc., with per-dialect collation quoting [#405](https://github.com/doug-martin/goqu/pull/405), [#478](https://github.com/doug-martin/goqu/pull/478) - [@tanner-lai](https://github.com/tanner-lai), [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] Add a `NULLIF` expression helper [#406](https://github.com/doug-martin/goqu/issues/406), [#407](https://github.com/doug-martin/goqu/pull/407) - [@PJHRobles](https://github.com/PJHRobles)
+* [FEATURE] Allow conflict targets in `ON CONFLICT DO NOTHING` via `goqu.DoNothing().SetCols(...)`. Dialects without conflict target support (MySQL, SQL Server) return an error when a target is set. [#422](https://github.com/doug-martin/goqu/pull/422) - [@pedrohavay](https://github.com/pedrohavay), [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] MySQL: add `STRAIGHT_JOIN` support via `SelectDataset.StraightJoin` (requires an `ON` condition) [#442](https://github.com/doug-martin/goqu/issues/442), [#453](https://github.com/doug-martin/goqu/pull/453) - [@vesquen](https://github.com/vesquen)
+* [FEATURE] Prepared statements: pass any driver-bindable value (structs, maps, byte arrays such as UUIDs) through as an argument instead of rejecting it; unbindable kinds (funcs, channels, `unsafe.Pointer`, complex numbers) are still rejected [#313](https://github.com/doug-martin/goqu/issues/313), [#316](https://github.com/doug-martin/goqu/pull/316) - [@yz89122](https://github.com/yz89122)
+* [FIX] Treat typed nil pointers and invalid `driver.Valuer`s (`sql.NullInt32{}`, ...) as `NULL` in `Eq`/`Neq`/`Is`/`IsNot` and `Ex` [#272](https://github.com/doug-martin/goqu/issues/272), [#438](https://github.com/doug-martin/goqu/issues/438), [#476](https://github.com/doug-martin/goqu/pull/476) - [@funkyshu](https://github.com/funkyshu)
+* [FIX] SQL Server: return an error for `ORDER BY` on `DELETE` (new dialect option `ErrorOnUnsupportedOrderByOnDelete`) [#472](https://github.com/doug-martin/goqu/pull/472) - [@funkyshu](https://github.com/funkyshu)
+* [FIX] SQL Server: emit `DISTINCT` before `TOP` [#242](https://github.com/doug-martin/goqu/pull/242), [#475](https://github.com/doug-martin/goqu/pull/475) - [@CKehToh](https://github.com/CKehToh), [@funkyshu](https://github.com/funkyshu)
+* [FIX] SQLite3: generate `DELETE FROM` for `Truncate` [#330](https://github.com/doug-martin/goqu/pull/330), [#474](https://github.com/doug-martin/goqu/pull/474) - [@darh](https://github.com/darh), [@funkyshu](https://github.com/funkyshu)
+* [FIX] MySQL 8: enable `WITH` and `WITH RECURSIVE` common table expressions [#362](https://github.com/doug-martin/goqu/issues/362), [#400](https://github.com/doug-martin/goqu/pull/400), [#473](https://github.com/doug-martin/goqu/pull/473) - [@funkyshu](https://github.com/funkyshu)
+* [FIX] Do not wrap a single subselect in double parentheses [#352](https://github.com/doug-martin/goqu/issues/352), [#357](https://github.com/doug-martin/goqu/pull/357) - [@nic11](https://github.com/nic11)
+* [DOCS] Fix the `ScanStructContext` description and a typo about placeholders [#424](https://github.com/doug-martin/goqu/pull/424), [#449](https://github.com/doug-martin/goqu/pull/449) - [@shortcuts](https://github.com/shortcuts), [@j0shiJ](https://github.com/j0shiJ)
+* [CHORE] Update GitHub Actions dependencies [#465](https://github.com/doug-martin/goqu/pull/465)
+
+## Behavior changes to be aware of
+
+* Comparing a column to a typed null (`(*int)(nil)`, `sql.NullInt32{}` that is not valid, ...) with `Eq`/`Neq`/`Ex` now generates `IS NULL` / `IS NOT NULL` instead of `= NULL` / `!= NULL`. Queries that previously matched no rows will now match `NULL` rows.
+* SQL Server `Delete().Order(...)` now returns an error at build time instead of generating SQL the server rejects.
+* SQL Server `SELECT DISTINCT ... TOP (n)` is now generated as `SELECT DISTINCT TOP (n) ...`.
+* SQLite3 `Truncate()` now generates `DELETE FROM <table>`.
+* `goqu.DoNothing()` and `exp.NewDoNothingConflictExpression()` now return `exp.ConflictNothingExpression` (a superset of `exp.ConflictExpression`). Code that reassigns the result to a different conflict type through type inference (`c := goqu.DoNothing(); c = goqu.DoUpdate(...)`) needs an explicit `exp.ConflictExpression` declaration.
+* `SetCols` on `DoNothing` for SQLite3 emits a plain `INSERT ... ON CONFLICT (...) DO NOTHING` (not `INSERT OR IGNORE`) so that only the targeted constraint is ignored.
+
+# v9.20.0
+
+**NOTE** The minimum supported Go version is now **1.26** (previously 1.19). See [Supported Go versions](./README.md#supported-go-versions).
+
+* [BREAKING] Raise the minimum Go version to 1.26 [#468](https://github.com/doug-martin/goqu/pull/468) - [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] SQL Server: support `Limit` on `Delete` via `DELETE TOP (n)` [#456](https://github.com/doug-martin/goqu/pull/456) - [@saurabh-prakash](https://github.com/saurabh-prakash)
+* [FEATURE] Support `uint` values, including `uint64` values above `math.MaxInt64` [#421](https://github.com/doug-martin/goqu/pull/421) - [@walnuts1018](https://github.com/walnuts1018)
+* [FEATURE] Allow `[]exp.UpdateExpression` as `Set` values [#389](https://github.com/doug-martin/goqu/pull/389) - [@kvii](https://github.com/kvii)
+* [FIX] MySQL: do not add an extra `IGNORE` to `INSERT ... ON DUPLICATE KEY UPDATE` [#435](https://github.com/doug-martin/goqu/pull/435) - [@autowp](https://github.com/autowp)
+* [FIX] SQLite3: support `UPDATE ... FROM` [#441](https://github.com/doug-martin/goqu/issues/441), [#457](https://github.com/doug-martin/goqu/pull/457) - [@yousefissa](https://github.com/yousefissa)
+* [FIX] SQLite3: support conflict update `WHERE` (`OnConflictUpdateWhere`) [#440](https://github.com/doug-martin/goqu/pull/440) - [@loganintech](https://github.com/loganintech)
+* [FIX] SQLite3: allow `RETURNING` clauses [#359](https://github.com/doug-martin/goqu/pull/359) - [@abdusco](https://github.com/abdusco)
+* [FIX] Typo in the column list expression builder [#376](https://github.com/doug-martin/goqu/pull/376) - [@philippfrank](https://github.com/philippfrank)
+* [DOCS] Fix `Select` docstring [#354](https://github.com/doug-martin/goqu/pull/354) - [@nic11](https://github.com/nic11)
+* [CHORE] Clear all open `golang.org/x/crypto` security alerts: the SQL Server driver used by the tests is now `github.com/microsoft/go-mssqldb` [#461](https://github.com/doug-martin/goqu/pull/461), [#469](https://github.com/doug-martin/goqu/pull/469)
+* [CHORE] Update dependencies, CI workflows (Compose v2, golangci-lint v2, Codecov v5) and add Dependabot [#386](https://github.com/doug-martin/goqu/pull/386), [#459](https://github.com/doug-martin/goqu/pull/459), [#462](https://github.com/doug-martin/goqu/pull/462), [#468](https://github.com/doug-martin/goqu/pull/468) - [@funkyshu](https://github.com/funkyshu)
+* [CHORE] Remove the vendored dependencies [#463](https://github.com/doug-martin/goqu/pull/463)
+
+## Behavior changes to be aware of
+
+* SQL Server `DELETE ... LIMIT n` now generates `DELETE TOP (n) FROM ...`.
+* MySQL `INSERT ... ON DUPLICATE KEY UPDATE` no longer generates `INSERT IGNORE ... ON DUPLICATE KEY UPDATE`. `INSERT IGNORE` is still used for `DO NOTHING`.
+* `uint64` values greater than `math.MaxInt64` are now encoded (as `uint64` in prepared statements) rather than rejected. Values that fit in an `int64` keep being sent as `int64`.
+
 # v9.19.0
 * [FEATURE] Add support for omitempty and omitnil struct tags [#309](https://github.com/doug-martin/goqu/pull/309) - [@randallmlough](https://github.com/randallmlough)
 

@@ -29,7 +29,7 @@ func (ssgs *selectSQLGeneratorSuite) assertCases(ssg sqlgen.SelectSQLGenerator, 
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		ssg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			ssgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			ssgs.assertPreparedSQL(b, tc.sql, tc.args)
@@ -205,6 +205,37 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withFromSQL() {
 
 		selectTestCase{clause: scFrom, sql: `SELECT * from "a", "b"`},
 		selectTestCase{clause: scFrom, sql: `SELECT * from "a", "b"`, isPrepared: true},
+	)
+}
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withStraightJoin() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.UsingFragment = []byte(" using ")
+	opts.OnFragment = []byte(" on ")
+	opts.JoinTypeLookup = map[exp.JoinType][]byte{exp.StraightJoinType: []byte(" straight_join ")}
+
+	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test"))
+	ti := exp.NewIdentifierExpression("", "test2", "")
+	on := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinOnCondition(exp.Ex{"a": "foo"}))
+	using := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinUsingCondition("a"))
+	empty := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinOnCondition())
+	usingErr := "goqu: USING is not supported for StraightJoinType, use an ON condition"
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", opts),
+		selectTestCase{clause: sc.JoinsAppend(on), sql: `SELECT * FROM "test" straight_join "test2" on ("a" = 'foo')`},
+		selectTestCase{
+			clause:     sc.JoinsAppend(on),
+			sql:        `SELECT * FROM "test" straight_join "test2" on ("a" = ?)`,
+			isPrepared: true,
+			args:       []any{"foo"},
+		},
+		selectTestCase{clause: sc.JoinsAppend(using), err: usingErr},
+		selectTestCase{clause: sc.JoinsAppend(using), err: usingErr, isPrepared: true},
+		selectTestCase{
+			clause: sc.JoinsAppend(empty),
+			err:    "goqu: join condition required for conditioned join StraightJoinType",
+		},
 	)
 }
 
