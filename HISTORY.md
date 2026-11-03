@@ -1,3 +1,27 @@
+# v9.20.0
+
+**NOTE** The minimum supported Go version is now **1.26** (previously 1.19). See [Supported Go versions](./README.md#supported-go-versions).
+
+* [BREAKING] Raise the minimum Go version to 1.26 [#468](https://github.com/doug-martin/goqu/pull/468) - [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] SQL Server: support `Limit` on `Delete` via `DELETE TOP (n)` [#456](https://github.com/doug-martin/goqu/pull/456) - [@saurabh-prakash](https://github.com/saurabh-prakash)
+* [FEATURE] Support `uint` values, including `uint64` values above `math.MaxInt64` [#421](https://github.com/doug-martin/goqu/pull/421) - [@walnuts1018](https://github.com/walnuts1018)
+* [FEATURE] Allow `[]exp.UpdateExpression` as `Set` values [#389](https://github.com/doug-martin/goqu/pull/389) - [@kvii](https://github.com/kvii)
+* [FIX] MySQL: do not add an extra `IGNORE` to `INSERT ... ON DUPLICATE KEY UPDATE` [#435](https://github.com/doug-martin/goqu/pull/435) - [@autowp](https://github.com/autowp)
+* [FIX] SQLite3: support `UPDATE ... FROM` [#441](https://github.com/doug-martin/goqu/issues/441), [#457](https://github.com/doug-martin/goqu/pull/457) - [@yousefissa](https://github.com/yousefissa)
+* [FIX] SQLite3: support conflict update `WHERE` (`OnConflictUpdateWhere`) [#440](https://github.com/doug-martin/goqu/pull/440) - [@loganintech](https://github.com/loganintech)
+* [FIX] SQLite3: allow `RETURNING` clauses [#359](https://github.com/doug-martin/goqu/pull/359) - [@abdusco](https://github.com/abdusco)
+* [FIX] Typo in the column list expression builder [#376](https://github.com/doug-martin/goqu/pull/376) - [@philippfrank](https://github.com/philippfrank)
+* [DOCS] Fix `Select` docstring [#354](https://github.com/doug-martin/goqu/pull/354) - [@nic11](https://github.com/nic11)
+* [CHORE] Clear all open `golang.org/x/crypto` security alerts: the SQL Server driver used by the tests is now `github.com/microsoft/go-mssqldb` [#461](https://github.com/doug-martin/goqu/pull/461), [#469](https://github.com/doug-martin/goqu/pull/469)
+* [CHORE] Update dependencies, CI workflows (Compose v2, golangci-lint v2, Codecov v5) and add Dependabot [#386](https://github.com/doug-martin/goqu/pull/386), [#459](https://github.com/doug-martin/goqu/pull/459), [#462](https://github.com/doug-martin/goqu/pull/462), [#468](https://github.com/doug-martin/goqu/pull/468) - [@funkyshu](https://github.com/funkyshu)
+* [CHORE] Remove the vendored dependencies [#463](https://github.com/doug-martin/goqu/pull/463)
+
+## Behavior changes to be aware of
+
+* SQL Server `DELETE ... LIMIT n` now generates `DELETE TOP (n) FROM ...`.
+* MySQL `INSERT ... ON DUPLICATE KEY UPDATE` no longer generates `INSERT IGNORE ... ON DUPLICATE KEY UPDATE`. `INSERT IGNORE` is still used for `DO NOTHING`.
+* `uint64` values greater than `math.MaxInt64` are now encoded (as `uint64` in prepared statements) rather than rejected. Values that fit in an `int64` keep being sent as `int64`.
+
 # v9.19.0
 * [FEATURE] Add support for omitempty and omitnil struct tags [#309](https://github.com/doug-martin/goqu/pull/309) - [@randallmlough](https://github.com/randallmlough)
 
