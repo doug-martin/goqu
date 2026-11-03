@@ -1,6 +1,7 @@
 package exp
 
 import (
+	"database/sql/driver"
 	"reflect"
 	"regexp"
 )
@@ -158,7 +159,10 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
-	if rhs == nil {
+	if isNullValue(rhs) {
+		// Normalize typed nulls (nil pointers, null driver.Valuers such as sql.NullInt32{}) to an untyped nil so
+		// "a" = NULL (which never matches) becomes "a" IS NULL.
+		rhs = nil
 		op = IsOp
 	} else {
 		switch reflect.Indirect(reflect.ValueOf(rhs)).Kind() {
@@ -185,4 +189,20 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 		op = operatorInversions[op]
 	}
 	return NewBooleanExpression(op, lhs, rhs)
+}
+
+// returns true if the value is a SQL NULL: an untyped nil, a nil pointer, or a driver.Valuer that returns nil
+// (e.g. a sql.NullString that is not valid).
+func isNullValue(val interface{}) bool {
+	if val == nil {
+		return true
+	}
+	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return true
+	}
+	if valuer, ok := val.(driver.Valuer); ok {
+		v, err := valuer.Value()
+		return err == nil && v == nil
+	}
+	return false
 }
