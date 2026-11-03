@@ -597,7 +597,7 @@ func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) 
 	return ds.Executor().ScanStructsContext(ctx, i)
 }
 
-// Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a slice of structs
+// Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a struct
 //
 // ScanStruct will only select the columns that can be scanned in to the struct unless you have explicitly selected
 // certain columns. See examples.
@@ -607,7 +607,7 @@ func (sd *SelectDataset) ScanStruct(i interface{}) (bool, error) {
 	return sd.ScanStructContext(context.Background(), i)
 }
 
-// Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a slice of structs
+// Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a struct
 //
 // ScanStructContext will only select the columns that can be scanned in to the struct unless you have explicitly
 // selected certain columns. See examples.

@@ -77,7 +77,7 @@ func implementsScanner(t reflect.Type) bool {
 	if IsPointer(t.Kind()) {
 		t = t.Elem()
 	}
-	if reflect.PtrTo(t).Implements(scannerType) {
+	if reflect.PointerTo(t).Implements(scannerType) {
 		return true
 	}
 	if !IsStruct(t.Kind()) {

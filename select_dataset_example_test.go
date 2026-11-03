@@ -10,7 +10,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 const schema = `
@@ -40,11 +40,7 @@ func getDB() *goqu.Database {
 		if dbURI == "" {
 			dbURI = defaultDBURI
 		}
-		uri, err := pq.ParseURL(dbURI)
-		if err != nil {
-			panic(err)
-		}
-		pdb, err := goSQL.Open("postgres", uri)
+		pdb, err := goSQL.Open("postgres", dbURI)
 		if err != nil {
 			panic(err)
 		}
@@ -67,8 +63,8 @@ func getDB() *goqu.Database {
 		{FirstName: "Vinita", LastName: "Yukon"},
 		{FirstName: "John", LastName: "Doe"},
 	}
-	var userIds []int64
-	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIds)
+	var userIDs []int64
+	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIDs)
 	if err != nil {
 		panic(err)
 	}
@@ -80,10 +76,10 @@ func getDB() *goqu.Database {
 	}
 
 	roles := []userRole{
-		{UserID: userIds[0], Name: "Admin"},
-		{UserID: userIds[1], Name: "Manager"},
-		{UserID: userIds[2], Name: "Manager"},
-		{UserID: userIds[3], Name: "User"},
+		{UserID: userIDs[0], Name: "Admin"},
+		{UserID: userIDs[1], Name: "Manager"},
+		{UserID: userIDs[2], Name: "Manager"},
+		{UserID: userIDs[3], Name: "User"},
 	}
 	_, err = goquDB.Insert("user_role").Rows(roles).Executor().Exec()
 	if err != nil {
