@@ -10,7 +10,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 const schema = `
@@ -40,11 +40,7 @@ func getDB() *goqu.Database {
 		if dbURI == "" {
 			dbURI = defaultDBURI
 		}
-		uri, err := pq.ParseURL(dbURI)
-		if err != nil {
-			panic(err)
-		}
-		pdb, err := goSQL.Open("postgres", uri)
+		pdb, err := goSQL.Open("postgres", dbURI)
 		if err != nil {
 			panic(err)
 		}

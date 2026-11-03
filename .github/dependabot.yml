@@ -11,7 +11,7 @@ updates:
       go-dependencies:
         patterns: ["*"]
 
-  # Nested module holding the database integration tests (requires newer Go).
+  # Nested module holding the database integration tests.
   - package-ecosystem: gomod
     directory: /integration
     schedule:

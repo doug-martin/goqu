@@ -9,7 +9,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -81,11 +81,7 @@ func (pt *postgresTest) SetupSuite() {
 	if dbURI == "" {
 		dbURI = defaultDBURI
 	}
-	uri, err := pq.ParseURL(dbURI)
-	if err != nil {
-		panic(err)
-	}
-	db, err := sql.Open("postgres", uri)
+	db, err := sql.Open("postgres", dbURI)
 	if err != nil {
 		panic(err)
 	}
