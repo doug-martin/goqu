@@ -68,14 +68,24 @@ func (s *scanner) ScanStruct(i interface{}) error {
 	}
 
 	scans := make([]interface{}, 0, len(s.columns))
-	for _, col := range s.columns {
+	// columns that were scanned straight into a value that is already set on the struct
+	scannedInPlace := make(map[int]bool)
+	for index, col := range s.columns {
 		data, ok := s.columnMap[col]
-		switch {
-		case !ok:
+		if !ok {
 			return unableToFindFieldError(col)
-		default:
-			scans = append(scans, reflect.New(data.GoType).Interface())
 		}
+		if data.GoType.Kind() == reflect.Interface && data.GoType.NumMethod() > 0 {
+			// The column map is cached per struct type so it only knows the interface, not the concrete type.
+			// Scan into the value the caller already put in the field (e.g. &sql.NullString{}). Empty interfaces
+			// (interface{}) keep receiving the driver value.
+			if target, ok := util.InterfaceScanTarget(i, data.FieldIndex); ok {
+				scans = append(scans, target)
+				scannedInPlace[index] = true
+				continue
+			}
+		}
+		scans = append(scans, reflect.New(data.GoType).Interface())
 	}
 
 	if err := s.rows.Scan(scans...); err != nil {
@@ -84,7 +94,9 @@ func (s *scanner) ScanStruct(i interface{}) error {
 
 	record := exp.Record{}
 	for index, col := range s.columns {
-		record[col] = scans[index]
+		if !scannedInPlace[index] {
+			record[col] = scans[index]
+		}
 	}
 
 	util.AssignStructVals(i, record, s.columnMap)

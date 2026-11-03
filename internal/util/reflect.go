@@ -187,6 +187,22 @@ func SafeSetFieldByIndex(v reflect.Value, fieldIndex []int, src interface{}) (re
 	return v
 }
 
+// InterfaceScanTarget returns the value stored in an interface typed struct field of i when it can be used as the
+// destination of a scan: a non-nil pointer implementing sql.Scanner. This lets callers scan into fields such as
+// sql.Scanner, whose concrete type is only known from the value of the field and so cannot be part of the cached
+// ColumnMap.
+func InterfaceScanTarget(i interface{}, fieldIndex []int) (interface{}, bool) {
+	f, err := reflect.Indirect(reflect.ValueOf(i)).FieldByIndexErr(fieldIndex)
+	if err != nil || f.Kind() != reflect.Interface || f.IsNil() {
+		return nil, false
+	}
+	elem := f.Elem()
+	if elem.Kind() != reflect.Ptr || elem.IsNil() || !elem.Type().Implements(scannerType) {
+		return nil, false
+	}
+	return elem.Interface(), true
+}
+
 type rowData = map[string]interface{}
 
 // AssignStructVals will assign the data from rd to i.
@@ -211,7 +227,7 @@ func GetColumnMap(i interface{}) (ColumnMap, error) {
 	structMapCacheLock.Lock()
 	defer structMapCacheLock.Unlock()
 	if _, ok := structMapCache[t]; !ok {
-		structMapCache[t] = newColumnMap(val, t, []int{}, []string{})
+		structMapCache[t] = newColumnMap(t, []int{}, []string{})
 	}
 	return structMapCache[t], nil
 }

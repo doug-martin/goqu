@@ -954,6 +954,18 @@ if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
 fmt.Printf("\n%+v", users)
 ```
 
+Fields whose type is an interface such as `sql.Scanner` can be scanned into by setting them to a pointer to a concrete type before calling `ScanStruct`; the column is scanned straight into that value. A `nil` interface field, and `ScanStructs` (which creates new structs), cannot be scanned into this way.
+
+```go
+type Item struct {
+	ID    int64       `db:"id"`
+	Value sql.Scanner `db:"value"`
+}
+
+item := Item{Value: &sql.NullString{}}
+found, err := db.From("items").ScanStruct(&item)
+```
+
 `goqu` also supports scanning into multiple structs. In the example below we define a `Role` and `User` struct that could both be used individually to scan into. However, you can also create a new struct that adds both structs as fields that can be populated in a single query.
 
 **NOTE** When calling `ScanStructs` without a select already defined it will automatically only `SELECT` the columns found in the struct, omitting any that are tagged with `db:"-"`
