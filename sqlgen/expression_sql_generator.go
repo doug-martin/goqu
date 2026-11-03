@@ -131,6 +131,16 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 	}
 }
 
+// isBindableKind returns false for kinds that can never be sent to a database as an argument.
+func isBindableKind(k reflect.Kind) bool {
+	switch k {
+	case reflect.Func, reflect.Chan, reflect.UnsafePointer, reflect.Complex64, reflect.Complex128:
+		return false
+	default:
+		return true
+	}
+}
+
 func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) {
 	v := reflect.Indirect(reflect.ValueOf(val))
 	valKind := v.Kind()
@@ -157,8 +167,10 @@ func (esg *expressionSQLGenerator) reflectSQL(b sb.SQLBuilder, val interface{}) 
 	case util.IsBool(valKind):
 		esg.Generate(b, v.Bool())
 	default:
-		// allow any type of value for prepared mode
-		if b.IsPrepared() {
+		// In prepared mode, pass values of other kinds (structs, maps, arrays such as UUIDs)
+		// through as arguments and let the driver decide whether it can bind them.
+		// Kinds that no driver can bind are still rejected here.
+		if b.IsPrepared() && isBindableKind(valKind) {
 			esg.placeHolderSQL(b, val)
 
 			return

@@ -129,7 +129,23 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OtherType() {
 		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 		expressionTestCase{val: strct{}, err: "goqu_encode_error: Unable to encode value {}"},
 		expressionTestCase{val: strct{}, sql: "?", isPrepared: true, args: []interface{}{strct{}}},
+		expressionTestCase{val: map[string]int{"a": 1}, err: "goqu_encode_error: Unable to encode value map[a:1]"},
+		expressionTestCase{
+			val: map[string]int{"a": 1}, sql: "?", isPrepared: true, args: []interface{}{map[string]int{"a": 1}},
+		},
+		expressionTestCase{val: [2]byte{1, 2}, err: "goqu_encode_error: Unable to encode value [1 2]"},
+		expressionTestCase{val: [2]byte{1, 2}, sql: "?", isPrepared: true, args: []interface{}{[2]byte{1, 2}}},
 	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_UnbindableType() {
+	// no driver can bind these, so they are rejected even in prepared mode
+	for _, val := range []interface{}{func() {}, make(chan int), complex(1, 2)} {
+		esgs.assertCases(
+			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+			expressionTestCase{val: val, err: fmt.Sprintf("goqu_encode_error: Unable to encode value %+v", val), isPrepared: true},
+		)
+	}
 }
 
 func (esgs *expressionSQLGeneratorSuite) TestGenerate_IncludePlaceholderNum() {

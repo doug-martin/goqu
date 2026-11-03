@@ -63,3 +63,12 @@ Unsigned integer values (`uint`, `uint8`...`uint64`) are supported in both inter
 * A `uint64` greater than `math.MaxInt64` is written as its decimal literal when interpolated (e.g. `9223372036854775808`) and passed to the driver as a `uint64` when using `Prepared(true)`.
 
 Whether the database accepts a value that large depends on the driver and the column type. Many databases (for example SQL Server `BIGINT`, PostgreSQL `BIGINT`) only store signed 64-bit integers, so such a value is typically rejected by the database or the driver rather than by `goqu`.
+
+## Other value types
+
+Values of types `goqu` has no built-in mapping for (for example structs, maps, and arrays such as a `uuid.UUID`) behave differently depending on the mode:
+
+* **Interpolated** (the default): `goqu` must write the value into the SQL text, so it returns an encode error unless the type implements [`driver.Valuer`](https://pkg.go.dev/database/sql/driver#Valuer).
+* **Prepared** (`Prepared(true)`): the value is passed through as an argument and the driver decides whether it can bind it. If it cannot, the error is returned by the driver when the query is executed rather than by `goqu` when the SQL is built.
+
+Functions, channels and complex numbers can never be bound by a driver, so they result in an encode error in both modes.
