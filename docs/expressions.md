@@ -385,10 +385,16 @@ SELECT "Place" FROM "Locations" WHERE ("Place" COLLATE Latin1_General_CS_AS = 'P
 
 The collation name is never a placeholder, so it is validated when the SQL is generated:
 
-* Postgres collation names are case sensitive and must be quoted, so the `postgres` dialect writes them quoted: `"a" COLLATE "en_US.utf8"`.
-* Other dialects write the name as is, so it must be a simple identifier (letters, digits, `_`, `.` and `$`, not starting with a digit). Anything else (for example a name containing spaces or quotes) results in an error rather than being written into the SQL.
+* Postgres collation names are case sensitive and must be quoted, so the `postgres` dialect writes a string name quoted as a whole: `"a" COLLATE "en_US.utf8"`.
+* Other dialects write the name as is, so it must be a simple identifier, optionally qualified with up to two parts (`name`, `schema.name`): letters, digits and `_`, not starting with a digit. Anything else (for example a name containing spaces, quotes or `;`) results in an error rather than being written into the SQL.
 
-If you are using a custom dialect you can control this with the `CollateFragment` and `QuoteCollation` dialect options.
+To use a schema qualified collation on Postgres pass an identifier, each part is quoted separately:
+
+```go
+goqu.I("a").Collate(goqu.I("pg_catalog.default")) // "a" COLLATE "pg_catalog"."default"
+```
+
+If you are using a custom dialect that is not based on `goqu.DefaultDialectOptions()` you must set the `CollateFragment` (e.g. `" COLLATE "`) dialect option, `QuoteCollation` controls the quoting.
 
 <a name="exists"></a>
 **[`Exists()`](https://godoc.org/github.com/doug-martin/goqu#Exists)**

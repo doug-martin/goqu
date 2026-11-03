@@ -468,6 +468,19 @@ func ExampleCollate_dialects() {
 	// SELECT * FROM `test` ORDER BY `name` COLLATE C ASC
 }
 
+func ExampleCollate_schemaQualified() {
+	// a string is quoted as a whole, an identifier is quoted part by part
+	ds := goqu.Dialect("postgres").From("test")
+	sql, _, _ := ds.Order(goqu.C("name").Collate("en_US.utf8").Asc()).ToSQL()
+	fmt.Println(sql)
+
+	sql, _, _ = ds.Order(goqu.C("name").Collate(goqu.I("pg_catalog.default")).Asc()).ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM "test" ORDER BY "name" COLLATE "en_US.utf8" ASC
+	// SELECT * FROM "test" ORDER BY "name" COLLATE "pg_catalog"."default" ASC
+}
+
 func ExampleIdentifierExpression_collate() {
 	sql, _, _ := goqu.From("Locations").
 		Select(goqu.I("Place")).

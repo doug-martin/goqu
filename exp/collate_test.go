@@ -34,6 +34,13 @@ func (ces *collateExpressionSuite) TestCollation() {
 	ces.Equal("en_US", ces.ce.Collation())
 }
 
+func (ces *collateExpressionSuite) TestIdentifierCollation() {
+	collation := exp.ParseIdentifier("pg_catalog.default")
+	ce := exp.NewCollateExpression(exp.NewIdentifierExpression("", "", "a"), collation)
+	ces.Equal(collation, ce.Collation())
+	ces.Equal(ce, ce.Clone())
+}
+
 func (ces *collateExpressionSuite) TestIdentifierCollate() {
 	ident := exp.NewIdentifierExpression("", "", "a")
 	ces.Equal(ces.ce, ident.Collate("en_US"))

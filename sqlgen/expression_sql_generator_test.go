@@ -961,7 +961,12 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
 		expressionTestCase{val: collate, sql: `"a" COLLATE en_US`},
 		expressionTestCase{val: collate, sql: `"a" COLLATE en_US`, isPrepared: true},
 		expressionTestCase{val: ident.Collate("Latin1_General_CS_AS"), sql: `"a" COLLATE Latin1_General_CS_AS`},
-		expressionTestCase{val: ident.Collate("pg_catalog.C$1"), sql: `"a" COLLATE pg_catalog.C$1`},
+		expressionTestCase{val: ident.Collate("pg_catalog.C1"), sql: `"a" COLLATE pg_catalog.C1`},
+		expressionTestCase{val: ident.Collate("s.t.c"), sql: `"a" COLLATE s.t.c`},
+		expressionTestCase{val: ident.Collate(exp.NewIdentifierExpression("", "", "en_US")), sql: `"a" COLLATE en_US`},
+		expressionTestCase{
+			val: ident.Collate(exp.ParseIdentifier("pg_catalog.default")), sql: `"a" COLLATE pg_catalog.default`,
+		},
 		expressionTestCase{val: collate.Asc(), sql: `"a" COLLATE en_US ASC`},
 		expressionTestCase{val: collate.Desc(), sql: `"a" COLLATE en_US DESC`},
 		expressionTestCase{val: collate.Eq("b"), sql: `("a" COLLATE en_US = 'b')`},
@@ -978,6 +983,15 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
 		expressionTestCase{val: ident.Collate("en_US.utf8"), sql: `"a" COLLATE "en_US.utf8"`},
 		expressionTestCase{val: ident.Collate(`we"ird`), sql: `"a" COLLATE "we""ird"`},
 		expressionTestCase{val: ident.Collate("English_United States.1252"), sql: `"a" COLLATE "English_United States.1252"`},
+		expressionTestCase{
+			val: ident.Collate(exp.ParseIdentifier("pg_catalog.default")), sql: `"a" COLLATE "pg_catalog"."default"`,
+		},
+		expressionTestCase{
+			val: ident.Collate(exp.NewIdentifierExpression("my_schema", "", "en_US")), sql: `"a" COLLATE "my_schema"."en_US"`,
+		},
+		expressionTestCase{
+			val: exp.NewCollateExpression(exp.NewLiteralExpression("a || b"), "C"), sql: `(a || b) COLLATE "C"`,
+		},
 	)
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", custom),
@@ -985,10 +999,21 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_CollateExpression() {
 	)
 
 	// names that are not simple identifiers are rejected when unquoted (they would end up verbatim in the SQL)
-	for _, name := range []string{"", "en US", "en_US; DROP TABLE a", `en"US`, "1abc", "a-b", "a'b"} {
+	for _, name := range []string{
+		"", "en US", "en_US; DROP TABLE a", `en"US`, "1abc", "a-b", "a'b", "a.", ".a", "a..b", "a.b.c.d", "a$", "ü",
+	} {
 		esgs.assertCases(
 			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 			expressionTestCase{val: ident.Collate(name), err: fmt.Sprintf("goqu: invalid collation name %q", name)},
+		)
+	}
+	// only strings and identifiers (with plain string parts) are valid collations
+	for _, collation := range []interface{}{
+		1, nil, exp.NewIdentifierExpression("", "", ""), exp.NewIdentifierExpression("", "", exp.NewLiteralExpression("x")),
+	} {
+		esgs.assertCases(
+			sqlgen.NewExpressionSQLGenerator("test", quoted),
+			expressionTestCase{val: ident.Collate(collation), err: fmt.Sprintf("goqu: invalid collation name %q", fmt.Sprintf("%v", collation))},
 		)
 	}
 	esgs.assertCases(

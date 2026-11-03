@@ -258,6 +258,20 @@ func (mt *mysqlTest) TestQuery_ValueExpressions() {
 	}, we)
 }
 
+func (mt *mysqlTest) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := mt.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("_utf8mb4'abc'"), "utf8mb4_bin").Eq("ABC")).Count()
+	mt.NoError(err)
+	mt.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("_utf8mb4'abc'"), "utf8mb4_bin").Eq("abc")).Count()
+	mt.NoError(err)
+	mt.Equal(int64(10), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("_utf8mb4'abc'"), "utf8mb4_general_ci").Eq("ABC")).Count()
+	mt.NoError(err)
+	mt.Equal(int64(10), count)
+}
+
 func (mt *mysqlTest) TestCount() {
 	ds := mt.db.From("entry")
 	count, err := ds.Count()

@@ -28,7 +28,9 @@ type (
 	Collateable interface {
 		// Applies a collation to an expression
 		//   I("a").Collate("en_US")//"a" COLLATE "en_US" (quoting depends on the dialect)
-		Collate(collation string) CollateExpression
+		//   I("a").Collate(I("pg_catalog.default"))//"a" COLLATE "pg_catalog"."default"
+		// The collation is a string or an IdentifierExpression (to qualify the name with a schema).
+		Collate(collation interface{}) CollateExpression
 	}
 
 	Inable interface {
@@ -274,8 +276,8 @@ type (
 		Rangeable
 		// The expression the collation is applied to
 		Collated() Expression
-		// The name of the collation
-		Collation() string
+		// The collation, either a string (the name) or an IdentifierExpression (a schema qualified name)
+		Collation() interface{}
 	}
 	// A list of columns. Typically used internally by Select, Order, From
 	ColumnListExpression interface {

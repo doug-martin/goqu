@@ -2,13 +2,14 @@ package exp
 
 type collate struct {
 	collated  Expression
-	collation string
+	collation interface{}
 }
 
 // Creates a new CollateExpression that applies a collation to an expression
 //
 //	NewCollateExpression(I("a"), "en_US") -> "a" COLLATE en_US
-func NewCollateExpression(e Expression, collation string) CollateExpression {
+//	NewCollateExpression(I("a"), I("pg_catalog.default")) -> "a" COLLATE "pg_catalog"."default"
+func NewCollateExpression(e Expression, collation interface{}) CollateExpression {
 	return collate{collated: e, collation: collation}
 }
 
@@ -16,12 +17,16 @@ func (c collate) Collated() Expression {
 	return c.collated
 }
 
-func (c collate) Collation() string {
+func (c collate) Collation() interface{} {
 	return c.collation
 }
 
 func (c collate) Clone() Expression {
-	return collate{collated: c.collated.Clone(), collation: c.collation}
+	collation := c.collation
+	if e, ok := collation.(Expression); ok {
+		collation = e.Clone()
+	}
+	return collate{collated: c.collated.Clone(), collation: collation}
 }
 
 func (c collate) Expression() Expression                           { return c }

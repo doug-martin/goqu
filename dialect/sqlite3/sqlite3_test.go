@@ -269,6 +269,27 @@ func (st *sqlite3Suite) TestQuery_ValueExpressions() {
 	})
 }
 
+func (st *sqlite3Suite) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := st.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("'abc'"), "BINARY").Eq("ABC")).Count()
+	st.NoError(err)
+	st.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "BINARY").Eq("abc")).Count()
+	st.NoError(err)
+	st.Equal(int64(10), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "NOCASE").Eq("ABC")).Count()
+	st.NoError(err)
+	st.Equal(int64(10), count)
+
+	// and in ORDER BY
+	var last string
+	found, err := ds.Select("string").Order(goqu.C("string").Collate("NOCASE").Desc()).ScanVal(&last)
+	st.NoError(err)
+	st.True(found)
+	st.Equal("0.900000", last)
+}
+
 func (st *sqlite3Suite) TestCount() {
 	ds := st.db.From("entry")
 	count, err := ds.Count()

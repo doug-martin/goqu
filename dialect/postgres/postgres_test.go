@@ -235,6 +235,29 @@ func (pt *postgresTest) TestQuery_ValueExpressions() {
 	pt.True(we.BoolValue)
 }
 
+func (pt *postgresTest) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := pt.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("'abc'"), "C").Eq("ABC")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), "C").Eq("abc")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(10), count)
+
+	// and in ORDER BY
+	var last string
+	found, err := ds.Select("string").Order(goqu.C("string").Collate("C").Desc()).ScanVal(&last)
+	pt.NoError(err)
+	pt.True(found)
+	pt.Equal("0.900000", last)
+
+	// schema qualified names are quoted part by part
+	count, err = ds.Where(goqu.Collate(goqu.L("'abc'"), goqu.I("pg_catalog.default")).Eq("abc")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(10), count)
+}
+
 func (pt *postgresTest) TestCount() {
 	ds := pt.db.From("entry")
 	count, err := ds.Count()

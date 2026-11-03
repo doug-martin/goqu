@@ -2,6 +2,7 @@ package sqlgen
 
 import (
 	"database/sql/driver"
+	"fmt"
 	"math"
 	"reflect"
 	"strconv"
@@ -677,20 +678,12 @@ func (esg *expressionSQLGenerator) castExpressionSQL(b sb.SQLBuilder, cast exp.C
 //
 //	I("a").Collate("en_US") -> "a" COLLATE en_US
 //	I("a").Collate("en_US") -> "a" COLLATE "en_US" (dialects with QuoteCollation)
+//	I("a").Collate(I("pg_catalog.default")) -> "a" COLLATE "pg_catalog"."default" (dialects with QuoteCollation)
 func (esg *expressionSQLGenerator) collateExpressionSQL(b sb.SQLBuilder, collate exp.CollateExpression) {
-	name := collate.Collation()
 	opts := esg.dialectOptions
-	switch {
-	case name == "":
-		b.SetError(ErrInvalidCollation(name))
-		return
-	case opts.QuoteCollation:
-		if strings.ContainsRune(name, 0) {
-			b.SetError(ErrInvalidCollation(name))
-			return
-		}
-	case !validCollationName(name):
-		b.SetError(ErrInvalidCollation(name))
+	parts, ok := esg.collationParts(collate.Collation())
+	if !ok {
+		b.SetError(ErrInvalidCollation(fmt.Sprintf("%v", collate.Collation())))
 		return
 	}
 
@@ -704,25 +697,75 @@ func (esg *expressionSQLGenerator) collateExpressionSQL(b sb.SQLBuilder, collate
 		b.WriteRunes(opts.RightParenRune)
 	}
 	b.Write(opts.CollateFragment)
-	if opts.QuoteCollation {
-		quote := string(opts.QuoteRune)
-		b.WriteStrings(quote, strings.ReplaceAll(name, quote, quote+quote), quote)
-		return
+	for i, part := range parts {
+		if i > 0 {
+			b.WriteRunes(opts.PeriodRune)
+		}
+		if opts.QuoteCollation {
+			quote := string(opts.QuoteRune)
+			b.WriteStrings(quote, strings.ReplaceAll(part, quote, quote+quote), quote)
+		} else {
+			b.WriteStrings(part)
+		}
 	}
-	b.WriteStrings(name)
 }
 
-// unquoted collation names are restricted to simple (optionally schema qualified) identifiers
-func validCollationName(name string) bool {
-	for i, r := range name {
+// Returns the (unquoted) parts of the collation name and whether it is valid for the dialect.
+//
+// A string is a single quoted name for dialects that quote collations (it may contain anything, e.g.
+// "en_US.utf8"), otherwise it is split on '.' into schema qualified parts. An identifier is always split into its parts.
+func (esg *expressionSQLGenerator) collationParts(collation interface{}) (parts []string, ok bool) {
+	quote := esg.dialectOptions.QuoteCollation
+	switch c := collation.(type) {
+	case string:
+		if quote {
+			return []string{c}, c != "" && !strings.ContainsRune(c, 0)
+		}
+		parts = strings.Split(c, ".")
+	case exp.IdentifierExpression:
+		if c.IsEmpty() {
+			return nil, false
+		}
+		for _, part := range []interface{}{c.GetSchema(), c.GetTable(), c.GetCol()} {
+			switch p := part.(type) {
+			case nil:
+			case string:
+				if p != esg.dialectOptions.EmptyString {
+					parts = append(parts, p)
+				}
+			default:
+				return nil, false
+			}
+		}
+	default:
+		return nil, false
+	}
+	if len(parts) == 0 || len(parts) > 3 {
+		return nil, false
+	}
+	for _, part := range parts {
+		if quote {
+			if part == "" || strings.ContainsRune(part, 0) {
+				return nil, false
+			}
+		} else if !validCollationPart(part) {
+			return nil, false
+		}
+	}
+	return parts, true
+}
+
+// unquoted collation name parts are restricted to simple identifiers
+func validCollationPart(part string) bool {
+	for i, r := range part {
 		switch {
 		case r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z'):
-		case i > 0 && (r == '.' || r == '$' || (r >= '0' && r <= '9')):
+		case i > 0 && r >= '0' && r <= '9':
 		default:
 			return false
 		}
 	}
-	return name != ""
+	return part != ""
 }
 
 // Generates the sql for the WITH clauses for common table expressions (CTE)
