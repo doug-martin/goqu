@@ -16,7 +16,11 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsOrderByOnUpdate = false
 	opts.SupportsLimitOnUpdate = false
 	opts.SupportsLimitOnDelete = true
-	opts.SupportsOrderByOnDelete = true
+	// T-SQL has no ORDER BY on DELETE. Fail loudly instead of generating invalid SQL (or silently
+	// deleting arbitrary rows if the clause were dropped); use a subquery such as
+	// WHERE id IN (SELECT TOP (n) id ... ORDER BY ...) to delete an ordered subset.
+	opts.SupportsOrderByOnDelete = false
+	opts.ErrorOnUnsupportedOrderByOnDelete = true
 	opts.SupportsConflictUpdateWhere = false
 	opts.SupportsInsertIgnoreSyntax = false
 	opts.SupportsConflictTarget = false

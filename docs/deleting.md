@@ -190,6 +190,23 @@ Output:
 DELETE TOP (10) FROM "test"
 ```
 
+`sqlserver` has no `ORDER BY` on `DELETE`, so calling `Order` on a `sqlserver` delete returns an error instead of generating invalid SQL. `TOP` on its own deletes an unspecified set of rows. To delete an ordered subset, use a subquery:
+
+```go
+// import _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+
+oldest := goqu.Dialect("sqlserver").From("test").
+	Select("id").Order(goqu.C("created").Asc()).Limit(10)
+ds := goqu.Dialect("sqlserver").Delete("test").Where(goqu.C("id").In(oldest))
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+DELETE FROM "test" WHERE ("id" IN ((SELECT  TOP (10) "id" FROM "test" ORDER BY "created" ASC)))
+```
+
 <a name="returning"></a>
 **[`Returning`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Returning)**
 

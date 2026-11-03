@@ -23,6 +23,10 @@ type (
 
 var ErrNoSourceForDelete = errors.New("no source found when generating delete sql")
 
+func ErrOrderByOnDeleteNotSupported(dialect string) error {
+	return errors.New("dialect does not support ORDER BY on DELETE [dialect=%s]", dialect)
+}
+
 func NewDeleteSQLGenerator(dialect string, do *SQLDialectOptions) DeleteSQLGenerator {
 	return &deleteSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
@@ -48,8 +52,12 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 		case WhereSQLFragment:
 			dsg.WhereSQL(b, clauses.Where())
 		case OrderSQLFragment:
-			if dsg.DialectOptions().SupportsOrderByOnDelete {
+			switch {
+			case dsg.DialectOptions().SupportsOrderByOnDelete:
 				dsg.OrderSQL(b, clauses.Order())
+			case clauses.HasOrder() && dsg.DialectOptions().ErrorOnUnsupportedOrderByOnDelete:
+				b.SetError(ErrOrderByOnDeleteNotSupported(dsg.Dialect()))
+				return
 			}
 		case LimitSQLFragment:
 			if dsg.DialectOptions().SupportsLimitOnDelete {
