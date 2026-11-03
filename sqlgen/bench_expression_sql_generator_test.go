@@ -80,6 +80,7 @@ func BenchmarkExpressionSQLGenerator_Insert(b *testing.B) {
 				if _, _, err := builder.ToSQL(); err != nil {
 					b.Fatalf("ToSQL error: %v", err)
 				}
+				sb.ReleaseSQLBuilder(builder)
 			}
 		})
 
@@ -176,6 +177,7 @@ func BenchmarkExpressionSQLGenerator_Update(b *testing.B) {
 				if _, _, err := builder.ToSQL(); err != nil {
 					b.Fatalf("ToSQL error: %v", err)
 				}
+				sb.ReleaseSQLBuilder(builder)
 			}
 		})
 	}
@@ -247,6 +249,7 @@ func BenchmarkExpressionSQLGenerator_Select(b *testing.B) {
 				if _, _, err := builder.ToSQL(); err != nil {
 					b.Fatalf("ToSQL error: %v", err)
 				}
+				sb.ReleaseSQLBuilder(builder)
 			}
 		})
 	}
