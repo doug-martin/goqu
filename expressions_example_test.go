@@ -1,4 +1,4 @@
-// nolint:lll // sql statements are long
+//nolint:lll // sql statements are long
 package goqu_test
 
 import (
@@ -436,6 +436,59 @@ func ExampleCOUNT_havingClause() {
 	// Output:
 	// SELECT COUNT("a") AS "COUNT" FROM "test" GROUP BY "a" HAVING (COUNT("a") > 10) []
 	// SELECT COUNT("a") AS "COUNT" FROM "test" GROUP BY "a" HAVING (COUNT("a") > ?) [10]
+}
+
+func ExampleCollate() {
+	ds := goqu.From("test").
+		Select(goqu.C("name")).
+		Where(goqu.Collate(goqu.C("name"), "utf8mb4_bin").Eq("Bob")).
+		Order(goqu.Collate(goqu.C("name"), "utf8mb4_bin").Desc())
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT "name" FROM "test" WHERE ("name" COLLATE utf8mb4_bin = 'Bob') ORDER BY "name" COLLATE utf8mb4_bin DESC []
+	// SELECT "name" FROM "test" WHERE ("name" COLLATE utf8mb4_bin = ?) ORDER BY "name" COLLATE utf8mb4_bin DESC [Bob]
+}
+
+func ExampleCollate_dialects() {
+	// Postgres requires collation names to be quoted, other dialects write them as is.
+	for _, dialect := range []string{"postgres", "mysql", "sqlite3"} {
+		sql, _, _ := goqu.Dialect(dialect).
+			From("test").
+			Order(goqu.C("name").Collate("C").Asc()).
+			ToSQL()
+		fmt.Println(sql)
+	}
+	// Output:
+	// SELECT * FROM "test" ORDER BY "name" COLLATE "C" ASC
+	// SELECT * FROM `test` ORDER BY `name` COLLATE C ASC
+	// SELECT * FROM `test` ORDER BY `name` COLLATE C ASC
+}
+
+func ExampleCollate_schemaQualified() {
+	// a string is quoted as a whole, an identifier is quoted part by part
+	ds := goqu.Dialect("postgres").From("test")
+	sql, _, _ := ds.Order(goqu.C("name").Collate("en_US.utf8").Asc()).ToSQL()
+	fmt.Println(sql)
+
+	sql, _, _ = ds.Order(goqu.C("name").Collate(goqu.I("pg_catalog.default")).Asc()).ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM "test" ORDER BY "name" COLLATE "en_US.utf8" ASC
+	// SELECT * FROM "test" ORDER BY "name" COLLATE "pg_catalog"."default" ASC
+}
+
+func ExampleIdentifierExpression_collate() {
+	sql, _, _ := goqu.From("Locations").
+		Select(goqu.I("Place")).
+		Order(goqu.I("Place").Collate("Latin1_General_CS_AS_KS_WS").Asc()).
+		ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT "Place" FROM "Locations" ORDER BY "Place" COLLATE Latin1_General_CS_AS_KS_WS ASC
 }
 
 func ExampleCast() {
@@ -937,6 +990,21 @@ func ExampleMIN_havingClause() {
 	// SELECT MIN("a") AS "MIN" FROM "test" GROUP BY "a" HAVING (MIN("a") > ?) [10]
 }
 
+func ExampleNULLIF() {
+	ds := goqu.From("test").Select(
+		goqu.NULLIF(goqu.C("a"), "a"),
+		goqu.NULLIF(goqu.C("a"), goqu.C("b")),
+	)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT NULLIF("a", 'a'), NULLIF("a", "b") FROM "test" []
+	// SELECT NULLIF("a", ?), NULLIF("a", "b") FROM "test" [a]
+}
+
 func ExampleOn() {
 	ds := goqu.From("test").Join(
 		goqu.T("my_table"),
@@ -1287,7 +1355,6 @@ func ExampleExOr() {
 	).ToSQL()
 	fmt.Println(sql, args)
 
-	// nolint:lll // sql statements are long
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" = 'a') OR ("col2" = 1) OR ("col3" IS TRUE) OR ("col4" IS FALSE) OR ("col5" IS NULL) OR ("col6" IN ('a', 'b', 'c'))) []
 }
@@ -1806,6 +1873,32 @@ func ExampleAny() {
 	// Output:
 	// SELECT * FROM "test" WHERE ("id" = ANY ((SELECT "test_id" FROM "other"))) []
 	// SELECT * FROM "test" WHERE ("id" = ANY ((SELECT "test_id" FROM "other"))) []
+}
+
+func ExampleExists() {
+	ds := goqu.Select(goqu.Exists(goqu.From("test")))
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT EXISTS (SELECT * FROM "test") []
+	// SELECT EXISTS (SELECT * FROM "test") []
+}
+
+func ExampleExists_inWhereClauses() {
+	ds := goqu.From("test").Where(
+		goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
+	)
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).ToSQL()
+	fmt.Println(sql, args)
+	// Output:
+	// SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
+	// SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
 }
 
 func ExampleAll() {

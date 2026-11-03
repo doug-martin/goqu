@@ -28,7 +28,7 @@ func (dsgs *deleteSQLGeneratorSuite) assertCases(dsg sqlgen.DeleteSQLGenerator, 
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		dsg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			dsgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			dsgs.assertPreparedSQL(b, tc.sql, tc.args)
@@ -180,6 +180,27 @@ func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withOrder() {
 		sqlgen.NewDeleteSQLGenerator("test", opts),
 		deleteTestCase{clause: dc, sql: `DELETE FROM "test"`},
 		deleteTestCase{clause: dc, sql: `DELETE FROM "test"`, isPrepared: true},
+	)
+}
+
+func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withOrderErrorOnUnsupported() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsOrderByOnDelete = false
+	opts.ErrorOnUnsupportedOrderByOnDelete = true
+
+	dc := exp.NewDeleteClauses().
+		SetFrom(exp.NewIdentifierExpression("", "test", "")).
+		SetOrder(exp.NewIdentifierExpression("", "", "c").Desc())
+
+	dsgs.assertCases(
+		sqlgen.NewDeleteSQLGenerator("test", opts),
+		deleteTestCase{clause: dc, err: "goqu: dialect does not support ORDER BY on DELETE [dialect=test]"},
+		deleteTestCase{clause: dc, err: "goqu: dialect does not support ORDER BY on DELETE [dialect=test]", isPrepared: true},
+		// No ORDER BY, no error.
+		deleteTestCase{
+			clause: exp.NewDeleteClauses().SetFrom(exp.NewIdentifierExpression("", "test", "")),
+			sql:    `DELETE FROM "test"`,
+		},
 	)
 }
 

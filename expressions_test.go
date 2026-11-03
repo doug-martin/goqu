@@ -18,6 +18,10 @@ func (ges *goquExpressionsSuite) TestCast() {
 	ges.Equal(exp.NewCastExpression(goqu.C("test"), "string"), goqu.Cast(goqu.C("test"), "string"))
 }
 
+func (ges *goquExpressionsSuite) TestCollate() {
+	ges.Equal(exp.NewCollateExpression(goqu.C("test"), "en_US"), goqu.Collate(goqu.C("test"), "en_US"))
+}
+
 func (ges *goquExpressionsSuite) TestDoNothing() {
 	ges.Equal(exp.NewDoNothingConflictExpression(), goqu.DoNothing())
 }
@@ -76,6 +80,10 @@ func (ges *goquExpressionsSuite) TestSUM() {
 
 func (ges *goquExpressionsSuite) TestCOALESCE() {
 	ges.Equal(exp.NewSQLFunctionExpression("COALESCE", goqu.I("col"), nil), goqu.COALESCE(goqu.I("col"), nil))
+}
+
+func (ges *goquExpressionsSuite) TestNULLIF() {
+	ges.Equal(exp.NewSQLFunctionExpression("NULLIF", goqu.I("col"), "test"), goqu.NULLIF(goqu.I("col"), "test"))
 }
 
 func (ges *goquExpressionsSuite) TestROW_NUMBER() {
@@ -183,6 +191,13 @@ func (ges *goquExpressionsSuite) TestAny() {
 func (ges *goquExpressionsSuite) TestAll() {
 	ds := goqu.From("test").Select("id")
 	ges.Equal(exp.NewSQLFunctionExpression("ALL ", ds), goqu.All(ds))
+}
+
+func (ges *goquExpressionsSuite) TestExists() {
+	ds := goqu.From("test").Where(
+		goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
+	)
+	ges.Equal(exp.NewLiteralExpression("EXISTS ?", ds), goqu.Exists(ds))
 }
 
 func TestGoquExpressions(t *testing.T) {

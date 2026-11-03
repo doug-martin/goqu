@@ -6,7 +6,8 @@ type cast struct {
 }
 
 // Creates a new Casted expression
-//  Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
+//
+//	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
 func NewCastExpression(e Expression, t string) CastExpression {
 	return cast{casted: e, t: NewLiteralExpression(t)}
 }

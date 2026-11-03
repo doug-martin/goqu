@@ -53,7 +53,8 @@ func (ae aliasExpression) Col(col interface{}) IdentifierExpression {
 }
 
 // Returns a new IdentifierExpression with the column set to *
-//   I("my_table").As("t").All() //"t".*
+//
+//	I("my_table").As("t").All() //"t".*
 func (ae aliasExpression) All() IdentifierExpression {
 	return ae.alias.All()
 }

@@ -72,7 +72,14 @@ func (isg *insertSQLGenerator) Generate(
 
 // Adds the correct fragment to being an INSERT statement
 func (isg *insertSQLGenerator) InsertBeginSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
-	if isg.DialectOptions().SupportsInsertIgnoreSyntax && o != nil {
+	_, isNotDoNothingConflictExpression := o.(exp.ConflictUpdateExpression)
+	// A conflict target requires a real ON CONFLICT clause: INSERT IGNORE / INSERT OR IGNORE would swallow
+	// violations of every constraint, not just the targeted one.
+	hasTarget := false
+	if dn, ok := o.(exp.ConflictNothingExpression); ok {
+		hasTarget = dn.Cols() != nil && len(dn.Cols().Columns()) > 0
+	}
+	if isg.DialectOptions().SupportsInsertIgnoreSyntax && o != nil && !isNotDoNothingConflictExpression && !hasTarget {
 		b.Write(isg.DialectOptions().InsertIgnoreClause)
 	} else {
 		b.Write(isg.DialectOptions().InsertClause)
@@ -175,6 +182,12 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 			}
 		}
 		isg.onConflictDoUpdateSQL(b, t)
+	case exp.ConflictNothingExpression:
+		isg.ConflictTargetSQL(b, t.Cols())
+		if b.Error() != nil {
+			return
+		}
+		b.Write(isg.DialectOptions().ConflictDoNothingFragment)
 	default:
 		b.Write(isg.DialectOptions().ConflictDoNothingFragment)
 	}

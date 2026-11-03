@@ -359,6 +359,10 @@ func (ids *insertDatasetSuite) TestOnConflict() {
 			clauses: exp.NewInsertClauses().SetInto(goqu.C("items")).SetOnConflict(goqu.DoNothing()),
 		},
 		insertTestCase{
+			ds:      bd.OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("items"))),
+			clauses: exp.NewInsertClauses().SetInto(goqu.C("items")).SetOnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("items"))),
+		},
+		insertTestCase{
 			ds:      bd.OnConflict(du),
 			clauses: exp.NewInsertClauses().SetInto(goqu.C("items")).SetOnConflict(du),
 		},
@@ -531,7 +535,7 @@ func (ids *insertDatasetSuite) TestToSQL() {
 	ds := goqu.Insert("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToInsertSQL", sqlB, c).Return(nil).Once()
+	md.On("ToInsertSQL", builderMatching(sqlB), c).Return(nil).Once()
 	insertSQL, args, err := ds.ToSQL()
 	ids.Empty(insertSQL)
 	ids.Empty(args)
@@ -544,7 +548,7 @@ func (ids *insertDatasetSuite) TestToSQL_Prepared() {
 	ds := goqu.Insert("test").SetDialect(md).Prepared(true)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
-	md.On("ToInsertSQL", sqlB, c).Return(nil).Once()
+	md.On("ToInsertSQL", builderMatching(sqlB), c).Return(nil).Once()
 	insertSQL, args, err := ds.ToSQL()
 	ids.Empty(insertSQL)
 	ids.Empty(args)
@@ -558,7 +562,7 @@ func (ids *insertDatasetSuite) TestToSQL_ReturnedError() {
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	ee := errors.New("expected error")
-	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToInsertSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(ee)
 	}).Once()
 
@@ -603,7 +607,7 @@ func (ids *insertDatasetSuite) TestSetError() {
 	// Deeper errors inside SQL generation should still return original error
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToInsertSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(err3)
 	}).Once()
 

@@ -108,7 +108,7 @@ func createOredExpressionFromMap(lhs IdentifierExpression, op Op) ([]Expression,
 	return ors, nil
 }
 
-// nolint:gocyclo // not complex just long
+//nolint:gocyclo // not complex just long
 func createExpressionFromOp(lhs IdentifierExpression, opKey string, op Op) (exp Expression, err error) {
 	switch strings.ToLower(opKey) {
 	case EqOp.String():

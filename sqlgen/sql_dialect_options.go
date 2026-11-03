@@ -12,6 +12,9 @@ type (
 	SQLDialectOptions struct {
 		// Set to true if the dialect supports ORDER BY expressions in DELETE statements (DEFAULT=false)
 		SupportsOrderByOnDelete bool
+		// Set to true to return an error, instead of silently dropping the clause, when ORDER BY is used on a
+		// DELETE and SupportsOrderByOnDelete is false (DEFAULT=false)
+		ErrorOnUnsupportedOrderByOnDelete bool
 		// Set to true if the dialect supports table hint for DELETE statements (DELETE t FROM t ...), DEFAULT=false
 		SupportsDeleteTableHint bool
 		// Set to true if the dialect supports ORDER BY expressions in UPDATE statements (DEFAULT=false)
@@ -161,6 +164,13 @@ type (
 		IntersectAllFragment []byte
 		// The CAST keyword to use when casting a value (DEFAULT=[]byte("CAST"))
 		CastFragment []byte
+		// The COLLATE keyword to use when applying a collation, including surrounding whitespace
+		// (DEFAULT=[]byte(" COLLATE ")). Dialects not based on DefaultDialectOptions must set this.
+		CollateFragment []byte
+		// If true collation names are quoted with QuoteRune (e.g. "en_US"), as Postgres requires for case sensitive
+		// names. If false the name is written as is, after being checked to be a simple, optionally schema qualified,
+		// identifier (letters, digits and '_', not starting with a digit) (DEFAULT=false)
+		QuoteCollation bool
 		// The CASE keyword to use when when creating a CASE statement (DEFAULT=[]byte("CASE "))
 		CaseFragment []byte
 		// The WHEN keyword to use when when creating a CASE statement (DEFAULT=[]byte(" WHEN "))
@@ -355,7 +365,7 @@ const (
 	WindowSQLFragment
 )
 
-// nolint:gocyclo // simple type to string conversion
+//nolint:gocyclo // simple type to string conversion
 func (sf SQLFragmentType) String() string {
 	switch sf {
 	case CommonTableSQLFragment:
@@ -481,6 +491,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		ConflictDoUpdateFragment:  []byte(" DO UPDATE SET "),
 		ConflictDoNothingFragment: []byte(" DO NOTHING"),
 		CastFragment:              []byte("CAST"),
+		CollateFragment:           []byte(" COLLATE "),
 		CaseFragment:              []byte("CASE "),
 		WhenFragment:              []byte(" WHEN "),
 		ThenFragment:              []byte(" THEN "),
