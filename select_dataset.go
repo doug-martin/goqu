@@ -671,15 +671,25 @@ func (sd *SelectDataset) CountContext(ctx context.Context) (int64, error) {
 	return count, err
 }
 
-// Generates the SELECT EXISTS(...) sql for this dataset and uses Exec#ScanVal to scan the result into an bool.
+// Reports whether this dataset returns at least one row.
+//
+// The dataset is wrapped in an EXISTS subquery, so it is evaluated exactly as written (WHERE, GROUP BY, HAVING,
+// LIMIT, compound queries, ...). The result is selected through CASE WHEN so the same SQL is valid on every dialect,
+// including those that cannot select a boolean expression directly (e.g. SQL Server):
+//
+//	SELECT CASE WHEN EXISTS (SELECT * FROM "user" WHERE ("last_name" = 'Yukon')) THEN 1 ELSE 0 END LIMIT 1
 func (sd *SelectDataset) Exists() (bool, error) {
 	return sd.ExistsContext(context.Background())
 }
 
-// Generates the SELECT EXISTS(...) sql for this dataset and uses Exec#ScanValContext to scan the result into an bool.
+// Reports whether this dataset returns at least one row, using the given context. See Exists.
 func (sd *SelectDataset) ExistsContext(ctx context.Context) (bool, error) {
 	var exists bool
-	_, err := newDataset(sd.dialect.Dialect(), sd.queryFactory).Select(Exists(sd)).Prepared(sd.IsPrepared()).ScanValContext(ctx, &exists)
+	existsExpr := L("CASE WHEN ? THEN 1 ELSE 0 END", Exists(sd))
+	_, err := newDataset(sd.dialect.Dialect(), sd.queryFactory).
+		Select(existsExpr).
+		Prepared(sd.IsPrepared()).
+		ScanValContext(ctx, &exists)
 	return exists, err
 }
 

@@ -1546,9 +1546,9 @@ func (sds *selectDatasetSuite) TestCount_WithPreparedStatement() {
 func (sds *selectDatasetSuite) TestExists() {
 	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
-	sqlMock.ExpectQuery(`SELECT EXISTS \(\(SELECT \* FROM "items"\)\) LIMIT 1`).
+	sqlMock.ExpectQuery(`SELECT CASE WHEN EXISTS \(SELECT \* FROM "items"\) THEN 1 ELSE 0 END LIMIT 1`).
 		WithArgs().
-		WillReturnRows(sqlmock.NewRows([]string{"exists"}).FromCSVString("true"))
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).FromCSVString("1"))
 
 	db := goqu.New("mock", mDB)
 	exists, err := db.From("items").Exists()
@@ -1560,7 +1560,7 @@ func (sds *selectDatasetSuite) TestExists_WithPreparedStatement() {
 	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
 	sqlMock.ExpectQuery(
-		`SELECT EXISTS \(\(SELECT \* FROM "items" WHERE \("address" = \?\)\)\) LIMIT \?`,
+		`SELECT CASE WHEN EXISTS \(SELECT \* FROM "items" WHERE \("address" = \?\)\) THEN 1 ELSE 0 END LIMIT \?`,
 	).
 		WithArgs("111 Test Addr", 1).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).FromCSVString("true"))

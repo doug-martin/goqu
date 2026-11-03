@@ -1815,8 +1815,8 @@ func ExampleExists() {
 	sql, args, _ = ds.Prepared(true).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// SELECT EXISTS ((SELECT * FROM "test")) []
-	// SELECT EXISTS ((SELECT * FROM "test")) []
+	// SELECT EXISTS (SELECT * FROM "test") []
+	// SELECT EXISTS (SELECT * FROM "test") []
 }
 
 func ExampleExists_inWhereClauses() {
@@ -1829,8 +1829,8 @@ func ExampleExists_inWhereClauses() {
 	sql, args, _ = ds.Prepared(true).ToSQL()
 	fmt.Println(sql, args)
 	// Output:
-	// SELECT * FROM "test" WHERE EXISTS ((SELECT * FROM "other" WHERE ("test_id" = "id"))) []
-	// SELECT * FROM "test" WHERE EXISTS ((SELECT * FROM "other" WHERE ("test_id" = "id"))) []
+	// SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
+	// SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
 }
 
 func ExampleAll() {

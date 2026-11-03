@@ -189,7 +189,7 @@ func (ges *goquExpressionsSuite) TestExists() {
 	ds := goqu.From("test").Where(
 		goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
 	)
-	ges.Equal(exp.NewSQLFunctionExpression("EXISTS ", ds), goqu.Exists(ds))
+	ges.Equal(exp.NewLiteralExpression("EXISTS ?", ds), goqu.Exists(ds))
 }
 
 func TestGoquExpressions(t *testing.T) {
