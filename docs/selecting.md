@@ -685,6 +685,8 @@ SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 
 To use CTEs in `SELECT` statements you can use the `With` method.
 
+**NOTE** Common table expressions are not supported by the `mysql` dialect (MySQL 5.x); use the `mysql8` dialect for MySQL 8.0+.
+
 Simple Example
 
 ```go

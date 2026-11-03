@@ -78,6 +78,9 @@ func DialectOptions() *goqu.SQLDialectOptions {
 func DialectOptionsV8() *goqu.SQLDialectOptions {
 	opts := DialectOptions()
 	opts.SupportsWindowFunction = true
+	// MySQL 8.0 supports WITH and WITH RECURSIVE common table expressions.
+	opts.SupportsWithCTE = true
+	opts.SupportsWithCTERecursive = true
 	return opts
 }
 
