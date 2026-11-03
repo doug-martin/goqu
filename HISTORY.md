@@ -1,7 +1,28 @@
-# Unreleased
+# v9.21.0
 
-* [FEATURE] MySQL: add `STRAIGHT_JOIN` support via `SelectDataset.StraightJoin` [#442](https://github.com/doug-martin/goqu/issues/442), [#453](https://github.com/doug-martin/goqu/pull/453) - [@vesquen](https://github.com/vesquen)
-* [FEATURE] Allow conflict targets in `ON CONFLICT DO NOTHING` via `goqu.DoNothing().SetCols(...)`. Dialects without conflict target support (MySQL, SQL Server) return an error when a target is set. **Note:** `goqu.DoNothing()` and `exp.NewDoNothingConflictExpression()` now return `exp.ConflictNothingExpression` (a superset of `exp.ConflictExpression`); code that reassigns the result to a different conflict type through type inference (`c := goqu.DoNothing(); c = goqu.DoUpdate(...)`) needs an explicit `exp.ConflictExpression` declaration. [#422](https://github.com/doug-martin/goqu/pull/422) - [@pedrohavay](https://github.com/pedrohavay)
+* [FEATURE] Add `EXISTS` support: `goqu.Exists(subquery)` and `SelectDataset.Exists()` [#204](https://github.com/doug-martin/goqu/issues/204), [#412](https://github.com/doug-martin/goqu/pull/412), [#477](https://github.com/doug-martin/goqu/pull/477) - [@Yakov-Varnaev](https://github.com/Yakov-Varnaev), [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] Add a `Collate` expression (`goqu.Collate(expr, collation)` / `identifier.Collate(collation)`) usable in `WHERE`, `ORDER BY`, etc., with per-dialect collation quoting [#405](https://github.com/doug-martin/goqu/pull/405), [#478](https://github.com/doug-martin/goqu/pull/478) - [@tanner-lai](https://github.com/tanner-lai), [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] Add a `NULLIF` expression helper [#406](https://github.com/doug-martin/goqu/issues/406), [#407](https://github.com/doug-martin/goqu/pull/407) - [@PJHRobles](https://github.com/PJHRobles)
+* [FEATURE] Allow conflict targets in `ON CONFLICT DO NOTHING` via `goqu.DoNothing().SetCols(...)`. Dialects without conflict target support (MySQL, SQL Server) return an error when a target is set. [#422](https://github.com/doug-martin/goqu/pull/422) - [@pedrohavay](https://github.com/pedrohavay), [@funkyshu](https://github.com/funkyshu)
+* [FEATURE] MySQL: add `STRAIGHT_JOIN` support via `SelectDataset.StraightJoin` (requires an `ON` condition) [#442](https://github.com/doug-martin/goqu/issues/442), [#453](https://github.com/doug-martin/goqu/pull/453) - [@vesquen](https://github.com/vesquen)
+* [FEATURE] Prepared statements: pass any driver-bindable value (structs, maps, byte arrays such as UUIDs) through as an argument instead of rejecting it; unbindable kinds (funcs, channels, `unsafe.Pointer`, complex numbers) are still rejected [#313](https://github.com/doug-martin/goqu/issues/313), [#316](https://github.com/doug-martin/goqu/pull/316) - [@yz89122](https://github.com/yz89122)
+* [FIX] Treat typed nil pointers and invalid `driver.Valuer`s (`sql.NullInt32{}`, ...) as `NULL` in `Eq`/`Neq`/`Is`/`IsNot` and `Ex` [#272](https://github.com/doug-martin/goqu/issues/272), [#438](https://github.com/doug-martin/goqu/issues/438), [#476](https://github.com/doug-martin/goqu/pull/476) - [@funkyshu](https://github.com/funkyshu)
+* [FIX] SQL Server: return an error for `ORDER BY` on `DELETE` (new dialect option `ErrorOnUnsupportedOrderByOnDelete`) [#472](https://github.com/doug-martin/goqu/pull/472) - [@funkyshu](https://github.com/funkyshu)
+* [FIX] SQL Server: emit `DISTINCT` before `TOP` [#242](https://github.com/doug-martin/goqu/pull/242), [#475](https://github.com/doug-martin/goqu/pull/475) - [@CKehToh](https://github.com/CKehToh), [@funkyshu](https://github.com/funkyshu)
+* [FIX] SQLite3: generate `DELETE FROM` for `Truncate` [#330](https://github.com/doug-martin/goqu/pull/330), [#474](https://github.com/doug-martin/goqu/pull/474) - [@darh](https://github.com/darh), [@funkyshu](https://github.com/funkyshu)
+* [FIX] MySQL 8: enable `WITH` and `WITH RECURSIVE` common table expressions [#362](https://github.com/doug-martin/goqu/issues/362), [#400](https://github.com/doug-martin/goqu/pull/400), [#473](https://github.com/doug-martin/goqu/pull/473) - [@funkyshu](https://github.com/funkyshu)
+* [FIX] Do not wrap a single subselect in double parentheses [#352](https://github.com/doug-martin/goqu/issues/352), [#357](https://github.com/doug-martin/goqu/pull/357) - [@nic11](https://github.com/nic11)
+* [DOCS] Fix the `ScanStructContext` description and a typo about placeholders [#424](https://github.com/doug-martin/goqu/pull/424), [#449](https://github.com/doug-martin/goqu/pull/449) - [@shortcuts](https://github.com/shortcuts), [@j0shiJ](https://github.com/j0shiJ)
+* [CHORE] Update GitHub Actions dependencies [#465](https://github.com/doug-martin/goqu/pull/465)
+
+## Behavior changes to be aware of
+
+* Comparing a column to a typed null (`(*int)(nil)`, `sql.NullInt32{}` that is not valid, ...) with `Eq`/`Neq`/`Ex` now generates `IS NULL` / `IS NOT NULL` instead of `= NULL` / `!= NULL`. Queries that previously matched no rows will now match `NULL` rows.
+* SQL Server `Delete().Order(...)` now returns an error at build time instead of generating SQL the server rejects.
+* SQL Server `SELECT DISTINCT ... TOP (n)` is now generated as `SELECT DISTINCT TOP (n) ...`.
+* SQLite3 `Truncate()` now generates `DELETE FROM <table>`.
+* `goqu.DoNothing()` and `exp.NewDoNothingConflictExpression()` now return `exp.ConflictNothingExpression` (a superset of `exp.ConflictExpression`). Code that reassigns the result to a different conflict type through type inference (`c := goqu.DoNothing(); c = goqu.DoUpdate(...)`) needs an explicit `exp.ConflictExpression` declaration.
+* `SetCols` on `DoNothing` for SQLite3 emits a plain `INSERT ... ON CONFLICT (...) DO NOTHING` (not `INSERT OR IGNORE`) so that only the targeted constraint is ignored.
 
 # v9.20.0
 
