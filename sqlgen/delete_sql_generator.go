@@ -41,7 +41,7 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 			dsg.ExpressionSQLGenerator().Generate(b, clauses.CommonTables())
 		case DeleteBeginSQLFragment:
 			dsg.DeleteBeginSQL(
-				b, exp.NewColumnListExpression(clauses.From()), !(clauses.HasLimit() || clauses.HasOrder()),
+				b, exp.NewColumnListExpression(clauses.From()), !clauses.HasLimit() && !clauses.HasOrder(),
 			)
 		case FromSQLFragment:
 			dsg.FromSQL(b, exp.NewColumnListExpression(clauses.From()))

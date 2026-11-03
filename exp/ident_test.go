@@ -1,6 +1,7 @@
 package exp_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/doug-martin/goqu/v9/exp"
@@ -197,6 +198,7 @@ func (ies *identifierExpressionSuite) TestAllOthers() {
 	ident := exp.NewIdentifierExpression("", "", "a")
 	rv := exp.NewRangeVal(1, 2)
 	pattern := "ident like%"
+	re := regexp.MustCompile(pattern)
 	inVals := []interface{}{1, 2}
 	bitwiseVals := 2
 	testCases := []struct {
@@ -219,6 +221,8 @@ func (ies *identifierExpressionSuite) TestAllOthers() {
 		{Ex: ident.ILike(pattern), Expected: exp.NewBooleanExpression(exp.ILikeOp, ident, pattern)},
 		{Ex: ident.NotILike(pattern), Expected: exp.NewBooleanExpression(exp.NotILikeOp, ident, pattern)},
 		{Ex: ident.RegexpLike(pattern), Expected: exp.NewBooleanExpression(exp.RegexpLikeOp, ident, pattern)},
+		{Ex: ident.RegexpLike(re), Expected: exp.NewBooleanExpression(exp.RegexpLikeOp, ident, re.String())},
+		{Ex: ident.RegexpNotLike(re), Expected: exp.NewBooleanExpression(exp.RegexpNotLikeOp, ident, re.String())},
 		{Ex: ident.RegexpNotLike(pattern), Expected: exp.NewBooleanExpression(exp.RegexpNotLikeOp, ident, pattern)},
 		{Ex: ident.RegexpILike(pattern), Expected: exp.NewBooleanExpression(exp.RegexpILikeOp, ident, pattern)},
 		{Ex: ident.RegexpNotILike(pattern), Expected: exp.NewBooleanExpression(exp.RegexpNotILikeOp, ident, pattern)},
