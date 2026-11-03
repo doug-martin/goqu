@@ -2,6 +2,7 @@ package util_test
 
 import (
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -1343,4 +1344,34 @@ func (rt *reflectTest) TestAppendSliceElement() {
 
 func TestReflectSuite(t *testing.T) {
 	suite.Run(t, new(reflectTest))
+}
+
+func (rt *reflectTest) TestInterfaceScanTarget() {
+	type inner struct{ V sql.Scanner }
+	type outer struct {
+		*inner
+		Scan sql.Scanner
+	}
+	ns := &sql.NullString{}
+
+	target, ok := util.InterfaceScanTarget(&outer{Scan: ns}, []int{1})
+	rt.True(ok)
+	rt.Same(ns, target)
+
+	_, ok = util.InterfaceScanTarget(&outer{}, []int{1})
+	rt.False(ok, "nil interface")
+	_, ok = util.InterfaceScanTarget(&outer{Scan: (*sql.NullString)(nil)}, []int{1})
+	rt.False(ok, "nil pointer")
+	_, ok = util.InterfaceScanTarget(&outer{}, []int{0, 0})
+	rt.False(ok, "nil embedded pointer")
+	target, ok = util.InterfaceScanTarget(&outer{inner: &inner{V: ns}}, []int{0, 0})
+	rt.True(ok)
+	rt.Same(ns, target)
+}
+
+func (rt *reflectTest) TestIsScannerInterface() {
+	rt.True(util.IsScannerInterface(reflect.TypeOf((*sql.Scanner)(nil)).Elem()))
+	rt.False(util.IsScannerInterface(reflect.TypeOf((*interface{})(nil)).Elem()))
+	rt.False(util.IsScannerInterface(reflect.TypeOf((*fmt.Stringer)(nil)).Elem()))
+	rt.False(util.IsScannerInterface(reflect.TypeOf(sql.NullString{})))
 }

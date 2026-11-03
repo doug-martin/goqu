@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FIX] `ScanStruct` can scan into struct fields of an interface type such as `sql.Scanner` when the field already holds a pointer to a concrete value ([#399](https://github.com/doug-martin/goqu/pull/399) - [@arkamar](https://github.com/arkamar))
 * [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed slice fast paths, and pre-sized buffers (based on [#444](https://github.com/doug-martin/goqu/pull/444))
 * [FIX] Generate SQL for `json.RawMessage` values (and pointers to byte slices) like `[]byte` instead of a list of numbers, do not turn `Eq`/`Neq` on them into `IN`, treat single `[]byte`/`json.RawMessage` arguments to `In`/`NotIn` as one value, and write a nil `json.RawMessage` as `NULL` (comparing it with `Eq`/`Neq` becomes `IS NULL`/`IS NOT NULL`) ([#351](https://github.com/doug-martin/goqu/pull/351), fixes [#350](https://github.com/doug-martin/goqu/issues/350))
 
