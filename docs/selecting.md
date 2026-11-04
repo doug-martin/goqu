@@ -508,6 +508,8 @@ SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
 
 Adds a join clause for syntax goqu does not model, such as ClickHouse's `ARRAY JOIN`. The expression is written exactly as given, so you are responsible for generating valid SQL for your database.
 
+**NOTE** The expression must contain the whole join text including the join keyword (`goqu.T("foo")` would be written as an alias, not a join). It is not validated or escaped, so never build it from untrusted input; use placeholders for values, e.g. `goqu.L("ARRAY JOIN ?", goqu.I("tags"))`. A dialect that builds its own `JoinTypeLookup` from scratch (instead of starting from `DefaultDialectOptions()`) must add `exp.CustomJoinType` to it, otherwise `CustomJoin` returns an error.
+
 ```go
 sql, _, _ := goqu.From("test").
 	CustomJoin(goqu.L("ARRAY JOIN tags").As("tag")).

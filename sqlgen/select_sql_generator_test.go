@@ -650,3 +650,18 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 func TestSelectSQLGenerator(t *testing.T) {
 	suite.Run(t, new(selectSQLGeneratorSuite))
 }
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_customJoinNeedsLookupEntry() {
+	// dialects that build their own JoinTypeLookup without exp.CustomJoinType cannot use CustomJoin
+	opts := sqlgen.DefaultDialectOptions()
+	opts.JoinTypeLookup = map[exp.JoinType][]byte{exp.LeftJoinType: []byte(" left join ")}
+	sc := exp.NewSelectClauses().
+		SetFrom(exp.NewColumnListExpression("test")).
+		JoinsAppend(exp.NewUnConditionedJoinExpression(exp.CustomJoinType, goqu.L("ARRAY JOIN tags")))
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", opts),
+		selectTestCase{clause: sc, err: "goqu: dialect does not support CustomJoinType"},
+		selectTestCase{clause: sc, err: "goqu: dialect does not support CustomJoinType", isPrepared: true},
+	)
+}

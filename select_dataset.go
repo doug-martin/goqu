@@ -348,7 +348,11 @@ func (sd *SelectDataset) CrossJoin(table exp.Expression) *SelectDataset {
 	return sd.joinTable(exp.NewUnConditionedJoinExpression(exp.CrossJoinType, table))
 }
 
-// Adds a custom join clause. See examples
+// CustomJoin adds a join clause for syntax goqu does not model, such as ClickHouse's ARRAY JOIN. The expression is
+// written exactly as given and must contain the whole join text including the join keyword (goqu.T("foo") would be
+// written as an alias, not a join). It is not validated or escaped: never build it from untrusted input, and use
+// placeholders (e.g. goqu.L("ARRAY JOIN ?", ...)) for values. Dialects built from scratch (without
+// DefaultDialectOptions) must add exp.CustomJoinType to JoinTypeLookup. See examples
 func (sd *SelectDataset) CustomJoin(expression exp.Expression) *SelectDataset {
 	return sd.joinTable(exp.NewUnConditionedJoinExpression(exp.CustomJoinType, expression))
 }
