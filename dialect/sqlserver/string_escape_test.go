@@ -19,3 +19,18 @@ func TestStringLiteralsAreNotBackslashEscaped(t *testing.T) {
 	require.Empty(t, args)
 	require.Equal(t, "INSERT INTO \"t\" (\"m\") VALUES ('{\"a\":\"it''s\",\"b\":\"c:\\dir\"}\n')", sql)
 }
+
+func TestStringLiteralsCannotBeBrokenOutOf(t *testing.T) {
+	t.Parallel()
+
+	for in, want := range map[string]string{
+		"' OR 1=1 --":          "SELECT ''' OR 1=1 --'",
+		`\'; DROP TABLE t; --`: `SELECT '\''; DROP TABLE t; --'`,
+		"''":                   "SELECT ''''''",
+	} {
+		sql, args, err := goqu.Dialect("sqlserver").Select(goqu.L("?", in)).ToSQL()
+		require.NoError(t, err)
+		require.Empty(t, args)
+		require.Equal(t, want, sql)
+	}
+}
