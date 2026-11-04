@@ -23,7 +23,6 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsDistinctOn = false
 	opts.SupportsWindowFunction = false
 	opts.SupportsLateral = false
-	opts.SupportsQualify = false
 
 	// SQLite has no TRUNCATE statement; DELETE without a WHERE clause empties the table.
 	// CASCADE and RESTRICT have no meaning for DELETE, so they are dropped.

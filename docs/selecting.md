@@ -702,17 +702,28 @@ SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 <a name="qualify"></a>
 **[`Qualify`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Qualify)**
 
+`QUALIFY` filters rows on the result of window functions (Teradata, Snowflake, BigQuery and others).
+
+**NOTE** None of the built in dialects support `QUALIFY`; generating SQL with a `Qualify` returns an error. Register a dialect with `SupportsQualify` set to `true` to use it.
+
 ```go
-sql, _, _ = goqu.From("test").GroupBy("age").Qualify(goqu.SUM("income").Gt(1000)).ToSQL()
+opts := goqu.DefaultDialectOptions()
+opts.SupportsQualify = true
+goqu.RegisterDialect("qualify", opts)
+
+dialect := goqu.Dialect("qualify")
+sql, _, _ := dialect.From("test").
+	Select("a", goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.C("b").Asc())).As("rn")).
+	Qualify(goqu.C("rn").Eq(1)).
+	ToSQL()
 fmt.Println(sql)
 ```
 
 Output:
 
 ```
-SELECT * FROM "test" GROUP BY "age" Qualify (SUM("income") > 1000)
+SELECT "a", ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) AS "rn" FROM "test" QUALIFY ("rn" = 1)
 ```
-
 
 <a name="with"></a>
 **[`With`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.With)**

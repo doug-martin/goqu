@@ -41,7 +41,8 @@ type (
 		SupportsDistinctOn bool
 		// Set to true if LATERAL queries are supported (DEFAULT=true)
 		SupportsLateral bool
-		// Set to true if the dialect supports QUALIFY expressions (DEFAULT=false)
+		// Set to true if the dialect supports QUALIFY expressions, e.g. Teradata, Snowflake, BigQuery (DEFAULT=false).
+		// None of the built in dialects enable it: register your own dialect with it set to true.
 		SupportsQualify bool
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
@@ -351,7 +352,6 @@ const (
 	WhereSQLFragment
 	GroupBySQLFragment
 	HavingSQLFragment
-	QualifySQLFragment
 	CompoundsSQLFragment
 	OrderSQLFragment
 	OrderWithOffsetFetchSQLFragment
@@ -369,6 +369,8 @@ const (
 	DeleteBeginSQLFragment
 	TruncateSQLFragment
 	WindowSQLFragment
+	// New fragment types are appended here so the values of the existing ones do not change.
+	QualifySQLFragment
 )
 
 //nolint:gocyclo // simple type to string conversion

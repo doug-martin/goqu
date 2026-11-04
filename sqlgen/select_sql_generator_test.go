@@ -644,3 +644,55 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 func TestSelectSQLGenerator(t *testing.T) {
 	suite.Run(t, new(selectSQLGeneratorSuite))
 }
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withQualify() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsQualify = true
+	opts.QualifyFragment = []byte(" qualify ")
+
+	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test"))
+	w := exp.Ex{"a": "b"}
+	w2 := exp.Ex{"b": "c"}
+	scQualify1 := sc.QualifyAppend(w)
+	scQualify2 := sc.QualifyAppend(w, w2)
+	scAfterHaving := sc.HavingAppend(w).QualifyAppend(w2).SetOrder(exp.NewIdentifierExpression("", "", "a").Asc())
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", opts),
+		selectTestCase{clause: scQualify1, sql: `SELECT * FROM "test" qualify ("a" = 'b')`},
+		selectTestCase{
+			clause:     scQualify1,
+			sql:        `SELECT * FROM "test" qualify ("a" = ?)`,
+			isPrepared: true,
+			args:       []interface{}{"b"},
+		},
+		selectTestCase{clause: scQualify2, sql: `SELECT * FROM "test" qualify (("a" = 'b') AND ("b" = 'c'))`},
+		selectTestCase{
+			clause:     scQualify2,
+			sql:        `SELECT * FROM "test" qualify (("a" = ?) AND ("b" = ?))`,
+			isPrepared: true,
+			args:       []interface{}{"b", "c"},
+		},
+		// QUALIFY goes after HAVING and before ORDER BY
+		selectTestCase{
+			clause: scAfterHaving,
+			sql:    `SELECT * FROM "test" HAVING ("a" = 'b') qualify ("b" = 'c') ORDER BY "a" ASC`,
+		},
+		// an empty QUALIFY writes nothing
+		selectTestCase{clause: sc.QualifyAppend(), sql: `SELECT * FROM "test"`},
+	)
+}
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withQualifyNotSupported() {
+	opts := sqlgen.DefaultDialectOptions()
+	sc := exp.NewSelectClauses().
+		SetFrom(exp.NewColumnListExpression("test")).
+		QualifyAppend(exp.Ex{"a": "b"})
+	expectedErr := "goqu: dialect does not support QUALIFY clause [dialect=test]"
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", opts),
+		selectTestCase{clause: sc, err: expectedErr},
+		selectTestCase{clause: sc, err: expectedErr, isPrepared: true},
+	)
+}
