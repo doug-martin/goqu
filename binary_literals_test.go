@@ -1,6 +1,7 @@
 package goqu_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/doug-martin/goqu/v9"
@@ -56,4 +57,48 @@ func TestPreparedBinaryDataUnchanged(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `INSERT INTO "t" ("b") VALUES ($1)`, sql)
 	require.Equal(t, []any{binary}, args)
+}
+
+func TestInterpolatedBinaryDataWithNUL(t *testing.T) {
+	t.Parallel()
+
+	nul := string([]byte{'a', 0, 'b'})
+	for dialect, want := range map[string]string{
+		"postgres":  "SELECT decode('610062', 'hex')",
+		"sqlserver": "SELECT 0x610062",
+		// mysql and sqlite3 accept NUL in text literals and keep writing them inline
+		"mysql":   "SELECT 'a\\x00b'",
+		"sqlite3": "SELECT 'a\x00b'",
+	} {
+		sql, _, err := goqu.Dialect(dialect).Select(goqu.L("?", []byte(nul))).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, want, sql, dialect)
+	}
+}
+
+func TestInterpolatedBinaryDataLong(t *testing.T) {
+	t.Parallel()
+
+	// longer than the internal hex chunk so that chunking is exercised
+	data := make([]byte, 300)
+	want := make([]byte, 0, len(data)*2)
+	for i := range data {
+		data[i] = byte(0x80 + i%0x7f) // never valid UTF-8 on its own
+		want = append(want, fmt.Sprintf("%02x", data[i])...)
+	}
+	sql, _, err := goqu.Dialect("sqlserver").Select(goqu.L("?", data)).ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, "SELECT 0x"+string(want), sql)
+}
+
+func TestInterpolatedBinaryDataCustomDialectWithoutBinaryOptions(t *testing.T) {
+	t.Parallel()
+
+	opts := goqu.DefaultDialectOptions()
+	opts.BinaryLiteralPrefix, opts.BinaryLiteralSuffix = nil, nil
+	goqu.RegisterDialect("binary-test-no-options", opts)
+
+	sql, _, err := goqu.Dialect("binary-test-no-options").Select(goqu.L("?", []byte{0xff})).ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, "SELECT X'ff'", sql)
 }

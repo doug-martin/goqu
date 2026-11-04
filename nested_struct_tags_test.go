@@ -36,3 +36,28 @@ func TestNestedStructSkipTags(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `UPDATE "foo" SET "a"='a',"e"='',"keep"."b"='4',"skip_ins"."b"='2'`, updateSQL)
 }
+
+func TestNestedStructSkipTagsPointerAndEmbeddedPointer(t *testing.T) {
+	t.Parallel()
+
+	type inner struct {
+		I string `db:"i"`
+	}
+	type base struct {
+		B string `db:"b"`
+	}
+	type row struct {
+		A     string `db:"a"`
+		Ptr   *inner `db:"ptr" goqu:"skipinsert"`
+		*base `goqu:"skipupdate"`
+	}
+	r := row{A: "a", Ptr: &inner{I: "i"}, base: &base{B: "b"}}
+
+	insertSQL, _, err := goqu.Insert("t").Rows(r).ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, `INSERT INTO "t" ("a", "b") VALUES ('a', 'b')`, insertSQL)
+
+	updateSQL, _, err := goqu.Update("t").Set(r).ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, `UPDATE "t" SET "a"='a',"ptr"."i"='i'`, updateSQL)
+}

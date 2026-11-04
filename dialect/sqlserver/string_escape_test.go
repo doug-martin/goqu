@@ -34,3 +34,22 @@ func TestStringLiteralsCannotBeBrokenOutOf(t *testing.T) {
 		require.Equal(t, want, sql)
 	}
 }
+
+func TestUnicodeStringLiteralsGetNPrefix(t *testing.T) {
+	t.Parallel()
+
+	ds := goqu.Dialect("sqlserver")
+	for in, want := range map[string]string{
+		"plain":    "SELECT 'plain'",
+		"héllo":    "SELECT N'héllo'",
+		"日本語 it's": "SELECT N'日本語 it''s'",
+	} {
+		sql, _, err := ds.Select(goqu.L("?", in)).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, want, sql)
+
+		sql, _, err = ds.Select(goqu.L("?", []byte(in))).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, want, sql)
+	}
+}

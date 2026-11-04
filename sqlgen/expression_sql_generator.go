@@ -1,6 +1,7 @@
 package sqlgen
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
@@ -34,6 +35,11 @@ type (
 )
 
 // replacementByte is replacementRune as a byte so placeholders can be found bytewise in valid UTF-8 text.
+var (
+	defaultBinaryLiteralPrefix = []byte("X'")
+	defaultBinaryLiteralSuffix = []byte("'")
+)
+
 const (
 	replacementByte byte = '?'
 	// quoteOverhead is the room reserved for the surrounding quotes of a string/bytes literal.
@@ -332,11 +338,13 @@ func (esg *expressionSQLGenerator) appendableExpressionSQL(b sb.SQLBuilder, a ex
 // writeEscapedIdentifier writes an identifier part, doubling any embedded quote characters so that
 // e.g. a"b is written as a""b between double quotes.
 func (esg *expressionSQLGenerator) writeEscapedIdentifier(b sb.SQLBuilder, s string) {
-	quote := string(esg.dialectOptions.QuoteRune)
-	if !strings.Contains(s, quote) {
+	q := esg.dialectOptions.QuoteRune
+	i := strings.IndexRune(s, q)
+	if i < 0 {
 		b.WriteStrings(s)
 		return
 	}
+	quote := string(q)
 	b.WriteStrings(strings.ReplaceAll(s, quote, quote+quote))
 }
 
@@ -463,6 +471,9 @@ func (esg *expressionSQLGenerator) literalString(b sb.SQLBuilder, s string) {
 		return
 	}
 	b.GrowBuffer(len(s) + quoteOverhead)
+	if hasNonASCII(s) {
+		b.Write(esg.dialectOptions.UnicodeStringPrefix)
+	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 	for _, char := range s {
 		if e, ok := esg.dialectOptions.EscapedRunes[char]; ok {
@@ -474,17 +485,30 @@ func (esg *expressionSQLGenerator) literalString(b sb.SQLBuilder, s string) {
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 }
 
+// hasNonASCII returns true if the string contains a byte outside of the ASCII range.
+func hasNonASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			return true
+		}
+	}
+	return false
+}
+
 // Generates SQL for a slice of bytes
 func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 	if b.IsPrepared() {
 		esg.placeHolderSQL(b, bs)
 		return
 	}
-	if isBinary(bs) {
+	if esg.isBinary(bs) {
 		esg.literalBinary(b, bs)
 		return
 	}
 	b.GrowBuffer(len(bs) + quoteOverhead)
+	if hasNonASCII(string(bs)) {
+		b.Write(esg.dialectOptions.UnicodeStringPrefix)
+	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 	i := 0
 	for len(bs) > 0 {
@@ -501,21 +525,42 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 }
 
 // isBinary returns true if the bytes cannot be written as a text literal without losing data, i.e. they are not
-// valid UTF-8.
-func isBinary(bs []byte) bool {
-	return !utf8.Valid(bs)
+// valid UTF-8 or contain one of the bytes in BinaryLiteralBytes (e.g. NUL, which postgres does not allow in text).
+func (esg *expressionSQLGenerator) isBinary(bs []byte) bool {
+	if !utf8.Valid(bs) {
+		return true
+	}
+	for _, c := range esg.dialectOptions.BinaryLiteralBytes {
+		if bytes.IndexByte(bs, c) >= 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Generates SQL for binary data as a hex literal, e.g. X'00ff' (see BinaryLiteralPrefix and BinaryLiteralSuffix)
 func (esg *expressionSQLGenerator) literalBinary(b sb.SQLBuilder, bs []byte) {
-	const hexDigits = "0123456789abcdef"
-	b.GrowBuffer(len(bs)*2 + quoteOverhead + len(esg.dialectOptions.BinaryLiteralPrefix) +
-		len(esg.dialectOptions.BinaryLiteralSuffix))
-	b.Write(esg.dialectOptions.BinaryLiteralPrefix)
-	for _, c := range bs {
-		b.WriteRunes(rune(hexDigits[c>>4]), rune(hexDigits[c&0x0f]))
+	const (
+		hexDigits = "0123456789abcdef"
+		chunk     = 64
+	)
+	prefix, suffix := esg.dialectOptions.BinaryLiteralPrefix, esg.dialectOptions.BinaryLiteralSuffix
+	if len(prefix) == 0 && len(suffix) == 0 {
+		// A dialect that was not built from DefaultDialectOptions would otherwise write bare, unquoted hex digits.
+		prefix, suffix = defaultBinaryLiteralPrefix, defaultBinaryLiteralSuffix
 	}
-	b.Write(esg.dialectOptions.BinaryLiteralSuffix)
+	b.GrowBuffer(len(bs)*2 + len(prefix) + len(suffix))
+	b.Write(prefix)
+	var buf [chunk * 2]byte
+	for len(bs) > 0 {
+		n := min(len(bs), chunk)
+		for i, c := range bs[:n] {
+			buf[i*2], buf[i*2+1] = hexDigits[c>>4], hexDigits[c&0x0f]
+		}
+		b.Write(buf[:n*2])
+		bs = bs[n:]
+	}
+	b.Write(suffix)
 }
 
 // Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)
