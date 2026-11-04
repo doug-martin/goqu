@@ -1117,6 +1117,11 @@ if !found {
 
 **NOTE** When calling `ScanStruct` without a select already defined it will automatically only `SELECT` the columns found in the struct, omitting any that are tagged with `db:"-"`
 
+**NOTE** The columns and the struct have to line up in both directions:
+
+* If a struct field has no matching column in the database, the query fails (for example `Unknown column 'otp_enabled'`). There is no tag to make a field optional. Use a struct without the field, or select the columns explicitly with `Select(...)`.
+* If your query returns extra columns that are not in the struct (for example `SELECT *, (SELECT COUNT(*) FROM t) AS total_count`), scanning into that struct fails because the column has nowhere to go. Either leave the extra column out of the query, or scan it separately with [`ScanVal`](#scan-val), or scan into a struct that contains it.
+
  ```go
 type Role struct {
 	UserID uint64 `db:"user_id"`

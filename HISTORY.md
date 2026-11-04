@@ -1,5 +1,6 @@
 # Unreleased
 
+* [DOCS] Document batching large inserts, scanned time locations, struct/column matching for `ScanStruct` and a custom dialect without `AS` [#305](https://github.com/doug-martin/goqu/issues/305), [#346](https://github.com/doug-martin/goqu/issues/346), [#355](https://github.com/doug-martin/goqu/issues/355), [#374](https://github.com/doug-martin/goqu/issues/374), [#426](https://github.com/doug-martin/goqu/issues/426)
 * [DOCS] Add a struct tags reference, document Postgres operators containing `?`, fix broken links in the dialect docs and the update docs examples [#232](https://github.com/doug-martin/goqu/issues/232), [#283](https://github.com/doug-martin/goqu/issues/283), [#323](https://github.com/doug-martin/goqu/issues/323), [#368](https://github.com/doug-martin/goqu/issues/368), [#439](https://github.com/doug-martin/goqu/issues/439)
 
 # v9.23.0
