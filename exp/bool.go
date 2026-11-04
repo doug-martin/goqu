@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"reflect"
 	"regexp"
-
-	"github.com/doug-martin/goqu/v9/internal/util"
 )
 
 type boolean struct {
@@ -181,7 +179,7 @@ func isBytesValue(v any) bool {
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
 	if isNullValue(rhs) {
-		// Normalize typed nulls (nil pointers, slices and maps, null driver.Valuers such as sql.NullInt32{}) to an untyped nil so
+		// Normalize typed nulls (nil pointers, nil []byte, null driver.Valuers such as sql.NullInt32{}) to an untyped nil so
 		// "a" = NULL (which never matches) becomes "a" IS NULL.
 		rhs = nil
 		op = IsOp
@@ -218,7 +216,11 @@ func isNullValue(val interface{}) bool {
 	if val == nil {
 		return true
 	}
-	if util.IsNil(reflect.ValueOf(val)) {
+	rv := reflect.ValueOf(val)
+	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return true
+	}
+	if b, ok := val.([]byte); ok && b == nil {
 		return true
 	}
 	// an unset json.RawMessage is written as NULL

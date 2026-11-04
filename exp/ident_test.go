@@ -27,15 +27,17 @@ func (ies *identifierExpressionSuite) TestEqWithTypedNulls() {
 	ies.Equal(isNull, ident.Eq(nilString))
 	ies.Equal(isNull, ident.Eq(sql.NullInt32{}))
 	ies.Equal(isNull, ident.Eq(sql.NullString{}))
-	ies.Equal(isNull, ident.Eq([]int(nil)))
-	ies.Equal(isNull, ident.Eq(map[string]int(nil)))
 	ies.Equal(isNull, ident.Eq([]byte(nil)))
-	ies.Equal(isNotNull, ident.Neq([]string(nil)))
+	ies.Equal(isNotNull, ident.Neq([]byte(nil)))
 	ies.Equal(isNull, ident.Is(nilInt))
 	ies.Equal(isNotNull, ident.Neq(nil))
 	ies.Equal(isNotNull, ident.Neq(nilInt))
 	ies.Equal(isNotNull, ident.Neq(sql.NullInt32{}))
 	ies.Equal(isNotNull, ident.IsNot(sql.NullInt64{}))
+
+	// a nil list stays a membership test so an empty filter cannot widen to NULL rows
+	ies.Equal(exp.NewBooleanExpression(exp.InOp, ident, []int(nil)), ident.Eq([]int(nil)))
+	ies.Equal(exp.NewBooleanExpression(exp.NotInOp, ident, []int(nil)), ident.Neq([]int(nil)))
 
 	// values that are not NULL keep their normal comparison
 	ies.Equal(exp.NewBooleanExpression(exp.EqOp, ident, &val), ident.Eq(&val))
