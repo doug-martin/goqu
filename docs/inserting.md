@@ -415,7 +415,7 @@ ignoring the target.
 ```go
 sql, _, _ := goqu.Insert("test").
 	Rows(goqu.Record{"a": "a", "b": "b"}).
-	OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a", "b"))).
+	OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression(nil, "db", "a", "b"))).
 	ToSQL()
 fmt.Println(sql)
 ```

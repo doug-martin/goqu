@@ -68,6 +68,36 @@ func (sds *duckdbDialectSuite) TestUpdateSQL_multipleTables() {
 	)
 }
 
+func (sds *duckdbDialectSuite) TestInsertOnConflict() {
+	ds := goqu.Dialect("duckdb").Insert("test").Rows(goqu.Record{"a": "a"})
+	doNothing := ds.OnConflict(goqu.DoNothing())
+	doNothingTarget := ds.OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression(nil, "db", "a")))
+	doUpdate := ds.OnConflict(goqu.DoUpdate("a", goqu.Record{"a": "b"}))
+	sds.assertSQL(
+		sqlTestCase{ds: doNothing, sql: "INSERT OR IGNORE INTO  `test` (`a`) VALUES ('a') ON CONFLICT  DO NOTHING "},
+		sqlTestCase{
+			ds:         doNothing.Prepared(true),
+			sql:        "INSERT OR IGNORE INTO  `test` (`a`) VALUES (?) ON CONFLICT  DO NOTHING ",
+			isPrepared: true,
+			args:       []interface{}{"a"},
+		},
+		sqlTestCase{ds: doNothingTarget, sql: "INSERT INTO `test` (`a`) VALUES ('a') ON CONFLICT  (`a`) DO NOTHING "},
+		sqlTestCase{
+			ds:         doNothingTarget.Prepared(true),
+			sql:        "INSERT INTO `test` (`a`) VALUES (?) ON CONFLICT  (`a`) DO NOTHING ",
+			isPrepared: true,
+			args:       []interface{}{"a"},
+		},
+		sqlTestCase{ds: doUpdate, sql: "INSERT INTO `test` (`a`) VALUES ('a') ON CONFLICT  (a) DO UPDATE SET `a`='b'"},
+		sqlTestCase{
+			ds:         doUpdate.Prepared(true),
+			sql:        "INSERT INTO `test` (`a`) VALUES (?) ON CONFLICT  (a) DO UPDATE SET `a`=?",
+			isPrepared: true,
+			args:       []interface{}{"a", "b"},
+		},
+	)
+}
+
 func (sds *duckdbDialectSuite) TestCompoundExpressions() {
 	ds1 := sds.GetDs("test").Select("a")
 	ds2 := sds.GetDs("test2").Select("b")

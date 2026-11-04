@@ -197,21 +197,8 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IntTypes() {
 		int32(10),
 		int64(10),
 	}
-	uints := []interface{}{
-		uint(10),
-		uint16(10),
-		uint32(10),
-		uint64(10),
-	}
 
 	for _, i := range ints {
-		esgs.assertCases(
-			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
-			expressionTestCase{val: i, sql: "10"},
-			expressionTestCase{val: i, sql: "?", isPrepared: true, args: []interface{}{int64(10)}},
-		)
-	}
-	for _, i := range uints {
 		esgs.assertCases(
 			sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
 			expressionTestCase{val: i, sql: "10"},

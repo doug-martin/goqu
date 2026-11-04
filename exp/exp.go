@@ -670,13 +670,6 @@ const (
 	ArithmeticDivOp
 )
 
-const (
-	FunctionNameGreatest = "FunGreatest"
-	FunctionNameLeast    = "FunLeast"
-	FunctionNameUpper    = "FunUpper"
-	FunctionNameLower    = "FunLower"
-)
-
 // StraightJoinType is the STRAIGHT_JOIN join type (MySQL only).
 //
 // It is intentionally declared outside the iota block above: that block is a single iota sequence shared by all of the
@@ -688,6 +681,13 @@ const StraightJoinType = CrossJoinType + 1
 // CustomJoinType is a join whose text is entirely provided by the user (e.g. ClickHouse's ARRAY JOIN). It is declared
 // outside the iota block for the same reason as StraightJoinType.
 const CustomJoinType = CrossJoinType + 2
+
+const (
+	FunctionNameGreatest = "FunGreatest"
+	FunctionNameLeast    = "FunLeast"
+	FunctionNameUpper    = "FunUpper"
+	FunctionNameLower    = "FunLower"
+)
 
 var (
 	ConditionedJoinTypes = map[JoinType]bool{
