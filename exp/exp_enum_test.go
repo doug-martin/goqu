@@ -26,3 +26,10 @@ func TestStraightJoinType(t *testing.T) {
 	assert.Equal(t, "StraightJoinType", exp.StraightJoinType.String())
 	assert.True(t, exp.ConditionedJoinTypes[exp.StraightJoinType])
 }
+
+func TestCustomJoinType(t *testing.T) {
+	assert.Equal(t, exp.CrossJoinType+2, exp.CustomJoinType)
+	assert.NotEqual(t, exp.StraightJoinType, exp.CustomJoinType)
+	assert.Equal(t, "CustomJoinType", exp.CustomJoinType.String())
+	assert.False(t, exp.ConditionedJoinTypes[exp.CustomJoinType])
+}

@@ -625,6 +625,20 @@ func (sds *selectDatasetSuite) TestCrossJoin() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestCustomJoin() {
+	bd := goqu.From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.CustomJoin(goqu.L("ARRAY JOIN tags").As("tag")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				JoinsAppend(
+					exp.NewUnConditionedJoinExpression(exp.CustomJoinType, goqu.L("ARRAY JOIN tags").As("tag")),
+				),
+		},
+	)
+}
+
 func (sds *selectDatasetSuite) TestStraightJoin() {
 	bd := goqu.From("test")
 	sds.assertCases(
