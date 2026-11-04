@@ -206,7 +206,9 @@ func (dd *DeleteDataset) SetError(err error) *DeleteDataset {
 // Errors:
 //   - There is an error generating the SQL
 func (dd *DeleteDataset) ToSQL() (sql string, params []interface{}, err error) {
-	return dd.deleteSQLBuilder().ToSQL()
+	builder := dd.deleteSQLBuilder()
+	defer sb.ReleaseSQLBuilder(builder)
+	return builder.ToSQL()
 }
 
 // Appends this Dataset's DELETE statement to the SQLBuilder

@@ -27,7 +27,7 @@ func (csgs *commonSQLGeneratorSuite) assertCases(testCases ...commonSQLTestCase)
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		tc.gen(b)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			csgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			csgs.assertPreparedSQL(b, tc.sql, tc.args)
@@ -76,6 +76,48 @@ func (csgs *commonSQLGeneratorSuite) TestReturningSQL() {
 
 		commonSQLTestCase{gen: returningGen(csgs2), err: `goqu: dialect does not support RETURNING clause [dialect=test]`},
 		commonSQLTestCase{gen: returningGen(csgs2), err: `goqu: dialect does not support RETURNING clause [dialect=test]`},
+	)
+}
+
+func (csgs *commonSQLGeneratorSuite) TestConflictTargetSQL() {
+	conflictTargetGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
+		return func(sb sb.SQLBuilder) {
+			csgs.ConflictTargetSQL(sb, exp.NewColumnListExpression("a", "b"))
+		}
+	}
+
+	conflictTargetNoColsGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
+		return func(sb sb.SQLBuilder) {
+			csgs.ConflictTargetSQL(sb, exp.NewColumnListExpression())
+		}
+	}
+
+	conflictTargetNilExpGen := func(csgs sqlgen.CommonSQLGenerator) func(sb.SQLBuilder) {
+		return func(sb sb.SQLBuilder) {
+			csgs.ConflictTargetSQL(sb, nil)
+		}
+	}
+
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsConflictTarget = true
+	csgs1 := sqlgen.NewCommonSQLGenerator("test", opts)
+
+	opts2 := sqlgen.DefaultDialectOptions()
+	opts2.SupportsConflictTarget = false
+	csgs2 := sqlgen.NewCommonSQLGenerator("test", opts2)
+
+	csgs.assertCases(
+		commonSQLTestCase{gen: conflictTargetGen(csgs1), sql: ` ("a", "b")`},
+		commonSQLTestCase{gen: conflictTargetGen(csgs1), sql: ` ("a", "b")`, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: conflictTargetNoColsGen(csgs1), sql: ``},
+		commonSQLTestCase{gen: conflictTargetNoColsGen(csgs1), sql: ``, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: conflictTargetNilExpGen(csgs1), sql: ``},
+		commonSQLTestCase{gen: conflictTargetNilExpGen(csgs1), sql: ``, isPrepared: true, args: emptyArgs},
+
+		commonSQLTestCase{gen: conflictTargetGen(csgs2), err: `goqu: dialect does not support Conflict Target clause [dialect=test]`},
+		commonSQLTestCase{gen: conflictTargetGen(csgs2), err: `goqu: dialect does not support Conflict Target clause [dialect=test]`},
 	)
 }
 

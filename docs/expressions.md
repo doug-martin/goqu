@@ -12,6 +12,8 @@
 * [`V`](#V) - An Value to be used in SQL. 
 * [`And`](#and) - AND multiple expressions together.
 * [`Or`](#or) - OR multiple expressions together.
+* [`Collate`](#collate) - Applies a collation to an expression.
+* [`Exists`](#exists) - An `EXISTS` condition for a subquery.
 * [Complex Example](#complex) - Complex Example using most of the Expression DSL.
 
 The entry points for expressions are:
@@ -361,6 +363,62 @@ Output:
 SELECT * FROM "test" WHERE ((("col1" = 1) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = 'foo'))) []
 SELECT * FROM "test" WHERE ((("col1" = ?) AND ("col2" IS TRUE)) OR (("col3" IS NULL) AND ("col4" = ?))) [1 foo]
 ```
+
+<a name="collate"></a>
+**[`Collate()`](https://godoc.org/github.com/doug-martin/goqu#Collate)**
+
+You can use the `Collate` function (or the `Collate` method on identifiers) to apply a collation to an expression. It can be used anywhere the underlying expression can, e.g. `ORDER BY`, comparisons, `GROUP BY`.
+
+```go
+ds := goqu.From("Locations").
+  Select(goqu.I("Place")).
+  Where(goqu.I("Place").Collate("Latin1_General_CS_AS").Eq("Paris")).
+  Order(goqu.I("Place").Collate("Latin1_General_CS_AS_KS_WS").Asc())
+sql, args, _ := ds.ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```sql
+SELECT "Place" FROM "Locations" WHERE ("Place" COLLATE Latin1_General_CS_AS = 'Paris') ORDER BY "Place" COLLATE Latin1_General_CS_AS_KS_WS ASC []
+```
+
+The collation name is never a placeholder, so it is validated when the SQL is generated:
+
+* Postgres collation names are case sensitive and must be quoted, so the `postgres` dialect writes a string name quoted as a whole: `"a" COLLATE "en_US.utf8"`.
+* Other dialects write the name as is, so it must be a simple identifier, optionally qualified with up to two parts (`name`, `schema.name`): letters, digits and `_`, not starting with a digit. Anything else (for example a name containing spaces, quotes or `;`) results in an error rather than being written into the SQL.
+
+To use a schema qualified collation on Postgres pass an identifier, each part is quoted separately:
+
+```go
+goqu.I("a").Collate(goqu.I("pg_catalog.default")) // "a" COLLATE "pg_catalog"."default"
+```
+
+If you are using a custom dialect that is not based on `goqu.DefaultDialectOptions()` you must set the `CollateFragment` (e.g. `" COLLATE "`) dialect option, `QuoteCollation` controls the quoting.
+
+<a name="exists"></a>
+**[`Exists()`](https://godoc.org/github.com/doug-martin/goqu#Exists)**
+
+You can use the `Exists` function to create an `EXISTS` condition for a subquery.
+
+```go
+ds := goqu.From("test").Where(
+  goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})),
+)
+sql, args, _ := ds.ToSQL()
+fmt.Println(sql, args)
+
+sql, args, _ = ds.Prepared(true).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```sql
+SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
+SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id")) []
+```
+
+To check whether a dataset returns any rows, see [`Exists`](./selecting.md#exists) on the dataset.
 
 <a name="complex"></a>
 ## Complex Example

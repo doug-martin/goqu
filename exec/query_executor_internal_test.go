@@ -162,7 +162,7 @@ func (qes *queryExecutorSuite) TestScanStructs_withPointerFields() {
 
 func (qes *queryExecutorSuite) TestScanStructs_withPrivateFields() {
 	type StructWithPrivateTags struct {
-		private string //nolint:structcheck,unused // need for test
+		private string //nolint:unused // need for test
 		Address string `db:"address"`
 		Name    string `db:"name"`
 	}
@@ -1048,6 +1048,222 @@ func (qes *queryExecutorSuite) TestScanStruct_taggedStructs() {
 			Age:            testAge2,
 		},
 	}, item)
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_structWithInterfaceItemImplementingScanner() {
+	type TestStruct struct {
+		Value sql.Scanner
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).
+			AddRow(testName1),
+		)
+
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"value"}).
+			AddRow(1234),
+		)
+
+	e := newQueryExecutor(db, nil, `SELECT * FROM "items"`)
+	var item TestStruct
+	item.Value = &sql.NullString{}
+
+	found, err := e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{
+		Value: &sql.NullString{
+			String: testName1,
+			Valid:  true,
+		},
+	}, item)
+
+	item.Value = &sql.NullInt32{}
+	found, err = e.ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{
+		Value: &sql.NullInt32{
+			Int32: 1234,
+			Valid: true,
+		},
+	}, item)
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_interfaceFieldsDoNotLeakBetweenTypes() {
+	type TestStruct struct {
+		ID    int64
+		Value sql.Scanner `db:"val"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "val"}).AddRow(1, testName1))
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "val"}).AddRow(2, 42))
+
+	// the first struct holds a NullString, the second (same struct type, new query) a NullInt32
+	first := TestStruct{Value: &sql.NullString{}}
+	found, err := newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&first)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{ID: 1, Value: &sql.NullString{String: testName1, Valid: true}}, first)
+
+	second := TestStruct{Value: &sql.NullInt32{}}
+	found, err = newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&second)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{ID: 2, Value: &sql.NullInt32{Int32: 42, Valid: true}}, second)
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_interfaceFieldInEmbeddedStruct() {
+	type Inner struct {
+		Value sql.Scanner `db:"val"`
+	}
+	type TestStruct struct {
+		Inner
+		Name string
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"val", "name"}).AddRow(testName1, "n"))
+
+	item := TestStruct{Inner: Inner{Value: &sql.NullString{}}}
+	found, err := newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{
+		Inner: Inner{Value: &sql.NullString{String: testName1, Valid: true}},
+		Name:  "n",
+	}, item)
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_nilScannerInterfaceFieldIsAnError() {
+	type TestStruct struct {
+		Value sql.Scanner `db:"val"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"val"}).AddRow(testName1))
+
+	// there is nothing to scan into: this is the same error as before the field value was taken into account
+	var item TestStruct
+	_, err = newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&item)
+	qes.EqualError(err, `goqu: unable to scan column "val" into sql.Scanner field: `+
+		`it must hold a non-nil pointer to a value that implements sql.Scanner (ScanStructs cannot do this)`)
+}
+
+type valueReceiverScanner struct{}
+
+func (valueReceiverScanner) Scan(interface{}) error { return nil }
+
+func (qes *queryExecutorSuite) TestScanStruct_scannerInterfaceHoldingNonPointerIsAnError() {
+	type TestStruct struct {
+		Value sql.Scanner `db:"val"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"val"}).AddRow(testName1))
+
+	item := TestStruct{Value: valueReceiverScanner{}}
+	_, err = newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&item)
+	qes.Error(err)
+	qes.Contains(err.Error(), `unable to scan column "val"`)
+}
+
+func (qes *queryExecutorSuite) TestScanStructs_scannerInterfaceFieldIsAnError() {
+	type TestStruct struct {
+		Value sql.Scanner `db:"val"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"val"}).AddRow(testName1))
+
+	var items []TestStruct
+	err = newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStructs(&items)
+	qes.Error(err)
+	qes.Contains(err.Error(), "ScanStructs cannot do this")
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_interfaceFieldInNestedStruct() {
+	type Inner struct {
+		Value sql.Scanner `db:"val"`
+	}
+	type TestStruct struct {
+		Inner Inner `db:"inner"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"inner.val"}).AddRow(testName1))
+
+	item := TestStruct{Inner: Inner{Value: &sql.NullString{}}}
+	found, err := newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(&sql.NullString{String: testName1, Valid: true}, item.Inner.Value)
+}
+
+func (qes *queryExecutorSuite) TestScanner_scanStructIntoInterfaceFieldPerRow() {
+	type TestStruct struct {
+		Value sql.Scanner `db:"val"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"val"}).AddRow("a").AddRow("b"))
+	rows, err := db.QueryContext(context.Background(), `SELECT * FROM "items"`)
+	qes.NoError(err)
+	scanner := NewScanner(rows)
+	defer scanner.Close()
+
+	var items []TestStruct
+	for scanner.Next() {
+		// the scan target lives in the struct, so every row needs its own value
+		item := TestStruct{Value: &sql.NullString{}}
+		qes.NoError(scanner.ScanStruct(&item))
+		items = append(items, item)
+	}
+	qes.NoError(scanner.Err())
+	qes.Equal([]TestStruct{
+		{Value: &sql.NullString{String: "a", Valid: true}},
+		{Value: &sql.NullString{String: "b", Valid: true}},
+	}, items)
+}
+
+func (qes *queryExecutorSuite) TestScanStruct_emptyInterfaceFieldReceivesDriverValue() {
+	type TestStruct struct {
+		Value interface{} `db:"val"`
+	}
+
+	db, mock, err := sqlmock.New()
+	qes.NoError(err)
+	mock.ExpectQuery(`SELECT \* FROM "items"`).
+		WillReturnRows(sqlmock.NewRows([]string{"val"}).AddRow(testName1))
+
+	// unchanged behavior: an interface{} field is replaced by the value returned by the driver
+	item := TestStruct{Value: &sql.NullString{}}
+	found, err := newQueryExecutor(db, nil, `SELECT * FROM "items"`).ScanStruct(&item)
+	qes.NoError(err)
+	qes.True(found)
+	qes.Equal(TestStruct{Value: testName1}, item)
 }
 
 func (qes *queryExecutorSuite) TestScanVals() {

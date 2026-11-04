@@ -143,7 +143,7 @@ func (mt *mysqlTest) TestQuery() {
 	mt.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			mt.Equal(uint32(index+1), entry.ID)
+			mt.EqualValues(index+1, entry.ID)
 			mt.Equal(index, entry.Int)
 			mt.Equal(f, fmt.Sprintf("%f", entry.Float))
 			mt.Equal(f, entry.String)
@@ -180,7 +180,7 @@ func (mt *mysqlTest) TestQuery() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			mt.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			mt.Fail("Should not have returned any records")
 		}},
 	)
@@ -197,7 +197,7 @@ func (mt *mysqlTest) TestQuery_Prepared() {
 	mt.assertEntries(
 		entryTestCase{ds: ds.Order(goqu.C("id").Asc()), len: 10, check: func(entry entry, index int) {
 			f := fmt.Sprintf("%f", floatVal)
-			mt.Equal(uint32(index+1), entry.ID)
+			mt.EqualValues(index+1, entry.ID)
 			mt.Equal(index, entry.Int)
 			mt.Equal(f, fmt.Sprintf("%f", entry.Float))
 			mt.Equal(f, entry.String)
@@ -234,7 +234,7 @@ func (mt *mysqlTest) TestQuery_Prepared() {
 		entryTestCase{ds: ds.Where(goqu.C("string").NotLike("0.1%")).Order(goqu.C("id").Asc()), len: 9, check: func(entry entry, _ int) {
 			mt.NotEqual(entry.String, "0.100000")
 		}},
-		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(entry entry, _ int) {
+		entryTestCase{ds: ds.Where(goqu.C("string").IsNull()).Order(goqu.C("id").Asc()), len: 0, check: func(_ entry, _ int) {
 			mt.Fail("Should not have returned any records")
 		}},
 	)
@@ -256,6 +256,20 @@ func (mt *mysqlTest) TestQuery_ValueExpressions() {
 		entry{2, 1, 0.100000, "0.100000", expectedDate, false, []byte("0.100000")},
 		true,
 	}, we)
+}
+
+func (mt *mysqlTest) TestCollate() {
+	// a collation is applied to an expression: case sensitive and insensitive comparison of the same values
+	ds := mt.db.From("entry")
+	count, err := ds.Where(goqu.Collate(goqu.L("_utf8mb4'abc'"), "utf8mb4_bin").Eq("ABC")).Count()
+	mt.NoError(err)
+	mt.Equal(int64(0), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("_utf8mb4'abc'"), "utf8mb4_bin").Eq("abc")).Count()
+	mt.NoError(err)
+	mt.Equal(int64(10), count)
+	count, err = ds.Where(goqu.Collate(goqu.L("_utf8mb4'abc'"), "utf8mb4_general_ci").Eq("ABC")).Count()
+	mt.NoError(err)
+	mt.Equal(int64(10), count)
 }
 
 func (mt *mysqlTest) TestCount() {
@@ -481,6 +495,31 @@ func (mt *mysqlTest) TestWindowFunction() {
 	}, entries)
 
 	mt.Error(ds.WithDialect("mysql").ScanStructs(&entries), "goqu: adapter does not support window function clause")
+}
+
+func (mt *mysqlTest) TestStraightJoin() {
+	ds := mt.db.From("entry").
+		StraightJoin(
+			goqu.T("entry").As("e2"),
+			goqu.On(goqu.I("entry.id").Eq(goqu.I("e2.id"))),
+		)
+	// joining a table to itself on its primary key must not change the row count
+	expected, err := mt.db.From("entry").Count()
+	mt.NoError(err)
+	mt.Positive(expected)
+	count, err := ds.Count()
+	mt.NoError(err)
+	mt.Equal(expected, count)
+
+	var e entry
+	found, err := ds.Select("entry.*").Where(goqu.I("e2.id").Eq(1)).ScanStruct(&e)
+	mt.NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(1), e.ID)
+
+	// MySQL 5.7 rejects USING for STRAIGHT_JOIN, so goqu refuses to generate it
+	_, err = mt.db.From("entry").StraightJoin(goqu.T("entry").As("e2"), goqu.Using("id")).Count()
+	mt.EqualError(err, "goqu: USING is not supported for StraightJoinType, use an ON condition")
 }
 
 func (mt *mysqlTest) TestInsertFromSelect() {

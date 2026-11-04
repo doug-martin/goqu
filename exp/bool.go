@@ -1,6 +1,8 @@
 package exp
 
 import (
+	"database/sql/driver"
+	"encoding/json"
 	"reflect"
 	"regexp"
 )
@@ -69,20 +71,28 @@ func lte(lhs Expression, rhs interface{}) BooleanExpression {
 	return NewBooleanExpression(LteOp, lhs, rhs)
 }
 
+func inNotIn(lhs Expression, op BooleanOperation, vals ...interface{}) BooleanExpression {
+	if len(vals) == 1 {
+		valType := reflect.Indirect(reflect.ValueOf(vals[0]))
+		// a single binary/JSON value is one element of the list, not the list itself
+		if valType.Kind() == reflect.Slice && !isBytesValue(vals[0]) {
+			return NewBooleanExpression(op, lhs, vals[0])
+		}
+		if _, ok := vals[0].(AppendableExpression); ok {
+			return NewBooleanExpression(op, lhs, vals[0])
+		}
+	}
+	return NewBooleanExpression(op, lhs, vals)
+}
+
 // used internally to create an IN BooleanExpression
 func in(lhs Expression, vals ...interface{}) BooleanExpression {
-	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return NewBooleanExpression(InOp, lhs, vals[0])
-	}
-	return NewBooleanExpression(InOp, lhs, vals)
+	return inNotIn(lhs, InOp, vals...)
 }
 
 // used internally to create a NOT IN BooleanExpression
 func notIn(lhs Expression, vals ...interface{}) BooleanExpression {
-	if len(vals) == 1 && reflect.Indirect(reflect.ValueOf(vals[0])).Kind() == reflect.Slice {
-		return NewBooleanExpression(NotInOp, lhs, vals[0])
-	}
-	return NewBooleanExpression(NotInOp, lhs, vals)
+	return inNotIn(lhs, NotInOp, vals...)
 }
 
 // used internally to create an IS BooleanExpression
@@ -140,10 +150,13 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	rhs := val
 
 	if t, ok := val.(*regexp.Regexp); ok {
-		if op == LikeOp {
+		switch op {
+		case LikeOp:
 			op = RegexpLikeOp
-		} else if op == ILikeOp {
+		case ILikeOp:
 			op = RegexpILikeOp
+		default:
+			// Other operators stay as written.
 		}
 		rhs = t.String()
 	}
@@ -153,17 +166,30 @@ func checkLikeExp(op BooleanOperation, lhs Expression, val interface{}, invert b
 	return NewBooleanExpression(op, lhs, rhs)
 }
 
+// isBytesValue returns true for values that are a single binary/JSON value rather than a list of values.
+func isBytesValue(v any) bool {
+	switch v.(type) {
+	case []byte, *[]byte, json.RawMessage, *json.RawMessage:
+		return true
+	default:
+		return false
+	}
+}
+
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
-	if rhs == nil {
+	if isNullValue(rhs) {
+		// Normalize typed nulls (nil pointers, null driver.Valuers such as sql.NullInt32{}) to an untyped nil so
+		// "a" = NULL (which never matches) becomes "a" IS NULL.
+		rhs = nil
 		op = IsOp
 	} else {
 		switch reflect.Indirect(reflect.ValueOf(rhs)).Kind() {
 		case reflect.Bool:
 			op = IsOp
 		case reflect.Slice:
-			// if its a slice of bytes dont treat as an IN
-			if _, ok := rhs.([]byte); !ok {
+			// if its a slice of bytes (or JSON) dont treat as an IN
+			if !isBytesValue(rhs) {
 				op = InOp
 			}
 		case reflect.Struct:
@@ -182,4 +208,27 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 		op = operatorInversions[op]
 	}
 	return NewBooleanExpression(op, lhs, rhs)
+}
+
+// returns true if the value is a SQL NULL: an untyped nil, a nil pointer, or a driver.Valuer that returns nil
+// (e.g. a sql.NullString that is not valid).
+func isNullValue(val interface{}) bool {
+	if val == nil {
+		return true
+	}
+	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return true
+	}
+	// an unset json.RawMessage is written as NULL
+	switch t := val.(type) {
+	case json.RawMessage:
+		return t == nil
+	case *json.RawMessage:
+		return *t == nil
+	}
+	if valuer, ok := val.(driver.Valuer); ok {
+		v, err := valuer.Value()
+		return err == nil && v == nil
+	}
+	return false
 }

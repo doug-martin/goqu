@@ -29,6 +29,10 @@ func ErrJoinConditionRequired(j exp.JoinExpression) error {
 	return errors.New("join condition required for conditioned join %v", j.JoinType())
 }
 
+func ErrJoinUsingNotSupported(j exp.JoinExpression) error {
+	return errors.New("USING is not supported for %v, use an ON condition", j.JoinType())
+}
+
 func ErrDistinctOnNotSupported(dialect string) error {
 	return errors.New("dialect does not support DISTINCT ON clause [dialect=%s]", dialect)
 }
@@ -92,23 +96,35 @@ func (ssg *selectSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.SelectClaus
 }
 
 func (ssg *selectSQLGenerator) selectSQLCommon(b sb.SQLBuilder, clauses exp.SelectClauses) {
-	dc := clauses.Distinct()
-	if dc != nil {
-		b.Write(ssg.DialectOptions().DistinctFragment)
-		if !dc.IsEmpty() {
-			if ssg.DialectOptions().SupportsDistinctOn {
-				b.Write(ssg.DialectOptions().OnFragment).WriteRunes(ssg.DialectOptions().LeftParenRune)
-				ssg.ExpressionSQLGenerator().Generate(b, dc)
-				b.WriteRunes(ssg.DialectOptions().RightParenRune, ssg.DialectOptions().SpaceRune)
-			} else {
-				b.SetError(ErrDistinctOnNotSupported(ssg.Dialect()))
-				return
-			}
-		} else {
-			b.WriteRunes(ssg.DialectOptions().SpaceRune)
-		}
+	ssg.distinctSQL(b, clauses)
+	if b.Error() != nil {
+		return
 	}
+	ssg.selectColumnsSQL(b, clauses)
+}
 
+// Adds DISTINCT (or DISTINCT ON (...)) when it is set on the dataset.
+func (ssg *selectSQLGenerator) distinctSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
+	dc := clauses.Distinct()
+	if dc == nil {
+		return
+	}
+	b.Write(ssg.DialectOptions().DistinctFragment)
+	if dc.IsEmpty() {
+		b.WriteRunes(ssg.DialectOptions().SpaceRune)
+		return
+	}
+	if !ssg.DialectOptions().SupportsDistinctOn {
+		b.SetError(ErrDistinctOnNotSupported(ssg.Dialect()))
+		return
+	}
+	b.Write(ssg.DialectOptions().OnFragment).WriteRunes(ssg.DialectOptions().LeftParenRune)
+	ssg.ExpressionSQLGenerator().Generate(b, dc)
+	b.WriteRunes(ssg.DialectOptions().RightParenRune, ssg.DialectOptions().SpaceRune)
+}
+
+// Adds the selected columns (or *) to a sql statement.
+func (ssg *selectSQLGenerator) selectColumnsSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	if cols := clauses.Select(); clauses.IsDefaultSelect() || len(cols.Columns()) == 0 {
 		b.WriteRunes(ssg.DialectOptions().StarRune)
 	} else {
@@ -125,11 +141,16 @@ func (ssg *selectSQLGenerator) SelectSQL(b sb.SQLBuilder, clauses exp.SelectClau
 // Adds the SELECT clause along with LIMIT to a SQL statement (e.g. MSSQL dialect: SELECT TOP 10 ...)
 func (ssg *selectSQLGenerator) SelectWithLimitSQL(b sb.SQLBuilder, clauses exp.SelectClauses) {
 	b.Write(ssg.DialectOptions().SelectClause).WriteRunes(ssg.DialectOptions().SpaceRune)
+	// DISTINCT has to come before TOP: SELECT DISTINCT TOP (n) ...
+	ssg.distinctSQL(b, clauses)
+	if b.Error() != nil {
+		return
+	}
 	if clauses.Offset() == 0 && clauses.Limit() != nil {
 		ssg.LimitSQL(b, clauses.Limit())
 		b.WriteRunes(ssg.DialectOptions().SpaceRune)
 	}
-	ssg.selectSQLCommon(b, clauses)
+	ssg.selectColumnsSQL(b, clauses)
 }
 
 // Generates the JOIN clauses for an SQL statement
@@ -146,6 +167,11 @@ func (ssg *selectSQLGenerator) JoinSQL(b sb.SQLBuilder, joins exp.JoinExpression
 			if t, ok := j.(exp.ConditionedJoinExpression); ok {
 				if t.IsConditionEmpty() {
 					b.SetError(ErrJoinConditionRequired(j))
+					return
+				}
+				// MySQL 5.7 rejects STRAIGHT_JOIN ... USING (...); only ON is portable across supported versions
+				if _, isUsing := t.Condition().(exp.JoinUsingCondition); isUsing && j.JoinType() == exp.StraightJoinType {
+					b.SetError(ErrJoinUsingNotSupported(j))
 					return
 				}
 				ssg.joinConditionSQL(b, t.Condition())
