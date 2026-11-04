@@ -58,5 +58,13 @@ Output:
 INSERT INTO "test" ("address", "created", "name") VALUES ('111 Address', '2019-10-01T23:01:00+08:00', 'Bob Yukon')
 ```
 
+## What about time values read from the database?
+
+`SetTimeLocation` only affects `time.Time` values that `goqu` writes into SQL. It has no effect on values you scan back out with `ScanStruct`, `ScanStructs` or `ScanVal`. Those are produced by your database driver, so the location of scanned times is controlled by the driver and column type, for example:
+
+* MySQL: `parseTime=true&loc=Local` (or another location) in the DSN.
+* PostgreSQL: `timestamp with time zone` columns return times in the session time zone, while `timestamp without time zone` columns have no zone and are returned as UTC.
+* If you need a specific location, convert after scanning with `t.In(loc)`.
+
 
 

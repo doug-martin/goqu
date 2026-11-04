@@ -192,5 +192,21 @@ Output:
 SELECT * FROM `test` []
 ```
 
+Another example is a dialect that does not use the `AS` keyword for aliases, such as Oracle (`FROM blah b` instead of `FROM blah AS b`):
+
+```go
+opts := goqu.DefaultDialectOptions()
+opts.AsFragment = []byte(" ")
+goqu.RegisterDialect("oracle-like", opts)
+
+sql, _, _ := goqu.Dialect("oracle-like").From(goqu.T("blah").As("b")).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM "blah" "b"
+```
+
 For more examples look at [`postgres`](../dialect/postgres/postgres.go), [`mysql`](../dialect/mysql/mysql.go) and [`sqlite3`](../dialect/sqlite3/sqlite3.go) for examples.
 

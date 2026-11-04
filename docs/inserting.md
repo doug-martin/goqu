@@ -572,6 +572,31 @@ Output:
 Inserted 3 users
 ```
 
+**Inserting a very large number of rows**
+
+When executing with prepared statements, every value becomes a placeholder, and databases limit the number of parameters in a single statement (for example `SQLITE_MAX_VARIABLE_NUMBER` in SQLite, 65535 in PostgreSQL and MySQL). Inserting many rows in one statement can fail with errors such as `too many SQL variables`. Interpolated SQL has no placeholders but a very large statement can still exceed the server's maximum packet or statement size and uses a lot of memory.
+
+`goqu` does not split inserts for you. Insert in batches instead, ideally inside a transaction:
+
+```go
+const batchSize = 500
+
+tx, err := db.Begin()
+if err != nil {
+	return err
+}
+for start := 0; start < len(users); start += batchSize {
+	end := min(start+batchSize, len(users))
+	if _, err := tx.Insert("goqu_user").Rows(users[start:end]).Executor().Exec(); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+}
+return tx.Commit()
+```
+
+Choose a batch size so that `rows * columns` stays below your database's parameter limit.
+
 If you use the RETURNING clause you can scan into structs or values.
 
 ```go
