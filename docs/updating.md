@@ -324,12 +324,28 @@ Output:
 UPDATE "items" SET "address"='111 Test Addr',"name"='Test' []
 ```
 
+<a name="set-expressions"></a>
+**[Set with Expressions](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Set)**
+
+```go
+sql, args, _ := goqu.Update("items").Set([]exp.UpdateExpression{
+	goqu.C("name").Set("Test"),
+	goqu.C("address").Set("111 Test Addr"),
+}).ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```
+UPDATE "items" SET "name"='Test',"address"='111 Test Addr' []
+```
+
 <a name="from"></a>
 **[From / Multi Table](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.From)**
 
 `goqu` allows joining multiple tables in a update clause through `From`.
 
-**NOTE** The `sqlite3` adapter does not support a multi table syntax.
+**NOTE** The `sqlite3` adapter supports `UPDATE ... FROM` with SQLite 3.33.0 or later.
 
 `Postgres` Example
 

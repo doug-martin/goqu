@@ -2,4 +2,3 @@
 src
 *.iml
 coverage.*
-/.direnv/

@@ -1,4 +1,4 @@
-// nolint:lll // sql statements are long
+//nolint:lll // sql statements are long
 package goqu_test
 
 import (
@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 	"github.com/doug-martin/goqu/v9/exp"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 const schema = `
@@ -40,11 +41,7 @@ func getDB() *goqu.Database {
 		if dbURI == "" {
 			dbURI = defaultDBURI
 		}
-		uri, err := pq.ParseURL(dbURI)
-		if err != nil {
-			panic(err)
-		}
-		pdb, err := goSQL.Open("postgres", uri)
+		pdb, err := goSQL.Open("postgres", dbURI)
 		if err != nil {
 			panic(err)
 		}
@@ -67,8 +64,8 @@ func getDB() *goqu.Database {
 		{FirstName: "Vinita", LastName: "Yukon"},
 		{FirstName: "John", LastName: "Doe"},
 	}
-	var userIds []int64
-	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIds)
+	var userIDs []int64
+	err := goquDB.Insert("goqu_user").Rows(users).Returning("id").Executor().ScanVals(&userIDs)
 	if err != nil {
 		panic(err)
 	}
@@ -80,10 +77,10 @@ func getDB() *goqu.Database {
 	}
 
 	roles := []userRole{
-		{UserID: userIds[0], Name: "Admin"},
-		{UserID: userIds[1], Name: "Manager"},
-		{UserID: userIds[2], Name: "Manager"},
-		{UserID: userIds[3], Name: "User"},
+		{UserID: userIDs[0], Name: "Admin"},
+		{UserID: userIDs[1], Name: "Manager"},
+		{UserID: userIDs[2], Name: "Manager"},
+		{UserID: userIDs[3], Name: "User"},
 	}
 	_, err = goquDB.Insert("user_role").Rows(roles).Executor().Exec()
 	if err != nil {
@@ -119,7 +116,7 @@ func ExampleSelectDataset() {
 
 	sql, args, _ = ds.Prepared(true).ToSQL()
 	fmt.Println(sql, args)
-	// nolint:lll // SQL statements are long
+	//nolint:lll // SQL statements are long
 	// Output:
 	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ '^[ab]') AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN ('passed', 'active', 'registered')))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > 10) ORDER BY "test"."created" DESC NULLS LAST []
 	// SELECT COUNT(*) FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."id") LEFT JOIN "test3" ON ("test2"."fkey" = "test3"."id") WHERE ((("test"."name" ~ ?) AND ("test2"."amount" IS NOT NULL)) AND (("test3"."id" IS NULL) OR ("test3"."status" IN (?, ?, ?)))) GROUP BY "test"."user_id" HAVING (AVG("test3"."age") > ?) ORDER BY "test"."created" DESC NULLS LAST [^[ab] passed active registered 10]
@@ -969,13 +966,47 @@ func ExampleSelectDataset_CrossJoin() {
 }
 
 func ExampleSelectDataset_CustomJoin() {
-	join := goqu.L("ARRAY JOIN tags").As("tag")
+	// CustomJoin writes the expression as is, so it is up to you to write valid SQL for your database,
+	// e.g. ClickHouse's ARRAY JOIN.
+	sql, _, _ := goqu.From("test").
+		CustomJoin(goqu.L("ARRAY JOIN tags").As("tag")).
+		ToSQL()
+	fmt.Println(sql)
 
-	sql, _, _ := goqu.From("test").CustomJoin(join).ToSQL()
+	// It can be combined with other joins, and arguments are supported.
+	sql, args, _ := goqu.From("test").
+		InnerJoin(goqu.T("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).
+		CustomJoin(goqu.L("ARRAY JOIN ?", goqu.I("tags")).As("tag")).
+		Where(goqu.C("tag").Eq("a")).
+		ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "test" ARRAY JOIN tags AS "tag"
+	// SELECT * FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."Id") ARRAY JOIN "tags" AS "tag" WHERE ("tag" = 'a') []
+}
+
+func ExampleSelectDataset_StraightJoin() {
+	dialect := goqu.Dialect("mysql")
+
+	sql, _, _ := dialect.From("test").StraightJoin(
+		goqu.T("test2"),
+		goqu.On(goqu.Ex{
+			"test.fkey": goqu.I("test2.Id"),
+		}),
+	).ToSQL()
+	fmt.Println(sql)
+
+	// MySQL requires derived tables to have an alias
+	sql, _, _ = dialect.From("test").StraightJoin(
+		dialect.From("test2").Where(goqu.C("amount").Gt(0)).As("t"),
+		goqu.On(goqu.I("test.fkey").Eq(goqu.I("t.Id"))),
+	).ToSQL()
 	fmt.Println(sql)
 
 	// Output:
-	// SELECT * FROM "test" ARRAY JOIN tags AS tag
+	// SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
+	// SELECT * FROM `test` STRAIGHT_JOIN (SELECT * FROM `test2` WHERE (`amount` > 0)) AS `t` ON (`test`.`fkey` = `t`.`Id`)
 }
 
 func ExampleSelectDataset_FromSelf() {
@@ -1262,7 +1293,7 @@ func ExampleSelectDataset_Prepared() {
 		"col5": []string{"a", "b", "c"},
 	}).ToSQL()
 	fmt.Println(sql, args)
-	// nolint:lll // sql statements are long
+	//nolint:lll // sql statements are long
 	// Output:
 	// SELECT * FROM "items" WHERE (("col1" = ?) AND ("col2" = ?) AND ("col3" IS TRUE) AND ("col4" IS FALSE) AND ("col5" IN (?, ?, ?))) [a 1 a b c]
 }
@@ -1565,6 +1596,18 @@ func ExampleSelectDataset_Count() {
 
 	// Output:
 	// Count is 4
+}
+
+func ExampleSelectDataset_Exists() {
+	exists, err := getDB().From("goqu_user").Exists()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Printf("Exists is %t", exists)
+
+	// Output:
+	// Exists is true
 }
 
 func ExampleSelectDataset_Pluck() {

@@ -45,23 +45,24 @@ func (i identifier) IsQualified() bool {
 	switch c := col.(type) {
 	case string:
 		if c != "" {
-			return len(table) > 0 || len(schema) > 0
+			return table != "" || schema != ""
 		}
 	default:
 		if c != nil {
-			return len(table) > 0 || len(schema) > 0
+			return table != "" || schema != ""
 		}
 	}
-	if len(table) > 0 {
-		return len(schema) > 0
+	if table != "" {
+		return schema != ""
 	}
 	return false
 }
 
 // Sets the table on the current identifier
-//  I("col").Table("table") -> "table"."col" //postgres
-//  I("col").Table("table") -> `table`.`col` //mysql
-//  I("col").Table("table") -> `table`.`col` //sqlite3
+//
+//	I("col").Table("table") -> "table"."col" //postgres
+//	I("col").Table("table") -> `table`.`col` //mysql
+//	I("col").Table("table") -> `table`.`col` //sqlite3
 func (i identifier) Table(table string) IdentifierExpression {
 	i.table = table
 	return i
@@ -72,9 +73,10 @@ func (i identifier) GetTable() string {
 }
 
 // Sets the table on the current identifier
-//  I("table").Schema("schema") -> "schema"."table" //postgres
-//  I("col").Schema("table") -> `schema`.`table` //mysql
-//  I("col").Schema("table") -> `schema`.`table` //sqlite3
+//
+//	I("table").Schema("schema") -> "schema"."table" //postgres
+//	I("col").Schema("table") -> `schema`.`table` //mysql
+//	I("col").Schema("table") -> `schema`.`table` //sqlite3
 func (i identifier) Schema(schema string) IdentifierExpression {
 	i.schema = schema
 	return i
@@ -85,9 +87,10 @@ func (i identifier) GetSchema() string {
 }
 
 // Sets the table on the current identifier
-//  I("table").Col("col") -> "table"."col" //postgres
-//  I("table").Schema("col") -> `table`.`col` //mysql
-//  I("table").Schema("col") -> `table`.`col` //sqlite3
+//
+//	I("table").Col("col") -> "table"."col" //postgres
+//	I("table").Schema("col") -> `table`.`col` //mysql
+//	I("table").Schema("col") -> `table`.`col` //sqlite3
 func (i identifier) Col(col interface{}) IdentifierExpression {
 	if col == "*" {
 		i.col = Star()
@@ -205,6 +208,7 @@ func (i identifier) Asc() OrderedExpression                           { return a
 func (i identifier) Desc() OrderedExpression                          { return desc(i) }
 func (i identifier) Distinct() SQLFunctionExpression                  { return NewSQLFunctionExpression("DISTINCT", i) }
 func (i identifier) Cast(t string) CastExpression                     { return NewCastExpression(i, t) }
+func (i identifier) Collate(c any) CollateExpression                  { return NewCollateExpression(i, c) }
 
 // Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
 func (i identifier) Between(val RangeVal) RangeExpression { return between(i, val) }

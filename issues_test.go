@@ -2,9 +2,9 @@ package goqu_test
 
 import (
 	"context"
+	dbsql "database/sql"
 	"fmt"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -18,11 +18,53 @@ type githubIssuesSuite struct {
 	suite.Suite
 }
 
-func (gis *githubIssuesSuite) AfterTest(suiteName, testName string) {
+func (gis *githubIssuesSuite) AfterTest(_, _ string) {
 	goqu.SetColumnRenameFunction(strings.ToLower)
 }
 
 // Test for https://github.com/doug-martin/goqu/issues/49
+// Test for https://github.com/doug-martin/goqu/issues/272 and https://github.com/doug-martin/goqu/issues/438
+// A nil pointer or a null driver.Valuer (e.g. dbsql.NullInt32{}) has to behave exactly like an untyped nil:
+// IS NULL, never "= NULL" (which never matches any row).
+func (gis *githubIssuesSuite) TestIssue272And438_typedNullsAreNull() {
+	var nilInt *int
+	for _, dialect := range []string{"default", "postgres", "mysql", "sqlite3", "sqlserver"} {
+		for _, prepared := range []bool{false, true} {
+			ds := goqu.Dialect(dialect).From("t").Prepared(prepared)
+			wantEq, wantEqArgs, err := ds.Where(goqu.C("a").Eq(nil)).ToSQL()
+			gis.NoError(err, dialect)
+			gis.NotContains(wantEq, "= NULL", dialect)
+			wantNeq, wantNeqArgs, err := ds.Where(goqu.C("a").Neq(nil)).ToSQL()
+			gis.NoError(err, dialect)
+
+			for _, null := range []interface{}{nilInt, dbsql.NullInt32{}, dbsql.NullString{}} {
+				gotEq, gotEqArgs, err := ds.Where(goqu.C("a").Eq(null)).ToSQL()
+				gis.NoError(err, dialect)
+				gis.Equal(wantEq, gotEq, dialect)
+				gis.Equal(wantEqArgs, gotEqArgs, dialect)
+
+				gotEx, gotExArgs, err := ds.Where(goqu.Ex{"a": null}).ToSQL()
+				gis.NoError(err, dialect)
+				gis.Equal(wantEq, gotEx, dialect)
+				gis.Equal(wantEqArgs, gotExArgs, dialect)
+
+				gotNeq, gotNeqArgs, err := ds.Where(goqu.C("a").Neq(null)).ToSQL()
+				gis.NoError(err, dialect)
+				gis.Equal(wantNeq, gotNeq, dialect)
+				gis.Equal(wantNeqArgs, gotNeqArgs, dialect)
+			}
+		}
+	}
+
+	// the reported cases
+	got, _, err := goqu.Dialect("postgres").From("t").Where(goqu.C("x").Eq(dbsql.NullInt32{})).ToSQL()
+	gis.NoError(err)
+	gis.Equal(`SELECT * FROM "t" WHERE ("x" IS NULL)`, got)
+	got, _, err = goqu.Dialect("postgres").From("t").Where(goqu.Ex{"x": nilInt}).ToSQL()
+	gis.NoError(err)
+	gis.Equal(`SELECT * FROM "t" WHERE ("x" IS NULL)`, got)
+}
+
 func (gis *githubIssuesSuite) TestIssue49() {
 	dialect := goqu.Dialect("default")
 
@@ -48,7 +90,7 @@ func (gis *githubIssuesSuite) TestIssue115() {
 	type TestStruct struct {
 		Field string
 	}
-	goqu.SetColumnRenameFunction(func(col string) string {
+	goqu.SetColumnRenameFunction(func(string) string {
 		return ""
 	})
 
@@ -60,8 +102,7 @@ func (gis *githubIssuesSuite) TestIssue115() {
 func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFields() {
 	// struct is in a custom package
 	type SimpleRole struct {
-		sync.RWMutex
-		permissions []string // nolint:structcheck,unused //needed for test
+		permissions []string //nolint:unused //needed for test
 	}
 
 	// .....
@@ -130,8 +171,7 @@ func (gis *githubIssuesSuite) TestIssue118_withEmbeddedStructWithoutExportedFiel
 func (gis *githubIssuesSuite) TestIssue118_withNilEmbeddedStructWithExportedFields() {
 	// struct is in a custom package
 	type SimpleRole struct {
-		sync.RWMutex
-		permissions []string // nolint:structcheck,unused // needed for test
+		permissions []string //nolint:unused // needed for test
 		IDStr       string
 	}
 

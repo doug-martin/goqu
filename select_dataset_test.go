@@ -639,6 +639,30 @@ func (sds *selectDatasetSuite) TestCustomJoin() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestStraightJoin() {
+	bd := goqu.From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.StraightJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				JoinsAppend(
+					exp.NewConditionedJoinExpression(exp.StraightJoinType, goqu.T("foo"), goqu.On(goqu.C("a").IsNull())),
+				),
+		},
+		selectTestCase{
+			ds:      bd,
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+	)
+}
+
+func (sds *selectDatasetSuite) TestStraightJoin_unsupportedDialect() {
+	// STRAIGHT_JOIN is MySQL only; the default dialect must error rather than emit invalid SQL
+	_, _, err := goqu.From("test").StraightJoin(goqu.T("foo"), goqu.On(goqu.C("a").IsNull())).ToSQL()
+	sds.EqualError(err, "goqu: dialect does not support StraightJoinType")
+}
+
 func (sds *selectDatasetSuite) TestWhere() {
 	w := goqu.Ex{"a": 1}
 	w2 := goqu.Ex{"b": "c"}
@@ -1159,7 +1183,7 @@ func (sds *selectDatasetSuite) TestToSQL() {
 	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Return(nil).Once()
 	sql, args, err := ds.ToSQL()
 	sds.Empty(sql)
 	sds.Empty(args)
@@ -1172,7 +1196,7 @@ func (sds *selectDatasetSuite) TestToSQL_prepared() {
 	ds := goqu.From("test").Prepared(true).SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
-	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Return(nil).Once()
 	sql, args, err := ds.ToSQL()
 	sds.Empty(sql)
 	sds.Empty(args)
@@ -1186,7 +1210,7 @@ func (sds *selectDatasetSuite) TestToSQL_ReturnedError() {
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
 	ee := errors.New("expected error")
-	md.On("ToSelectSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(ee)
 	}).Once()
 
@@ -1202,7 +1226,7 @@ func (sds *selectDatasetSuite) TestAppendSQL() {
 	ds := goqu.From("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToSelectSQL", sqlB, c).Return(nil).Once()
+	md.On("ToSelectSQL", builderMatching(sqlB), c).Return(nil).Once()
 	ds.AppendSQL(sqlB)
 	sds.NoError(sqlB.Error())
 	md.AssertExpectations(sds.T())
@@ -1557,6 +1581,37 @@ func (sds *selectDatasetSuite) TestCount_WithPreparedStatement() {
 	sds.Equal(int64(10), count)
 }
 
+func (sds *selectDatasetSuite) TestExists() {
+	mDB, sqlMock, err := sqlmock.New()
+	sds.NoError(err)
+	sqlMock.ExpectQuery(`SELECT CASE WHEN EXISTS \(SELECT \* FROM "items"\) THEN 1 ELSE 0 END LIMIT 1`).
+		WithArgs().
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).FromCSVString("1"))
+
+	db := goqu.New("mock", mDB)
+	exists, err := db.From("items").Exists()
+	sds.NoError(err)
+	sds.True(exists)
+}
+
+func (sds *selectDatasetSuite) TestExists_WithPreparedStatement() {
+	mDB, sqlMock, err := sqlmock.New()
+	sds.NoError(err)
+	sqlMock.ExpectQuery(
+		`SELECT CASE WHEN EXISTS \(SELECT \* FROM "items" WHERE \("address" = \?\)\) THEN 1 ELSE 0 END LIMIT \?`,
+	).
+		WithArgs("111 Test Addr", 1).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).FromCSVString("true"))
+
+	ds := goqu.New("mock", mDB)
+	exists, err := ds.From("items").
+		Prepared(true).
+		Where(goqu.Ex{"address": "111 Test Addr"}).
+		Exists()
+	sds.NoError(err)
+	sds.True(exists)
+}
+
 func (sds *selectDatasetSuite) TestPluck() {
 	mDB, sqlMock, err := sqlmock.New()
 	sds.NoError(err)
@@ -1622,7 +1677,7 @@ func (sds *selectDatasetSuite) TestSetError() {
 	// Deeper errors inside SQL generation should still return original error
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToInsertSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToInsertSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(err3)
 	}).Once()
 

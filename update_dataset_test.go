@@ -163,6 +163,18 @@ func (uds *updateDatasetSuite) TestSet() {
 			clauses: exp.NewUpdateClauses().
 				SetTable(goqu.C("items")),
 		},
+		updateTestCase{
+			ds: bd.Set([]exp.UpdateExpression{
+				goqu.C("name").Set("Test"),
+				goqu.C("address").Set("111 Test Addr"),
+			}),
+			clauses: exp.NewUpdateClauses().
+				SetTable(goqu.C("items")).
+				SetSetValues([]exp.UpdateExpression{
+					goqu.C("name").Set("Test"),
+					goqu.C("address").Set("111 Test Addr"),
+				}),
+		},
 	)
 }
 
@@ -399,7 +411,7 @@ func (uds *updateDatasetSuite) TestToSQL() {
 	r := goqu.Record{"c": "a"}
 	c := ds.GetClauses().SetSetValues(r)
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToUpdateSQL", sqlB, c).Return(nil).Once()
+	md.On("ToUpdateSQL", builderMatching(sqlB), c).Return(nil).Once()
 	updateSQL, args, err := ds.Set(r).ToSQL()
 	uds.Empty(updateSQL)
 	uds.Empty(args)
@@ -413,7 +425,7 @@ func (uds *updateDatasetSuite) TestToSQL_Prepared() {
 	r := goqu.Record{"c": "a"}
 	c := ds.GetClauses().SetSetValues(r)
 	sqlB := sb.NewSQLBuilder(true)
-	md.On("ToUpdateSQL", sqlB, c).Return(nil).Once()
+	md.On("ToUpdateSQL", builderMatching(sqlB), c).Return(nil).Once()
 	updateSQL, args, err := ds.Set(goqu.Record{"c": "a"}).ToSQL()
 	uds.Empty(updateSQL)
 	uds.Empty(args)
@@ -428,7 +440,7 @@ func (uds *updateDatasetSuite) TestToSQL_WithError() {
 	c := ds.GetClauses().SetSetValues(r)
 	sqlB := sb.NewSQLBuilder(false)
 	ee := errors.New("expected error")
-	md.On("ToUpdateSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToUpdateSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(ee)
 	}).Once()
 
@@ -500,7 +512,7 @@ func (uds *updateDatasetSuite) TestSetError() {
 	// Deeper errors inside SQL generation should still return original error
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToUpdateSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToUpdateSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(err3)
 	}).Once()
 

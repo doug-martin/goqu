@@ -6,6 +6,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -56,15 +57,50 @@ func (sds *sqlite3DialectSuite) TestIdentifiers() {
 }
 
 func (sds *sqlite3DialectSuite) TestUpdateSQL_multipleTables() {
-	ds := sds.GetDs("test").Update()
+	ds := sds.GetDs("test").Update().
+		Set(goqu.Record{"foo": "bar"}).
+		From("test_2").
+		Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id")))
+	subquery := sds.GetDs("test_2").Select("test_id").Where(goqu.C("foo").Eq("baz")).As("other")
+	dsWithSubquery := sds.GetDs("test").Update().
+		Set(goqu.Record{"foo": "bar"}).
+		From(subquery).
+		Where(goqu.I("test.id").Eq(goqu.I("other.test_id")), goqu.I("test.id").Gt(10))
 	sds.assertSQL(
 		sqlTestCase{
-			ds: ds.
-				Set(goqu.Record{"foo": "bar"}).
-				From("test_2").
-				Where(goqu.I("test.id").Eq(goqu.I("test_2.test_id"))),
-			err: "goqu: sqlite3 dialect does not support multiple tables in UPDATE",
+			ds:  ds,
+			sql: "UPDATE `test` SET `foo`='bar' FROM `test_2` WHERE (`test`.`id` = `test_2`.`test_id`)",
 		},
+		sqlTestCase{
+			ds:         ds.Prepared(true),
+			sql:        "UPDATE `test` SET `foo`=? FROM `test_2` WHERE (`test`.`id` = `test_2`.`test_id`)",
+			isPrepared: true,
+			args:       []interface{}{"bar"},
+		},
+		sqlTestCase{
+			ds: dsWithSubquery,
+			sql: "UPDATE `test` SET `foo`='bar' FROM " +
+				"(SELECT `test_id` FROM `test_2` WHERE (`foo` = 'baz')) AS `other` " +
+				"WHERE ((`test`.`id` = `other`.`test_id`) AND (`test`.`id` > 10))",
+		},
+		sqlTestCase{
+			ds: dsWithSubquery.Prepared(true),
+			sql: "UPDATE `test` SET `foo`=? FROM " +
+				"(SELECT `test_id` FROM `test_2` WHERE (`foo` = ?)) AS `other` " +
+				"WHERE ((`test`.`id` = `other`.`test_id`) AND (`test`.`id` > ?))",
+			isPrepared: true,
+			args:       []interface{}{"bar", "baz", int64(10)},
+		},
+	)
+}
+
+func (sds *sqlite3DialectSuite) TestTruncate() {
+	ds := goqu.Dialect("sqlite3").From("test")
+	sds.assertSQL(
+		sqlTestCase{ds: ds.Truncate(), sql: "DELETE FROM `test`"},
+		// CASCADE and RESTRICT do not apply to DELETE and are dropped.
+		sqlTestCase{ds: ds.Truncate().Cascade(), sql: "DELETE FROM `test`"},
+		sqlTestCase{ds: ds.Truncate().Restrict(), sql: "DELETE FROM `test`"},
 	)
 }
 
@@ -155,4 +191,19 @@ func (sds *sqlite3DialectSuite) TestForUpdate() {
 
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlite3DialectSuite))
+}
+
+func TestInsertOnConflictDoNothingTarget(t *testing.T) {
+	ds := goqu.Dialect("sqlite3").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a")))
+	sql, args, err := ds.ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, "INSERT INTO `test` (`a`) VALUES ('a') ON CONFLICT  (`a`) DO NOTHING ", sql)
+	assert.Empty(t, args)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, "INSERT INTO `test` (`a`) VALUES (?) ON CONFLICT  (`a`) DO NOTHING ", sql)
+	assert.Equal(t, []any{"a"}, args)
 }
