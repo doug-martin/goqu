@@ -208,6 +208,15 @@ func TestInsertOnConflictDoNothingTarget(t *testing.T) {
 	assert.Equal(t, []any{"a"}, args)
 }
 
+func TestInsertDefaultValues(t *testing.T) {
+	t.Parallel()
+
+	sql, args, err := goqu.Dialect("sqlite3").Insert("test").Rows(goqu.Record{}).ToSQL()
+	assert.NoError(t, err)
+	assert.Empty(t, args)
+	assert.Equal(t, "INSERT INTO `test` DEFAULT VALUES", sql)
+}
+
 func TestIdentifierEscapesBackticks(t *testing.T) {
 	t.Parallel()
 
