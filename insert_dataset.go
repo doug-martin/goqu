@@ -31,7 +31,7 @@ func newInsertDataset(d string, queryFactory exec.QueryFactory) *InsertDataset {
 // Creates a new InsertDataset for the provided table. Using this method will only allow you
 // to create SQL user Database#From to create an InsertDataset with query capabilities
 func Insert(table interface{}) *InsertDataset {
-	return newInsertDataset("default", nil).Into(table)
+	return newInsertDataset(defaultDialectName(), nil).Into(table)
 }
 
 // Set the parameter interpolation behavior. See examples
@@ -147,7 +147,7 @@ func (id *InsertDataset) ColsAppend(cols ...interface{}) *InsertDataset {
 // Adds a subquery to the insert. See examples.
 func (id *InsertDataset) FromQuery(from exp.AppendableExpression) *InsertDataset {
 	if sds, ok := from.(*SelectDataset); ok {
-		if sds.dialect != GetDialect("default") && id.Dialect() != sds.dialect {
+		if sds.dialect != GetDialect("default") && !sds.implicitDialect && id.Dialect() != sds.dialect {
 			panic(
 				fmt.Errorf(
 					"incompatible dialects for INSERT (%q) and SELECT (%q)",
@@ -155,7 +155,10 @@ func (id *InsertDataset) FromQuery(from exp.AppendableExpression) *InsertDataset
 				),
 			)
 		}
-		sds.dialect = id.dialect
+		// attach a copy so a select shared between inserts is not mutated
+		cp := sds.copy(sds.GetClauses())
+		cp.dialect = id.dialect
+		from = cp
 	}
 	return id.copy(id.clauses.SetFrom(from))
 }

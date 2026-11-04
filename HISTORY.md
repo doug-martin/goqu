@@ -1,3 +1,9 @@
+# Unreleased
+
+* [FEATURE] Add `goqu.SetDefaultDialect` to choose the dialect used by the package level `goqu.From`, `goqu.Select`, `goqu.Insert`, `goqu.Update`, `goqu.Delete` and `goqu.Truncate` [#450](https://github.com/doug-martin/goqu/issues/450), [#266](https://github.com/doug-martin/goqu/issues/266)
+* [FEATURE] Add `goqu.RequireDialect` and `goqu.MustDialect` to fail on a dialect that is not registered (for example a missing import) instead of silently using the default dialect [#409](https://github.com/doug-martin/goqu/issues/409)
+* [FIX] `GetDialect` now reads the dialect registry under its lock
+
 # v9.24.0
 
 * [SECURITY] The `sqlserver` dialect escaped a single quote in interpolated strings as `\'`, which SQL Server does not understand, so a quote in a value could end the string literal early (SQL injection when interpolating untrusted values). Only the single quote is now escaped, by doubling it, and quotes, backslashes and control characters are no longer backslash-escaped. Prepared statements were not affected. Upgrade if you use the `sqlserver` dialect with interpolated (non prepared) queries [#411](https://github.com/doug-martin/goqu/issues/411)

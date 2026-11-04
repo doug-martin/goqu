@@ -24,7 +24,7 @@ func newTruncateDataset(d string, queryFactory exec.QueryFactory) *TruncateDatas
 }
 
 func Truncate(table ...interface{}) *TruncateDataset {
-	return newTruncateDataset("default", nil).Table(table...)
+	return newTruncateDataset(defaultDialectName(), nil).Table(table...)
 }
 
 // Sets the adapter used to serialize values and create the SQL statement

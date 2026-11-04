@@ -29,7 +29,7 @@ func newDeleteDataset(d string, queryFactory exec.QueryFactory) *DeleteDataset {
 }
 
 func Delete(table interface{}) *DeleteDataset {
-	return newDeleteDataset("default", nil).From(table)
+	return newDeleteDataset(defaultDialectName(), nil).From(table)
 }
 
 func (dd *DeleteDataset) Expression() exp.Expression {

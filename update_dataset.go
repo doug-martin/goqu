@@ -27,7 +27,7 @@ func newUpdateDataset(d string, queryFactory exec.QueryFactory) *UpdateDataset {
 }
 
 func Update(table interface{}) *UpdateDataset {
-	return newUpdateDataset("default", nil).Table(table)
+	return newUpdateDataset(defaultDialectName(), nil).Table(table)
 }
 
 // Set the parameter interpolation behavior. See examples

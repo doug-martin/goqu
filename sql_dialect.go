@@ -56,11 +56,15 @@ func DeregisterDialect(name string) {
 	dialectsMu.Lock()
 	defer dialectsMu.Unlock()
 	delete(dialects, strings.ToLower(name))
+	resetDefaultDialectIfDeregistered(name)
 }
 
 func GetDialect(name string) SQLDialect {
 	name = strings.ToLower(name)
-	if d, ok := dialects[name]; ok {
+	dialectsMu.RLock()
+	d, ok := dialects[name]
+	dialectsMu.RUnlock()
+	if ok {
 		return d
 	}
 	return newDialect("default", DefaultDialectOptions())

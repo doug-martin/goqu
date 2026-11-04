@@ -1,8 +1,10 @@
 package goqu
 
+import "sync/atomic"
+
 var (
 	// defaultPrepared is controlled by SetDefaultPrepared
-	defaultPrepared bool
+	defaultPrepared atomic.Bool
 )
 
 type prepared int
@@ -24,7 +26,7 @@ const (
 func (p prepared) Bool() bool {
 	switch p {
 	case preparedNoPreference:
-		return defaultPrepared
+		return defaultPrepared.Load()
 	case preparedEnabled:
 		return true
 	default:
@@ -45,5 +47,5 @@ func preparedFromBool(prepared bool) prepared {
 // SetDefaultPrepared controls the default Prepared state of all datasets. If
 // set to true, any new dataset will use prepared queries by default.
 func SetDefaultPrepared(prepared bool) {
-	defaultPrepared = prepared
+	defaultPrepared.Store(prepared)
 }
