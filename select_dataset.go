@@ -33,11 +33,11 @@ func newDataset(d string, queryFactory exec.QueryFactory) *SelectDataset {
 }
 
 func From(table ...interface{}) *SelectDataset {
-	return newDataset("default", nil).From(table...)
+	return newDataset(defaultDialectName(), nil).From(table...)
 }
 
 func Select(cols ...interface{}) *SelectDataset {
-	return newDataset("default", nil).Select(cols...)
+	return newDataset(defaultDialectName(), nil).Select(cols...)
 }
 
 // Sets the adapter used to serialize values and create the SQL statement

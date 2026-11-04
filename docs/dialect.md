@@ -9,6 +9,27 @@ Dialects allow goqu the build the correct SQL for each database. There are four 
 
 **NOTE** Dialects work like drivers in go where they are not registered until you import the package.
 
+`goqu.Dialect` falls back to the `default` dialect if the name is not registered, for example when the import is
+missing. To fail instead, use `goqu.RequireDialect` (returns an error) or `goqu.MustDialect` (panics):
+
+```go
+db := goqu.MustDialect("postgres")
+```
+
+To use one dialect for the package level `goqu.From`, `goqu.Select`, `goqu.Insert`, `goqu.Update`, `goqu.Delete` and
+`goqu.Truncate` functions, call `goqu.SetDefaultDialect` once at startup, after importing the dialect. It panics if the
+dialect is not registered. Datasets that choose a dialect explicitly (`goqu.Dialect`, `WithDialect`, `goqu.New`) are
+not affected. Use `goqu.SetDefaultPrepared(true)` to make prepared statements the default.
+
+```go
+import _ "github.com/doug-martin/goqu/v9/dialect/postgres"
+
+func init() {
+	goqu.SetDefaultDialect("postgres")
+	goqu.SetDefaultPrepared(true)
+}
+```
+
 Below are examples for each dialect. Notice how the dialect is imported and then looked up using `goqu.Dialect`
 
 <a name="postgres"></a>
