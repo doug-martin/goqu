@@ -179,8 +179,6 @@ func isBytesValue(v any) bool {
 // checks a boolean operation normalizing the operation based on the RHS (e.g. "a" = true vs "a" IS TRUE
 func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, invert bool) BooleanExpression {
 	if isNullValue(rhs) {
-		// Normalize typed nulls (nil pointers, nil []byte, null driver.Valuers such as sql.NullInt32{}) to an untyped nil so
-		// "a" = NULL (which never matches) becomes "a" IS NULL.
 		rhs = nil
 		op = IsOp
 	} else {
@@ -210,21 +208,18 @@ func checkBoolExpType(op BooleanOperation, lhs Expression, rhs interface{}, inve
 	return NewBooleanExpression(op, lhs, rhs)
 }
 
-// returns true if the value is a SQL NULL: an untyped nil, a nil pointer, or a driver.Valuer that returns nil
-// (e.g. a sql.NullString that is not valid).
 func isNullValue(val interface{}) bool {
 	if val == nil {
 		return true
 	}
-	rv := reflect.ValueOf(val)
-	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Ptr && rv.IsNil() {
 		return true
 	}
-	if b, ok := val.([]byte); ok && b == nil {
-		return true
-	}
-	// an unset json.RawMessage is written as NULL
 	switch t := val.(type) {
+	case []byte:
+		return t == nil
+	case *[]byte:
+		return *t == nil
 	case json.RawMessage:
 		return t == nil
 	case *json.RawMessage:

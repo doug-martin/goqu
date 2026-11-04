@@ -74,10 +74,10 @@ func (sds *duckdbDialectSuite) TestInsertOnConflict() {
 	doNothingTarget := ds.OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression(nil, "db", "a")))
 	doUpdate := ds.OnConflict(goqu.DoUpdate("a", goqu.Record{"a": "b"}))
 	sds.assertSQL(
-		sqlTestCase{ds: doNothing, sql: "INSERT OR IGNORE INTO  `test` (`a`) VALUES ('a') ON CONFLICT  DO NOTHING "},
+		sqlTestCase{ds: doNothing, sql: "INSERT INTO `test` (`a`) VALUES ('a') ON CONFLICT  DO NOTHING "},
 		sqlTestCase{
 			ds:         doNothing.Prepared(true),
-			sql:        "INSERT OR IGNORE INTO  `test` (`a`) VALUES (?) ON CONFLICT  DO NOTHING ",
+			sql:        "INSERT INTO `test` (`a`) VALUES (?) ON CONFLICT  DO NOTHING ",
 			isPrepared: true,
 			args:       []interface{}{"a"},
 		},

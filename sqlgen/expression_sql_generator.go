@@ -437,8 +437,6 @@ func (esg *expressionSQLGenerator) literalInt(b sb.SQLBuilder, i int64) {
 }
 
 // Generates SQL for an uint value
-// Values that fit in an int64 are sent as int64; larger values stay uint64 because
-// converting them to int64 would overflow into a negative number.
 func (esg *expressionSQLGenerator) literalUint(b sb.SQLBuilder, i uint64) {
 	if b.IsPrepared() {
 		if i <= math.MaxInt64 {

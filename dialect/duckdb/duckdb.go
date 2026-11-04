@@ -16,7 +16,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsOrderByOnDelete = true
 	opts.SupportsLimitOnDelete = true
 	opts.SupportsConflictUpdateWhere = false
-	opts.SupportsInsertIgnoreSyntax = true
+	opts.SupportsInsertIgnoreSyntax = false
 	opts.SupportsConflictTarget = true
 	opts.SupportsMultipleUpdateTables = false
 	opts.WrapCompoundsInParens = false
@@ -67,7 +67,6 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.EscapedRunes = map[rune][]byte{
 		'\'': []byte("''"),
 	}
-	opts.InsertIgnoreClause = []byte("INSERT OR IGNORE INTO ")
 	opts.ConflictFragment = []byte(" ON CONFLICT ")
 	opts.ConflictDoUpdateFragment = []byte(" DO UPDATE SET ")
 	opts.ConflictDoNothingFragment = []byte(" DO NOTHING ")
