@@ -446,6 +446,24 @@ Output:
 UPDATE `test` SET `foo`='bar' LIMIT 10
 ```
 
+Dialects that spell a row-limited update differently render it in their own syntax. `sqlserver` emits `TOP` directly after `UPDATE`, ahead of the table:
+
+```go
+// import _ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
+
+ds := goqu.Dialect("sqlserver").
+	Update("test").
+	Set(goqu.Record{"foo": "bar"}).
+	Limit(10)
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+UPDATE TOP (10) "test" SET "foo"='bar'
+```
+
 <a name="returning"></a>
 **[Returning](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Returning)**
 

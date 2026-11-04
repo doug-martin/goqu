@@ -14,7 +14,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 
 	opts.SupportsReturn = false
 	opts.SupportsOrderByOnUpdate = false
-	opts.SupportsLimitOnUpdate = false
+	opts.SupportsLimitOnUpdate = true
 	opts.SupportsLimitOnDelete = true
 	// T-SQL has no ORDER BY on DELETE. Fail loudly instead of generating invalid SQL (or silently
 	// deleting arbitrary rows if the clause were dropped); use a subquery such as
@@ -69,6 +69,22 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	}
 
 	opts.FetchFragment = []byte(" FETCH FIRST ")
+
+	// SQL Server spells a row-limited update "UPDATE TOP (n) <table> SET ...", so TOP has to be
+	// emitted immediately after UPDATE, ahead of the table. The default UpdateSQLOrder puts
+	// LimitSQLFragment after the WHERE clause, which would produce
+	// "UPDATE [t] SET ... WHERE ... TOP (n)". Every other fragment keeps its default position.
+	opts.UpdateSQLOrder = []sqlgen.SQLFragmentType{
+		sqlgen.CommonTableSQLFragment,
+		sqlgen.UpdateBeginSQLFragment,
+		sqlgen.LimitSQLFragment,
+		sqlgen.SourcesSQLFragment,
+		sqlgen.UpdateSQLFragment,
+		sqlgen.UpdateFromSQLFragment,
+		sqlgen.WhereSQLFragment,
+		sqlgen.OrderSQLFragment,
+		sqlgen.ReturningSQLFragment,
+	}
 
 	// SQL Server spells a row-limited delete "DELETE TOP (n) FROM ...", so TOP has to be
 	// emitted immediately after DELETE. The default DeleteSQLOrder puts LimitSQLFragment

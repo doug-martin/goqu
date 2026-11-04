@@ -107,6 +107,36 @@ func (sds *sqlserverDialectSuite) TestDeleteWithLimit() {
 	)
 }
 
+func (sds *sqlserverDialectSuite) TestUpdateWithLimit() {
+	ds := goqu.Dialect("sqlserver").Update("test").Set(goqu.Record{"a": 1})
+	sds.assertSQL(
+		sqlTestCase{
+			ds:  ds.Where(goqu.C("a").Gt(1)).Limit(10),
+			sql: `UPDATE TOP (10) "test" SET "a"=1 WHERE ("a" > 1)`,
+		},
+		sqlTestCase{
+			ds:  ds.Limit(10),
+			sql: `UPDATE TOP (10) "test" SET "a"=1`,
+		},
+		// TOP has to come before the table, also when the update has a FROM clause.
+		sqlTestCase{
+			ds:  ds.From("other").Limit(10),
+			sql: `UPDATE TOP (10) "test" SET "a"=1 FROM "other"`,
+		},
+		// Without a limit the statement is unchanged.
+		sqlTestCase{
+			ds:  ds.Where(goqu.C("a").Gt(1)),
+			sql: `UPDATE "test" SET "a"=1 WHERE ("a" > 1)`,
+		},
+		sqlTestCase{
+			ds:         ds.Where(goqu.C("a").Gt(1)).Limit(10).Prepared(true),
+			sql:        `UPDATE TOP (@p1) "test" SET "a"=@p2 WHERE ("a" > @p3)`,
+			isPrepared: true,
+			args:       []interface{}{int64(10), int64(1), int64(1)},
+		},
+	)
+}
+
 func (sds *sqlserverDialectSuite) TestDeleteWithOrderIsAnError() {
 	ds := goqu.Dialect("sqlserver").Delete("test")
 	sds.assertSQL(
