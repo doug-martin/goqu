@@ -640,6 +640,10 @@ const (
 // (CrossJoinType + n) to keep the existing exported values stable.
 const StraightJoinType = CrossJoinType + 1
 
+// CustomJoinType is a join whose text is entirely provided by the user (e.g. ClickHouse's ARRAY JOIN). It is declared
+// outside the iota block for the same reason as StraightJoinType.
+const CustomJoinType = CrossJoinType + 2
+
 var (
 	ConditionedJoinTypes = map[JoinType]bool{
 		InnerJoinType:      true,
@@ -772,6 +776,8 @@ func (jt JoinType) String() string {
 		return "CrossJoinType"
 	case StraightJoinType:
 		return "StraightJoinType"
+	case CustomJoinType:
+		return "CustomJoinType"
 	}
 	return fmt.Sprintf("%d", jt)
 }

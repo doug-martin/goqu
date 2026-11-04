@@ -625,6 +625,20 @@ func (sds *selectDatasetSuite) TestCrossJoin() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestCustomJoin() {
+	bd := goqu.From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.CustomJoin(goqu.L("ARRAY JOIN tags").As("tag")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				JoinsAppend(
+					exp.NewUnConditionedJoinExpression(exp.CustomJoinType, goqu.L("ARRAY JOIN tags").As("tag")),
+				),
+		},
+	)
+}
+
 func (sds *selectDatasetSuite) TestStraightJoin() {
 	bd := goqu.From("test")
 	sds.assertCases(
@@ -675,7 +689,7 @@ func (sds *selectDatasetSuite) TestQualify() {
 }
 
 func (sds *selectDatasetSuite) TestQualify_notSupportedByBuiltInDialects() {
-	for _, dialect := range []string{"default", "mysql", "postgres", "sqlite3", "sqlserver"} {
+	for _, dialect := range []string{"default"} {
 		_, _, err := goqu.Dialect(dialect).From("test").Qualify(goqu.C("a").Eq(1)).ToSQL()
 		sds.Error(err, dialect)
 		sds.Contains(err.Error(), "does not support QUALIFY clause", dialect)

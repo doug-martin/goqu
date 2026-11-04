@@ -451,13 +451,21 @@ func ExampleSelectDataset_Qualify() {
 	opts.SupportsQualify = true
 	goqu.RegisterDialect("qualify", opts)
 	var dialect = goqu.Dialect("qualify")
-	sql, _, _ := dialect.From("test").Qualify(goqu.SUM("income").Gt(1000)).ToSQL()
+	rowNumber := goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc()))
+	sql, _, _ := dialect.From("test").
+		Select("a", rowNumber.As("rn")).
+		Qualify(goqu.C("rn").Eq(1)).
+		ToSQL()
 	fmt.Println(sql)
-	sql, _, _ = dialect.From("test").GroupBy("age").Qualify(goqu.SUM("income").Gt(1000)).ToSQL()
+	sql, _, _ = dialect.From("test").
+		Select("a", goqu.SUM("income").As("total")).
+		GroupBy("a").
+		Qualify(goqu.RANK().Over(goqu.W().OrderBy(goqu.I("total").Desc())).Lte(3)).
+		ToSQL()
 	fmt.Println(sql)
 	// Output:
-	// SELECT * FROM "test" QUALIFY (SUM("income") > 1000)
-	// SELECT * FROM "test" GROUP BY "age" QUALIFY (SUM("income") > 1000)
+	// SELECT "a", ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) AS "rn" FROM "test" QUALIFY ("rn" = 1)
+	// SELECT "a", SUM("income") AS "total" FROM "test" GROUP BY "a" QUALIFY (RANK() OVER (ORDER BY "total" DESC) <= 3)
 }
 
 func ExampleSelectDataset_Window() {
@@ -977,6 +985,27 @@ func ExampleSelectDataset_CrossJoin() {
 	// SELECT * FROM "test" CROSS JOIN "test2"
 	// SELECT * FROM "test" CROSS JOIN (SELECT * FROM "test2" WHERE ("amount" > 0))
 	// SELECT * FROM "test" CROSS JOIN (SELECT * FROM "test2" WHERE ("amount" > 0)) AS "t"
+}
+
+func ExampleSelectDataset_CustomJoin() {
+	// CustomJoin writes the expression as is, so it is up to you to write valid SQL for your database,
+	// e.g. ClickHouse's ARRAY JOIN.
+	sql, _, _ := goqu.From("test").
+		CustomJoin(goqu.L("ARRAY JOIN tags").As("tag")).
+		ToSQL()
+	fmt.Println(sql)
+
+	// It can be combined with other joins, and arguments are supported.
+	sql, args, _ := goqu.From("test").
+		InnerJoin(goqu.T("test2"), goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")})).
+		CustomJoin(goqu.L("ARRAY JOIN ?", goqu.I("tags")).As("tag")).
+		Where(goqu.C("tag").Eq("a")).
+		ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// SELECT * FROM "test" ARRAY JOIN tags AS "tag"
+	// SELECT * FROM "test" INNER JOIN "test2" ON ("test"."fkey" = "test2"."Id") ARRAY JOIN "tags" AS "tag" WHERE ("tag" = 'a') []
 }
 
 func ExampleSelectDataset_StraightJoin() {

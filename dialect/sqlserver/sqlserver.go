@@ -88,6 +88,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		sqlgen.WhereSQLFragment,
 		sqlgen.GroupBySQLFragment,
 		sqlgen.HavingSQLFragment,
+		sqlgen.QualifySQLFragment,
 		sqlgen.WindowSQLFragment,
 		sqlgen.CompoundsSQLFragment,
 		sqlgen.OrderWithOffsetFetchSQLFragment,
