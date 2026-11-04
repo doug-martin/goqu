@@ -51,12 +51,17 @@ func dialectRegistered(name string) bool {
 //
 //	goqu.SetDefaultDialect("postgres")
 func SetDefaultDialect(dialect string) {
-	if !dialectRegistered(dialect) {
+	// Hold the registry read lock while validating and assigning so a concurrent DeregisterDialect cannot slip in
+	// between. Lock order is registry then default dialect, the same as DeregisterDialect.
+	dialectsMu.RLock()
+	defer dialectsMu.RUnlock()
+	name := strings.ToLower(dialect)
+	if _, ok := dialects[name]; !ok {
 		panic(fmt.Errorf("goqu: dialect %q is not registered, did you import its package?", dialect))
 	}
 	defaultDialectMu.Lock()
 	defer defaultDialectMu.Unlock()
-	defaultDialect = strings.ToLower(dialect)
+	defaultDialect = name
 }
 
 // RequireDialect returns a DialectWrapper for the dialect, or an error if the dialect is not registered

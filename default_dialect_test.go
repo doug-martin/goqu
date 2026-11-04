@@ -93,6 +93,20 @@ func TestInsertFromQueryWithDefaultDialect(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "INSERT INTO `t` SELECT * FROM `o`", sql)
 
+	// a select shared between inserts is not mutated by the first one
+	shared := goqu.From("o").Where(goqu.C("a").Eq("x"))
+	pg := goqu.Dialect("postgres").Insert("t").FromQuery(shared)
+	my := goqu.Dialect("mysql").Insert("t").FromQuery(shared)
+	sql, _, err = pg.ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, `INSERT INTO "t" SELECT * FROM "o" WHERE ("a" = 'x')`, sql)
+	sql, _, err = my.ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, "INSERT INTO `t` SELECT * FROM `o` WHERE (`a` = 'x')", sql)
+	sql, _, err = pg.ToSQL()
+	require.NoError(t, err)
+	require.Equal(t, `INSERT INTO "t" SELECT * FROM "o" WHERE ("a" = 'x')`, sql)
+
 	// an explicitly chosen, different dialect is still rejected
 	require.Panics(t, func() {
 		goqu.Dialect("mysql").Insert("t").FromQuery(goqu.Dialect("postgres").From("o"))

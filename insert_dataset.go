@@ -155,7 +155,10 @@ func (id *InsertDataset) FromQuery(from exp.AppendableExpression) *InsertDataset
 				),
 			)
 		}
-		sds.dialect = id.dialect
+		// attach a copy so a select shared between inserts is not mutated
+		cp := sds.copy(sds.GetClauses())
+		cp.dialect = id.dialect
+		from = cp
 	}
 	return id.copy(id.clauses.SetFrom(from))
 }
