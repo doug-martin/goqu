@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FIX] `skipinsert` and `skipupdate` on a nested or embedded struct field now apply to all of the columns of that struct [#356](https://github.com/doug-martin/goqu/issues/356)
 * [FIX] The `sqlite3` dialect generates `INSERT INTO t DEFAULT VALUES` for an insert without columns instead of an invalid `INSERT INTO t` [#437](https://github.com/doug-martin/goqu/issues/437)
 * [FIX] Escape quote characters embedded in quoted identifiers by doubling them (e.g. `a"b` becomes `"a""b"`) [#428](https://github.com/doug-martin/goqu/issues/428)
 * [DOCS] Document batching large inserts, scanned time locations, struct/column matching for `ScanStruct` and a custom dialect without `AS` [#305](https://github.com/doug-martin/goqu/issues/305), [#346](https://github.com/doug-martin/goqu/issues/346), [#355](https://github.com/doug-martin/goqu/issues/355), [#374](https://github.com/doug-martin/goqu/issues/374), [#426](https://github.com/doug-martin/goqu/issues/426)
