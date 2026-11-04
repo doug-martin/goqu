@@ -1248,6 +1248,8 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_IdentifierExpression() {
 		},
 
 		expressionTestCase{val: col, sql: `"col"`},
+		expressionTestCase{val: exp.NewIdentifierExpression("", "", `a"b`), sql: `"a""b"`},
+		expressionTestCase{val: exp.NewIdentifierExpression(`s"1`, `t"2`, `c"3`), sql: `"s""1"."t""2"."c""3"`},
 		expressionTestCase{val: col, sql: `"col"`, isPrepared: true},
 
 		expressionTestCase{val: col.Table("table"), sql: `"table"."col"`},

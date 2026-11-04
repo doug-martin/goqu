@@ -207,3 +207,11 @@ func TestInsertOnConflictDoNothingTarget(t *testing.T) {
 	assert.Equal(t, "INSERT INTO `test` (`a`) VALUES (?) ON CONFLICT  (`a`) DO NOTHING ", sql)
 	assert.Equal(t, []any{"a"}, args)
 }
+
+func TestIdentifierEscapesBackticks(t *testing.T) {
+	t.Parallel()
+
+	sql, _, err := goqu.Dialect("sqlite3").From(goqu.T("a`b")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM `a``b`", sql)
+}
