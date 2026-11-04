@@ -1,5 +1,6 @@
 # Unreleased
 
+* [BUG] Subqueries, CTEs, compound (`UNION`) queries and `Insert().FromQuery` now render with the dialect of the enclosing statement. Previously a nested dataset built with the default dialect emitted `?` placeholders inside a Postgres prepared statement (#413, #370).
 * [FEATURE] Add `goqu.SetDefaultDialect` to choose the dialect used by the package level `goqu.From`, `goqu.Select`, `goqu.Insert`, `goqu.Update`, `goqu.Delete` and `goqu.Truncate` [#450](https://github.com/doug-martin/goqu/issues/450), [#266](https://github.com/doug-martin/goqu/issues/266)
 * [FEATURE] Add `goqu.RequireDialect` and `goqu.MustDialect` to fail on a dialect that is not registered (for example a missing import) instead of silently using the default dialect [#409](https://github.com/doug-martin/goqu/issues/409)
 * [FIX] `GetDialect` now reads the dialect registry under its lock

@@ -105,3 +105,17 @@ func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.DeleteClauses) {
 func (d *sqlDialect) ToTruncateSQL(b sb.SQLBuilder, clauses exp.TruncateClauses) {
 	d.truncateGen.Generate(b, clauses)
 }
+
+// dialectFor returns the registered dialect with the given name when it uses do, otherwise a dialect built from do.
+// It lets a nested dataset render with the dialect of the statement that contains it without rebuilding generators.
+func dialectFor(name string, do *SQLDialectOptions) SQLDialect {
+	dialectsMu.RLock()
+	d, ok := dialects[strings.ToLower(name)]
+	dialectsMu.RUnlock()
+	if ok {
+		if sd, isSQLDialect := d.(*sqlDialect); isSQLDialect && sd.dialectOptions == do {
+			return d
+		}
+	}
+	return newDialect(name, do)
+}

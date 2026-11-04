@@ -605,6 +605,16 @@ func (sd *SelectDataset) AppendSQL(b sb.SQLBuilder) {
 	sd.dialect.ToSelectSQL(b, sd.GetClauses())
 }
 
+// AppendSQLWithDialect renders this dataset with the dialect of the enclosing statement, so a nested dataset built
+// with a different dialect (e.g. the default one) never mixes dialects in a single statement.
+func (sd *SelectDataset) AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *SQLDialectOptions) {
+	if sd.err != nil {
+		b.SetError(sd.err)
+		return
+	}
+	dialectFor(dialect, do).ToSelectSQL(b, sd.GetClauses())
+}
+
 func (sd *SelectDataset) ReturnsColumns() bool {
 	return true
 }

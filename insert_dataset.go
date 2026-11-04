@@ -248,6 +248,16 @@ func (id *InsertDataset) AppendSQL(b sb.SQLBuilder) {
 	id.dialect.ToInsertSQL(b, id.GetClauses())
 }
 
+// AppendSQLWithDialect renders this dataset with the dialect of the enclosing statement, so a nested dataset built
+// with a different dialect (e.g. the default one) never mixes dialects in a single statement.
+func (id *InsertDataset) AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *SQLDialectOptions) {
+	if id.err != nil {
+		b.SetError(id.err)
+		return
+	}
+	dialectFor(dialect, do).ToInsertSQL(b, id.GetClauses())
+}
+
 func (id *InsertDataset) GetAs() exp.IdentifierExpression {
 	return id.clauses.Alias()
 }
