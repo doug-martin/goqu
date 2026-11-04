@@ -480,6 +480,10 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 		esg.placeHolderSQL(b, bs)
 		return
 	}
+	if isBinary(bs) {
+		esg.literalBinary(b, bs)
+		return
+	}
 	b.GrowBuffer(len(bs) + quoteOverhead)
 	b.WriteRunes(esg.dialectOptions.StringQuote)
 	i := 0
@@ -494,6 +498,24 @@ func (esg *expressionSQLGenerator) literalBytes(b sb.SQLBuilder, bs []byte) {
 		bs = bs[l:]
 	}
 	b.WriteRunes(esg.dialectOptions.StringQuote)
+}
+
+// isBinary returns true if the bytes cannot be written as a text literal without losing data, i.e. they are not
+// valid UTF-8.
+func isBinary(bs []byte) bool {
+	return !utf8.Valid(bs)
+}
+
+// Generates SQL for binary data as a hex literal, e.g. X'00ff' (see BinaryLiteralPrefix and BinaryLiteralSuffix)
+func (esg *expressionSQLGenerator) literalBinary(b sb.SQLBuilder, bs []byte) {
+	const hexDigits = "0123456789abcdef"
+	b.GrowBuffer(len(bs)*2 + quoteOverhead + len(esg.dialectOptions.BinaryLiteralPrefix) +
+		len(esg.dialectOptions.BinaryLiteralSuffix))
+	b.Write(esg.dialectOptions.BinaryLiteralPrefix)
+	for _, c := range bs {
+		b.WriteRunes(rune(hexDigits[c>>4]), rune(hexDigits[c&0x0f]))
+	}
+	b.Write(esg.dialectOptions.BinaryLiteralSuffix)
 }
 
 // Generates SQL for a slice of values (e.g. []int64{1,2,3,4} -> (1,2,3,4)

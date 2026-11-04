@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FIX] Interpolated `[]byte` values that are not valid UTF-8 are written as a binary literal (`X'..'`, `decode('..', 'hex')` for postgres, `0x..` for sqlserver) instead of being corrupted. Added the `BinaryLiteralPrefix` and `BinaryLiteralSuffix` dialect options. Valid text is still written as a string [#436](https://github.com/doug-martin/goqu/issues/436), [#335](https://github.com/doug-martin/goqu/issues/335), [#254](https://github.com/doug-martin/goqu/issues/254), [#353](https://github.com/doug-martin/goqu/issues/353)
 * [FIX] `skipinsert` and `skipupdate` on a nested or embedded struct field now apply to all of the columns of that struct [#356](https://github.com/doug-martin/goqu/issues/356)
 * [FIX] The `sqlite3` dialect generates `INSERT INTO t DEFAULT VALUES` for an insert without columns instead of an invalid `INSERT INTO t` [#437](https://github.com/doug-martin/goqu/issues/437)
 * [FIX] Escape quote characters embedded in quoted identifiers by doubling them (e.g. `a"b` becomes `"a""b"`) [#428](https://github.com/doug-martin/goqu/issues/428)

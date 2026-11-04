@@ -34,6 +34,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.LimitFragment = []byte(" TOP ")
 	opts.IncludePlaceholderNum = true
 	opts.DefaultValuesFragment = []byte("")
+	opts.BinaryLiteralPrefix = []byte("0x")
+	opts.BinaryLiteralSuffix = []byte("")
 	opts.True = []byte("1")
 	opts.False = []byte("0")
 	opts.TimeFormat = "2006-01-02 15:04:05"
