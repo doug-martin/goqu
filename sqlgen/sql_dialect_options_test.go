@@ -23,6 +23,7 @@ func (sfts *sqlFragmentTypeSuite) TestOptions_SQLFragmentType() {
 		{typ: sqlgen.WhereSQLFragment, expectedStr: "WhereSQLFragment"},
 		{typ: sqlgen.GroupBySQLFragment, expectedStr: "GroupBySQLFragment"},
 		{typ: sqlgen.HavingSQLFragment, expectedStr: "HavingSQLFragment"},
+		{typ: sqlgen.QualifySQLFragment, expectedStr: "QualifySQLFragment"},
 		{typ: sqlgen.CompoundsSQLFragment, expectedStr: "CompoundsSQLFragment"},
 		{typ: sqlgen.OrderSQLFragment, expectedStr: "OrderSQLFragment"},
 		{typ: sqlgen.LimitSQLFragment, expectedStr: "LimitSQLFragment"},

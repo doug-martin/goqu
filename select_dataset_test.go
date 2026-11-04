@@ -663,6 +663,39 @@ func (sds *selectDatasetSuite) TestStraightJoin_unsupportedDialect() {
 	sds.EqualError(err, "goqu: dialect does not support StraightJoinType")
 }
 
+func (sds *selectDatasetSuite) TestQualify() {
+	w := exp.Ex{"a": 1}
+	w2 := exp.Ex{"b": 2}
+	bd := goqu.From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.Qualify(w),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				QualifyAppend(w),
+		},
+		selectTestCase{
+			ds: bd.Qualify(w).Qualify(w2),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				QualifyAppend(w).
+				QualifyAppend(w2),
+		},
+		selectTestCase{
+			ds:      bd,
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+	)
+}
+
+func (sds *selectDatasetSuite) TestQualify_notSupportedByBuiltInDialects() {
+	for _, dialect := range []string{"default"} {
+		_, _, err := goqu.Dialect(dialect).From("test").Qualify(goqu.C("a").Eq(1)).ToSQL()
+		sds.Error(err, dialect)
+		sds.Contains(err.Error(), "does not support QUALIFY clause", dialect)
+	}
+}
+
 func (sds *selectDatasetSuite) TestWhere() {
 	w := goqu.Ex{"a": 1}
 	w2 := goqu.Ex{"b": "c"}

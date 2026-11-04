@@ -1,7 +1,7 @@
 # Unreleased
 
+* [FEATURE] Add `SelectDataset.Qualify` and the `SupportsQualify` dialect option for the `QUALIFY` clause (Teradata, Snowflake, BigQuery, ...). Off by default for all built in dialects [#343](https://github.com/doug-martin/goqu/issues/343), [#401](https://github.com/doug-martin/goqu/pull/401) - [@slessard](https://github.com/slessard)
 * [FEATURE] Add `SelectDataset.CustomJoin` to write a join clause goqu does not model (e.g. ClickHouse `ARRAY JOIN`) [#423](https://github.com/doug-martin/goqu/issues/423), [#430](https://github.com/doug-martin/goqu/pull/430) - [@darwin67](https://github.com/darwin67)
-
 # v9.22.0
 
 * [PERF] Reduce allocations when generating SQL: pooled SQL builders, typed fast paths for common slice types, bytewise placeholder scanning and pre-sized buffers. Roughly 10-25% faster `ToSQL` with up to 40% fewer allocations in the benchmarks [#444](https://github.com/doug-martin/goqu/pull/444) - [@pquerna](https://github.com/pquerna), [@funkyshu](https://github.com/funkyshu)

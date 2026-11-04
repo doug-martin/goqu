@@ -446,6 +446,28 @@ func ExampleSelectDataset_Having() {
 	// SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 }
 
+func ExampleSelectDataset_Qualify() {
+	opts := goqu.DefaultDialectOptions()
+	opts.SupportsQualify = true
+	goqu.RegisterDialect("qualify", opts)
+	var dialect = goqu.Dialect("qualify")
+	rowNumber := goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc()))
+	sql, _, _ := dialect.From("test").
+		Select("a", rowNumber.As("rn")).
+		Qualify(goqu.C("rn").Eq(1)).
+		ToSQL()
+	fmt.Println(sql)
+	sql, _, _ = dialect.From("test").
+		Select("a", goqu.SUM("income").As("total")).
+		GroupBy("a").
+		Qualify(goqu.RANK().Over(goqu.W().OrderBy(goqu.I("total").Desc())).Lte(3)).
+		ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT "a", ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) AS "rn" FROM "test" QUALIFY ("rn" = 1)
+	// SELECT "a", SUM("income") AS "total" FROM "test" GROUP BY "a" QUALIFY (RANK() OVER (ORDER BY "total" DESC) <= 3)
+}
+
 func ExampleSelectDataset_Window() {
 	ds := goqu.From("test").
 		Select(goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.I("b").Asc())))

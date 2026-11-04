@@ -419,6 +419,13 @@ func (sd *SelectDataset) Having(expressions ...exp.Expression) *SelectDataset {
 	return sd.copy(sd.clauses.HavingAppend(expressions...))
 }
 
+// Adds a QUALIFY clause, which filters on the result of window functions. QUALIFY is not supported by the built in
+// dialects (generating SQL returns an error): register a dialect with SQLDialectOptions.SupportsQualify set to true.
+// See examples.
+func (sd *SelectDataset) Qualify(expressions ...exp.Expression) *SelectDataset {
+	return sd.copy(sd.clauses.QualifyAppend(expressions...))
+}
+
 // Adds a ORDER clause. If the ORDER is currently set it replaces it. See examples.
 func (sd *SelectDataset) Order(order ...exp.OrderedExpression) *SelectDataset {
 	return sd.copy(sd.clauses.SetOrder(order...))

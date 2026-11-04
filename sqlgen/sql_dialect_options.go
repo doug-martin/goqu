@@ -41,6 +41,9 @@ type (
 		SupportsDistinctOn bool
 		// Set to true if LATERAL queries are supported (DEFAULT=true)
 		SupportsLateral bool
+		// Set to true if the dialect supports QUALIFY expressions, e.g. Teradata, Snowflake, BigQuery (DEFAULT=false).
+		// None of the built in dialects enable it: register your own dialect with it set to true.
+		SupportsQualify bool
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
 
@@ -100,6 +103,8 @@ type (
 		GroupByFragment []byte
 		// The SQL HAVING clause fragment(DEFAULT=[]byte(" HAVING "))
 		HavingFragment []byte
+		// The SQL QUALIFY clause fragment(DEFAULT=[]byte(" QUALIFY "))
+		QualifyFragment []byte
 		// The SQL WINDOW clause fragment(DEFAULT=[]byte(" WINDOW "))
 		WindowFragment []byte
 		// The SQL WINDOW clause PARTITION BY fragment(DEFAULT=[]byte("PARTITION BY "))
@@ -286,6 +291,7 @@ type (
 		// 		WhereSQLFragment,
 		// 		GroupBySQLFragment,
 		// 		HavingSQLFragment,
+		// 		QualifySQLFragment,
 		// 		CompoundsSQLFragment,
 		// 		OrderSQLFragment,
 		// 		LimitSQLFragment,
@@ -363,6 +369,8 @@ const (
 	DeleteBeginSQLFragment
 	TruncateSQLFragment
 	WindowSQLFragment
+	// New fragment types are appended here so the values of the existing ones do not change.
+	QualifySQLFragment
 )
 
 //nolint:gocyclo // simple type to string conversion
@@ -382,6 +390,8 @@ func (sf SQLFragmentType) String() string {
 		return "GroupBySQLFragment"
 	case HavingSQLFragment:
 		return "HavingSQLFragment"
+	case QualifySQLFragment:
+		return "QualifySQLFragment"
 	case CompoundsSQLFragment:
 		return "CompoundsSQLFragment"
 	case OrderSQLFragment:
@@ -434,6 +444,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		WrapCompoundsInParens:       true,
 		SupportsWindowFunction:      true,
 		SupportsLateral:             true,
+		SupportsQualify:             false,
 
 		SupportsMultipleUpdateTables:         true,
 		UseFromClauseForMultipleUpdateTables: true,
@@ -461,6 +472,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		GroupByFragment:           []byte(" GROUP BY "),
 		HavingFragment:            []byte(" HAVING "),
 		WindowFragment:            []byte(" WINDOW "),
+		QualifyFragment:           []byte(" QUALIFY "),
 		WindowPartitionByFragment: []byte("PARTITION BY "),
 		WindowOrderByFragment:     []byte("ORDER BY "),
 		WindowOverFragment:        []byte(" OVER "),
@@ -578,6 +590,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			WhereSQLFragment,
 			GroupBySQLFragment,
 			HavingSQLFragment,
+			QualifySQLFragment,
 			WindowSQLFragment,
 			CompoundsSQLFragment,
 			OrderSQLFragment,
