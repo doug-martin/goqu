@@ -188,6 +188,12 @@ type (
 		EndFragment []byte
 		// The quote rune to use when quoting string literals (DEFAULT='\'')
 		StringQuote rune
+		// The text written before the hex digits of a binary literal when a byte slice that is not valid text is
+		// interpolated, e.g. postgres="decode('", sqlserver="0x" (DEFAULT=[]byte("X'"))
+		BinaryLiteralPrefix []byte
+		// The text written after the hex digits of a binary literal, e.g. postgres="', 'hex')", sqlserver=""
+		// (DEFAULT=[]byte("'"))
+		BinaryLiteralSuffix []byte
 		// The operator to use when setting values in an update statement (DEFAULT='=')
 		SetOperatorRune rune
 		// The placeholder fragment to use when generating a non interpolated statement (DEFAULT=[]byte"?")
@@ -516,6 +522,8 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		PlaceHolderFragment: []byte("?"),
 		QuoteRune:           '"',
 		StringQuote:         '\'',
+		BinaryLiteralPrefix: []byte("X'"),
+		BinaryLiteralSuffix: []byte("'"),
 		SetOperatorRune:     '=',
 		CommaRune:           ',',
 		SpaceRune:           ' ',

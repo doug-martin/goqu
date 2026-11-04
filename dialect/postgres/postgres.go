@@ -9,6 +9,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	do.PlaceHolderFragment = []byte("$")
 	do.IncludePlaceholderNum = true
 	do.QuoteCollation = true
+	do.BinaryLiteralPrefix = []byte("decode('")
+	do.BinaryLiteralSuffix = []byte("', 'hex')")
 	return do
 }
 
