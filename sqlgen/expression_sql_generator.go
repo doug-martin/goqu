@@ -329,6 +329,17 @@ func (esg *expressionSQLGenerator) appendableExpressionSQL(b sb.SQLBuilder, a ex
 	}
 }
 
+// writeEscapedIdentifier writes an identifier part, doubling any embedded quote characters so that
+// e.g. a"b is written as a""b between double quotes.
+func (esg *expressionSQLGenerator) writeEscapedIdentifier(b sb.SQLBuilder, s string) {
+	quote := string(esg.dialectOptions.QuoteRune)
+	if !strings.Contains(s, quote) {
+		b.WriteStrings(s)
+		return
+	}
+	b.WriteStrings(strings.ReplaceAll(s, quote, quote+quote))
+}
+
 // Quotes an identifier (e.g. "col", "table"."col"
 func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, ident exp.IdentifierExpression) {
 	if ident.IsEmpty() {
@@ -338,17 +349,17 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 	schema, table, col := ident.GetSchema(), ident.GetTable(), ident.GetCol()
 	b.GrowBuffer(len(schema) + len(table) + identifierOverhead)
 	if schema != esg.dialectOptions.EmptyString {
-		b.WriteRunes(esg.dialectOptions.QuoteRune).
-			WriteStrings(schema).
-			WriteRunes(esg.dialectOptions.QuoteRune)
+		b.WriteRunes(esg.dialectOptions.QuoteRune)
+		esg.writeEscapedIdentifier(b, schema)
+		b.WriteRunes(esg.dialectOptions.QuoteRune)
 	}
 	if table != esg.dialectOptions.EmptyString {
 		if schema != esg.dialectOptions.EmptyString {
 			b.WriteRunes(esg.dialectOptions.PeriodRune)
 		}
-		b.WriteRunes(esg.dialectOptions.QuoteRune).
-			WriteStrings(table).
-			WriteRunes(esg.dialectOptions.QuoteRune)
+		b.WriteRunes(esg.dialectOptions.QuoteRune)
+		esg.writeEscapedIdentifier(b, table)
+		b.WriteRunes(esg.dialectOptions.QuoteRune)
 	}
 	switch t := col.(type) {
 	case nil:
@@ -357,9 +368,9 @@ func (esg *expressionSQLGenerator) identifierExpressionSQL(b sb.SQLBuilder, iden
 			if table != esg.dialectOptions.EmptyString || schema != esg.dialectOptions.EmptyString {
 				b.WriteRunes(esg.dialectOptions.PeriodRune)
 			}
-			b.WriteRunes(esg.dialectOptions.QuoteRune).
-				WriteStrings(t).
-				WriteRunes(esg.dialectOptions.QuoteRune)
+			b.WriteRunes(esg.dialectOptions.QuoteRune)
+			esg.writeEscapedIdentifier(b, t)
+			b.WriteRunes(esg.dialectOptions.QuoteRune)
 		}
 	case exp.LiteralExpression:
 		if table != esg.dialectOptions.EmptyString || schema != esg.dialectOptions.EmptyString {

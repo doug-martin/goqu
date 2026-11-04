@@ -216,3 +216,11 @@ func TestInsertDefaultValues(t *testing.T) {
 	assert.Empty(t, args)
 	assert.Equal(t, "INSERT INTO `test` DEFAULT VALUES", sql)
 }
+
+func TestIdentifierEscapesBackticks(t *testing.T) {
+	t.Parallel()
+
+	sql, _, err := goqu.Dialect("sqlite3").From(goqu.T("a`b")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM `a``b`", sql)
+}
