@@ -420,6 +420,30 @@ SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id"
 
 To check whether a dataset returns any rows, see [`Exists`](./selecting.md#exists) on the dataset.
 
+<a name="postgres-json-operators"></a>
+## Postgres operators containing `?`
+
+`?` is goqu's placeholder character, so operators such as the Postgres JSON operators `?`, `?|` and `?&` cannot be written directly inside a literal. Pass an escaped `goqu.L("?")` as an argument instead:
+
+```go
+ds := goqu.Dialect("postgres").From("notifications").Where(
+	goqu.L("? ?| ?",
+		goqu.L("data->'something'"),
+		goqu.L("?"),
+		goqu.L("array[?, ?]", "EL01", "EL02"),
+	),
+)
+sql, args, _ := ds.ToSQL()
+fmt.Println(sql, args)
+```
+
+Output:
+```sql
+SELECT * FROM "notifications" WHERE data->'something' ?| array['EL01', 'EL02'] []
+```
+
+With `Prepared(true)` the values stay as placeholders (`$1`, `$2`) and are returned in `args`.
+
 <a name="complex"></a>
 ## Complex Example
 
