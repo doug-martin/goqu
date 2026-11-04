@@ -17,6 +17,9 @@ type SelectDataset struct {
 	isPrepared   prepared
 	queryFactory exec.QueryFactory
 	err          error
+	// implicitDialect is true when the dialect came from the package level default (goqu.From/goqu.Select)
+	// rather than being chosen explicitly.
+	implicitDialect bool
 }
 
 var ErrQueryFactoryNotFoundError = errors.New(
@@ -32,18 +35,26 @@ func newDataset(d string, queryFactory exec.QueryFactory) *SelectDataset {
 	}
 }
 
+// newImplicitDataset creates a dataset using the package level default dialect.
+func newImplicitDataset() *SelectDataset {
+	ds := newDataset(defaultDialectName(), nil)
+	ds.implicitDialect = true
+	return ds
+}
+
 func From(table ...interface{}) *SelectDataset {
-	return newDataset(defaultDialectName(), nil).From(table...)
+	return newImplicitDataset().From(table...)
 }
 
 func Select(cols ...interface{}) *SelectDataset {
-	return newDataset(defaultDialectName(), nil).Select(cols...)
+	return newImplicitDataset().Select(cols...)
 }
 
 // Sets the adapter used to serialize values and create the SQL statement
 func (sd *SelectDataset) WithDialect(dl string) *SelectDataset {
 	ds := sd.copy(sd.GetClauses())
 	ds.dialect = GetDialect(dl)
+	ds.implicitDialect = false
 	return ds
 }
 
@@ -69,6 +80,7 @@ func (sd *SelectDataset) Dialect() SQLDialect {
 func (sd *SelectDataset) SetDialect(dialect SQLDialect) *SelectDataset {
 	cd := sd.copy(sd.GetClauses())
 	cd.dialect = dialect
+	cd.implicitDialect = false
 	return cd
 }
 
@@ -94,6 +106,8 @@ func (sd *SelectDataset) copy(clauses exp.SelectClauses) *SelectDataset {
 		isPrepared:   sd.isPrepared,
 		queryFactory: sd.queryFactory,
 		err:          sd.err,
+
+		implicitDialect: sd.implicitDialect,
 	}
 }
 

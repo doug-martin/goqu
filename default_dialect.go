@@ -17,6 +17,16 @@ func defaultDialectName() string {
 	return defaultDialect
 }
 
+// resetDefaultDialectIfDeregistered switches the default dialect back to "default" when its dialect is deregistered,
+// so the package level functions never silently depend on a missing dialect.
+func resetDefaultDialectIfDeregistered(name string) {
+	defaultDialectMu.Lock()
+	defer defaultDialectMu.Unlock()
+	if strings.EqualFold(defaultDialect, name) {
+		defaultDialect = "default"
+	}
+}
+
 func dialectRegistered(name string) bool {
 	dialectsMu.RLock()
 	defer dialectsMu.RUnlock()
@@ -29,7 +39,13 @@ func dialectRegistered(name string) bool {
 // (goqu.Dialect, WithDialect, goqu.New) are not affected.
 //
 // SetDefaultDialect panics if the dialect is not registered, which usually means the dialect package was not imported.
-// It is intended to be called once at startup, after the dialect packages have been imported.
+// It is intended to be called once at startup, after the dialect packages have been imported and before any dataset is
+// created. A dataset keeps the dialect it was created with, so package level variables such as
+// `var q = goqu.From("t")` are initialized before an init() function runs and will not see the new default.
+// If the default dialect is later removed with DeregisterDialect the default is reset to "default".
+//
+// An INSERT ... FromQuery(goqu.From(...)) accepts a select created with the package level functions in any dialect
+// (it adopts the insert's dialect), as it did before this function existed.
 //
 //	import _ "github.com/doug-martin/goqu/v9/dialect/postgres"
 //

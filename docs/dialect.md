@@ -21,6 +21,9 @@ To use one dialect for the package level `goqu.From`, `goqu.Select`, `goqu.Inser
 dialect is not registered. Datasets that choose a dialect explicitly (`goqu.Dialect`, `WithDialect`, `goqu.New`) are
 not affected. Use `goqu.SetDefaultPrepared(true)` to make prepared statements the default.
 
+**NOTE** A dataset keeps the dialect it was created with. Call `SetDefaultDialect` before creating any datasets, and
+do not rely on package level variables such as `var q = goqu.From("t")`, which are initialized before `init()` runs.
+
 ```go
 import _ "github.com/doug-martin/goqu/v9/dialect/postgres"
 

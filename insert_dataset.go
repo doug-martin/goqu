@@ -147,8 +147,7 @@ func (id *InsertDataset) ColsAppend(cols ...interface{}) *InsertDataset {
 // Adds a subquery to the insert. See examples.
 func (id *InsertDataset) FromQuery(from exp.AppendableExpression) *InsertDataset {
 	if sds, ok := from.(*SelectDataset); ok {
-		if sds.dialect != GetDialect("default") && sds.dialect != GetDialect(defaultDialectName()) &&
-			id.Dialect() != sds.dialect {
+		if sds.dialect != GetDialect("default") && !sds.implicitDialect && id.Dialect() != sds.dialect {
 			panic(
 				fmt.Errorf(
 					"incompatible dialects for INSERT (%q) and SELECT (%q)",
