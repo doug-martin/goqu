@@ -1,12 +1,11 @@
 //go:build sqlite_column_metadata
-// +build sqlite_column_metadata
 
 package sqlite3
 
 /*
 #ifndef USE_LIBSQLITE3
 #cgo CFLAGS: -DSQLITE_ENABLE_COLUMN_METADATA
-#include <sqlite3-binding.h>
+#include "sqlite3-binding.h"
 #else
 #include <sqlite3.h>
 #endif

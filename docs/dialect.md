@@ -177,7 +177,7 @@ For example you could create a custom dialect that replaced the default quote `'
 ```go
 opts := goqu.DefaultDialectOptions()
 opts.QuoteRune = '`'
-goqu.RegisterDialect("custom-dialect", opts)
+goqu.RegisterDialect("custom-dialect", "db", opts)
 
 dialect := goqu.Dialect("custom-dialect")
 

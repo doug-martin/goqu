@@ -13,10 +13,13 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,15 +28,18 @@ type mysqlConn struct {
 	netConn          net.Conn
 	rawConn          net.Conn    // underlying connection when netConn is TLS connection.
 	result           mysqlResult // managed by clearResult() and handleOkPacket().
+	compIO           *compIO
 	cfg              *Config
 	connector        *connector
 	maxAllowedPacket int
 	maxWriteSize     int
-	writeTimeout     time.Duration
-	flags            clientFlag
+	capabilities     capabilityFlag
+	extCapabilities  extendedCapabilityFlag
 	status           statusFlag
 	sequence         uint8
+	compressSequence uint8
 	parseTime        bool
+	compress         bool
 
 	// for context support (Go 1.8+)
 	watching bool
@@ -41,12 +47,59 @@ type mysqlConn struct {
 	closech  chan struct{}
 	finished chan<- struct{}
 	canceled atomicError // set non-nil if conn is canceled
-	closed   atomicBool  // set when conn is closed, before closech is closed
+	closed   atomic.Bool // set when conn is closed, before closech is closed
 }
 
 // Helper function to call per-connection logger.
 func (mc *mysqlConn) log(v ...any) {
+	_, filename, lineno, ok := runtime.Caller(1)
+	if ok {
+		pos := strings.LastIndexByte(filename, '/')
+		if pos != -1 {
+			filename = filename[pos+1:]
+		}
+		prefix := fmt.Sprintf("%s:%d ", filename, lineno)
+		v = append([]any{prefix}, v...)
+	}
+
 	mc.cfg.Logger.Print(v...)
+}
+
+func (mc *mysqlConn) readWithTimeout(b []byte) (int, error) {
+	to := mc.cfg.ReadTimeout
+	if to > 0 {
+		if err := mc.netConn.SetReadDeadline(time.Now().Add(to)); err != nil {
+			return 0, err
+		}
+	}
+	return mc.netConn.Read(b)
+}
+
+func (mc *mysqlConn) writeWithTimeout(b []byte) (int, error) {
+	to := mc.cfg.WriteTimeout
+	if to > 0 {
+		if err := mc.netConn.SetWriteDeadline(time.Now().Add(to)); err != nil {
+			return 0, err
+		}
+	}
+	return mc.netConn.Write(b)
+}
+
+func (mc *mysqlConn) resetSequence() {
+	mc.sequence = 0
+	mc.compressSequence = 0
+}
+
+// syncSequence must be called when finished writing some packet and before start reading.
+func (mc *mysqlConn) syncSequence() {
+	// Syncs compressionSequence to sequence.
+	// This is not documented but done in `net_flush()` in MySQL and MariaDB.
+	// https://github.com/mariadb-corporation/mariadb-connector-c/blob/8228164f850b12353da24df1b93a1e53cc5e85e9/libmariadb/ma_net.c#L170-L171
+	// https://github.com/mysql/mysql-server/blob/824e2b4064053f7daf17d7f3f84b7a3ed92e5fb4/sql-common/net_serv.cc#L293
+	if mc.compress {
+		mc.sequence = mc.compressSequence
+		mc.compIO.reset()
+	}
 }
 
 // Handles parameters set in DSN after the connection is established
@@ -54,58 +107,32 @@ func (mc *mysqlConn) handleParams() (err error) {
 	var cmdSet strings.Builder
 
 	for param, val := range mc.cfg.Params {
-		switch param {
-		// Charset: character_set_connection, character_set_client, character_set_results
-		case "charset":
-			charsets := strings.Split(val, ",")
-			for _, cs := range charsets {
-				// ignore errors here - a charset may not exist
-				if mc.cfg.Collation != "" {
-					err = mc.exec("SET NAMES " + cs + " COLLATE " + mc.cfg.Collation)
-				} else {
-					err = mc.exec("SET NAMES " + cs)
-				}
-				if err == nil {
-					break
-				}
-			}
-			if err != nil {
-				return
-			}
-
-		// Other system vars accumulated in a single SET command
-		default:
-			if cmdSet.Len() == 0 {
-				// Heuristic: 29 chars for each other key=value to reduce reallocations
-				cmdSet.Grow(4 + len(param) + 3 + len(val) + 30*(len(mc.cfg.Params)-1))
-				cmdSet.WriteString("SET ")
-			} else {
-				cmdSet.WriteString(", ")
-			}
-			cmdSet.WriteString(param)
-			cmdSet.WriteString(" = ")
-			cmdSet.WriteString(val)
+		if cmdSet.Len() == 0 {
+			// Heuristic: 29 chars for each other key=value to reduce reallocations
+			cmdSet.Grow(4 + len(param) + 3 + len(val) + 30*(len(mc.cfg.Params)-1))
+			cmdSet.WriteString("SET ")
+		} else {
+			cmdSet.WriteString(", ")
 		}
+		cmdSet.WriteString(param)
+		cmdSet.WriteString(" = ")
+		cmdSet.WriteString(val)
 	}
 
 	if cmdSet.Len() > 0 {
 		err = mc.exec(cmdSet.String())
-		if err != nil {
-			return
-		}
 	}
 
 	return
 }
 
+// markBadConn replaces errBadConnNoWrite with driver.ErrBadConn.
+// This function is used to return driver.ErrBadConn only when safe to retry.
 func (mc *mysqlConn) markBadConn(err error) error {
-	if mc == nil {
-		return err
+	if err == errBadConnNoWrite {
+		return driver.ErrBadConn
 	}
-	if err != errBadConnNoWrite {
-		return err
-	}
-	return driver.ErrBadConn
+	return err
 }
 
 func (mc *mysqlConn) Begin() (driver.Tx, error) {
@@ -114,7 +141,6 @@ func (mc *mysqlConn) Begin() (driver.Tx, error) {
 
 func (mc *mysqlConn) begin(readOnly bool) (driver.Tx, error) {
 	if mc.closed.Load() {
-		mc.log(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
 	var q string
@@ -135,14 +161,18 @@ func (mc *mysqlConn) Close() (err error) {
 	if !mc.closed.Load() {
 		err = mc.writeCommandPacket(comQuit)
 	}
-
-	mc.cleanup()
-	mc.clearResult()
+	mc.close()
 	return
 }
 
+// close closes the network connection and clear results without sending COM_QUIT.
+func (mc *mysqlConn) close() {
+	mc.cleanup()
+	mc.clearResult()
+}
+
 // Closes the network connection and unsets internal variables. Do not call this
-// function after successfully authentication, call Close instead. This function
+// function after successful authentication, call Close instead. This function
 // is called before auth or on auth failure because MySQL will have already
 // closed the network connection.
 func (mc *mysqlConn) cleanup() {
@@ -157,7 +187,7 @@ func (mc *mysqlConn) cleanup() {
 		return
 	}
 	if err := conn.Close(); err != nil {
-		mc.log(err)
+		mc.log("closing connection:", err)
 	}
 	// This function can be called from multiple goroutines.
 	// So we can not mc.clearResult() here.
@@ -176,7 +206,6 @@ func (mc *mysqlConn) error() error {
 
 func (mc *mysqlConn) Prepare(query string) (driver.Stmt, error) {
 	if mc.closed.Load() {
-		mc.log(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
 	// Send command
@@ -195,13 +224,21 @@ func (mc *mysqlConn) Prepare(query string) (driver.Stmt, error) {
 	columnCount, err := stmt.readPrepareResultPacket()
 	if err == nil {
 		if stmt.paramCount > 0 {
-			if err = mc.readUntilEOF(); err != nil {
+			if err = mc.skipColumns(stmt.paramCount); err != nil {
 				return nil, err
 			}
 		}
 
 		if columnCount > 0 {
-			err = mc.readUntilEOF()
+			if mc.extCapabilities&clientCacheMetadata != 0 {
+				if stmt.columns, err = mc.readColumns(int(columnCount), nil); err != nil {
+					return nil, err
+				}
+			} else {
+				if err = mc.skipColumns(int(columnCount)); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
 
@@ -209,98 +246,186 @@ func (mc *mysqlConn) Prepare(query string) (driver.Stmt, error) {
 }
 
 func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (string, error) {
-	// Number of ? should be same to len(args)
-	if strings.Count(query, "?") != len(args) {
-		return "", driver.ErrSkip
-	}
+	noBackslashEscapes := (mc.status & statusNoBackslashEscapes) != 0
+	const (
+		stateNormal = iota
+		stateString
+		stateEscape
+		stateEOLComment
+		stateSlashStarComment
+		stateBacktick
+	)
+
+	const (
+		QUOTE_BYTE         = byte('\'')
+		DBL_QUOTE_BYTE     = byte('"')
+		BACKSLASH_BYTE     = byte('\\')
+		QUESTION_MARK_BYTE = byte('?')
+		SLASH_BYTE         = byte('/')
+		STAR_BYTE          = byte('*')
+		HASH_BYTE          = byte('#')
+		MINUS_BYTE         = byte('-')
+		LINE_FEED_BYTE     = byte('\n')
+		BACKTICK_BYTE      = byte('`')
+	)
 
 	buf, err := mc.buf.takeCompleteBuffer()
 	if err != nil {
-		// can not take the buffer. Something must be wrong with the connection
-		mc.log(err)
-		return "", ErrInvalidConn
+		mc.cleanup()
+		return "", driver.ErrBadConn
 	}
 	buf = buf[:0]
+	state := stateNormal
+	singleQuotes := false
+	lastChar := byte(0)
 	argPos := 0
+	lenQuery := len(query)
+	lastIdx := 0
 
-	for i := 0; i < len(query); i++ {
-		q := strings.IndexByte(query[i:], '?')
-		if q == -1 {
-			buf = append(buf, query[i:]...)
-			break
-		}
-		buf = append(buf, query[i:i+q]...)
-		i += q
-
-		arg := args[argPos]
-		argPos++
-
-		if arg == nil {
-			buf = append(buf, "NULL"...)
+	for i := range lenQuery {
+		currentChar := query[i]
+		if state == stateEscape && !((currentChar == QUOTE_BYTE && singleQuotes) || (currentChar == DBL_QUOTE_BYTE && !singleQuotes)) {
+			state = stateString
+			lastChar = currentChar
 			continue
 		}
-
-		switch v := arg.(type) {
-		case int64:
-			buf = strconv.AppendInt(buf, v, 10)
-		case uint64:
-			// Handle uint64 explicitly because our custom ConvertValue emits unsigned values
-			buf = strconv.AppendUint(buf, v, 10)
-		case float64:
-			buf = strconv.AppendFloat(buf, v, 'g', -1, 64)
-		case bool:
-			if v {
-				buf = append(buf, '1')
-			} else {
-				buf = append(buf, '0')
+		switch currentChar {
+		case STAR_BYTE:
+			if state == stateNormal && lastChar == SLASH_BYTE {
+				state = stateSlashStarComment
 			}
-		case time.Time:
-			if v.IsZero() {
-				buf = append(buf, "'0000-00-00'"...)
-			} else {
-				buf = append(buf, '\'')
-				buf, err = appendDateTime(buf, v.In(mc.cfg.Loc), mc.cfg.timeTruncate)
-				if err != nil {
-					return "", err
-				}
-				buf = append(buf, '\'')
+		case SLASH_BYTE:
+			if state == stateSlashStarComment && lastChar == STAR_BYTE {
+				state = stateNormal
+				// Clear lastChar so the '/' that closed the comment isn't
+				// reused to start a new comment with a following '*'.
+				lastChar = 0
+				continue
 			}
-		case json.RawMessage:
-			buf = append(buf, '\'')
-			if mc.status&statusNoBackslashEscapes == 0 {
-				buf = escapeBytesBackslash(buf, v)
-			} else {
-				buf = escapeBytesQuotes(buf, v)
+		case HASH_BYTE:
+			if state == stateNormal {
+				state = stateEOLComment
 			}
-			buf = append(buf, '\'')
-		case []byte:
-			if v == nil {
-				buf = append(buf, "NULL"...)
-			} else {
-				buf = append(buf, "_binary'"...)
-				if mc.status&statusNoBackslashEscapes == 0 {
-					buf = escapeBytesBackslash(buf, v)
+		case MINUS_BYTE:
+			if state == stateNormal && lastChar == MINUS_BYTE {
+				// -- only starts a comment if followed by whitespace or control char
+				if i+1 < lenQuery {
+					nextChar := query[i+1]
+					if nextChar == ' ' || nextChar == '\t' || nextChar == '\n' || nextChar == '\r' {
+						state = stateEOLComment
+					}
 				} else {
-					buf = escapeBytesQuotes(buf, v)
+					state = stateEOLComment
 				}
-				buf = append(buf, '\'')
 			}
-		case string:
-			buf = append(buf, '\'')
-			if mc.status&statusNoBackslashEscapes == 0 {
-				buf = escapeStringBackslash(buf, v)
-			} else {
-				buf = escapeStringQuotes(buf, v)
+		case LINE_FEED_BYTE:
+			if state == stateEOLComment {
+				state = stateNormal
 			}
-			buf = append(buf, '\'')
-		default:
-			return "", driver.ErrSkip
-		}
+		case DBL_QUOTE_BYTE:
+			if state == stateNormal {
+				state = stateString
+				singleQuotes = false
+			} else if state == stateString && !singleQuotes {
+				state = stateNormal
+			} else if state == stateEscape {
+				state = stateString
+			}
+		case QUOTE_BYTE:
+			if state == stateNormal {
+				state = stateString
+				singleQuotes = true
+			} else if state == stateString && singleQuotes {
+				state = stateNormal
+			} else if state == stateEscape {
+				state = stateString
+			}
+		case BACKSLASH_BYTE:
+			if state == stateString && !noBackslashEscapes {
+				state = stateEscape
+			}
+		case QUESTION_MARK_BYTE:
+			if state == stateNormal {
+				if argPos >= len(args) {
+					return "", driver.ErrSkip
+				}
+				buf = append(buf, query[lastIdx:i]...)
+				arg := args[argPos]
+				argPos++
 
-		if len(buf)+4 > mc.maxAllowedPacket {
-			return "", driver.ErrSkip
+				if arg == nil {
+					buf = append(buf, "NULL"...)
+					lastIdx = i + 1
+					break
+				}
+
+				switch v := arg.(type) {
+				case int64:
+					buf = strconv.AppendInt(buf, v, 10)
+				case uint64:
+					buf = strconv.AppendUint(buf, v, 10)
+				case float64:
+					buf = strconv.AppendFloat(buf, v, 'g', -1, 64)
+				case bool:
+					if v {
+						buf = append(buf, '1')
+					} else {
+						buf = append(buf, '0')
+					}
+				case time.Time:
+					if v.IsZero() {
+						buf = append(buf, "'0000-00-00'"...)
+					} else {
+						buf = append(buf, '\'')
+						buf, err = appendDateTime(buf, v.In(mc.cfg.Loc), mc.cfg.timeTruncate)
+						if err != nil {
+							return "", err
+						}
+						buf = append(buf, '\'')
+					}
+				case json.RawMessage:
+					if v == nil {
+						buf = append(buf, "NULL"...)
+					} else if noBackslashEscapes {
+						buf = escapeBytesQuotes(buf, v, false)
+					} else {
+						buf = escapeBytesBackslash(buf, v, false)
+					}
+				case []byte:
+					if v == nil {
+						buf = append(buf, "NULL"...)
+					} else {
+						if noBackslashEscapes {
+							buf = escapeBytesQuotes(buf, v, true)
+						} else {
+							buf = escapeBytesBackslash(buf, v, true)
+						}
+					}
+				case string:
+					if noBackslashEscapes {
+						buf = escapeStringQuotes(buf, v)
+					} else {
+						buf = escapeStringBackslash(buf, v)
+					}
+				default:
+					return "", driver.ErrSkip
+				}
+
+				if len(buf)+4 > mc.maxAllowedPacket {
+					return "", driver.ErrSkip
+				}
+				lastIdx = i + 1
+			}
+		case BACKTICK_BYTE:
+			if state == stateBacktick {
+				state = stateNormal
+			} else if state == stateNormal {
+				state = stateBacktick
+			}
 		}
+		lastChar = currentChar
 	}
+	buf = append(buf, query[lastIdx:]...)
 	if argPos != len(args) {
 		return "", driver.ErrSkip
 	}
@@ -309,7 +434,6 @@ func (mc *mysqlConn) interpolateParams(query string, args []driver.Value) (strin
 
 func (mc *mysqlConn) Exec(query string, args []driver.Value) (driver.Result, error) {
 	if mc.closed.Load() {
-		mc.log(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
 	if len(args) != 0 {
@@ -341,19 +465,19 @@ func (mc *mysqlConn) exec(query string) error {
 	}
 
 	// Read Result
-	resLen, err := handleOk.readResultSetHeaderPacket()
+	resLen, _, err := handleOk.readResultSetHeaderPacket()
 	if err != nil {
 		return err
 	}
 
 	if resLen > 0 {
 		// columns
-		if err := mc.readUntilEOF(); err != nil {
+		if err := mc.skipColumns(resLen); err != nil {
 			return err
 		}
 
 		// rows
-		if err := mc.readUntilEOF(); err != nil {
+		if err := mc.skipRows(); err != nil {
 			return err
 		}
 	}
@@ -369,7 +493,6 @@ func (mc *mysqlConn) query(query string, args []driver.Value) (*textRows, error)
 	handleOk := mc.clearResult()
 
 	if mc.closed.Load() {
-		mc.log(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
 	if len(args) != 0 {
@@ -385,44 +508,46 @@ func (mc *mysqlConn) query(query string, args []driver.Value) (*textRows, error)
 	}
 	// Send command
 	err := mc.writeCommandPacketStr(comQuery, query)
-	if err == nil {
-		// Read Result
-		var resLen int
-		resLen, err = handleOk.readResultSetHeaderPacket()
-		if err == nil {
-			rows := new(textRows)
-			rows.mc = mc
-
-			if resLen == 0 {
-				rows.rs.done = true
-
-				switch err := rows.NextResultSet(); err {
-				case nil, io.EOF:
-					return rows, nil
-				default:
-					return nil, err
-				}
-			}
-
-			// Columns
-			rows.rs.columns, err = mc.readColumns(resLen)
-			return rows, err
-		}
-	}
-	return nil, mc.markBadConn(err)
-}
-
-// Gets the value of the given MySQL System Variable
-// The returned byte slice is only valid until the next read
-func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
-	// Send command
-	handleOk := mc.clearResult()
-	if err := mc.writeCommandPacketStr(comQuery, "SELECT @@"+name); err != nil {
-		return nil, err
+	if err != nil {
+		return nil, mc.markBadConn(err)
 	}
 
 	// Read Result
-	resLen, err := handleOk.readResultSetHeaderPacket()
+	var resLen int
+	resLen, _, err = handleOk.readResultSetHeaderPacket()
+	if err != nil {
+		return nil, err
+	}
+
+	rows := new(textRows)
+	rows.mc = mc
+
+	if resLen == 0 {
+		rows.rs.done = true
+
+		switch err := rows.NextResultSet(); err {
+		case nil, io.EOF:
+			return rows, nil
+		default:
+			return nil, err
+		}
+	}
+
+	// Columns
+	rows.rs.columns, err = mc.readColumns(resLen, nil)
+	return rows, err
+}
+
+// Gets the value of the given MySQL System Variable
+func (mc *mysqlConn) getSystemVar(name string) (string, error) {
+	// Send command
+	handleOk := mc.clearResult()
+	if err := mc.writeCommandPacketStr(comQuery, "SELECT @@"+name); err != nil {
+		return "", err
+	}
+
+	// Read Result
+	resLen, _, err := handleOk.readResultSetHeaderPacket()
 	if err == nil {
 		rows := new(textRows)
 		rows.mc = mc
@@ -430,20 +555,23 @@ func (mc *mysqlConn) getSystemVar(name string) ([]byte, error) {
 
 		if resLen > 0 {
 			// Columns
-			if err := mc.readUntilEOF(); err != nil {
-				return nil, err
+			if err := mc.skipColumns(resLen); err != nil {
+				return "", err
 			}
 		}
 
 		dest := make([]driver.Value, resLen)
 		if err = rows.readRow(dest); err == nil {
-			return dest[0].([]byte), mc.readUntilEOF()
+			// Convert to string before skipRows, which may
+			// overwrite the read buffer that dest[0] points into.
+			val := string(dest[0].([]byte))
+			return val, mc.skipRows()
 		}
 	}
-	return nil, err
+	return "", err
 }
 
-// finish is called when the query has canceled.
+// cancel is called when the query has canceled.
 func (mc *mysqlConn) cancel(err error) {
 	mc.canceled.Set(err)
 	mc.cleanup()
@@ -464,7 +592,6 @@ func (mc *mysqlConn) finish() {
 // Ping implements driver.Pinger interface
 func (mc *mysqlConn) Ping(ctx context.Context) (err error) {
 	if mc.closed.Load() {
-		mc.log(ErrInvalidConn)
 		return driver.ErrBadConn
 	}
 
@@ -650,7 +777,7 @@ func (mc *mysqlConn) CheckNamedValue(nv *driver.NamedValue) (err error) {
 // ResetSession implements driver.SessionResetter.
 // (From Go 1.10)
 func (mc *mysqlConn) ResetSession(ctx context.Context) error {
-	if mc.closed.Load() {
+	if mc.closed.Load() || mc.buf.busy() {
 		return driver.ErrBadConn
 	}
 
@@ -684,5 +811,8 @@ func (mc *mysqlConn) ResetSession(ctx context.Context) error {
 // IsValid implements driver.Validator interface
 // (From Go 1.15)
 func (mc *mysqlConn) IsValid() bool {
-	return !mc.closed.Load()
+	return !mc.closed.Load() && !mc.buf.busy()
 }
+
+var _ driver.SessionResetter = &mysqlConn{}
+var _ driver.Validator = &mysqlConn{}

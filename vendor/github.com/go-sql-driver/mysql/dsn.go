@@ -15,6 +15,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"maps"
 	"math/big"
 	"net"
 	"net/url"
@@ -44,7 +45,7 @@ type Config struct {
 	DBName               string            // Database name
 	Params               map[string]string // Connection parameters
 	ConnectionAttributes string            // Connection Attributes, comma-delimited string of user-defined "key:value" pairs
-	Collation            string            // Connection collation
+	Collation            string            // Connection collation. When set, this will be set in SET NAMES <charset> COLLATE <collation> query
 	Loc                  *time.Location    // Location for time.Time values
 	MaxAllowedPacket     int               // Max packet size allowed
 	ServerPubKey         string            // Server public key name
@@ -54,6 +55,8 @@ type Config struct {
 	ReadTimeout          time.Duration     // I/O read timeout
 	WriteTimeout         time.Duration     // I/O write timeout
 	Logger               Logger            // Logger
+	// DialFunc specifies the dial function for creating connections
+	DialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
 
 	// boolean fields
 
@@ -70,11 +73,15 @@ type Config struct {
 	ParseTime                bool // Parse time values to time.Time
 	RejectReadOnly           bool // Reject read-only connections
 
-	// unexported fields. new options should be come here
+	// unexported fields. new options should be come here.
+	// boolean first. alphabetical order.
+
+	compress bool // Enable zlib compression
 
 	beforeConnect func(context.Context, *Config) error // Invoked before a connection is established
 	pubKey        *rsa.PublicKey                       // Server public key
 	timeTruncate  time.Duration                        // Truncate time.Time values to the specified duration
+	charsets      []string                             // Connection charset. When set, this will be set in SET NAMES <charset> query
 }
 
 // Functional Options Pattern
@@ -90,7 +97,6 @@ func NewConfig() *Config {
 		AllowNativePasswords: true,
 		CheckConnLiveness:    true,
 	}
-
 	return cfg
 }
 
@@ -122,6 +128,29 @@ func BeforeConnect(fn func(context.Context, *Config) error) Option {
 	}
 }
 
+// EnableCompress sets the compression mode.
+func EnableCompression(yes bool) Option {
+	return func(cfg *Config) error {
+		cfg.compress = yes
+		return nil
+	}
+}
+
+// Charset sets the connection charset and collation.
+//
+// charset is the connection charset.
+// collation is the connection collation. It can be null or empty string.
+//
+// When collation is not specified, `SET NAMES <charset>` command is sent when the connection is established.
+// When collation is specified, `SET NAMES <charset> COLLATE <collation>` command is sent when the connection is established.
+func Charset(charset, collation string) Option {
+	return func(cfg *Config) error {
+		cfg.charsets = []string{charset}
+		cfg.Collation = collation
+		return nil
+	}
+}
+
 func (cfg *Config) Clone() *Config {
 	cp := *cfg
 	if cp.TLS != nil {
@@ -129,9 +158,7 @@ func (cfg *Config) Clone() *Config {
 	}
 	if len(cp.Params) > 0 {
 		cp.Params = make(map[string]string, len(cfg.Params))
-		for k, v := range cfg.Params {
-			cp.Params[k] = v
-		}
+		maps.Copy(cp.Params, cfg.Params)
 	}
 	if cfg.pubKey != nil {
 		cp.pubKey = &rsa.PublicKey{
@@ -237,13 +264,19 @@ func (cfg *Config) FormatDSN() string {
 	}
 
 	// [protocol[(address)]]
-	if len(cfg.Net) > 0 {
-		buf.WriteString(cfg.Net)
-		if len(cfg.Addr) > 0 {
-			buf.WriteByte('(')
-			buf.WriteString(cfg.Addr)
-			buf.WriteByte(')')
+	if len(cfg.Addr) > 0 {
+		net := cfg.Net
+		if net == "" {
+			net = "tcp"
 		}
+		buf.WriteString(net)
+		buf.WriteByte('(')
+		buf.WriteString(cfg.Addr)
+		buf.WriteByte(')')
+	} else if cfg.Net != "" && cfg.Net != "tcp" {
+		// Preserve an explicit non-default protocol when there's no
+		// address, so e.g. Net="unix" still round-trips.
+		buf.WriteString(cfg.Net)
 	}
 
 	// /dbname
@@ -282,12 +315,24 @@ func (cfg *Config) FormatDSN() string {
 		writeDSNParam(&buf, &hasParam, "clientFoundRows", "true")
 	}
 
+	if charsets := cfg.charsets; len(charsets) > 0 {
+		writeDSNParam(&buf, &hasParam, "charset", strings.Join(charsets, ","))
+	}
+
 	if col := cfg.Collation; col != "" {
 		writeDSNParam(&buf, &hasParam, "collation", col)
 	}
 
 	if cfg.ColumnsWithAlias {
 		writeDSNParam(&buf, &hasParam, "columnsWithAlias", "true")
+	}
+
+	if cfg.ConnectionAttributes != "" {
+		writeDSNParam(&buf, &hasParam, "connectionAttributes", url.QueryEscape(cfg.ConnectionAttributes))
+	}
+
+	if cfg.compress {
+		writeDSNParam(&buf, &hasParam, "compress", "true")
 	}
 
 	if cfg.InterpolateParams {
@@ -374,7 +419,7 @@ func ParseDSN(dsn string) (cfg *Config, err error) {
 					if dsn[j] == '@' {
 						// username[:password]
 						// Find the first ':' in dsn[:j]
-						for k = 0; k < j; k++ {
+						for k = 0; k < j; k++ { // We cannot use k = range j here, because we use dsn[:k] below
 							if dsn[k] == ':' {
 								cfg.Passwd = dsn[k+1 : j]
 								break
@@ -437,7 +482,7 @@ func ParseDSN(dsn string) (cfg *Config, err error) {
 // parseDSNParams parses the DSN "query string"
 // Values must be url.QueryEscape'ed
 func parseDSNParams(cfg *Config, params string) (err error) {
-	for _, v := range strings.Split(params, "&") {
+	for v := range strings.SplitSeq(params, "&") {
 		key, value, found := strings.Cut(v, "=")
 		if !found {
 			continue
@@ -501,6 +546,10 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 				return errors.New("invalid bool value: " + value)
 			}
 
+		// charset
+		case "charset":
+			cfg.charsets = strings.Split(value, ",")
+
 		// Collation
 		case "collation":
 			cfg.Collation = value
@@ -514,7 +563,11 @@ func parseDSNParams(cfg *Config, params string) (err error) {
 
 		// Compression
 		case "compress":
-			return errors.New("compression not implemented yet")
+			var isBool bool
+			cfg.compress, isBool = readBool(value)
+			if !isBool {
+				return errors.New("invalid bool value: " + value)
+			}
 
 		// Enable client side placeholder substitution
 		case "interpolateParams":

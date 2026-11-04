@@ -369,6 +369,23 @@ func (sd *SelectDataset) CrossJoin(table exp.Expression) *SelectDataset {
 	return sd.joinTable(exp.NewUnConditionedJoinExpression(exp.CrossJoinType, table))
 }
 
+// CustomJoin adds a join clause for syntax goqu does not model, such as ClickHouse's ARRAY JOIN. The expression is
+// written exactly as given and must contain the whole join text including the join keyword (goqu.T("foo") would be
+// written as an alias, not a join). It is not validated or escaped: never build it from untrusted input, and use
+// placeholders (e.g. goqu.L("ARRAY JOIN ?", ...)) for values. Dialects built from scratch (without
+// DefaultDialectOptions) must add exp.CustomJoinType to JoinTypeLookup. See examples
+func (sd *SelectDataset) CustomJoin(expression exp.Expression) *SelectDataset {
+	return sd.joinTable(exp.NewUnConditionedJoinExpression(exp.CustomJoinType, expression))
+}
+
+// Adds a STRAIGHT_JOIN clause. STRAIGHT_JOIN is like INNER JOIN but forces the left table to be read before the
+// right table, which can help when the MySQL optimizer picks a poor join order. Only supported by the mysql and
+// mysql8 dialects (other dialects return an error). It requires an On condition: Using is rejected because MySQL 5.7
+// does not accept it for STRAIGHT_JOIN. See examples.
+func (sd *SelectDataset) StraightJoin(table exp.Expression, condition exp.JoinCondition) *SelectDataset {
+	return sd.joinTable(exp.NewConditionedJoinExpression(exp.StraightJoinType, table, condition))
+}
+
 // Joins this Datasets table with another
 func (sd *SelectDataset) joinTable(join exp.JoinExpression) *SelectDataset {
 	return sd.copy(sd.clauses.JoinsAppend(join))
@@ -421,6 +438,13 @@ func (sd *SelectDataset) GroupByAppend(groupBy ...interface{}) *SelectDataset {
 // Adds a HAVING clause. See examples.
 func (sd *SelectDataset) Having(expressions ...exp.Expression) *SelectDataset {
 	return sd.copy(sd.clauses.HavingAppend(expressions...))
+}
+
+// Adds a QUALIFY clause, which filters on the result of window functions. QUALIFY is not supported by the built in
+// dialects (generating SQL returns an error): register a dialect with SQLDialectOptions.SupportsQualify set to true.
+// See examples.
+func (sd *SelectDataset) Qualify(expressions ...exp.Expression) *SelectDataset {
+	return sd.copy(sd.clauses.QualifyAppend(expressions...))
 }
 
 // Adds a ORDER clause. If the ORDER is currently set it replaces it. See examples.
@@ -574,7 +598,9 @@ func (sd *SelectDataset) SetError(err error) *SelectDataset {
 // Errors:
 //   - There is an error generating the SQL
 func (sd *SelectDataset) ToSQL() (sql string, params []interface{}, err error) {
-	return sd.selectSQLBuilder().ToSQL()
+	builder := sd.selectSQLBuilder()
+	defer sb.ReleaseSQLBuilder(builder)
+	return builder.ToSQL()
 }
 
 // Generates the SELECT sql, and returns an Exec struct with the sql set to the SELECT statement
@@ -628,7 +654,7 @@ func (sd *SelectDataset) ScanStructsContext(ctx context.Context, i interface{}) 
 	return ds.Executor().ScanStructsContext(ctx, i)
 }
 
-// Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a slice of structs
+// Generates the SELECT sql for this dataset and uses Exec#ScanStruct to scan the result into a struct
 //
 // ScanStruct will only select the columns that can be scanned in to the struct unless you have explicitly selected
 // certain columns. See examples.
@@ -638,7 +664,7 @@ func (sd *SelectDataset) ScanStruct(i interface{}) (bool, error) {
 	return sd.ScanStructContext(context.Background(), i)
 }
 
-// Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a slice of structs
+// Generates the SELECT sql for this dataset and uses Exec#ScanStructContext to scan the result into a struct
 //
 // ScanStructContext will only select the columns that can be scanned in to the struct unless you have explicitly
 // selected certain columns. See examples.
@@ -700,6 +726,28 @@ func (sd *SelectDataset) CountContext(ctx context.Context) (int64, error) {
 	var count int64
 	_, err := sd.Select(COUNT(Star()).As("count")).ScanValContext(ctx, &count)
 	return count, err
+}
+
+// Reports whether this dataset returns at least one row.
+//
+// The dataset is wrapped in an EXISTS subquery, so it is evaluated exactly as written (WHERE, GROUP BY, HAVING,
+// LIMIT, compound queries, ...). The result is selected through CASE WHEN so the same SQL is valid on every dialect,
+// including those that cannot select a boolean expression directly (e.g. SQL Server):
+//
+//	SELECT CASE WHEN EXISTS (SELECT * FROM "user" WHERE ("last_name" = 'Yukon')) THEN 1 ELSE 0 END LIMIT 1
+func (sd *SelectDataset) Exists() (bool, error) {
+	return sd.ExistsContext(context.Background())
+}
+
+// Reports whether this dataset returns at least one row, using the given context. See Exists.
+func (sd *SelectDataset) ExistsContext(ctx context.Context) (bool, error) {
+	var exists bool
+	existsExpr := L("CASE WHEN ? THEN 1 ELSE 0 END", Exists(sd))
+	_, err := newDataset(sd.dialect.Dialect(), sd.tagName, sd.queryFactory).
+		Select(existsExpr).
+		Prepared(sd.IsPrepared()).
+		ScanValContext(ctx, &exists)
+	return exists, err
 }
 
 // Generates the SELECT sql only selecting the passed in column and uses Exec#ScanVals to scan the result into a slice

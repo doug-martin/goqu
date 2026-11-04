@@ -64,6 +64,10 @@ type (
 		SetWindows(ws []WindowExpression) SelectClauses
 		WindowsAppend(ws ...WindowExpression) SelectClauses
 		ClearWindows() SelectClauses
+
+		Qualify() ExpressionList
+		ClearQualify() SelectClauses
+		QualifyAppend(expressions ...Expression) SelectClauses
 	}
 	selectClauses struct {
 		commonTables  []CommonTableExpression
@@ -81,6 +85,7 @@ type (
 		compounds     []CompoundExpression
 		lock          Lock
 		windows       []WindowExpression
+		qualify       ExpressionList
 	}
 )
 
@@ -124,6 +129,7 @@ func (c *selectClauses) clone() *selectClauses {
 		compounds:     c.compounds,
 		lock:          c.lock,
 		windows:       c.windows,
+		qualify:       c.qualify,
 	}
 }
 
@@ -239,6 +245,29 @@ func (c *selectClauses) HavingAppend(expressions ...Expression) SelectClauses {
 		ret.having = NewExpressionList(AndType, expressions...)
 	} else {
 		ret.having = ret.having.Append(expressions...)
+	}
+	return ret
+}
+
+func (c *selectClauses) Qualify() ExpressionList {
+	return c.qualify
+}
+
+func (c *selectClauses) ClearQualify() SelectClauses {
+	ret := c.clone()
+	ret.qualify = nil
+	return ret
+}
+
+func (c *selectClauses) QualifyAppend(expressions ...Expression) SelectClauses {
+	if len(expressions) == 0 {
+		return c
+	}
+	ret := c.clone()
+	if ret.qualify == nil {
+		ret.qualify = NewExpressionList(AndType, expressions...)
+	} else {
+		ret.qualify = ret.qualify.Append(expressions...)
 	}
 	return ret
 }

@@ -1,3 +1,78 @@
+# Changelog
+
+## v1.10.1 (2026-09-02)
+
+* Fix `Config.FormatDSN()` dropping `Addr` when `Net` is empty.
+  It now uses the default `tcp` network so configs with only `Addr` round-trip correctly. (#1770)
+
+* Fix typed-nil `json.RawMessage` with `interpolateParams=true` being interpolated as an empty string.
+  It is now interpolated as SQL `NULL`, matching server-side prepared statements. (#1782)
+
+* Add MariaDB 11.8 and 12.3 to the test matrix. (#1774)
+
+## v1.10.0 (2026-04-28)
+
+* Fix `getSystemVar("max_allowed_packet")` potentially returned wrong value. (#1754)
+  This affects only when `maxAllowedPacket=0` is set.
+
+* Bump filippo.io/edwards25519 from 1.1.1 to 1.2.0. (#1756)
+  While older versions have reported CVEs, they do not affect go-mysql.
+
+* Update Go versions to 1.24-1.26. (#1763)
+
+* Enhance interpolateParams to correctly handle placeholders. (#1732)
+  The question mark (?) within strings and comments will no longer be treated as a placeholder.
+
+
+## v1.9.3 (2025-06-13)
+
+* `tx.Commit()` and `tx.Rollback()` returned `ErrInvalidConn` always.
+  Now they return cached real error if present. (#1690)
+
+* Optimize reading small result sets to fix a performance regression
+  introduced by compression protocol support. (`#1707`)
+* Fix `db.Ping()` on compressed connection. (#1723)
+
+
+## v1.9.2 (2025-04-07)
+
+v1.9.2 is a re-release of v1.9.1 due to a release process issue; no changes were made to the content.
+
+
+## v1.9.1 (2025-03-21)
+
+### Major Changes
+
+* Add Charset() option. (#1679)
+
+### Bugfixes
+
+* go.mod: fix go version format (#1682)
+* Fix FormatDSN missing ConnectionAttributes (#1619)
+
+## v1.9.0 (2025-02-18)
+
+### Major Changes
+
+- Implement zlib compression. (#1487)
+- Supported Go version is updated to Go 1.21+. (#1639)
+- Add support for VECTOR type introduced in MySQL 9.0. (#1609)
+- Config object can have custom dial function. (#1527)
+
+### Bugfixes
+
+- Fix auth errors when username/password are too long. (#1625)
+- Check if MySQL supports CLIENT_CONNECT_ATTRS before sending client attributes. (#1640)
+- Fix auth switch request handling. (#1666)
+
+### Other changes
+
+- Add "filename:line" prefix to log in go-mysql. Custom loggers now show it. (#1589)
+- Improve error handling. It reduces the "busy buffer" errors. (#1595, #1601, #1641)
+- Use `strconv.Atoi` to parse max_allowed_packet. (#1661)
+- `rejectReadOnly` option now handles ER_READ_ONLY_MODE (1290) error too. (#1660)
+
+
 ## Version 1.8.1 (2024-03-26)
 
 Bugfixes:

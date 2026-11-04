@@ -15,8 +15,12 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsReturn = false
 	opts.SupportsOrderByOnUpdate = false
 	opts.SupportsLimitOnUpdate = false
-	opts.SupportsLimitOnDelete = false
-	opts.SupportsOrderByOnDelete = true
+	opts.SupportsLimitOnDelete = true
+	// T-SQL has no ORDER BY on DELETE. Fail loudly instead of generating invalid SQL (or silently
+	// deleting arbitrary rows if the clause were dropped); use a subquery such as
+	// WHERE id IN (SELECT TOP (n) id ... ORDER BY ...) to delete an ordered subset.
+	opts.SupportsOrderByOnDelete = false
+	opts.ErrorOnUnsupportedOrderByOnDelete = true
 	opts.SupportsConflictUpdateWhere = false
 	opts.SupportsInsertIgnoreSyntax = false
 	opts.SupportsConflictTarget = false
@@ -62,6 +66,20 @@ func DialectOptions() *goqu.SQLDialectOptions {
 
 	opts.FetchFragment = []byte(" FETCH FIRST ")
 
+	// SQL Server spells a row-limited delete "DELETE TOP (n) FROM ...", so TOP has to be
+	// emitted immediately after DELETE. The default DeleteSQLOrder puts LimitSQLFragment
+	// last, which would produce "DELETE FROM [t] WHERE ... TOP (n)". Every other fragment
+	// keeps its default position.
+	opts.DeleteSQLOrder = []sqlgen.SQLFragmentType{
+		sqlgen.CommonTableSQLFragment,
+		sqlgen.DeleteBeginSQLFragment,
+		sqlgen.LimitSQLFragment,
+		sqlgen.FromSQLFragment,
+		sqlgen.WhereSQLFragment,
+		sqlgen.OrderSQLFragment,
+		sqlgen.ReturningSQLFragment,
+	}
+
 	opts.SelectSQLOrder = []sqlgen.SQLFragmentType{
 		sqlgen.CommonTableSQLFragment,
 		sqlgen.SelectWithLimitSQLFragment,
@@ -70,6 +88,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		sqlgen.WhereSQLFragment,
 		sqlgen.GroupBySQLFragment,
 		sqlgen.HavingSQLFragment,
+		sqlgen.QualifySQLFragment,
 		sqlgen.WindowSQLFragment,
 		sqlgen.CompoundsSQLFragment,
 		sqlgen.OrderWithOffsetFetchSQLFragment,

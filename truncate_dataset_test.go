@@ -226,7 +226,7 @@ func (tds *truncateDatasetSuite) TestToSQL() {
 	ds := goqu.Truncate("test").SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToTruncateSQL", sqlB, c).Return(nil).Once()
+	md.On("ToTruncateSQL", builderMatching(sqlB), c).Return(nil).Once()
 
 	sql, args, err := ds.ToSQL()
 	tds.NoError(err)
@@ -240,7 +240,7 @@ func (tds *truncateDatasetSuite) TestToSQL__withPrepared() {
 	ds := goqu.Truncate("test").Prepared(true).SetDialect(md)
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(true)
-	md.On("ToTruncateSQL", sqlB, c).Return(nil).Once()
+	md.On("ToTruncateSQL", builderMatching(sqlB), c).Return(nil).Once()
 
 	sql, args, err := ds.ToSQL()
 	tds.Empty(sql)
@@ -255,7 +255,7 @@ func (tds *truncateDatasetSuite) TestToSQL_withError() {
 	c := ds.GetClauses()
 	ee := errors.New("expected error")
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToTruncateSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToTruncateSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(ee)
 	}).Once()
 
@@ -325,7 +325,7 @@ func (tds *truncateDatasetSuite) TestSetError() {
 	// Deeper errors inside SQL generation should still return original error
 	c := ds.GetClauses()
 	sqlB := sb.NewSQLBuilder(false)
-	md.On("ToTruncateSQL", sqlB, c).Run(func(args mock.Arguments) {
+	md.On("ToTruncateSQL", builderMatching(sqlB), c).Run(func(args mock.Arguments) {
 		args.Get(0).(sb.SQLBuilder).SetError(err3)
 	}).Once()
 

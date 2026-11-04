@@ -29,7 +29,7 @@ func (ssgs *selectSQLGeneratorSuite) assertCases(ssg sqlgen.SelectSQLGenerator, 
 		b := sb.NewSQLBuilder(tc.isPrepared)
 		ssg.Generate(b, tc.clause)
 		switch {
-		case len(tc.err) > 0:
+		case tc.err != "":
 			ssgs.assertErrorSQL(b, tc.err)
 		case tc.isPrepared:
 			ssgs.assertPreparedSQL(b, tc.sql, tc.args)
@@ -215,6 +215,37 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withFromSQL() {
 	)
 }
 
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withStraightJoin() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.UsingFragment = []byte(" using ")
+	opts.OnFragment = []byte(" on ")
+	opts.JoinTypeLookup = map[exp.JoinType][]byte{exp.StraightJoinType: []byte(" straight_join ")}
+
+	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression(nil, "db", "test"))
+	ti := exp.NewIdentifierExpression("", "test2", "")
+	on := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinOnCondition(exp.Ex{"a": "foo"}))
+	using := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinUsingCondition("a"))
+	empty := exp.NewConditionedJoinExpression(exp.StraightJoinType, ti, exp.NewJoinOnCondition())
+	usingErr := "goqu: USING is not supported for StraightJoinType, use an ON condition"
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", "db", opts),
+		selectTestCase{clause: sc.JoinsAppend(on), sql: `SELECT * FROM "test" straight_join "test2" on ("a" = 'foo')`},
+		selectTestCase{
+			clause:     sc.JoinsAppend(on),
+			sql:        `SELECT * FROM "test" straight_join "test2" on ("a" = ?)`,
+			isPrepared: true,
+			args:       []any{"foo"},
+		},
+		selectTestCase{clause: sc.JoinsAppend(using), err: usingErr},
+		selectTestCase{clause: sc.JoinsAppend(using), err: usingErr, isPrepared: true},
+		selectTestCase{
+			clause: sc.JoinsAppend(empty),
+			err:    "goqu: join condition required for conditioned join StraightJoinType",
+		},
+	)
+}
+
 func (ssgs *selectSQLGeneratorSuite) TestGenerate_withJoin() {
 	opts := sqlgen.DefaultDialectOptions()
 	// override fragements to make sure dialect is used
@@ -223,6 +254,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withJoin() {
 	opts.JoinTypeLookup = map[exp.JoinType][]byte{
 		exp.LeftJoinType:    []byte(" left join "),
 		exp.NaturalJoinType: []byte(" natural join "),
+		exp.CustomJoinType:  []byte(" "),
 	}
 
 	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression(nil, "db", "test"))
@@ -231,6 +263,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withJoin() {
 	cjo := exp.NewConditionedJoinExpression(exp.LeftJoinType, ti, exp.NewJoinOnCondition(exp.Ex{"a": "foo"}))
 	cju := exp.NewConditionedJoinExpression(exp.LeftJoinType, ti, exp.NewJoinUsingCondition("a"))
 	rj := exp.NewConditionedJoinExpression(exp.RightJoinType, ti, exp.NewJoinUsingCondition(exp.NewIdentifierExpression("", "", "a")))
+	cj := exp.NewUnConditionedJoinExpression(exp.CustomJoinType, goqu.L("ARRAY JOIN tags").As("tag"))
 	badJoin := exp.NewConditionedJoinExpression(exp.LeftJoinType, ti, exp.NewJoinUsingCondition())
 
 	expectedRjError := "goqu: dialect does not support RightJoinType"
@@ -260,6 +293,10 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withJoin() {
 			sql:        `SELECT * FROM "test" natural join "test2" left join "test2" on ("a" = ?) left join "test2" using ("a")`,
 			isPrepared: true,
 			args:       []interface{}{"foo"},
+		},
+		selectTestCase{
+			clause: sc.JoinsAppend(cj),
+			sql:    `SELECT * FROM "test" ARRAY JOIN tags AS "tag"`,
 		},
 
 		selectTestCase{clause: sc.JoinsAppend(rj), err: expectedRjError},
@@ -494,7 +531,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOffset() {
 	ssgs.assertCases(
 		sqlgen.NewSelectSQLGenerator("test", "db", sqlgen.DefaultDialectOptions()),
 		selectTestCase{clause: sc, sql: `SELECT * FROM "test" OFFSET 10`},
-		selectTestCase{clause: sc, sql: `SELECT * FROM "test" OFFSET ?`, isPrepared: true, args: []interface{}{uint64(10)}},
+		selectTestCase{clause: sc, sql: `SELECT * FROM "test" OFFSET ?`, isPrepared: true, args: []interface{}{int64(10)}},
 	)
 }
 
@@ -621,4 +658,71 @@ func (ssgs *selectSQLGeneratorSuite) TestToSelectSQL_withFor() {
 
 func TestSelectSQLGenerator(t *testing.T) {
 	suite.Run(t, new(selectSQLGeneratorSuite))
+}
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withQualify() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsQualify = true
+	opts.QualifyFragment = []byte(" qualify ")
+
+	sc := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression(nil, "db", "test"))
+	w := exp.Ex{"a": "b"}
+	w2 := exp.Ex{"b": "c"}
+	scQualify1 := sc.QualifyAppend(w)
+	scQualify2 := sc.QualifyAppend(w, w2)
+	scAfterHaving := sc.HavingAppend(w).QualifyAppend(w2).SetOrder(exp.NewIdentifierExpression("", "", "a").Asc())
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", "db", opts),
+		selectTestCase{clause: scQualify1, sql: `SELECT * FROM "test" qualify ("a" = 'b')`},
+		selectTestCase{
+			clause:     scQualify1,
+			sql:        `SELECT * FROM "test" qualify ("a" = ?)`,
+			isPrepared: true,
+			args:       []interface{}{"b"},
+		},
+		selectTestCase{clause: scQualify2, sql: `SELECT * FROM "test" qualify (("a" = 'b') AND ("b" = 'c'))`},
+		selectTestCase{
+			clause:     scQualify2,
+			sql:        `SELECT * FROM "test" qualify (("a" = ?) AND ("b" = ?))`,
+			isPrepared: true,
+			args:       []interface{}{"b", "c"},
+		},
+		// QUALIFY goes after HAVING and before ORDER BY
+		selectTestCase{
+			clause: scAfterHaving,
+			sql:    `SELECT * FROM "test" HAVING ("a" = 'b') qualify ("b" = 'c') ORDER BY "a" ASC`,
+		},
+		// an empty QUALIFY writes nothing
+		selectTestCase{clause: sc.QualifyAppend(), sql: `SELECT * FROM "test"`},
+	)
+}
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_withQualifyNotSupported() {
+	opts := sqlgen.DefaultDialectOptions()
+	sc := exp.NewSelectClauses().
+		SetFrom(exp.NewColumnListExpression(nil, "db", "test")).
+		QualifyAppend(exp.Ex{"a": "b"})
+	expectedErr := "goqu: dialect does not support QUALIFY clause [dialect=test]"
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", "db", opts),
+		selectTestCase{clause: sc, err: expectedErr},
+		selectTestCase{clause: sc, err: expectedErr, isPrepared: true},
+	)
+}
+
+func (ssgs *selectSQLGeneratorSuite) TestGenerate_customJoinNeedsLookupEntry() {
+	// dialects that build their own JoinTypeLookup without exp.CustomJoinType cannot use CustomJoin
+	opts := sqlgen.DefaultDialectOptions()
+	opts.JoinTypeLookup = map[exp.JoinType][]byte{exp.LeftJoinType: []byte(" left join ")}
+	sc := exp.NewSelectClauses().
+		SetFrom(exp.NewColumnListExpression(nil, "db", "test")).
+		JoinsAppend(exp.NewUnConditionedJoinExpression(exp.CustomJoinType, goqu.L("ARRAY JOIN tags")))
+
+	ssgs.assertCases(
+		sqlgen.NewSelectSQLGenerator("test", "db", opts),
+		selectTestCase{clause: sc, err: "goqu: dialect does not support CustomJoinType"},
+		selectTestCase{clause: sc, err: "goqu: dialect does not support CustomJoinType", isPrepared: true},
+	)
 }

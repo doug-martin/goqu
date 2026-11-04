@@ -24,6 +24,15 @@ type (
 		Cast(val string) CastExpression
 	}
 
+	// Interface that an expression should implement if it can have a collation applied to it.
+	Collateable interface {
+		// Applies a collation to an expression
+		//   I("a").Collate("en_US")//"a" COLLATE "en_US" (quoting depends on the dialect)
+		//   I("a").Collate(I("pg_catalog.default"))//"a" COLLATE "pg_catalog"."default"
+		// The collation is a string or an IdentifierExpression (to qualify the name with a schema).
+		Collate(collation any) CollateExpression
+	}
+
 	Inable interface {
 		// Creates a Boolean expression for IN clauses
 		//    I("col").In([]string{"a", "b", "c"}) //("col" IN ('a', 'b', 'c'))
@@ -262,6 +271,23 @@ type (
 		// The the SQL type to cast the expression to
 		Type() LiteralExpression
 	}
+	// An Expression that represents another Expression with a collation applied to it (e.g. "a" COLLATE "en_US").
+	// It can be used anywhere the underlying expression can: comparisons, ORDER BY, GROUP BY, etc.
+	CollateExpression interface {
+		Expression
+		Aliaseable
+		Comparable
+		Inable
+		Isable
+		Likeable
+		Orderable
+		Distinctable
+		Rangeable
+		// The expression the collation is applied to
+		Collated() Expression
+		// The collation, either a string (the name) or an IdentifierExpression (a schema qualified name)
+		Collation() any
+	}
 	// A list of columns. Typically used internally by Select, Order, From
 	ColumnListExpression interface {
 		Expression
@@ -283,6 +309,11 @@ type (
 	ConflictExpression interface {
 		Expression
 		Action() ConflictAction
+	}
+	ConflictNothingExpression interface {
+		ConflictExpression
+		SetCols(cl ColumnListExpression) ConflictNothingExpression
+		Cols() ColumnListExpression
 	}
 	ConflictUpdateExpression interface {
 		ConflictExpression
@@ -328,6 +359,7 @@ type (
 		Updateable
 		Distinctable
 		Castable
+		Collateable
 		Bitwiseable
 		// returns true if this identifier has more more than on part (Schema, Table or Col)
 		//	"schema" -> true //cant qualify anymore
@@ -625,11 +657,6 @@ const (
 
 	betweenStr = "between"
 
-	FunctionNameGreatest = "FunGreatest"
-	FunctionNameLeast    = "FunLeast"
-	FunctionNameUpper    = "FunUpper"
-	FunctionNameLower    = "FunLower"
-
 	BitwiseInversionOp BitwiseOperation = iota
 	BitwiseOrOp
 	BitwiseAndOp
@@ -643,6 +670,25 @@ const (
 	ArithmeticDivOp
 )
 
+const (
+	FunctionNameGreatest = "FunGreatest"
+	FunctionNameLeast    = "FunLeast"
+	FunctionNameUpper    = "FunUpper"
+	FunctionNameLower    = "FunLower"
+)
+
+// StraightJoinType is the STRAIGHT_JOIN join type (MySQL only).
+//
+// It is intentionally declared outside the iota block above: that block is a single iota sequence shared by all of the
+// exported enums, so adding a constant inside it would shift the numeric value of every enum declared after it
+// (boolean/bitwise operators, sort directions, join conditions...). New join types must be added the same way
+// (CrossJoinType + n) to keep the existing exported values stable.
+const StraightJoinType = CrossJoinType + 1
+
+// CustomJoinType is a join whose text is entirely provided by the user (e.g. ClickHouse's ARRAY JOIN). It is declared
+// outside the iota block for the same reason as StraightJoinType.
+const CustomJoinType = CrossJoinType + 2
+
 var (
 	ConditionedJoinTypes = map[JoinType]bool{
 		InnerJoinType:      true,
@@ -652,6 +698,7 @@ var (
 		FullJoinType:       true,
 		RightJoinType:      true,
 		LeftJoinType:       true,
+		StraightJoinType:   true,
 	}
 	// used internally for inverting operators
 	operatorInversions = map[BooleanOperation]BooleanOperation{
@@ -786,6 +833,10 @@ func (jt JoinType) String() string {
 		return "NaturalFullJoinType"
 	case CrossJoinType:
 		return "CrossJoinType"
+	case StraightJoinType:
+		return "StraightJoinType"
+	case CustomJoinType:
+		return "CustomJoinType"
 	}
 	return fmt.Sprintf("%d", jt)
 }

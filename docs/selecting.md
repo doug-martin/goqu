@@ -22,6 +22,7 @@
   * [`ScanVal`](#scan-val) - Scans a row of 1 column into a primitive value, returns false if a row wasnt found.
   * [`Scanner`](#scanner) - Allows you to interatively scan rows into structs or values.
   * [`Count`](#count) - Returns the count for the current query
+  * [`Exists`](#exists) - Reports whether the current query returns at least one row
   * [`Pluck`](#pluck) - Selects a single column and stores the results into a slice of primitive values
 
 <a name="create"></a>
@@ -486,6 +487,41 @@ Output:
 SELECT * FROM "test" CROSS JOIN "test2"
 ```
 
+[`StraightJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.StraightJoin)
+
+**NOTE** `STRAIGHT_JOIN` is only supported by the `mysql` and `mysql8` dialects; other dialects return an error. It requires an `On` condition; `Using` is rejected because MySQL 5.7 does not accept it for `STRAIGHT_JOIN`.
+
+```go
+sql, _, _ := goqu.Dialect("mysql").From("test").StraightJoin(
+	goqu.T("test2"),
+	goqu.On(goqu.Ex{"test.fkey": goqu.I("test2.Id")}),
+).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM `test` STRAIGHT_JOIN `test2` ON (`test`.`fkey` = `test2`.`Id`)
+```
+
+[`CustomJoin`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.CustomJoin)
+
+Adds a join clause for syntax goqu does not model, such as ClickHouse's `ARRAY JOIN`. The expression is written exactly as given, so you are responsible for generating valid SQL for your database.
+
+**NOTE** The expression must contain the whole join text including the join keyword (`goqu.T("foo")` would be written as an alias, not a join). It is not validated or escaped, so never build it from untrusted input; use placeholders for values, e.g. `goqu.L("ARRAY JOIN ?", goqu.I("tags"))`. A dialect that builds its own `JoinTypeLookup` from scratch (instead of starting from `DefaultDialectOptions()`) must add `exp.CustomJoinType` to it, otherwise `CustomJoin` returns an error.
+
+```go
+sql, _, _ := goqu.From("test").
+	CustomJoin(goqu.L("ARRAY JOIN tags").As("tag")).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM "test" ARRAY JOIN tags AS "tag"
+```
+
 Join with a Lateral
 
 ```go
@@ -680,10 +716,39 @@ Output:
 SELECT * FROM "test" GROUP BY "age" HAVING (SUM("income") > 1000)
 ```
 
+
+<a name="qualify"></a>
+**[`Qualify`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Qualify)**
+
+`QUALIFY` filters rows on the result of window functions (Teradata, Snowflake, BigQuery and others).
+
+**NOTE** None of the built in dialects support `QUALIFY`; generating SQL with a `Qualify` returns an error. Register a dialect with `SupportsQualify` set to `true` to use it.
+
+```go
+opts := goqu.DefaultDialectOptions()
+opts.SupportsQualify = true
+goqu.RegisterDialect("qualify", "db", opts)
+
+dialect := goqu.Dialect("qualify")
+sql, _, _ := dialect.From("test").
+	Select("a", goqu.ROW_NUMBER().Over(goqu.W().PartitionBy("a").OrderBy(goqu.C("b").Asc())).As("rn")).
+	Qualify(goqu.C("rn").Eq(1)).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT "a", ROW_NUMBER() OVER (PARTITION BY "a" ORDER BY "b" ASC) AS "rn" FROM "test" QUALIFY ("rn" = 1)
+```
+
 <a name="with"></a>
 **[`With`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.With)**
 
 To use CTEs in `SELECT` statements you can use the `With` method.
+
+**NOTE** Common table expressions are not supported by the `mysql` dialect (MySQL 5.x); use the `mysql8` dialect for MySQL 8.0+.
 
 Simple Example
 
@@ -932,6 +997,20 @@ if err := db.From("user").Select("first_name").ScanStructs(&users); err != nil{
   panic(err.Error())
 }
 fmt.Printf("\n%+v", users)
+```
+
+Fields whose type is a non-empty interface that `sql.Scanner` values can be stored in (such as `sql.Scanner` itself) can be scanned into by setting the field to a **non-nil pointer to a value that implements `sql.Scanner`** before calling `ScanStruct`; the column is scanned straight into that value. If the field is `nil`, holds a non-pointer, or you use `ScanStructs` (which creates new structs), `ScanStruct`/`ScanStructs` return an error. The value is scanned in place, so when iterating with a [`Scanner`](#scanner) set a new value for every row, otherwise all of the items you collect share the same value.
+
+**NOTE** Fields of type `interface{}` are not scanned in place: they keep receiving the value returned by the driver (even when they already hold a pointer), and a `nil` `interface{}` field is fine.
+
+```go
+type Item struct {
+	ID    int64       `db:"id"`
+	Value sql.Scanner `db:"value"`
+}
+
+item := Item{Value: &sql.NullString{}}
+found, err := db.From("items").ScanStruct(&item)
 ```
 
 `goqu` also supports scanning into multiple structs. In the example below we define a `Role` and `User` struct that could both be used individually to scan into. However, you can also create a new struct that adds both structs as fields that can be populated in a single query.
@@ -1278,6 +1357,26 @@ if err != nil{
   return
 }
 fmt.Printf("\nCount:= %d", count)
+```
+
+<a name="exists"></a>
+**[`Exists`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.Exists)**
+
+Reports whether the current query returns at least one row
+
+```go
+exists, err := db.From("user").Where(goqu.C("last_name").Eq("Yukon")).Exists()
+if err != nil{
+  fmt.Println(err.Error())
+  return
+}
+fmt.Printf("\nExists:= %t", exists)
+```
+
+The dataset is wrapped in an `EXISTS` subquery, so it is evaluated exactly as written. The result is selected with `CASE WHEN`, which keeps the SQL valid on every dialect (including those that cannot select a boolean expression directly, such as SQL Server):
+
+```sql
+SELECT CASE WHEN EXISTS (SELECT * FROM "user" WHERE ("last_name" = 'Yukon')) THEN 1 ELSE 0 END LIMIT 1
 ```
 
 <a name="pluck"></a>

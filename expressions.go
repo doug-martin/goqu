@@ -24,6 +24,16 @@ const (
 	SkipLocked = exp.SkipLocked
 )
 
+// Applies a collation to an expression. The collation is either a name (string) or, to qualify it with a schema
+// (e.g. Postgres pg_catalog."default"), an identifier. It is validated, and quoted where the dialect requires it, when
+// the SQL is generated.
+//
+//	Collate(I("a"), "en_US") -> "a" COLLATE "en_US" (Postgres), "a" COLLATE en_US (others)
+//	Collate(I("a"), I("pg_catalog.default")) -> "a" COLLATE "pg_catalog"."default" (Postgres)
+func Collate(e exp.Expression, collation any) exp.CollateExpression {
+	return exp.NewCollateExpression(e, collation)
+}
+
 // Creates a new Casted expression
 //
 //	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
@@ -34,7 +44,7 @@ func Cast(e exp.Expression, t string) exp.CastExpression {
 // Creates a conflict struct to be passed to InsertConflict to ignore constraint errors
 //
 //	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
-func DoNothing() exp.ConflictExpression {
+func DoNothing() exp.ConflictNothingExpression {
 	return exp.NewDoNothingConflictExpression()
 }
 
@@ -193,7 +203,15 @@ func COALESCE(vals ...interface{}) exp.SQLFunctionExpression {
 	return Func("COALESCE", vals...)
 }
 
-//nolint:stylecheck,revive // sql function name
+// Creates a new NULLIF sql function
+//
+//	NULLIF(I("a"), "a") -> NULLIF("a", 'a')
+//	NULLIF("a", "a") -> NULLIF("a", 'a')
+func NULLIF(column, value interface{}) exp.SQLFunctionExpression {
+	return Func("NULLIF", column, value)
+}
+
+//nolint:revive // sql function name
 func ROW_NUMBER() exp.SQLFunctionExpression {
 	return Func("ROW_NUMBER")
 }
@@ -202,17 +220,17 @@ func RANK() exp.SQLFunctionExpression {
 	return Func("RANK")
 }
 
-//nolint:stylecheck,revive // sql function name
+//nolint:revive // sql function name
 func DENSE_RANK() exp.SQLFunctionExpression {
 	return Func("DENSE_RANK")
 }
 
-//nolint:stylecheck,revive // sql function name
+//nolint:revive // sql function name
 func PERCENT_RANK() exp.SQLFunctionExpression {
 	return Func("PERCENT_RANK")
 }
 
-//nolint:stylecheck,revive //sql function name
+//nolint:revive //sql function name
 func CUME_DIST() exp.SQLFunctionExpression {
 	return Func("CUME_DIST")
 }
@@ -221,17 +239,17 @@ func NTILE(n int) exp.SQLFunctionExpression {
 	return Func("NTILE", n)
 }
 
-//nolint:stylecheck,revive //sql function name
+//nolint:revive //sql function name
 func FIRST_VALUE(val interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc("FIRST_VALUE", true, val)
 }
 
-//nolint:stylecheck,revive //sql function name
+//nolint:revive //sql function name
 func LAST_VALUE(val interface{}) exp.SQLFunctionExpression {
 	return newIdentifierFunc("LAST_VALUE", true, val)
 }
 
-//nolint:stylecheck,revive //sql function name
+//nolint:revive //sql function name
 func NTH_VALUE(val interface{}, nth int) exp.SQLFunctionExpression {
 	if s, ok := val.(string); ok {
 		val = I(s)
@@ -386,6 +404,17 @@ func Any(val interface{}) exp.SQLFunctionExpression {
 // Create a new ALL comparison
 func All(val interface{}) exp.SQLFunctionExpression {
 	return Func("ALL ", val)
+}
+
+// Creates a new EXISTS expression for the given subquery.
+//
+//	goqu.From("test").Where(goqu.Exists(goqu.From("other").Where(goqu.Ex{"test_id": goqu.I("id")})))
+//	// SELECT * FROM "test" WHERE EXISTS (SELECT * FROM "other" WHERE ("test_id" = "id"))
+//
+// The subquery is written with a single set of parentheses. This is intentional: EXISTS((SELECT ...)) is rejected by
+// some databases (e.g. SQLite and SQL Server).
+func Exists(subquery exp.AppendableExpression) exp.LiteralExpression {
+	return exp.NewLiteralExpression("EXISTS ?", subquery)
 }
 
 func Case() exp.CaseExpression {

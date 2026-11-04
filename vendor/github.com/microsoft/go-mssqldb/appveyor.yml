@@ -1,0 +1,81 @@
+version: 1.0.{build}
+
+# SQL Server 2022 and 2025 are only available on the Visual Studio 2026 image.
+image: Visual Studio 2026
+
+# Every push to a branch with an open PR otherwise queues two builds, and the
+# project runs one build at a time. Only the PR build is a required check.
+skip_branch_with_pr: true
+
+clone_folder: c:\gopath\src\github.com\microsoft\go-mssqldb
+
+environment:
+  GOPATH: c:\gopath
+  HOST: localhost
+  SQLUSER: sa
+  SQLPASSWORD: Password12!
+  DATABASE: test
+  GOVERSION: 125
+  SQLINSTANCE: SQL2025
+  COLUMNENCRYPTION:
+
+  TAGS:
+  matrix:
+    # Default protocol negotiation, 64bit, SQL auth
+    - GOVERSION: 125
+    # Always Encrypted
+    - GOVERSION: 125
+      COLUMNENCRYPTION: 1
+    # 32bit and named pipes protocol
+    - GOVERSION: 125-x86
+      GOARCH: 386
+      PROTOCOL: np
+      TAGS: -tags np
+    # SSPI and lpc protocol
+    - GOVERSION: 125
+      PROTOCOL: lpc
+      TAGS: -tags sm
+      SQLUSER:
+      SQLPASSWORD:
+
+init:
+  # AppVeyor does not document instance names past SQL2019; list what is installed.
+  - ps: |
+      $key = 'HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL'
+      (Get-ItemProperty $key -ErrorAction SilentlyContinue).PSObject.Properties |
+        Where-Object Name -notlike 'PS*' |
+        ForEach-Object { "instance: $($_.Name) -> $($_.Value)" }
+
+install:
+  - set GOROOT=c:\go%GOVERSION%
+  - set PATH=%GOPATH%\bin;%GOROOT%\bin;%PATH%
+  - go version
+  - go env
+
+build_script:
+  - go build
+
+before_test:
+  # setup SQL Server
+  - ps: |
+      [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+      [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement") | Out-Null
+      $smo = 'Microsoft.SqlServer.Management.Smo.'
+      $wmi = new-object ($smo + 'Wmi.ManagedComputer')
+      $serverName = $env:COMPUTERNAME
+      $instanceName = $env:SQLINSTANCE
+      # Enable named pipes
+      $uri = "ManagedComputer[@Name='$serverName']/ServerInstance[@Name='$instanceName']/ServerProtocol[@Name='Np']"
+      $Np = $wmi.GetSmoObject($uri)
+      $Np.IsEnabled = $true
+      $Np.Alter()
+      Start-Service "SQLBrowser"
+      Start-Service "MSSQL`$$instanceName"
+      Start-Sleep -Seconds 10
+  - sqlcmd -S "(local)\%SQLINSTANCE%" -Q "Use [master]; CREATE DATABASE test;"
+  - sqlcmd -S "np:.\%SQLINSTANCE%" -h -1 -Q "set nocount on; Select @@version"
+  - pip install codecov
+
+test_script:
+  - go test -coverprofile=coverage.txt -covermode=atomic %TAGS%
+  - codecov -f coverage.txt

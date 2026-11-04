@@ -12,6 +12,9 @@ type (
 	SQLDialectOptions struct {
 		// Set to true if the dialect supports ORDER BY expressions in DELETE statements (DEFAULT=false)
 		SupportsOrderByOnDelete bool
+		// Set to true to return an error, instead of silently dropping the clause, when ORDER BY is used on a
+		// DELETE and SupportsOrderByOnDelete is false (DEFAULT=false)
+		ErrorOnUnsupportedOrderByOnDelete bool
 		// Set to true if the dialect supports table hint for DELETE statements (DELETE t FROM t ...), DEFAULT=false
 		SupportsDeleteTableHint bool
 		// Set to true if the dialect supports ORDER BY expressions in UPDATE statements (DEFAULT=false)
@@ -38,6 +41,9 @@ type (
 		SupportsDistinctOn bool
 		// Set to true if LATERAL queries are supported (DEFAULT=true)
 		SupportsLateral bool
+		// Set to true if the dialect supports QUALIFY expressions, e.g. Teradata, Snowflake, BigQuery (DEFAULT=false).
+		// None of the built in dialects enable it: register your own dialect with it set to true.
+		SupportsQualify bool
 		// Set to false if the dialect does not require expressions to be wrapped in parens (DEFAULT=true)
 		WrapCompoundsInParens bool
 
@@ -97,6 +103,8 @@ type (
 		GroupByFragment []byte
 		// The SQL HAVING clause fragment(DEFAULT=[]byte(" HAVING "))
 		HavingFragment []byte
+		// The SQL QUALIFY clause fragment(DEFAULT=[]byte(" QUALIFY "))
+		QualifyFragment []byte
 		// The SQL WINDOW clause fragment(DEFAULT=[]byte(" WINDOW "))
 		WindowFragment []byte
 		// The SQL WINDOW clause PARTITION BY fragment(DEFAULT=[]byte("PARTITION BY "))
@@ -161,6 +169,13 @@ type (
 		IntersectAllFragment []byte
 		// The CAST keyword to use when casting a value (DEFAULT=[]byte("CAST"))
 		CastFragment []byte
+		// The COLLATE keyword to use when applying a collation, including surrounding whitespace
+		// (DEFAULT=[]byte(" COLLATE ")). Dialects not based on DefaultDialectOptions must set this.
+		CollateFragment []byte
+		// If true collation names are quoted with QuoteRune (e.g. "en_US"), as Postgres requires for case sensitive
+		// names. If false the name is written as is, after being checked to be a simple, optionally schema qualified,
+		// identifier (letters, digits and '_', not starting with a digit) (DEFAULT=false)
+		QuoteCollation bool
 		// The CASE keyword to use when when creating a CASE statement (DEFAULT=[]byte("CASE "))
 		CaseFragment []byte
 		// The WHEN keyword to use when when creating a CASE statement (DEFAULT=[]byte(" WHEN "))
@@ -296,6 +311,7 @@ type (
 		// 		WhereSQLFragment,
 		// 		GroupBySQLFragment,
 		// 		HavingSQLFragment,
+		// 		QualifySQLFragment,
 		// 		CompoundsSQLFragment,
 		// 		OrderSQLFragment,
 		// 		LimitSQLFragment,
@@ -373,6 +389,8 @@ const (
 	DeleteBeginSQLFragment
 	TruncateSQLFragment
 	WindowSQLFragment
+	// New fragment types are appended here so the values of the existing ones do not change.
+	QualifySQLFragment
 )
 
 //nolint:gocyclo // simple type to string conversion
@@ -392,6 +410,8 @@ func (sf SQLFragmentType) String() string {
 		return "GroupBySQLFragment"
 	case HavingSQLFragment:
 		return "HavingSQLFragment"
+	case QualifySQLFragment:
+		return "QualifySQLFragment"
 	case CompoundsSQLFragment:
 		return "CompoundsSQLFragment"
 	case OrderSQLFragment:
@@ -444,6 +464,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		WrapCompoundsInParens:       true,
 		SupportsWindowFunction:      true,
 		SupportsLateral:             true,
+		SupportsQualify:             false,
 
 		SupportsMultipleUpdateTables:         true,
 		UseFromClauseForMultipleUpdateTables: true,
@@ -471,6 +492,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		GroupByFragment:           []byte(" GROUP BY "),
 		HavingFragment:            []byte(" HAVING "),
 		WindowFragment:            []byte(" WINDOW "),
+		QualifyFragment:           []byte(" QUALIFY "),
 		WindowPartitionByFragment: []byte("PARTITION BY "),
 		WindowOrderByFragment:     []byte("ORDER BY "),
 		WindowOverFragment:        []byte(" OVER "),
@@ -501,6 +523,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		ConflictDoUpdateFragment:  []byte(" DO UPDATE SET "),
 		ConflictDoNothingFragment: []byte(" DO NOTHING"),
 		CastFragment:              []byte("CAST"),
+		CollateFragment:           []byte(" COLLATE "),
 		CaseFragment:              []byte("CASE "),
 		WhenFragment:              []byte(" WHEN "),
 		ThenFragment:              []byte(" THEN "),
@@ -575,6 +598,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			exp.NaturalRightJoinType: []byte(" NATURAL RIGHT JOIN "),
 			exp.NaturalFullJoinType:  []byte(" NATURAL FULL JOIN "),
 			exp.CrossJoinType:        []byte(" CROSS JOIN "),
+			exp.CustomJoinType:       []byte(" "), // Users need to fill in the join statement themselves
 		},
 		FunctionNameLookup: map[string][]byte{
 			exp.FunctionNameGreatest: []byte("GREATEST"),
@@ -600,6 +624,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			WhereSQLFragment,
 			GroupBySQLFragment,
 			HavingSQLFragment,
+			QualifySQLFragment,
 			WindowSQLFragment,
 			CompoundsSQLFragment,
 			OrderSQLFragment,

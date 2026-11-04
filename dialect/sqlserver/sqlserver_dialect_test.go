@@ -5,6 +5,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -68,6 +69,86 @@ func (sds *sqlserverDialectSuite) TestFuns() {
 	)
 }
 
+func (sds *sqlserverDialectSuite) TestSelectDistinctWithLimit() {
+	ds := sds.GetDs("test")
+	sds.assertSQL(
+		// DISTINCT has to come before TOP.
+		sqlTestCase{ds: ds.Select("a").Distinct().Limit(1), sql: `SELECT DISTINCT  TOP (1) "a" FROM "test"`},
+		sqlTestCase{ds: ds.Distinct().Limit(5), sql: `SELECT DISTINCT  TOP (5) * FROM "test"`},
+		sqlTestCase{
+			ds:         ds.Select("a").Distinct().Limit(1).Prepared(true),
+			sql:        `SELECT DISTINCT  TOP (@p1) "a" FROM "test"`,
+			isPrepared: true,
+			args:       []interface{}{int64(1)},
+		},
+		// Without a limit, or with an offset (OFFSET/FETCH instead of TOP), nothing changes.
+		sqlTestCase{ds: ds.Select("a").Distinct(), sql: `SELECT DISTINCT "a" FROM "test"`},
+		sqlTestCase{
+			ds:  ds.Select("a").Distinct().Order(goqu.C("a").Asc()).Limit(1).Offset(2),
+			sql: `SELECT DISTINCT "a" FROM "test" ORDER BY "a" ASC OFFSET 2 ROWS FETCH FIRST 1 ROWS ONLY`,
+		},
+		// DISTINCT ON is still not supported.
+		sqlTestCase{
+			ds:  ds.Select("a").Distinct("a").Limit(1),
+			err: "goqu: dialect does not support DISTINCT ON clause [dialect=sqlserver]",
+		},
+	)
+}
+
+func (sds *sqlserverDialectSuite) TestDeleteWithLimit() {
+	ds := goqu.Dialect("sqlserver").Delete("test")
+	sds.assertSQL(
+		sqlTestCase{
+			ds:  ds.Where(goqu.C("a").Gt(1)).Limit(10),
+			sql: `DELETE TOP (10) FROM "test" WHERE ("a" > 1)`,
+		},
+		sqlTestCase{
+			ds:  ds.Limit(10),
+			sql: `DELETE TOP (10) FROM "test"`,
+		},
+		// Without a limit the statement is unchanged.
+		sqlTestCase{
+			ds:  ds.Where(goqu.C("a").Gt(1)),
+			sql: `DELETE FROM "test" WHERE ("a" > 1)`,
+		},
+		sqlTestCase{
+			ds:         ds.Where(goqu.C("a").Gt(1)).Limit(10).Prepared(true),
+			sql:        `DELETE TOP (@p1) FROM "test" WHERE ("a" > @p2)`,
+			isPrepared: true,
+			args:       []interface{}{int64(10), int64(1)},
+		},
+	)
+}
+
+func (sds *sqlserverDialectSuite) TestDeleteWithOrderIsAnError() {
+	ds := goqu.Dialect("sqlserver").Delete("test")
+	sds.assertSQL(
+		sqlTestCase{
+			ds:  ds.Order(goqu.C("a").Asc()),
+			err: "goqu: dialect does not support ORDER BY on DELETE [dialect=sqlserver]",
+		},
+		sqlTestCase{
+			ds:  ds.Order(goqu.C("a").Asc()).Limit(10),
+			err: "goqu: dialect does not support ORDER BY on DELETE [dialect=sqlserver]",
+		},
+	)
+}
+
 func TestDatasetAdapterSuite(t *testing.T) {
 	suite.Run(t, new(sqlserverDialectSuite))
+}
+
+func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("sqlserver").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression(nil, "db", "a"))).
+		ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=sqlserver]")
+
+	// no target is still fine
+	_, _, err = goqu.Dialect("sqlserver").Insert("test").
+		Rows(goqu.Record{"a": "a"}).
+		OnConflict(goqu.DoNothing()).
+		ToSQL()
+	assert.NoError(t, err)
 }

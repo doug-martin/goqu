@@ -8,6 +8,10 @@ import (
 
 var ErrNoUpdatedValuesProvided = errors.New("no update values provided")
 
+func ErrInvalidCollation(collation string) error {
+	return errors.New("invalid collation name %q", collation)
+}
+
 func ErrCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH clause [dialect=%s]", dialect)
 }
@@ -18,6 +22,10 @@ func ErrRecursiveCTENotSupported(dialect string) error {
 
 func ErrReturnNotSupported(dialect string) error {
 	return errors.New("dialect does not support RETURNING clause [dialect=%s]", dialect)
+}
+
+func ErrConflictTargetNotSupported(dialect string) error {
+	return errors.New("dialect does not support Conflict Target clause [dialect=%s]", dialect)
 }
 
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {
@@ -31,6 +39,7 @@ type (
 		DialectOptions() *SQLDialectOptions
 		ExpressionSQLGenerator() ExpressionSQLGenerator
 		ReturningSQL(b sb.SQLBuilder, returns exp.ColumnListExpression)
+		ConflictTargetSQL(b sb.SQLBuilder, targets exp.ColumnListExpression)
 		FromSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
 		SourcesSQL(b sb.SQLBuilder, from exp.ColumnListExpression)
 		WhereSQL(b sb.SQLBuilder, where exp.ExpressionList)
@@ -74,6 +83,19 @@ func (csg *commonSQLGenerator) ReturningSQL(b sb.SQLBuilder, returns exp.ColumnL
 			csg.esg.Generate(b, returns)
 		} else {
 			b.SetError(ErrReturnNotSupported(csg.dialect))
+		}
+	}
+}
+
+func (csg *commonSQLGenerator) ConflictTargetSQL(b sb.SQLBuilder, targets exp.ColumnListExpression) {
+	if targets != nil && len(targets.Columns()) > 0 {
+		if csg.dialectOptions.SupportsConflictTarget {
+			b.WriteRunes(csg.dialectOptions.SpaceRune)
+			b.WriteRunes(csg.dialectOptions.LeftParenRune)
+			csg.esg.Generate(b, targets)
+			b.WriteRunes(csg.dialectOptions.RightParenRune)
+		} else {
+			b.SetError(ErrConflictTargetNotSupported(csg.dialect))
 		}
 	}
 }

@@ -20,15 +20,17 @@ type mysqlStmt struct {
 	mc         *mysqlConn
 	id         uint32
 	paramCount int
+	columns    []mysqlField
 }
 
 func (stmt *mysqlStmt) Close() error {
 	if stmt.mc == nil || stmt.mc.closed.Load() {
-		// driver.Stmt.Close can be called more than once, thus this function
-		// has to be idempotent.
-		// See also Issue #450 and golang/go#16019.
-		//errLog.Print(ErrInvalidConn)
-		return driver.ErrBadConn
+		// driver.Stmt.Close could be called more than once, thus this function
+		// had to be idempotent. See also Issue #450 and golang/go#16019.
+		// This bug has been fixed in Go 1.8.
+		// https://github.com/golang/go/commit/90b8a0ca2d0b565c7c7199ffcf77b15ea6b6db3a
+		// But we keep this function idempotent because it is safer.
+		return nil
 	}
 
 	err := stmt.mc.writeCommandPacketUint32(comStmtClose, stmt.id)
@@ -51,7 +53,6 @@ func (stmt *mysqlStmt) CheckNamedValue(nv *driver.NamedValue) (err error) {
 
 func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 	if stmt.mc.closed.Load() {
-		stmt.mc.log(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
 	// Send command
@@ -64,19 +65,26 @@ func (stmt *mysqlStmt) Exec(args []driver.Value) (driver.Result, error) {
 	handleOk := stmt.mc.clearResult()
 
 	// Read Result
-	resLen, err := handleOk.readResultSetHeaderPacket()
+	resLen, metadataFollows, err := handleOk.readResultSetHeaderPacket()
 	if err != nil {
 		return nil, err
 	}
 
 	if resLen > 0 {
 		// Columns
-		if err = mc.readUntilEOF(); err != nil {
-			return nil, err
+		if metadataFollows && stmt.mc.extCapabilities&clientCacheMetadata != 0 {
+			// we can not skip column metadata because next stmt.Query() may use it.
+			if stmt.columns, err = mc.readColumns(resLen, stmt.columns); err != nil {
+				return nil, err
+			}
+		} else {
+			if err = mc.skipColumns(resLen); err != nil {
+				return nil, err
+			}
 		}
 
 		// Rows
-		if err := mc.readUntilEOF(); err != nil {
+		if err = mc.skipRows(); err != nil {
 			return nil, err
 		}
 	}
@@ -95,7 +103,6 @@ func (stmt *mysqlStmt) Query(args []driver.Value) (driver.Rows, error) {
 
 func (stmt *mysqlStmt) query(args []driver.Value) (*binaryRows, error) {
 	if stmt.mc.closed.Load() {
-		stmt.mc.log(ErrInvalidConn)
 		return nil, driver.ErrBadConn
 	}
 	// Send command
@@ -108,7 +115,7 @@ func (stmt *mysqlStmt) query(args []driver.Value) (*binaryRows, error) {
 
 	// Read Result
 	handleOk := stmt.mc.clearResult()
-	resLen, err := handleOk.readResultSetHeaderPacket()
+	resLen, metadataFollows, err := handleOk.readResultSetHeaderPacket()
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +124,17 @@ func (stmt *mysqlStmt) query(args []driver.Value) (*binaryRows, error) {
 
 	if resLen > 0 {
 		rows.mc = mc
-		rows.rs.columns, err = mc.readColumns(resLen)
+		if metadataFollows {
+			if rows.rs.columns, err = mc.readColumns(resLen, stmt.columns); err != nil {
+				return nil, err
+			}
+			stmt.columns = rows.rs.columns
+		} else {
+			if err = mc.skipEof(); err != nil {
+				return nil, err
+			}
+			rows.rs.columns = stmt.columns
+		}
 	} else {
 		rows.rs.done = true
 
@@ -132,7 +149,7 @@ func (stmt *mysqlStmt) query(args []driver.Value) (*binaryRows, error) {
 	return rows, err
 }
 
-var jsonType = reflect.TypeOf(json.RawMessage{})
+var jsonType = reflect.TypeFor[json.RawMessage]()
 
 type converter struct{}
 
@@ -194,7 +211,7 @@ func (c converter) ConvertValue(v any) (driver.Value, error) {
 	return nil, fmt.Errorf("unsupported type %T, a %s", v, rv.Kind())
 }
 
-var valuerReflectType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+var valuerReflectType = reflect.TypeFor[driver.Valuer]()
 
 // callValuerValue returns vr.Value(), with one exception:
 // If vr.Value is an auto-generated method on a pointer type and the

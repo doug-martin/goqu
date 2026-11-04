@@ -11,6 +11,8 @@ package mysql
 import "runtime"
 
 const (
+	debug = false // for debugging. Set true only in development.
+
 	defaultAuthPlugin       = "mysql_native_password"
 	defaultMaxAllowedPacket = 64 << 20 // 64 MiB. See https://github.com/go-sql-driver/mysql/issues/1355
 	minProtocolVersion      = 10
@@ -30,7 +32,7 @@ const (
 )
 
 // MySQL constants documentation:
-// http://dev.mysql.com/doc/internals/en/client-server-protocol.html
+// https://dev.mysql.com/doc/dev/mysql-server/latest/PAGE_PROTOCOL.html
 
 const (
 	iOK           byte = 0x00
@@ -40,11 +42,12 @@ const (
 	iERR          byte = 0xff
 )
 
-// https://dev.mysql.com/doc/internals/en/capability-flags.html#packet-Protocol::CapabilityFlags
-type clientFlag uint32
+// https://dev.mysql.com/doc/dev/mysql-server/latest/group__group__cs__capabilities__flags.html
+// https://mariadb.com/kb/en/connection/#capabilities
+type capabilityFlag uint32
 
 const (
-	clientLongPassword clientFlag = 1 << iota
+	clientMySQL capabilityFlag = 1 << iota
 	clientFoundRows
 	clientLongFlag
 	clientConnectWithDB
@@ -69,6 +72,18 @@ const (
 	clientCanHandleExpiredPasswords
 	clientSessionTrack
 	clientDeprecateEOF
+)
+
+// https://mariadb.com/kb/en/connection/#capabilities
+type extendedCapabilityFlag uint32
+
+const (
+	progressIndicator extendedCapabilityFlag = 1 << iota
+	clientComMulti
+	clientStmtBulkOperations
+	clientExtendedMetadata
+	clientCacheMetadata
+	clientUnitBulkResult
 )
 
 const (
@@ -125,7 +140,10 @@ const (
 	fieldTypeBit
 )
 const (
-	fieldTypeJSON fieldType = iota + 0xf5
+	fieldTypeVector fieldType = iota + 0xf2
+	fieldTypeInvalid
+	fieldTypeBool
+	fieldTypeJSON
 	fieldTypeNewDecimal
 	fieldTypeEnum
 	fieldTypeSet

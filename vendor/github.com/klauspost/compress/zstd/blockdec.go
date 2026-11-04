@@ -598,9 +598,7 @@ func (b *blockDec) prepareSequences(in []byte, hist *history) (err error) {
 					printf("RLE set to 0x%x, code: %v", symb, v)
 				}
 			case compModeFSE:
-				if debugDecoder {
-					println("Reading table for", tableIndex(i))
-				}
+				println("Reading table for", tableIndex(i))
 				if seq.fse == nil || seq.fse.preDefined {
 					seq.fse = fseDecoderPool.Get().(*fseDecoder)
 				}

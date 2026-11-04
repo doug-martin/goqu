@@ -45,15 +45,15 @@ func (i identifier) IsQualified() bool {
 	switch c := col.(type) {
 	case string:
 		if c != "" {
-			return len(table) > 0 || len(schema) > 0
+			return table != "" || schema != ""
 		}
 	default:
 		if c != nil {
-			return len(table) > 0 || len(schema) > 0
+			return table != "" || schema != ""
 		}
 	}
-	if len(table) > 0 {
-		return len(schema) > 0
+	if table != "" {
+		return schema != ""
 	}
 	return false
 }
@@ -208,6 +208,7 @@ func (i identifier) Asc() OrderedExpression                           { return a
 func (i identifier) Desc() OrderedExpression                          { return desc(i) }
 func (i identifier) Distinct() SQLFunctionExpression                  { return NewSQLFunctionExpression("DISTINCT", i) }
 func (i identifier) Cast(t string) CastExpression                     { return NewCastExpression(i, t) }
+func (i identifier) Collate(c any) CollateExpression                  { return NewCollateExpression(i, c) }
 
 // Returns a RangeExpression for checking that a identifier is between two values (e.g "my_col" BETWEEN 1 AND 10)
 func (i identifier) Between(val RangeVal) RangeExpression { return between(i, val) }

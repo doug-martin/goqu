@@ -10,8 +10,9 @@ jobs:
     name: Test go - ${{ matrix.go_version }} mysql - ${{ matrix.db_versions.mysql_version}} postgres - ${{ matrix.db_versions.postgres_version}} sqlserver- ${{ matrix.db_versions.sqlserver_version}}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        go_version: ["1.19", "latest"]
+        go_version: ["1.26", "latest"]
         db_versions:
           - mysql_version: 5.7
             postgres_version: 9
@@ -33,15 +34,16 @@ jobs:
       WAITFORIT_TIMEOUT: 60
     steps:
     - name: checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
     - name: Test
       run: docker compose run goqu-coverage
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v7
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests
-        env_vars: OS,MYSQL_VERSION,POSTGRES_VERSION,SQLSERVER_VERSION
         name: codecov-umbrella
-        fail_ci_if_error: true
+        # Fork and Dependabot PRs do not receive the repo's Actions secrets, so the upload can
+        # legitimately fail there.
+        fail_ci_if_error: ${{ github.event.pull_request.head.repo.fork != true && github.actor != 'dependabot[bot]' }}
         verbose: true
