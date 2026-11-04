@@ -72,3 +72,9 @@ Values of types `goqu` has no built-in mapping for (for example structs, maps, a
 * **Prepared** (`Prepared(true)`): the value is passed through as an argument and the driver decides whether it can bind it. If it cannot, the error is returned by the driver when the query is executed rather than by `goqu` when the SQL is built.
 
 Functions, channels and complex numbers can never be bound by a driver, so they result in an encode error in both modes.
+
+## Byte slices
+
+Interpolated `[]byte` values are written as a string literal when they are valid UTF-8, and as a binary (hex) literal otherwise, using the dialect's `BinaryLiteralPrefix` and `BinaryLiteralSuffix` (`X'28fa'` by default, `decode('28fa', 'hex')` for `postgres`, `0x28fa` for `sqlserver`). The `postgres` and `sqlserver` dialects also use a binary literal when the bytes contain a NUL byte, as it cannot be part of a text literal.
+
+**NOTE** Binary data that is valid UTF-8 and has no NUL byte is still written as a string, so a value containing a backslash is read by PostgreSQL as a `bytea` escape sequence. When you store arbitrary binary data in a `bytea` column, use `Prepared(true)` or pass the value as a hex literal yourself.

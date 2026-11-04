@@ -11,6 +11,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	do.QuoteCollation = true
 	do.BinaryLiteralPrefix = []byte("decode('")
 	do.BinaryLiteralSuffix = []byte("', 'hex')")
+	do.BinaryLiteralBytes = []byte{0}
 	return do
 }
 

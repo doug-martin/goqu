@@ -194,6 +194,12 @@ type (
 		// The text written after the hex digits of a binary literal, e.g. postgres="', 'hex')", sqlserver=""
 		// (DEFAULT=[]byte("'"))
 		BinaryLiteralSuffix []byte
+		// Byte values that force a byte slice to be written as a binary literal even when it is valid UTF-8, e.g.
+		// postgres and sqlserver={0} because NUL cannot be part of a text literal (DEFAULT=nil)
+		BinaryLiteralBytes []byte
+		// The text written before a string literal that contains non ASCII characters, e.g. sqlserver="N" so that
+		// the value is a unicode (nvarchar) literal (DEFAULT=nil)
+		UnicodeStringPrefix []byte
 		// The operator to use when setting values in an update statement (DEFAULT='=')
 		SetOperatorRune rune
 		// The placeholder fragment to use when generating a non interpolated statement (DEFAULT=[]byte"?")
