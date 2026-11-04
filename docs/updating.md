@@ -25,7 +25,7 @@ ds := goqu.Update("user").Set(
     goqu.Record{"first_name": "Greg", "last_name": "Farley"},
 )
 updateSQL, _, _ := ds.ToSQL()
-fmt.Println(insertSQL, args)
+fmt.Println(updateSQL)
 ```
 Output:
 ```
@@ -44,12 +44,12 @@ ds := goqu.From("user")
 updateSQL, _, _ := ds.Update().Set(
     goqu.Record{"first_name": "Greg", "last_name": "Farley"},
 ).ToSQL()
-fmt.Println(insertSQL, args)
+fmt.Println(updateSQL)
 
 updateSQL, _, _ = ds.Where(goqu.C("first_name").Eq("Gregory")).Update().Set(
     goqu.Record{"first_name": "Greg", "last_name": "Farley"},
 ).ToSQL()
-fmt.Println(insertSQL, args)
+fmt.Println(updateSQL)
 ```
 Output:
 ```
@@ -70,7 +70,7 @@ ds := dialect.Update("user").Set(
     goqu.Record{"first_name": "Greg", "last_name": "Farley"},
 )
 updateSQL, _, _ := ds.ToSQL()
-fmt.Println(insertSQL, args)
+fmt.Println(updateSQL)
 ```
 Output:
 ```
@@ -91,7 +91,7 @@ ds := db.Update("user").Set(
     goqu.Record{"first_name": "Greg", "last_name": "Farley"},
 )
 updateSQL, _, _ := ds.ToSQL()
-fmt.Println(insertSQL, args)
+fmt.Println(updateSQL)
 ```
 Output:
 ```
