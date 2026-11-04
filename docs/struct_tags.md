@@ -26,6 +26,8 @@ type User struct {
 
 Options can be combined, e.g. `goqu:"skipinsert,skipupdate"`.
 
+`skipinsert` and `skipupdate` on a nested struct field apply to every column flattened out of that struct (e.g. `Bar Bar `goqu:"skipinsert"`` skips `"bar"."b"` on insert).
+
 ## Notes
 
 * Tags are read from exported fields, including fields of embedded structs.
