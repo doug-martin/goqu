@@ -97,14 +97,9 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		sqlgen.ForSQLFragment,
 	}
 
+	// T-SQL string literals only need the single quote doubled. Backslash escapes are not understood by SQL Server.
 	opts.EscapedRunes = map[rune][]byte{
-		'\'': []byte("\\'"),
-		'"':  []byte("\\\""),
-		'\\': []byte("\\\\"),
-		'\n': []byte("\\n"),
-		'\r': []byte("\\r"),
-		0:    []byte("\\x00"),
-		0x1a: []byte("\\x1a"),
+		'\'': []byte("''"),
 	}
 
 	opts.OfFragment = []byte("")
