@@ -226,7 +226,11 @@ func (sd *SelectDataset) Select(selects ...interface{}) *SelectDataset {
 	if len(selects) == 0 {
 		return sd.ClearSelect()
 	}
-	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)))
+	cols, err := exp.NewSelectColumnListExpression(selects...)
+	if err != nil {
+		return sd.copy(sd.clauses).SetError(err)
+	}
+	return sd.copy(sd.clauses.SetSelect(cols))
 }
 
 // Replaces columns of the SELECT DISTINCT clause. Empty list resets the clause. See examples
@@ -246,7 +250,11 @@ func (sd *SelectDataset) SelectDistinct(selects ...interface{}) *SelectDataset {
 		cleared := sd.ClearSelect()
 		return cleared.copy(cleared.clauses.SetDistinct(nil))
 	}
-	return sd.copy(sd.clauses.SetSelect(exp.NewColumnListExpression(selects...)).SetDistinct(exp.NewColumnListExpression()))
+	cols, err := exp.NewSelectColumnListExpression(selects...)
+	if err != nil {
+		return sd.copy(sd.clauses).SetError(err)
+	}
+	return sd.copy(sd.clauses.SetSelect(cols).SetDistinct(exp.NewColumnListExpression()))
 }
 
 // Resets to SELECT *. If the SelectDistinct or Distinct was used the returned Dataset will have the the dataset set to SELECT *.
@@ -264,7 +272,11 @@ func (sd *SelectDataset) ClearSelect() *SelectDataset {
 //	LiteralExpression: (See Literal) Will use the literal SQL
 //	SQLFunction: (See Func, MIN, MAX, COUNT....)
 func (sd *SelectDataset) SelectAppend(selects ...interface{}) *SelectDataset {
-	return sd.copy(sd.clauses.SelectAppend(exp.NewColumnListExpression(selects...)))
+	cols, err := exp.NewSelectColumnListExpression(selects...)
+	if err != nil {
+		return sd.copy(sd.clauses).SetError(err)
+	}
+	return sd.copy(sd.clauses.SelectAppend(cols))
 }
 
 func (sd *SelectDataset) Distinct(on ...interface{}) *SelectDataset {

@@ -32,5 +32,5 @@ Options can be combined, e.g. `goqu:"skipinsert,skipupdate"`.
 ## Notes
 
 * Tags are read from exported fields, including fields of embedded structs.
-* `skipinsert`, `skipupdate` and `skipselect` change which columns are written or selected; scanning always uses the `db` tag. To select a field that has `skipselect`, add its column next to the struct: `Select(&user, goqu.I("groups.name").As("group_name"))`.
+* `skipinsert`, `skipupdate` and `skipselect` change which columns are written or selected; scanning always uses the `db` tag. Only the `SELECT` columns are affected: `INSERT` columns (`Cols(&s)`), `GROUP BY`, `DISTINCT ON` and `RETURNING` still expand to every column. If every column of a struct has `skipselect`, `Select(&s)` returns an error (an empty list would select `*`). To select a field that has `skipselect`, add its column next to the struct: `Select(&user, goqu.I("groups.name").As("group_name"))`.
 * The `db` tag also controls scanning, so fields without a matching column in the result set cause an error. Select the columns your struct needs, or use a struct that matches the query.

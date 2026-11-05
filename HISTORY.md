@@ -1,6 +1,6 @@
 # Unreleased
 
-* [FEATURE] Add the `skipselect` struct tag option. A field with `goqu:"skipselect"` (or every column of a nested struct with it) is not added to the columns selected for a struct, e.g. a column that is filled by a join. It is still scanned when it is selected explicitly [#433](https://github.com/doug-martin/goqu/issues/433)
+* [FEATURE] Add the `skipselect` struct tag option. A field with `goqu:"skipselect"` (or every column of a nested struct with it) is not added to the columns selected for a struct, e.g. a column that is filled by a join. It only affects `Select`, `SelectAppend` and `SelectDistinct` (not `Cols`, `GroupBy`, `Distinct` or `RETURNING`), and a struct where every column has the tag is an error instead of `SELECT *`. It is still scanned when it is selected explicitly [#433](https://github.com/doug-martin/goqu/issues/433)
 
 # v9.25.0
 
