@@ -245,8 +245,9 @@ A database without `LIMIT` or `TOP` (such as Oracle 19c) paginates with `OFFSET 
 from the default `SelectSQLOrder` (so `WITH`, `JOIN`, `GROUP BY`, `HAVING`, compounds and `FOR` are kept), replace
 `OrderSQLFragment` with `OrderWithOffsetFetchSQLFragment` and drop the separate limit and offset fragments. Set
 `FetchFragment` (the default `" "` does not produce valid SQL) and `AlwaysOffsetFetch`, so a limit without an offset
-still renders `OFFSET 0 ROWS FETCH NEXT m ROWS ONLY` (by default `OFFSET` is only rendered for an offset above 0, and
-only after an `ORDER BY`). Do not combine `AlwaysOffsetFetch` with `SelectWithLimitSQLFragment` (`TOP`) or
+still renders `OFFSET 0 ROWS FETCH NEXT m ROWS ONLY`. Without `AlwaysOffsetFetch` the fragment only renders for an
+offset above 0 and needs an `ORDER BY` (an offset without one is an error, and a limit without an offset is not
+rendered, so a dialect without `TOP` or `LIMIT` should set the option). Do not combine `AlwaysOffsetFetch` with `SelectWithLimitSQLFragment` (`TOP`) or
 `LimitSQLFragment`, the limit would be rendered twice.
 
 ```go

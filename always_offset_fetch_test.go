@@ -9,8 +9,6 @@ import (
 	"github.com/doug-martin/goqu/v9/sqlgen"
 )
 
-const errOffsetNeedsOrder = "<error: offset requires order>"
-
 // a dialect without LIMIT or TOP (e.g. Oracle 19c) can only paginate with OFFSET ... ROWS FETCH ... ROWS ONLY (#429)
 func TestAlwaysOffsetFetch(t *testing.T) {
 	newOpts := func(always bool) *sqlgen.SQLDialectOptions {
@@ -64,7 +62,7 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 			"offset only, unordered",
 			func(d goqu.DialectWrapper) *goqu.SelectDataset { return d.From("t").Offset(3) },
 			`SELECT * FROM "t" OFFSET 3 ROWS`,
-			errOffsetNeedsOrder, // an offset without ORDER BY is an error unless the option is set (#500)
+			"", // an offset without ORDER BY is an error unless the option is set (#500)
 		},
 		{
 			"keeps join, group by and having",
@@ -91,7 +89,7 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 
 			// the default (option off) output is unchanged
 			sql, _, err = c.build(goqu.Dialect("test-default-fetch")).ToSQL()
-			if c.base == errOffsetNeedsOrder {
+			if c.base == "" { // no valid SQL without the option
 				require.EqualError(t, err, "goqu: dialect requires an ORDER BY when using OFFSET [dialect=test-default-fetch]")
 				return
 			}

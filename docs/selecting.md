@@ -685,6 +685,10 @@ Output:
 SELECT * FROM "test" OFFSET 2
 ```
 
+NOTE: dialects that paginate with `OFFSET ... FETCH` instead of `LIMIT` (for example `sqlserver`) require an `ORDER BY`
+when an offset is used, otherwise `ToSQL` returns an error. See [Dialect](./dialect.md#custom-dialects) for databases
+that only support `OFFSET ... FETCH`.
+
 <a name="group_by"></a>
 **[`GroupBy`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.GroupBy)**
 
