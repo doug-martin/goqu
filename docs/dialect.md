@@ -241,5 +241,20 @@ Output:
 SELECT * FROM "blah" "b"
 ```
 
+A database without `LIMIT` or `TOP` (such as Oracle 19c) paginates with `OFFSET n ROWS FETCH NEXT m ROWS ONLY`. Use the
+`OrderWithOffsetFetchSQLFragment` in `SelectSQLOrder` and set `AlwaysOffsetFetch` so a limit without an offset still
+renders `OFFSET 0 ROWS FETCH NEXT m ROWS ONLY` (by default `OFFSET` is only rendered for an offset above 0):
+
+```go
+opts := goqu.DefaultDialectOptions()
+opts.FetchFragment = []byte(" FETCH NEXT ")
+opts.AlwaysOffsetFetch = true
+opts.SelectSQLOrder = []sqlgen.SQLFragmentType{
+	sqlgen.SelectSQLFragment, sqlgen.FromSQLFragment, sqlgen.WhereSQLFragment,
+	sqlgen.OrderWithOffsetFetchSQLFragment,
+}
+goqu.RegisterDialect("oracle-19c", opts)
+```
+
 For more examples look at [`postgres`](../dialect/postgres/postgres.go), [`mysql`](../dialect/mysql/mysql.go) and [`sqlite3`](../dialect/sqlite3/sqlite3.go) for examples.
 

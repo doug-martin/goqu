@@ -130,12 +130,16 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 	offset uint,
 	limit interface{},
 ) {
-	if order == nil {
+	always := csg.dialectOptions.AlwaysOffsetFetch
+	if order == nil && !always {
 		return
 	}
 
-	csg.OrderSQL(b, order)
-	if offset > 0 {
+	if order != nil {
+		csg.OrderSQL(b, order)
+	}
+	// without AlwaysOffsetFetch only a positive offset is rendered (OFFSET 0 is the same as no offset)
+	if offset > 0 || (always && limit != nil) {
 		b.Write(csg.dialectOptions.OffsetFragment)
 		csg.esg.Generate(b, offset)
 		b.Write([]byte(" ROWS"))
