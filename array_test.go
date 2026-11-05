@@ -233,6 +233,20 @@ func TestSliceAsArrayElements(t *testing.T) {
 		require.Contains(t, sql, `{{1},{2},"x"}`)
 	})
 
+	t.Run("named byte arrays, nil raw messages and slice backed valuers", func(t *testing.T) {
+		sql, _, err := pg.Update("posts").Set(goqu.Record{
+			"a": goqu.Array([][2]octet{{0, 255}}),
+			"b": []json.RawMessage{nil, json.RawMessage(`1`)},
+			"c": []any{sliceValuer{1}, sliceValuer{1, 2}, &sliceValuer{3}},
+			"d": [][]any{{sliceValuer{1}, "x"}, {sliceValuer{1, 2}, "y"}},
+		}).ToSQL()
+		require.NoError(t, err)
+		require.Contains(t, sql, `"a"='{"\\x00ff"}'`)
+		require.Contains(t, sql, `"b"='{NULL,"1"}'`)
+		require.Contains(t, sql, `"c"='{"v","v","v"}'`)
+		require.Contains(t, sql, `"d"='{{"v","x"},{"v","y"}}'`)
+	})
+
 	t.Run("pointer elements and named types", func(t *testing.T) {
 		sql, _, err := pg.Update("posts").Set(goqu.Record{"a": []*int{new(5)}, "b": []*string{new("x")}, "c": []namedUint{1}}).ToSQL()
 		require.NoError(t, err)
@@ -243,6 +257,13 @@ func TestSliceAsArrayElements(t *testing.T) {
 }
 
 type namedUint uint16
+
+type octet uint8
+
+// a Valuer backed by a slice that is a single value in an array
+type sliceValuer []int
+
+func (v sliceValuer) Value() (driver.Value, error) { return "v", nil }
 
 type jsonValuer struct{}
 

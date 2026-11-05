@@ -123,11 +123,18 @@ func (esg *expressionSQLGenerator) arrayConstructorSQL(b sb.SQLBuilder, rv refle
 // [][]int{{1}, {2, 3}}). Postgres only stores rectangular arrays.
 var ErrRaggedArray = errors.New("nested arrays must have the same length")
 
-// subArrayLen returns the length of v when it is a slice or array that is an array itself (not bytes).
+// subArrayLen returns the length of v when it is a slice or array that is an array itself. Bytes and values that are
+// written as a single element (expressions and driver.Valuers, which can be backed by a slice) are not.
 func subArrayLen(v reflect.Value) (int, bool) {
-	for v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return 0, false
+	for {
+		if v.CanInterface() {
+			switch v.Interface().(type) {
+			case exp.Expression, driver.Valuer:
+				return 0, false
+			}
+		}
+		if (v.Kind() != reflect.Interface && v.Kind() != reflect.Ptr) || v.IsNil() {
+			break
 		}
 		v = v.Elem()
 	}
@@ -183,6 +190,12 @@ func (esg *expressionSQLGenerator) appendArrayElement(
 			return buf, false, vErr
 		}
 		return esg.appendArrayElement(buf, dv, depth)
+	case json.RawMessage:
+		if t == nil {
+			// an unset RawMessage is not valid JSON, it is NULL like outside of an array
+			return append(buf, "NULL"...), true, nil
+		}
+		return esg.appendBytesElement(buf, t), true, nil
 	case time.Time:
 		// the same location and format as a time value outside of an array
 		return appendQuotedElement(buf, t.In(timeLocation).Format(esg.dialectOptions.TimeFormat)), true, nil
@@ -201,13 +214,12 @@ func (esg *expressionSQLGenerator) appendArrayElement(
 	}
 }
 
-// byteValues returns the bytes of a slice or array of bytes.
+// byteValues returns the bytes of a slice or array of bytes (the element type may be a named uint8 type).
 func byteValues(rv reflect.Value) []byte {
-	if rv.Kind() == reflect.Slice {
-		return rv.Bytes()
-	}
 	bs := make([]byte, rv.Len())
-	reflect.Copy(reflect.ValueOf(bs), rv)
+	for i := range bs {
+		bs[i] = byte(rv.Index(i).Uint())
+	}
 	return bs
 }
 
