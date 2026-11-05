@@ -33,17 +33,34 @@ func TestUseEqualsForBools(t *testing.T) {
 		).ToSQL()
 		require.NoError(t, err)
 		require.Equal(t, `SELECT * FROM "t" WHERE `+
-			`(("a" = TRUE) AND (("b" != TRUE) OR ("b" IS NULL)) AND ("c" = TRUE) AND `+
-			`(("d" != FALSE) OR ("d" IS NULL)) AND ("e" = FALSE) AND ("f" = TRUE) AND ("g" = TRUE) AND `+
-			`(("h" != FALSE) OR ("h" IS NULL)))`, sql)
+			`(COALESCE(("a" = TRUE), FALSE) AND COALESCE(("b" != TRUE), TRUE) AND COALESCE(("c" = TRUE), FALSE) AND `+
+			`COALESCE(("d" != FALSE), TRUE) AND COALESCE(("e" = FALSE), FALSE) AND COALESCE(("f" = TRUE), FALSE) AND `+
+			`COALESCE(("g" = TRUE), FALSE) AND COALESCE(("h" != FALSE), TRUE))`, sql)
 	})
 
 	// IS NOT TRUE matches NULL rows, a plain != would drop them, so the result must not change
 	t.Run("IS NOT keeps matching NULL rows", func(t *testing.T) {
 		sql, args, err := d.From("t").Where(goqu.C("a").IsNotTrue()).Prepared(true).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `SELECT * FROM "t" WHERE (("a" != ?) OR ("a" IS NULL))`, sql)
+		require.Equal(t, `SELECT * FROM "t" WHERE COALESCE(("a" != ?), TRUE)`, sql)
 		require.Equal(t, []any{true}, args)
+	})
+
+	// = and != are NULL for a NULL where IS TRUE is false and IS NOT TRUE is true, which shows when the comparison is
+	// negated or selected, so it is wrapped to give the same value
+	t.Run("the value for a NULL is kept when negated or selected", func(t *testing.T) {
+		sql, _, err := d.From("t").Select(goqu.C("a").IsTrue().As("is_true")).
+			Where(goqu.L("NOT ?", goqu.C("a").IsTrue())).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t,
+			`SELECT COALESCE(("a" = TRUE), FALSE) AS "is_true" FROM "t" WHERE NOT COALESCE(("a" = TRUE), FALSE)`, sql)
+	})
+
+	// the left hand side is written once, so a function that is not deterministic is only called once
+	t.Run("the left hand side is written once", func(t *testing.T) {
+		sql, _, err := d.From("t").Where(goqu.Func("f", goqu.C("a")).IsNotTrue()).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `SELECT * FROM "t" WHERE COALESCE((f("a") != TRUE), TRUE)`, sql)
 	})
 
 	t.Run("Ex maps, OR lists and subqueries", func(t *testing.T) {
@@ -52,12 +69,13 @@ func TestUseEqualsForBools(t *testing.T) {
 			goqu.ExOr{"c": goqu.Op{"neq": true}, "d": goqu.Op{"isnot": false}},
 		).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `SELECT * FROM "t" WHERE ((("a" = TRUE) AND ("b" = FALSE)) AND `+
-			`((("c" != TRUE) OR ("c" IS NULL)) OR (("d" != FALSE) OR ("d" IS NULL))))`, sql)
+		require.Equal(t, `SELECT * FROM "t" WHERE ((COALESCE(("a" = TRUE), FALSE) AND COALESCE(("b" = FALSE), FALSE)) AND `+
+			`(COALESCE(("c" != TRUE), TRUE) OR COALESCE(("d" != FALSE), TRUE)))`, sql)
 
 		sql, _, err = d.From("t").Where(goqu.C("x").In(d.From("u").Where(goqu.C("a").IsTrue()))).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `SELECT * FROM "t" WHERE ("x" IN (SELECT * FROM "u" WHERE ("a" = TRUE)))`, sql)
+		require.Equal(t,
+			`SELECT * FROM "t" WHERE ("x" IN (SELECT * FROM "u" WHERE COALESCE(("a" = TRUE), FALSE)))`, sql)
 	})
 
 	// the option is read from the dialect that renders the statement, a nested dataset uses the outer dialect
@@ -70,7 +88,7 @@ func TestUseEqualsForBools(t *testing.T) {
 	t.Run("prepared", func(t *testing.T) {
 		sql, args, err := d.From("t").Where(goqu.C("a").IsTrue()).Prepared(true).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `SELECT * FROM "t" WHERE ("a" = ?)`, sql)
+		require.Equal(t, `SELECT * FROM "t" WHERE COALESCE(("a" = ?), FALSE)`, sql)
 		require.Equal(t, []any{true}, args)
 	})
 

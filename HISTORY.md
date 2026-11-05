@@ -1,6 +1,6 @@
 # Unreleased
 
-* [FEATURE] Add the `UseEqualsForBools` dialect option to write a comparison with a boolean as `=` / `!=` instead of `IS` / `IS NOT` (`IS NOT TRUE` becomes `("a" != TRUE OR "a" IS NULL)` so NULL rows still match) for databases that do not support `IS` with a boolean (e.g. Trino). It is off by default and no built-in dialect enables it [#408](https://github.com/doug-martin/goqu/issues/408)
+* [FEATURE] Add the `UseEqualsForBools` dialect option to write a comparison with a boolean with `=` / `!=` instead of `IS` / `IS NOT`, wrapped in `COALESCE` so the value for a NULL does not change (`"a" IS TRUE` becomes `COALESCE(("a" = TRUE), FALSE)`), for databases that do not support `IS` with a boolean (e.g. Trino). It is off by default and no built-in dialect enables it [#408](https://github.com/doug-martin/goqu/issues/408)
 
 # v9.25.0
 
