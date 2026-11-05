@@ -1088,6 +1088,38 @@ func (sds *selectDatasetSuite) TestLimitAll() {
 	)
 }
 
+func (sds *selectDatasetSuite) TestLimitZero() {
+	bd := goqu.From("test")
+	sds.assertCases(
+		selectTestCase{
+			ds: bd.LimitZero(),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLimit(uint(0)),
+		},
+		selectTestCase{
+			ds: bd.Limit(10).LimitZero(),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLimit(uint(0)),
+		},
+		selectTestCase{
+			ds: bd.LimitZero().Limit(5),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression("test")).
+				SetLimit(uint(5)),
+		},
+		selectTestCase{
+			ds:      bd.LimitZero().Limit(0),
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+		selectTestCase{
+			ds:      bd.LimitZero().ClearLimit(),
+			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
+		},
+	)
+}
+
 func (sds *selectDatasetSuite) TestClearLimit() {
 	bd := goqu.From("test").Limit(10)
 	sds.assertCases(

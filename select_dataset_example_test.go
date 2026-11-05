@@ -362,6 +362,18 @@ func ExampleSelectDataset_LimitAll() {
 	// SELECT * FROM "test" LIMIT ALL
 }
 
+func ExampleSelectDataset_LimitZero() {
+	// Limit(0) removes the limit, LimitZero forces LIMIT 0
+	ds := goqu.From("test")
+	sql, _, _ := ds.Limit(0).ToSQL()
+	fmt.Println(sql)
+	sql, _, _ = ds.LimitZero().ToSQL()
+	fmt.Println(sql)
+	// Output:
+	// SELECT * FROM "test"
+	// SELECT * FROM "test" LIMIT 0
+}
+
 func ExampleSelectDataset_ClearLimit() {
 	ds := goqu.From("test").Limit(10)
 	sql, _, _ := ds.ClearLimit().ToSQL()
