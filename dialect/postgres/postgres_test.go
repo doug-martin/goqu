@@ -11,7 +11,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -335,6 +335,66 @@ func (pt *postgresTest) TestInsert() {
 	newEntries = newEntries[0:0]
 	pt.NoError(ds.Where(goqu.C("int").In([]uint32{15, 16, 17, 18})).ScanStructs(&newEntries))
 	pt.Len(newEntries, 4)
+}
+
+func (pt *postgresTest) TestInsertArrays() {
+	_, err := pt.db.Exec(`
+		DROP TABLE IF EXISTS "arrays";
+		CREATE TABLE "arrays" (
+			"id" INT PRIMARY KEY, "ints" INT[], "texts" TEXT[], "uuids" UUID[], "matrix" INT[][], "times" TIMESTAMPTZ[]
+		)`)
+	pt.Require().NoError(err)
+	id := "11111111-1111-1111-1111-111111111111"
+	when := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+	for i, prepared := range []bool{false, true} {
+		rowID := i + 1
+		ds := pt.db.Insert("arrays").Prepared(prepared).Rows(goqu.Record{
+			"id": rowID, "ints": []int{1, 2}, "texts": []string{`a"b`, `c\d`, "it's", "NULL"},
+			"uuids": []string{id}, "matrix": [][]int{{1, 2}, {3, 4}}, "times": []time.Time{when},
+		})
+		_, err = ds.Executor().Exec()
+		pt.Require().NoError(err, "prepared=%t", prepared)
+
+		var (
+			ints, texts, uuids []string
+			matrix             string
+			sameTimes          bool
+		)
+		err = pt.db.QueryRow(`
+			SELECT "ints"::text[], "texts", "uuids"::text[], "matrix"::text,
+				"times" = ARRAY['2024-01-02T03:04:05Z'::timestamptz]
+			FROM "arrays" WHERE "id" = $1`, rowID).
+			Scan(pq.Array(&ints), pq.Array(&texts), pq.Array(&uuids), &matrix, &sameTimes)
+		pt.Require().NoError(err)
+		pt.Equal([]string{"1", "2"}, ints)
+		pt.Equal([]string{`a"b`, `c\d`, "it's", "NULL"}, texts)
+		pt.Equal([]string{id}, uuids)
+		pt.Equal("{{1,2},{3,4}}", matrix)
+		pt.True(sameTimes)
+	}
+
+	// update, an empty and a nil slice
+	for _, prepared := range []bool{false, true} {
+		_, err = pt.db.Update("arrays").Prepared(prepared).
+			Set(goqu.Record{"ints": []int{7}, "texts": []string{}, "uuids": []string(nil)}).
+			Where(goqu.C("id").Eq(1)).Executor().Exec()
+		pt.Require().NoError(err, "prepared=%t", prepared)
+	}
+	var ints, texts []string
+	var uuids sql.NullString
+	pt.Require().NoError(pt.db.QueryRow(`SELECT "ints"::text[], "texts", "uuids"::text FROM "arrays" WHERE "id" = 1`).
+		Scan(pq.Array(&ints), pq.Array(&texts), &uuids))
+	pt.Equal([]string{"7"}, ints)
+	pt.Empty(texts)
+	pt.False(uuids.Valid)
+
+	// goqu.Array in a predicate
+	var count int
+	found, err := pt.db.From("arrays").Where(goqu.C("ints").Eq(goqu.Array([]int{1, 2}))).
+		Select(goqu.COUNT("*")).Executor().ScanVal(&count)
+	pt.Require().NoError(err)
+	pt.True(found)
+	pt.Equal(1, count)
 }
 
 func (pt *postgresTest) TestInsertReturning() {

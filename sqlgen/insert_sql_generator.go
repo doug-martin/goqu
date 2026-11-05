@@ -153,7 +153,7 @@ func (isg *insertSQLGenerator) insertValuesSQL(b sb.SQLBuilder, values [][]inter
 			b.SetError(errMisMatchedRowLength(rowLen, len(row)))
 			return
 		}
-		isg.ExpressionSQLGenerator().Generate(b, row)
+		isg.ExpressionSQLGenerator().Generate(b, isg.DialectOptions().asArrayRow(row))
 		if i < valueLen-1 {
 			b.WriteRunes(isg.DialectOptions().CommaRune, isg.DialectOptions().SpaceRune)
 		}

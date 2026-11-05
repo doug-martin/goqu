@@ -125,6 +125,11 @@ type (
 		// When false OFFSET/FETCH only renders for an offset above 0 and needs an ORDER BY: an offset without one is an
 		// error (ErrOffsetRequiresOrder), and a limit without an offset is not rendered (DEFAULT=false)
 		AlwaysOffsetFetch bool
+		// When true a slice used as a value in an INSERT or an UPDATE renders as an array literal (e.g. '{"a","b"}',
+		// an empty slice as '{}' and a nil slice as NULL) instead of a list (e.g. ('a', 'b')). Slices in predicates (e.g.
+		// IN) are unaffected, use goqu.Array there. []byte, json.RawMessage, driver.Valuers (e.g. pq.Array) and
+		// expressions are never converted (DEFAULT=false)
+		SliceAsArray bool
 		// The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
 		LimitFragment []byte
 		// The SQL OFFSET BY clause fragment(DEFAULT=[]byte(" OFFSET "))

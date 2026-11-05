@@ -294,6 +294,8 @@ func (esg *expressionSQLGenerator) expressionSQL(b sb.SQLBuilder, expression exp
 		esg.sqlWindowFunctionExpression(b, e)
 	case exp.WindowExpression:
 		esg.windowExpressionSQL(b, e)
+	case exp.ArrayExpression:
+		esg.arraySQL(b, e.Elements())
 	case exp.CastExpression:
 		esg.castExpressionSQL(b, e)
 	case exp.CollateExpression:
@@ -728,7 +730,7 @@ func (esg *expressionSQLGenerator) columnListSQL(b sb.SQLBuilder, columnList exp
 func (esg *expressionSQLGenerator) updateExpressionSQL(b sb.SQLBuilder, update exp.UpdateExpression) {
 	esg.Generate(b, update.Col())
 	b.WriteRunes(esg.dialectOptions.SetOperatorRune)
-	esg.Generate(b, update.Val())
+	esg.Generate(b, esg.dialectOptions.asArrayValue(update.Val()))
 }
 
 // Generates SQL for a LiteralExpression

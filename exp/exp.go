@@ -246,6 +246,13 @@ type (
 		RHS() interface{}
 	}
 
+	// An Expression that renders a slice as an array value (e.g. '{1,2}') rather than as a list (e.g. (1, 2))
+	ArrayExpression interface {
+		Expression
+		// The slice (or array) being rendered
+		Elements() any
+	}
+
 	// An Expression that represents another Expression casted to a SQL type
 	CastExpression interface {
 		Expression

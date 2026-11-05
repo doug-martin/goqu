@@ -34,6 +34,16 @@ func Collate(e exp.Expression, collation any) exp.CollateExpression {
 	return exp.NewCollateExpression(e, collation)
 }
 
+// Creates a new array expression, rendering a slice as a Postgres array literal instead of a list. Use it where a slice
+// must be an array outside of insert and update values (e.g. comparisons). It is written the same way in every dialect,
+// so it is only useful for databases that read the Postgres array literal.
+//
+//	Array([]string{"a", "b"}) -> '{"a","b"}'
+//	C("tags").Eq(Array([]string{"a"})) -> "tags" = '{"a"}'
+func Array(elems any) exp.ArrayExpression {
+	return exp.NewArrayExpression(elems)
+}
+
 // Creates a new Casted expression
 //
 //	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)
