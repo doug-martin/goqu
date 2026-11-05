@@ -598,9 +598,6 @@ func isBoolValue(val any) bool {
 
 // Generates SQL for a BooleanExpresion (e.g. I("a").Eq(2) -> "a" = 2)
 func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operator exp.BooleanExpression) {
-	b.WriteRunes(esg.dialectOptions.LeftParenRune)
-	esg.Generate(b, operator.LHS())
-	b.WriteRunes(esg.dialectOptions.SpaceRune)
 	operatorOp := operator.Op()
 	rhs := operator.RHS()
 	if esg.dialectOptions.UseEqualsForBools && isBoolValue(rhs) {
@@ -608,11 +605,20 @@ func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operato
 		case exp.IsOp:
 			operatorOp = exp.EqOp
 		case exp.IsNotOp:
-			operatorOp = exp.NeqOp
+			// IS NOT TRUE is also true for NULL, != is not, so the NULL rows are added back
+			esg.Generate(b, exp.NewExpressionList(
+				exp.OrType,
+				exp.NewBooleanExpression(exp.NeqOp, operator.LHS(), rhs),
+				exp.NewBooleanExpression(exp.IsOp, operator.LHS(), nil),
+			))
+			return
 		default:
 			// other operators are written as they are
 		}
 	}
+	b.WriteRunes(esg.dialectOptions.LeftParenRune)
+	esg.Generate(b, operator.LHS())
+	b.WriteRunes(esg.dialectOptions.SpaceRune)
 	if val, ok := esg.dialectOptions.BooleanOperatorLookup[operatorOp]; ok {
 		b.Write(val)
 	} else {

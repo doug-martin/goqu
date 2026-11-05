@@ -33,8 +33,38 @@ func TestUseEqualsForBools(t *testing.T) {
 		).ToSQL()
 		require.NoError(t, err)
 		require.Equal(t, `SELECT * FROM "t" WHERE `+
-			`(("a" = TRUE) AND ("b" != TRUE) AND ("c" = TRUE) AND ("d" != FALSE) AND `+
-			`("e" = FALSE) AND ("f" = TRUE) AND ("g" = TRUE) AND ("h" != FALSE))`, sql)
+			`(("a" = TRUE) AND (("b" != TRUE) OR ("b" IS NULL)) AND ("c" = TRUE) AND `+
+			`(("d" != FALSE) OR ("d" IS NULL)) AND ("e" = FALSE) AND ("f" = TRUE) AND ("g" = TRUE) AND `+
+			`(("h" != FALSE) OR ("h" IS NULL)))`, sql)
+	})
+
+	// IS NOT TRUE matches NULL rows, a plain != would drop them, so the result must not change
+	t.Run("IS NOT keeps matching NULL rows", func(t *testing.T) {
+		sql, args, err := d.From("t").Where(goqu.C("a").IsNotTrue()).Prepared(true).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `SELECT * FROM "t" WHERE (("a" != ?) OR ("a" IS NULL))`, sql)
+		require.Equal(t, []any{true}, args)
+	})
+
+	t.Run("Ex maps, OR lists and subqueries", func(t *testing.T) {
+		sql, _, err := d.From("t").Where(
+			goqu.Ex{"a": true, "b": false},
+			goqu.ExOr{"c": goqu.Op{"neq": true}, "d": goqu.Op{"isnot": false}},
+		).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `SELECT * FROM "t" WHERE ((("a" = TRUE) AND ("b" = FALSE)) AND `+
+			`((("c" != TRUE) OR ("c" IS NULL)) OR (("d" != FALSE) OR ("d" IS NULL))))`, sql)
+
+		sql, _, err = d.From("t").Where(goqu.C("x").In(d.From("u").Where(goqu.C("a").IsTrue()))).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `SELECT * FROM "t" WHERE ("x" IN (SELECT * FROM "u" WHERE ("a" = TRUE)))`, sql)
+	})
+
+	// the option is read from the dialect that renders the statement, a nested dataset uses the outer dialect
+	t.Run("a nested dataset uses the dialect of the outer statement", func(t *testing.T) {
+		sql, _, err := goqu.From("t").Where(goqu.C("x").In(d.From("u").Where(goqu.C("a").IsTrue()))).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `SELECT * FROM "t" WHERE ("x" IN (SELECT * FROM "u" WHERE ("a" IS TRUE)))`, sql)
 	})
 
 	t.Run("prepared", func(t *testing.T) {

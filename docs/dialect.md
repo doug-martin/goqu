@@ -245,8 +245,10 @@ SELECT * FROM "blah" "b"
 (`('a', 'b')`). It is on for `postgres`, see [Insert Slices As Arrays](./inserting.md#insert-arrays).
 
 `UseEqualsForBools` writes a comparison with a boolean as `=` / `!=` instead of `IS` / `IS NOT` (`"a" = TRUE` instead of
-`"a" IS TRUE`) for databases that do not support `IS` with a boolean, such as Trino. `IS NULL` and `IS NOT NULL` are not
-changed. It is off by default.
+`"a" IS TRUE`) for databases that do not support `IS` with a boolean, such as Trino. `IS NOT TRUE` / `IS NOT FALSE` (and
+`Neq(true)`) also match NULL rows, which a plain `!=` would drop, so they are written as
+`("a" != TRUE OR "a" IS NULL)` and the rows returned do not change. In prepared mode the boolean is a bound argument
+instead of the literal `TRUE`/`FALSE`. `IS NULL` and `IS NOT NULL` are not changed. It is off by default.
 
 A database without `LIMIT` or `TOP` (such as Oracle 19c) paginates with `OFFSET n ROWS FETCH NEXT m ROWS ONLY`. Start
 from the default `SelectSQLOrder` (so `WITH`, `JOIN`, `GROUP BY`, `HAVING`, compounds and `FOR` are kept), replace
