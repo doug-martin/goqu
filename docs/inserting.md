@@ -393,9 +393,18 @@ Output:
 SELECT * FROM "posts" WHERE ("tags" = '{"a"}')
 ```
 
-Nested slices are multi dimensional arrays (`[][]int{{1, 2}, {3, 4}}` is `'{{1,2},{3,4}}'`). Postgres cannot store empty
-sub arrays, so a nested empty slice is an error (`sqlgen.ErrEmptyNestedArray`). Elements that cannot be written in the
-text form, such as `goqu.L("now()")`, make the array render as `ARRAY[now(), 'a']` instead.
+Elements are written like the same value outside of an array: times use the time location (`goqu.SetTimeLocation`) and
+the dialect's `TimeFormat`, and byte slices (e.g. `json.RawMessage`, or the `[]byte` a `driver.Valuer` returns) are
+text unless they are binary, which are written in the hex form of a `bytea`.
+
+Nested slices are multi dimensional arrays (`[][]int{{1, 2}, {3, 4}}` is `'{{1,2},{3,4}}'`). Postgres only stores
+rectangular arrays and cannot store empty sub arrays, so sub arrays with different lengths are an error
+(`sqlgen.ErrRaggedArray`) and so is a nil or empty sub array (`sqlgen.ErrEmptyNestedArray`). Elements that cannot be
+written in the text form, such as `goqu.L("now()")`, make the array render as `ARRAY[now(), 'a']` instead.
+
+`goqu.Array` is meant for Postgres (or databases with the same array literal). A column of a composite (row) type that
+was written with a slice, e.g. `[]interface{}{1, "x"}`, now needs `goqu.L("ROW(?, ?)", 1, "x")` or a `driver.Valuer`
+when the dialect has `SliceAsArray`.
 
 Scanning `text[]` columns is up to the driver: scan into `pq.StringArray` (`github.com/lib/pq`) or a `pgtype` type.
 

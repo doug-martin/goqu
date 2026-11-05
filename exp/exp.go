@@ -246,7 +246,7 @@ type (
 		RHS() interface{}
 	}
 
-	// An Expression that renders a slice as an array value (e.g. ARRAY[1, 2]) rather than as a list (e.g. (1, 2))
+	// An Expression that renders a slice as an array value (e.g. '{1,2}') rather than as a list (e.g. (1, 2))
 	ArrayExpression interface {
 		Expression
 		// The slice (or array) being rendered

@@ -84,7 +84,7 @@ func (esg *expressionSQLGenerator) arraySQL(b sb.SQLBuilder, elems interface{}) 
 		b.SetError(errors.New("goqu.Array requires a slice or array, got %T", elems))
 		return
 	}
-	text, ok, err := appendArrayLiteral(nil, rv, 0)
+	text, ok, err := esg.appendArrayLiteral(nil, rv, 0)
 	switch {
 	case err != nil:
 		b.SetError(err)
@@ -119,19 +119,47 @@ func (esg *expressionSQLGenerator) arrayConstructorSQL(b sb.SQLBuilder, rv refle
 	b.WriteRunes(']')
 }
 
+// ErrRaggedArray is the error set when the sub arrays of a nested array have different lengths (e.g.
+// [][]int{{1}, {2, 3}}). Postgres only stores rectangular arrays.
+var ErrRaggedArray = errors.New("nested arrays must have the same length")
+
+// subArrayLen returns the length of v when it is a slice or array that is an array itself (not bytes).
+func subArrayLen(v reflect.Value) (int, bool) {
+	for v.Kind() == reflect.Interface || v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return 0, false
+		}
+		v = v.Elem()
+	}
+	if (v.Kind() != reflect.Slice && v.Kind() != reflect.Array) || v.Type().Elem().Kind() == reflect.Uint8 {
+		return 0, false
+	}
+	return v.Len(), true
+}
+
 // appendArrayLiteral appends the text literal of a slice or array (e.g. {"a","b"}). ok is false when an element has no
 // text form.
-func appendArrayLiteral(buf []byte, rv reflect.Value, depth int) (out []byte, ok bool, err error) {
+func (esg *expressionSQLGenerator) appendArrayLiteral(
+	buf []byte, rv reflect.Value, depth int,
+) (out []byte, ok bool, err error) {
 	n := rv.Len()
 	if n == 0 && depth > 0 {
+		// a nil slice is the same as an empty one, NULL is not allowed for a sub array
 		return buf, false, ErrEmptyNestedArray
 	}
 	buf = append(buf, '{')
+	subLen := -1
 	for i := 0; i < n; i++ {
 		if i > 0 {
 			buf = append(buf, ',')
 		}
-		buf, ok, err = appendArrayElement(buf, rv.Index(i).Interface(), depth+1)
+		if l, isArray := subArrayLen(rv.Index(i)); isArray {
+			if subLen >= 0 && l != subLen {
+				return buf, false, ErrRaggedArray
+			}
+			subLen = l
+		}
+		buf, ok, err = esg.appendArrayElement(buf, rv.Index(i).Interface(), depth+1)
 		if !ok || err != nil {
 			return buf, false, err
 		}
@@ -139,7 +167,9 @@ func appendArrayLiteral(buf []byte, rv reflect.Value, depth int) (out []byte, ok
 	return append(buf, '}'), true, nil
 }
 
-func appendArrayElement(buf []byte, v interface{}, depth int) (out []byte, ok bool, err error) {
+func (esg *expressionSQLGenerator) appendArrayElement(
+	buf []byte, v interface{}, depth int,
+) (out []byte, ok bool, err error) {
 	rv := reflect.ValueOf(v)
 	if !rv.IsValid() || ((rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface) && rv.IsNil()) {
 		return append(buf, "NULL"...), true, nil
@@ -152,22 +182,42 @@ func appendArrayElement(buf []byte, v interface{}, depth int) (out []byte, ok bo
 		if vErr != nil {
 			return buf, false, vErr
 		}
-		return appendArrayElement(buf, dv, depth)
+		return esg.appendArrayElement(buf, dv, depth)
 	case time.Time:
-		return appendQuotedElement(buf, t.Format("2006-01-02 15:04:05.999999999Z07:00")), true, nil
+		// the same location and format as a time value outside of an array
+		return appendQuotedElement(buf, t.In(timeLocation).Format(esg.dialectOptions.TimeFormat)), true, nil
 	}
 	switch rv.Kind() {
 	case reflect.Ptr:
-		return appendArrayElement(buf, rv.Elem().Interface(), depth)
+		return esg.appendArrayElement(buf, rv.Elem().Interface(), depth)
 	case reflect.Slice, reflect.Array:
-		if rv.Kind() == reflect.Slice && rv.Type().Elem().Kind() == reflect.Uint8 {
-			return appendQuotedElement(buf, `\x`+hex.EncodeToString(rv.Bytes())), true, nil
+		if rv.Type().Elem().Kind() == reflect.Uint8 {
+			return esg.appendBytesElement(buf, byteValues(rv)), true, nil
 		}
-		return appendArrayLiteral(buf, rv, depth)
+		return esg.appendArrayLiteral(buf, rv, depth)
 	default:
 		buf, ok = appendScalarElement(buf, rv)
 		return buf, ok, nil
 	}
+}
+
+// byteValues returns the bytes of a slice or array of bytes.
+func byteValues(rv reflect.Value) []byte {
+	if rv.Kind() == reflect.Slice {
+		return rv.Bytes()
+	}
+	bs := make([]byte, rv.Len())
+	reflect.Copy(reflect.ValueOf(bs), rv)
+	return bs
+}
+
+// appendBytesElement writes bytes like a byte slice outside of an array: as text (e.g. a json.RawMessage) unless it is
+// binary, which is written as the hex form of a bytea.
+func (esg *expressionSQLGenerator) appendBytesElement(buf, bs []byte) []byte {
+	if esg.isBinary(bs) {
+		return appendQuotedElement(buf, `\x`+hex.EncodeToString(bs))
+	}
+	return appendQuotedElement(buf, string(bs))
 }
 
 const decimalBase = 10

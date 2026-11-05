@@ -157,7 +157,7 @@ func TestSliceAsArrayElements(t *testing.T) {
 			"b": []bool{true, false},
 			"u": []uint8{1}, // a byte slice is bytea, not an array
 			"t": []time.Time{ts},
-			"x": [][]byte{{1, 2}},
+			"x": [][]byte{{0, 1}},
 			"n": []*string{nil},
 			"v": []any{arrayValuer{}, nil, 7, "s"},
 			"i": []int8{-1},
@@ -165,8 +165,8 @@ func TestSliceAsArrayElements(t *testing.T) {
 		require.NoError(t, err)
 		require.Contains(t, sql, `"b"='{true,false}'`)
 		require.Contains(t, sql, `"f"='{1.5,Infinity,-Infinity}'`)
-		require.Contains(t, sql, `"t"='{"2024-01-02 03:04:05.000006Z"}'`)
-		require.Contains(t, sql, `"x"='{"\\x0102"}'`)
+		require.Contains(t, sql, `"t"='{"2024-01-02T03:04:05.000006Z"}'`)
+		require.Contains(t, sql, `"x"='{"\\x0001"}'`)
 		require.Contains(t, sql, `"n"='{NULL}'`)
 		require.Contains(t, sql, `"v"='{"{x}",NULL,7,"s"}'`)
 		require.Contains(t, sql, `"i"='{-1}'`)
@@ -203,6 +203,38 @@ func TestSliceAsArrayElements(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("json and text bytes are text, binary bytes are hex", func(t *testing.T) {
+		sql, _, err := pg.Update("posts").Set(goqu.Record{
+			"j": []json.RawMessage{json.RawMessage(`{"a":"b"}`)},
+			"k": []any{jsonValuer{}},
+			"u": [][2]byte{{0, 255}},
+		}).ToSQL()
+		require.NoError(t, err)
+		require.Contains(t, sql, `"j"='{"{\"a\":\"b\"}"}'`)
+		require.Contains(t, sql, `"k"='{"{\"k\":1}"}'`)
+		require.Contains(t, sql, `"u"='{"\\x00ff"}'`)
+	})
+
+	t.Run("times use the time location and the dialect time format", func(t *testing.T) {
+		loc := time.FixedZone("X", 3600)
+		goqu.SetTimeLocation(loc)
+		defer goqu.SetTimeLocation(time.UTC)
+		ts := time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC)
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"t": []time.Time{ts}}).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `UPDATE "posts" SET "t"='{"2024-01-02T04:04:05+01:00"}'`, sql)
+	})
+
+	t.Run("ragged and nil sub arrays are errors", func(t *testing.T) {
+		_, _, err := pg.Update("posts").Set(goqu.Record{"m": [][]int{{1}, {2, 3}}}).ToSQL()
+		require.ErrorIs(t, err, sqlgen.ErrRaggedArray)
+		_, _, err = pg.Update("posts").Set(goqu.Record{"m": [][]int{nil, {1}}}).ToSQL()
+		require.ErrorIs(t, err, sqlgen.ErrEmptyNestedArray)
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"m": []any{[]int{1}, []int{2}, "x"}}).ToSQL()
+		require.NoError(t, err)
+		require.Contains(t, sql, `{{1},{2},"x"}`)
+	})
+
 	t.Run("pointer elements and named types", func(t *testing.T) {
 		n, s := 5, "x"
 		sql, _, err := pg.Update("posts").Set(goqu.Record{"a": []*int{&n}, "b": []*string{&s}, "c": []namedUint{1}}).ToSQL()
@@ -214,6 +246,10 @@ func TestSliceAsArrayElements(t *testing.T) {
 }
 
 type namedUint uint16
+
+type jsonValuer struct{}
+
+func (jsonValuer) Value() (driver.Value, error) { return []byte(`{"k":1}`), nil }
 
 type failingValuer struct{}
 
