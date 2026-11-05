@@ -397,7 +397,8 @@ Elements are written like the same value outside of an array: times use the time
 the dialect's `TimeFormat`, and byte slices (e.g. `json.RawMessage`, or the `[]byte` a `driver.Valuer` returns) are
 text unless they are binary, which are written in the hex form of a `bytea`.
 
-Nested slices are multi dimensional arrays (`[][]int{{1, 2}, {3, 4}}` is `'{{1,2},{3,4}}'`). Postgres only stores
+Nested slices are multi dimensional arrays (a `[][]int` with the rows `1, 2` and `3, 4` is written as the rows
+`{1,2}` and `{3,4}` inside one more pair of braces). Postgres only stores
 rectangular arrays and cannot store empty sub arrays, so sub arrays with different lengths are an error
 (`sqlgen.ErrRaggedArray`) and so is a nil or empty sub array (`sqlgen.ErrEmptyNestedArray`). Elements that cannot be
 written in the text form, such as `goqu.L("now()")`, make the array render as `ARRAY[now(), 'a']` instead.
