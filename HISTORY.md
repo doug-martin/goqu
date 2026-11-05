@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FEATURE] Add the `AlwaysOffsetFetch` dialect option. When enabled, `OrderWithOffsetFetchSQLFragment` renders `OFFSET n ROWS FETCH ... ROWS ONLY` for a limit even when the offset is 0 or there is no `ORDER BY`, which databases without `LIMIT`/`TOP` (e.g. Oracle 19c) need. It is off by default and no built-in dialect enables it, so existing output is unchanged (#429).
 * [BUG] Subqueries, CTEs, compound (`UNION`) queries and `Insert().FromQuery` now render with the dialect of the enclosing statement. Previously a nested dataset built with the default dialect emitted `?` placeholders inside a Postgres prepared statement (#413, #370). A nested dataset uses the dialect of the enclosing statement even when it was built with another one; datasets with a custom `SQLDialect` implementation are left untouched.
 * [FEATURE] Add `goqu.SetDefaultDialect` to choose the dialect used by the package level `goqu.From`, `goqu.Select`, `goqu.Insert`, `goqu.Update`, `goqu.Delete` and `goqu.Truncate` [#450](https://github.com/doug-martin/goqu/issues/450), [#266](https://github.com/doug-martin/goqu/issues/266)
 * [FEATURE] Add `goqu.RequireDialect` and `goqu.MustDialect` to fail on a dialect that is not registered (for example a missing import) instead of silently using the default dialect [#409](https://github.com/doug-martin/goqu/issues/409)

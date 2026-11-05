@@ -117,6 +117,13 @@ type (
 		OrderByFragment []byte
 		// The SQL FETCH fragment(DEFAULT=[]byte(" "))
 		FetchFragment []byte
+		// When true the OrderWithOffsetFetchSQLFragment always renders OFFSET ... ROWS FETCH ... ROWS ONLY when a limit
+		// is set, even when the offset is 0 and when there is no ORDER BY. This is for databases without a LIMIT
+		// clause or TOP (e.g. Oracle 19c) where FETCH is the only way to limit rows. Set FetchFragment (e.g.
+		// " FETCH NEXT ") as well, the default does not produce valid SQL for this. Do not combine it with
+		// SelectWithLimitSQLFragment or LimitSQLFragment in SelectSQLOrder, the limit would be rendered twice.
+		// When false only a positive offset renders OFFSET/FETCH, and only after an ORDER BY (DEFAULT=false)
+		AlwaysOffsetFetch bool
 		// The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
 		LimitFragment []byte
 		// The SQL OFFSET BY clause fragment(DEFAULT=[]byte(" OFFSET "))

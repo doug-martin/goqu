@@ -241,5 +241,38 @@ Output:
 SELECT * FROM "blah" "b"
 ```
 
+A database without `LIMIT` or `TOP` (such as Oracle 19c) paginates with `OFFSET n ROWS FETCH NEXT m ROWS ONLY`. Start
+from the default `SelectSQLOrder` (so `WITH`, `JOIN`, `GROUP BY`, `HAVING`, compounds and `FOR` are kept), replace
+`OrderSQLFragment` with `OrderWithOffsetFetchSQLFragment` and drop the separate limit and offset fragments. Set
+`FetchFragment` (the default `" "` does not produce valid SQL) and `AlwaysOffsetFetch`, so a limit without an offset
+still renders `OFFSET 0 ROWS FETCH NEXT m ROWS ONLY` (by default `OFFSET` is only rendered for an offset above 0, and
+only after an `ORDER BY`). Do not combine `AlwaysOffsetFetch` with `SelectWithLimitSQLFragment` (`TOP`) or
+`LimitSQLFragment`, the limit would be rendered twice.
+
+```go
+import (
+	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/sqlgen"
+)
+
+opts := goqu.DefaultDialectOptions()
+opts.FetchFragment = []byte(" FETCH NEXT ")
+opts.AlwaysOffsetFetch = true
+
+order := make([]sqlgen.SQLFragmentType, 0, len(opts.SelectSQLOrder))
+for _, f := range opts.SelectSQLOrder {
+	switch f {
+	case sqlgen.OrderSQLFragment:
+		order = append(order, sqlgen.OrderWithOffsetFetchSQLFragment)
+	case sqlgen.LimitSQLFragment, sqlgen.OffsetSQLFragment:
+		// rendered by OrderWithOffsetFetchSQLFragment
+	default:
+		order = append(order, f)
+	}
+}
+opts.SelectSQLOrder = order
+goqu.RegisterDialect("oracle-19c", opts)
+```
+
 For more examples look at [`postgres`](../dialect/postgres/postgres.go), [`mysql`](../dialect/mysql/mysql.go) and [`sqlite3`](../dialect/sqlite3/sqlite3.go) for examples.
 
