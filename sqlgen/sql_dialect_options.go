@@ -293,6 +293,10 @@ type (
 		BooleanDataTypeSupported bool
 		// Whether or not to use literal TRUE or FALSE for IS statements (e.g. IS TRUE or IS 0)
 		UseLiteralIsBools bool
+		// When true a comparison with a boolean value is written with = and the not equal operator instead of IS and
+		// IS NOT (e.g. "a" = TRUE instead of "a" IS TRUE), for databases that do not support IS with a boolean (e.g.
+		// Trino). IS NULL and IS NOT NULL are unchanged (DEFAULT=false)
+		UseEqualsForBools bool
 		// EscapedRunes is a map of a rune and the corresponding escape sequence in bytes. Used when escaping text
 		// types.
 		// (Default= map[rune][]byte{

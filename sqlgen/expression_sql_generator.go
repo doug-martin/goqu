@@ -584,19 +584,41 @@ func (esg *expressionSQLGenerator) aliasedExpressionSQL(b sb.SQLBuilder, aliased
 	esg.Generate(b, aliased.GetAs())
 }
 
+// isBoolValue returns true for a bool, a named bool type and a non nil pointer to one (the values that are compared
+// with IS).
+func isBoolValue(val any) bool {
+	if val == nil {
+		return false
+	}
+	if _, ok := val.(bool); ok {
+		return true
+	}
+	return reflect.Indirect(reflect.ValueOf(val)).Kind() == reflect.Bool
+}
+
 // Generates SQL for a BooleanExpresion (e.g. I("a").Eq(2) -> "a" = 2)
 func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operator exp.BooleanExpression) {
 	b.WriteRunes(esg.dialectOptions.LeftParenRune)
 	esg.Generate(b, operator.LHS())
 	b.WriteRunes(esg.dialectOptions.SpaceRune)
 	operatorOp := operator.Op()
+	rhs := operator.RHS()
+	if esg.dialectOptions.UseEqualsForBools && isBoolValue(rhs) {
+		switch operatorOp {
+		case exp.IsOp:
+			operatorOp = exp.EqOp
+		case exp.IsNotOp:
+			operatorOp = exp.NeqOp
+		default:
+			// other operators are written as they are
+		}
+	}
 	if val, ok := esg.dialectOptions.BooleanOperatorLookup[operatorOp]; ok {
 		b.Write(val)
 	} else {
 		b.SetError(errUnsupportedBooleanExpressionOperator(operatorOp))
 		return
 	}
-	rhs := operator.RHS()
 
 	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && rhs != nil && !esg.dialectOptions.BooleanDataTypeSupported {
 		b.SetError(errors.New("boolean data type is not supported by dialect %q", esg.dialect))
