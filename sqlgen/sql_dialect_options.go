@@ -122,7 +122,8 @@ type (
 		// clause or TOP (e.g. Oracle 19c) where FETCH is the only way to limit rows. Set FetchFragment (e.g.
 		// " FETCH NEXT ") as well, the default does not produce valid SQL for this. Do not combine it with
 		// SelectWithLimitSQLFragment or LimitSQLFragment in SelectSQLOrder, the limit would be rendered twice.
-		// When false only a positive offset renders OFFSET/FETCH, and only after an ORDER BY (DEFAULT=false)
+		// When false OFFSET/FETCH only renders for an offset above 0 and needs an ORDER BY: an offset without one is an
+		// error (ErrOffsetRequiresOrder), and a limit without an offset is not rendered (DEFAULT=false)
 		AlwaysOffsetFetch bool
 		// The SQL LIMIT BY clause fragment(DEFAULT=[]byte(" LIMIT "))
 		LimitFragment []byte
