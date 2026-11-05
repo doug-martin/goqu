@@ -9,6 +9,8 @@ import (
 	"github.com/doug-martin/goqu/v9/sqlgen"
 )
 
+const errOffsetNeedsOrder = "<error: offset requires order>"
+
 // a dialect without LIMIT or TOP (e.g. Oracle 19c) can only paginate with OFFSET ... ROWS FETCH ... ROWS ONLY (#429)
 func TestAlwaysOffsetFetch(t *testing.T) {
 	newOpts := func(always bool) *sqlgen.SQLDialectOptions {
@@ -62,7 +64,7 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 			"offset only, unordered",
 			func(d goqu.DialectWrapper) *goqu.SelectDataset { return d.From("t").Offset(3) },
 			`SELECT * FROM "t" OFFSET 3 ROWS`,
-			`SELECT * FROM "t"`,
+			errOffsetNeedsOrder, // an offset without ORDER BY is an error unless the option is set (#500)
 		},
 		{
 			"keeps join, group by and having",
@@ -89,6 +91,10 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 
 			// the default (option off) output is unchanged
 			sql, _, err = c.build(goqu.Dialect("test-default-fetch")).ToSQL()
+			if c.base == errOffsetNeedsOrder {
+				require.EqualError(t, err, "goqu: dialect requires an ORDER BY when using OFFSET [dialect=test-default-fetch]")
+				return
+			}
 			require.NoError(t, err)
 			require.Equal(t, c.base, sql)
 		})
@@ -99,5 +105,43 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, `SELECT * FROM "t" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY`, sql)
 		require.Equal(t, []any{int64(0), int64(5)}, args)
+	})
+}
+
+// OFFSET without ORDER BY cannot be rendered by dialects that paginate with OFFSET/FETCH, it must not be dropped (#500)
+func TestOffsetWithoutOrderIsAnError(t *testing.T) {
+	d := goqu.Dialect("sqlserver")
+	ord := goqu.C("a").Asc()
+
+	for name, ds := range map[string]*goqu.SelectDataset{
+		"offset only":      d.From("t").Offset(3),
+		"limit and offset": d.From("t").Limit(5).Offset(3),
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, _, err := ds.ToSQL()
+			require.EqualError(t, err, "goqu: dialect requires an ORDER BY when using OFFSET [dialect=sqlserver]")
+			_, _, err = ds.Prepared(true).ToSQL()
+			require.Error(t, err)
+		})
+	}
+
+	t.Run("unchanged valid queries", func(t *testing.T) {
+		for _, c := range []struct {
+			sql string
+			ds  *goqu.SelectDataset
+		}{
+			{`SELECT  TOP (5) * FROM "t"`, d.From("t").Limit(5)},
+			{`SELECT  TOP (5) * FROM "t"`, d.From("t").Limit(5).Offset(0)},
+			{`SELECT * FROM "t"`, d.From("t")},
+			{`SELECT * FROM "t" ORDER BY "a" ASC OFFSET 3 ROWS`, d.From("t").Order(ord).Offset(3)},
+			{
+				`SELECT * FROM "t" ORDER BY "a" ASC OFFSET 3 ROWS FETCH FIRST 5 ROWS ONLY`,
+				d.From("t").Order(ord).Limit(5).Offset(3),
+			},
+		} {
+			got, _, err := c.ds.ToSQL()
+			require.NoError(t, err)
+			require.Equal(t, c.sql, got)
+		}
 	})
 }

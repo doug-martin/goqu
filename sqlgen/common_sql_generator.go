@@ -20,6 +20,12 @@ func ErrRecursiveCTENotSupported(dialect string) error {
 	return errors.New("dialect does not support CTE WITH RECURSIVE clause [dialect=%s]", dialect)
 }
 
+// ErrOffsetRequiresOrder is set when a dialect that paginates with OFFSET/FETCH (e.g. sqlserver) is given an offset
+// without an ORDER BY, which the database does not support.
+func ErrOffsetRequiresOrder(dialect string) error {
+	return errors.New("dialect requires an ORDER BY when using OFFSET [dialect=%s]", dialect)
+}
+
 func ErrReturnNotSupported(dialect string) error {
 	return errors.New("dialect does not support RETURNING clause [dialect=%s]", dialect)
 }
@@ -132,6 +138,10 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 ) {
 	always := csg.dialectOptions.AlwaysOffsetFetch
 	if order == nil && !always {
+		if offset > 0 {
+			// the offset (and limit) cannot be rendered without an ORDER BY, silently dropping them returns all rows
+			b.SetError(ErrOffsetRequiresOrder(csg.dialect))
+		}
 		return
 	}
 
