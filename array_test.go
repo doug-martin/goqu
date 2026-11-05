@@ -3,13 +3,17 @@ package goqu_test
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"errors"
+	"math"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
+	"github.com/doug-martin/goqu/v9/sqlgen"
 )
 
 type arrayValuer struct{}
@@ -28,26 +32,26 @@ func TestSliceAsArray(t *testing.T) {
 	t.Run("insert record", func(t *testing.T) {
 		sql, _, err := pg.Insert("posts").Rows(goqu.Record{"title": "t", "tags": []string{"a", "b"}}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("tags", "title") VALUES (ARRAY['a', 'b'], 't')`, sql)
+		require.Equal(t, `INSERT INTO "posts" ("tags", "title") VALUES ('{"a","b"}', 't')`, sql)
 	})
 
 	t.Run("insert prepared", func(t *testing.T) {
 		sql, args, err := pg.Insert("posts").Rows(goqu.Record{"tags": []int{1, 2}}).Prepared(true).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("tags") VALUES (ARRAY[$1, $2])`, sql)
-		require.Equal(t, []any{int64(1), int64(2)}, args)
+		require.Equal(t, `INSERT INTO "posts" ("tags") VALUES ($1)`, sql)
+		require.Equal(t, []any{"{1,2}"}, args)
 	})
 
 	t.Run("insert struct", func(t *testing.T) {
 		sql, _, err := pg.Insert("posts").Rows(arrayRow{Name: "n", Tags: []string{"x"}}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("name", "tags") VALUES ('n', ARRAY['x'])`, sql)
+		require.Equal(t, `INSERT INTO "posts" ("name", "tags") VALUES ('n', '{"x"}')`, sql)
 	})
 
 	t.Run("insert cols and vals", func(t *testing.T) {
 		sql, _, err := pg.Insert("posts").Cols("title", "tags").Vals(goqu.Vals{"t", []string{"a"}}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("title", "tags") VALUES ('t', ARRAY['a'])`, sql)
+		require.Equal(t, `INSERT INTO "posts" ("title", "tags") VALUES ('t', '{"a"}')`, sql)
 	})
 
 	t.Run("empty and nil slices", func(t *testing.T) {
@@ -59,20 +63,20 @@ func TestSliceAsArray(t *testing.T) {
 	t.Run("nested slices", func(t *testing.T) {
 		sql, _, err := pg.Insert("posts").Rows(goqu.Record{"m": [][]int{{1, 2}, {3, 4}}}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("m") VALUES (ARRAY[ARRAY[1, 2], ARRAY[3, 4]])`, sql)
+		require.Equal(t, `INSERT INTO "posts" ("m") VALUES ('{{1,2},{3,4}}')`, sql)
 	})
 
 	t.Run("update", func(t *testing.T) {
 		sql, _, err := pg.Update("posts").Set(goqu.Record{"tags": []string{"a"}}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `UPDATE "posts" SET "tags"=ARRAY['a']`, sql)
+		require.Equal(t, `UPDATE "posts" SET "tags"='{"a"}'`, sql)
 	})
 
 	t.Run("on conflict update", func(t *testing.T) {
 		sql, _, err := pg.Insert("posts").Rows(goqu.Record{"id": 1}).
 			OnConflict(goqu.DoUpdate("id", goqu.Record{"tags": []string{"a"}})).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("id") VALUES (1) ON CONFLICT (id) DO UPDATE SET "tags"=ARRAY['a']`, sql)
+		require.Equal(t, `INSERT INTO "posts" ("id") VALUES (1) ON CONFLICT (id) DO UPDATE SET "tags"='{"a"}'`, sql)
 	})
 
 	t.Run("not converted", func(t *testing.T) {
@@ -91,7 +95,7 @@ func TestSliceAsArray(t *testing.T) {
 		var none *[]string
 		sql, _, err := pg.Insert("posts").Rows(goqu.Record{"a": &tags, "b": none}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `INSERT INTO "posts" ("a", "b") VALUES (ARRAY['a'], NULL)`, sql)
+		require.Equal(t, `INSERT INTO "posts" ("a", "b") VALUES ('{"a"}', NULL)`, sql)
 	})
 
 	t.Run("predicates keep the list form", func(t *testing.T) {
@@ -109,13 +113,13 @@ func TestSliceAsArray(t *testing.T) {
 	t.Run("goqu.Array in a predicate", func(t *testing.T) {
 		sql, _, err := pg.From("posts").Where(goqu.C("tags").Eq(goqu.Array([]string{"a"}))).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `SELECT * FROM "posts" WHERE ("tags" = ARRAY['a'])`, sql)
+		require.Equal(t, `SELECT * FROM "posts" WHERE ("tags" = '{"a"}')`, sql)
 	})
 
 	t.Run("goqu.Array in a dialect without SliceAsArray", func(t *testing.T) {
 		sql, _, err := goqu.Dialect("mysql").Update("posts").Set(goqu.Record{"tags": goqu.Array([]int{1})}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, "UPDATE `posts` SET `tags`=ARRAY[1]", sql)
+		require.Equal(t, "UPDATE `posts` SET `tags`='{1}'", sql)
 	})
 
 	t.Run("goqu.Array of a non slice is an error", func(t *testing.T) {
@@ -133,6 +137,84 @@ func TestSliceAsArray(t *testing.T) {
 		s := []string{"a"}
 		sql, _, err := pg.Update("posts").Set(goqu.Record{"p": goqu.Array(&s), "q": goqu.Array([2]int{1, 2})}).ToSQL()
 		require.NoError(t, err)
-		require.Equal(t, `UPDATE "posts" SET "p"=ARRAY['a'],"q"=ARRAY[1, 2]`, sql)
+		require.Equal(t, `UPDATE "posts" SET "p"='{"a"}',"q"='{1,2}'`, sql)
 	})
 }
+
+func TestSliceAsArrayElements(t *testing.T) {
+	pg := goqu.Dialect("postgres")
+
+	t.Run("element escaping", func(t *testing.T) {
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"tags": []string{`a"b`, `c\d`, "it's", "", "NULL"}}).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `UPDATE "posts" SET "tags"='{"a\"b","c\\d","it''s","","NULL"}'`, sql)
+	})
+
+	t.Run("element types", func(t *testing.T) {
+		ts := time.Date(2024, 1, 2, 3, 4, 5, 6000, time.UTC)
+		sql, _, err := pg.Update("posts").Set(goqu.Record{
+			"f": []float64{1.5, math.Inf(1), math.Inf(-1)},
+			"b": []bool{true, false},
+			"u": []uint8{1}, // a byte slice is bytea, not an array
+			"t": []time.Time{ts},
+			"x": [][]byte{{1, 2}},
+			"n": []*string{nil},
+			"v": []any{arrayValuer{}, nil, 7, "s"},
+			"i": []int8{-1},
+		}).ToSQL()
+		require.NoError(t, err)
+		require.Contains(t, sql, `"b"='{true,false}'`)
+		require.Contains(t, sql, `"f"='{1.5,Infinity,-Infinity}'`)
+		require.Contains(t, sql, `"t"='{"2024-01-02 03:04:05.000006Z"}'`)
+		require.Contains(t, sql, `"x"='{"\\x0102"}'`)
+		require.Contains(t, sql, `"n"='{NULL}'`)
+		require.Contains(t, sql, `"v"='{"{x}",NULL,7,"s"}'`)
+		require.Contains(t, sql, `"i"='{-1}'`)
+	})
+
+	t.Run("expression elements use the array constructor", func(t *testing.T) {
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"tags": []any{goqu.L("now()"), "a"}}).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `UPDATE "posts" SET "tags"=ARRAY[now(), 'a']`, sql)
+
+		sql, _, err = pg.Update("posts").Set(goqu.Record{"tags": [][]any{{goqu.L("a")}, {goqu.L("b")}}}).ToSQL()
+		require.NoError(t, err)
+		require.Equal(t, `UPDATE "posts" SET "tags"=ARRAY[ARRAY[a], ARRAY[b]]`, sql)
+	})
+
+	t.Run("nested empty slices are an error", func(t *testing.T) {
+		_, _, err := pg.Update("posts").Set(goqu.Record{"m": [][]string{{}, {}}}).ToSQL()
+		require.ErrorIs(t, err, sqlgen.ErrEmptyNestedArray)
+
+		_, _, err = pg.Update("posts").Set(goqu.Record{"m": [][]any{{goqu.L("a")}, {}}}).ToSQL()
+		require.ErrorIs(t, err, sqlgen.ErrEmptyNestedArray)
+
+		_, _, err = pg.Update("posts").Set(goqu.Record{"m": []any{goqu.L("a"), []any{}}}).ToSQL()
+		require.ErrorIs(t, err, sqlgen.ErrEmptyNestedArray)
+	})
+
+	t.Run("a valuer error is returned", func(t *testing.T) {
+		_, _, err := pg.Update("posts").Set(goqu.Record{"m": []any{failingValuer{}}}).ToSQL()
+		require.EqualError(t, err, "goqu: boom")
+	})
+
+	t.Run("an unsupported element is an error", func(t *testing.T) {
+		_, _, err := pg.Update("posts").Set(goqu.Record{"m": []any{struct{ A int }{1}}}).ToSQL()
+		require.Error(t, err)
+	})
+
+	t.Run("pointer elements and named types", func(t *testing.T) {
+		n, s := 5, "x"
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"a": []*int{&n}, "b": []*string{&s}, "c": []namedUint{1}}).ToSQL()
+		require.NoError(t, err)
+		require.Contains(t, sql, `"a"='{5}'`)
+		require.Contains(t, sql, `"b"='{"x"}'`)
+		require.Contains(t, sql, `"c"='{1}'`)
+	})
+}
+
+type namedUint uint16
+
+type failingValuer struct{}
+
+func (failingValuer) Value() (driver.Value, error) { return nil, errors.New("goqu: boom") }

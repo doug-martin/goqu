@@ -37,8 +37,8 @@ func Collate(e exp.Expression, collation any) exp.CollateExpression {
 // Creates a new array expression, rendering a slice as an array value instead of a list. Use it where a slice must be
 // an array outside of insert and update values (e.g. comparisons).
 //
-//	Array([]string{"a", "b"}) -> ARRAY['a', 'b']
-//	C("tags").Eq(Array([]string{"a"})) -> "tags" = ARRAY['a']
+//	Array([]string{"a", "b"}) -> '{"a","b"}'
+//	C("tags").Eq(Array([]string{"a"})) -> "tags" = '{"a"}'
 func Array(elems interface{}) exp.ArrayExpression {
 	return exp.NewArrayExpression(elems)
 }

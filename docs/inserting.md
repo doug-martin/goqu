@@ -364,6 +364,9 @@ With the `postgres` dialect a slice used as an insert (or update) value is writt
 the `SQLDialectOptions` of another dialect to get the same behavior. `[]byte`, `json.RawMessage`, `driver.Valuer`s
 (e.g. `pq.Array`) and expressions are written as before. An empty slice is written as `'{}'` and a nil slice as `NULL`.
 
+The array is written as one array text literal, the same value `pq.Array` produces, so it takes the type of the column
+(`text[]`, `integer[]`, `uuid[]`, ...) and prepared statements bind it as a single argument.
+
 ```go
 ds := goqu.Dialect("postgres").Insert("posts").Rows(
     goqu.Record{"title": "New Post", "tags": []string{"a", "b"}},
@@ -374,7 +377,7 @@ fmt.Println(insertSQL)
 
 Output:
 ```
-INSERT INTO "posts" ("tags", "title") VALUES (ARRAY['a', 'b'], 'New Post')
+INSERT INTO "posts" ("tags", "title") VALUES ('{"a","b"}', 'New Post')
 ```
 
 Slices in predicates (e.g. `In`) keep rendering as a list. Use `goqu.Array` where an array value is needed elsewhere:
@@ -387,8 +390,12 @@ fmt.Println(sql)
 
 Output:
 ```
-SELECT * FROM "posts" WHERE ("tags" = ARRAY['a'])
+SELECT * FROM "posts" WHERE ("tags" = '{"a"}')
 ```
+
+Nested slices are multi dimensional arrays (`[][]int{{1, 2}, {3, 4}}` is `'{{1,2},{3,4}}'`). Postgres cannot store empty
+sub arrays, so a nested empty slice is an error (`sqlgen.ErrEmptyNestedArray`). Elements that cannot be written in the
+text form, such as `goqu.L("now()")`, make the array render as `ARRAY[now(), 'a']` instead.
 
 Scanning `text[]` columns is up to the driver: scan into `pq.StringArray` (`github.com/lib/pq`) or a `pgtype` type.
 

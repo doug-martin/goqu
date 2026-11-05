@@ -241,7 +241,7 @@ Output:
 SELECT * FROM "blah" "b"
 ```
 
-`SliceAsArray` writes slices used as insert and update values as arrays (`ARRAY['a', 'b']`) instead of lists
+`SliceAsArray` writes slices used as insert and update values as an array literal (`'{"a","b"}'`) instead of lists
 (`('a', 'b')`). It is on for `postgres`, see [Insert Slices As Arrays](./inserting.md#insert-arrays).
 
 A database without `LIMIT` or `TOP` (such as Oracle 19c) paginates with `OFFSET n ROWS FETCH NEXT m ROWS ONLY`. Start
