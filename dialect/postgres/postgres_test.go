@@ -1,6 +1,7 @@
 package postgres_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -37,7 +38,7 @@ const schema = `
             (9, 0.900000, '0.900000', '2015-02-23T03:19:55.000000000-00:00', FALSE, '0.900000');
     `
 
-const defaultDBURI = "postgres://postgres:@localhost:5435/goqupostgres?sslmode=disable"
+const defaultDBURI = "postgres://postgres:@localhost:5432/goqupostgres?sslmode=disable"
 
 type (
 	postgresTest struct {
@@ -79,12 +80,22 @@ func (pt *postgresTest) assertEntries(cases ...entryTestCase) {
 
 func (pt *postgresTest) SetupSuite() {
 	dbURI := os.Getenv("PG_URI")
-	if dbURI == "" {
+	usingDefault := dbURI == ""
+	if usingDefault {
 		dbURI = defaultDBURI
 	}
 	db, err := sql.Open("postgres", dbURI)
 	if err != nil {
 		panic(err)
+	}
+	// Only skip when PG_URI is unset, so CI fails if its database did not come up.
+	if usingDefault {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			_ = db.Close()
+			pt.T().Skipf("PG_URI is not set and no database answered at %s: %v", defaultDBURI, err)
+		}
 	}
 	pt.db = goqu.New("postgres", db)
 }

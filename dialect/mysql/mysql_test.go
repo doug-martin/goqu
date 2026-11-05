@@ -1,6 +1,7 @@
 package mysql_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -65,12 +66,22 @@ type (
 
 func (mt *mysqlTest) SetupSuite() {
 	dbURI := os.Getenv("MYSQL_URI")
-	if dbURI == "" {
+	usingDefault := dbURI == ""
+	if usingDefault {
 		dbURI = defaultDBURI
 	}
 	db, err := sql.Open("mysql", dbURI)
 	if err != nil {
 		panic(err.Error())
+	}
+	// Only skip when MYSQL_URI is unset, so CI fails if its database did not come up.
+	if usingDefault {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			_ = db.Close()
+			mt.T().Skipf("MYSQL_URI is not set and no database answered at %s: %v", defaultDBURI, err)
+		}
 	}
 	mt.db = goqu.New("mysql", db)
 }
