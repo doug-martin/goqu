@@ -2,6 +2,7 @@ package goqu_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -67,7 +68,7 @@ func TestAppendSQLAndErrors(t *testing.T) {
 	boom := errors.New("boom")
 	type appender interface {
 		exp.AppendableExpression
-		AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *sqlgen.SQLDialectOptions)
+		AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *sqlgen.SQLDialectOptions, self exp.AppendableExpression)
 	}
 	cases := map[string]struct {
 		ok  appender
@@ -89,7 +90,7 @@ func TestAppendSQLAndErrors(t *testing.T) {
 
 			// an unregistered dialect name with its own options still renders
 			b = sb.NewSQLBuilder(false)
-			c.ok.AppendSQLWithDialect(b, "not-registered", sqlgen.DefaultDialectOptions())
+			c.ok.AppendSQLWithDialect(b, "not-registered", sqlgen.DefaultDialectOptions(), c.ok)
 			s, _, err = b.ToSQL()
 			require.NoError(t, err)
 			require.NotEmpty(t, s)
@@ -99,7 +100,7 @@ func TestAppendSQLAndErrors(t *testing.T) {
 			c.bad.AppendSQL(b)
 			require.Equal(t, boom, b.Error())
 			b = sb.NewSQLBuilder(false)
-			c.bad.AppendSQLWithDialect(b, "default", sqlgen.DefaultDialectOptions())
+			c.bad.AppendSQLWithDialect(b, "default", sqlgen.DefaultDialectOptions(), c.bad)
 			require.Equal(t, boom, b.Error())
 		})
 	}
@@ -145,4 +146,42 @@ func TestNestedDatasetDialectEdgeCases(t *testing.T) {
 			`WITH outer_cte AS (WITH inner_cte AS (SELECT * FROM "s" WHERE ("c" = $1)) SELECT * FROM "o") SELECT * FROM "t"`,
 			sql)
 	})
+}
+
+// wrappers embed a dataset and override AppendSQL; the override must win over the promoted AppendSQLWithDialect
+type wrapSelect struct{ *goqu.SelectDataset }
+
+func (wrapSelect) AppendSQL(b sb.SQLBuilder) { b.Write([]byte("WRAPPED_SELECT")) }
+
+type wrapInsert struct{ *goqu.InsertDataset }
+
+func (wrapInsert) AppendSQL(b sb.SQLBuilder) { b.Write([]byte("WRAPPED_INSERT")) }
+
+type wrapUpdate struct{ *goqu.UpdateDataset }
+
+func (wrapUpdate) AppendSQL(b sb.SQLBuilder) { b.Write([]byte("WRAPPED_UPDATE")) }
+
+type wrapDelete struct{ *goqu.DeleteDataset }
+
+func (wrapDelete) AppendSQL(b sb.SQLBuilder) { b.Write([]byte("WRAPPED_DELETE")) }
+
+func TestWrappedDatasetsKeepAppendSQLOverride(t *testing.T) {
+	wrappers := map[string]exp.AppendableExpression{
+		"select": wrapSelect{goqu.From("s")},
+		"insert": wrapInsert{goqu.Insert("s").Rows(goqu.Record{"a": 1})},
+		"update": wrapUpdate{goqu.Update("s").Set(goqu.Record{"a": 1})},
+		"delete": wrapDelete{goqu.Delete("s")},
+	}
+	for name, w := range wrappers {
+		t.Run(name, func(t *testing.T) {
+			sql, _, err := goqu.Dialect("postgres").From("t").With("c", w).ToSQL()
+			require.NoError(t, err)
+			require.Contains(t, sql, "WRAPPED_"+strings.ToUpper(name))
+			require.NotContains(t, sql, `"s"`)
+
+			sql, _, err = goqu.Dialect("postgres").From("t").Where(goqu.C("a").In(w)).ToSQL()
+			require.NoError(t, err)
+			require.Contains(t, sql, "WRAPPED_"+strings.ToUpper(name))
+		})
+	}
 }

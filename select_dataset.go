@@ -608,7 +608,14 @@ func (sd *SelectDataset) AppendSQL(b sb.SQLBuilder) {
 // AppendSQLWithDialect renders this dataset with the dialect of the enclosing statement, so a nested dataset built
 // with a different dialect (e.g. the default one) never mixes dialects in a single statement. It implements
 // sqlgen.DialectAppender and is used internally by the SQL generators; it is not meant to be called directly.
-func (sd *SelectDataset) AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *SQLDialectOptions) {
+func (sd *SelectDataset) AppendSQLWithDialect(
+	b sb.SQLBuilder, dialect string, do *SQLDialectOptions, self exp.AppendableExpression,
+) {
+	// a wrapper embedding this dataset and overriding AppendSQL must keep its own rendering
+	if self != nil && self != exp.AppendableExpression(sd) {
+		self.AppendSQL(b)
+		return
+	}
 	if sd.err != nil {
 		b.SetError(sd.err)
 		return
