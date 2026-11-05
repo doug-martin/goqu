@@ -10,10 +10,13 @@ import (
 
 type (
 	ColumnData struct {
-		ColumnName     string
-		FieldIndex     []int
-		ShouldInsert   bool
-		ShouldUpdate   bool
+		ColumnName   string
+		FieldIndex   []int
+		ShouldInsert bool
+		ShouldUpdate bool
+		// SkipSelect (the zero value selects the column) is set by the skipselect tag, the column is not added to a
+		// SELECT built from the struct. The column is still scanned when it is selected.
+		SkipSelect     bool
 		DefaultIfEmpty bool
 		OmitNil        bool
 		OmitEmpty      bool
@@ -63,11 +66,12 @@ func (cm ColumnMap) Cols() []string {
 	return structCols
 }
 
-// inheritSkipTags applies the skipinsert and skipupdate options of a struct field to every column that was
+// inheritSkipTags applies the skipinsert, skipupdate and skipselect options of a struct field to every column that was
 // flattened out of that field, so that e.g. `goqu:"skipinsert"` on a nested struct skips all of its columns.
 func (cm ColumnMap) inheritSkipTags(goquTag tag.Options) ColumnMap {
 	skipInsert, skipUpdate := goquTag.Contains(skipInsertTagName), goquTag.Contains(skipUpdateTagName)
-	if !skipInsert && !skipUpdate {
+	skipSelect := goquTag.Contains(skipSelectTagName)
+	if !skipInsert && !skipUpdate && !skipSelect {
 		return cm
 	}
 	for key, val := range cm {
@@ -76,6 +80,9 @@ func (cm ColumnMap) inheritSkipTags(goquTag tag.Options) ColumnMap {
 		}
 		if skipUpdate {
 			val.ShouldUpdate = false
+		}
+		if skipSelect {
+			val.SkipSelect = true
 		}
 		cm[key] = val
 	}
@@ -112,6 +119,7 @@ func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, 
 		ColumnName:     columnName,
 		ShouldInsert:   !goquTag.Contains(skipInsertTagName),
 		ShouldUpdate:   !goquTag.Contains(skipUpdateTagName),
+		SkipSelect:     goquTag.Contains(skipSelectTagName),
 		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
 		OmitNil:        goquTag.Contains(omitNilTagName),
 		OmitEmpty:      goquTag.Contains(omitEmptyTagName),

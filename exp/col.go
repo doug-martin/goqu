@@ -32,6 +32,9 @@ func NewColumnListExpression(vals ...interface{}) ColumnListExpression {
 				}
 				structCols := cm.Cols()
 				for _, col := range structCols {
+					if cm[col].SkipSelect {
+						continue
+					}
 					i := ParseIdentifier(col)
 					var sc Expression = i
 					if i.IsQualified() {

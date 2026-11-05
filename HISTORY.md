@@ -1,3 +1,7 @@
+# Unreleased
+
+* [FEATURE] Add the `skipselect` struct tag option. A field with `goqu:"skipselect"` (or every column of a nested struct with it) is not added to the columns selected for a struct, e.g. a column that is filled by a join. It is still scanned when it is selected explicitly [#433](https://github.com/doug-martin/goqu/issues/433)
+
 # v9.25.0
 
 * [FEATURE] Add the `SliceAsArray` dialect option, on for `postgres`. A slice used as an insert or update value is written as one array literal (`'{"a","b"}'`, the value `pq.Array` produces) instead of the row list `('a', 'b')`, so it takes the type of the column (`text[]`, `integer[]`, `uuid[]`, ...) and is bound as a single argument in prepared mode. An empty slice is `'{}'` and a nil slice `NULL`. Slices in predicates (`IN`, ...), `[]byte`, `json.RawMessage`, `driver.Valuer`s and expressions are unchanged. Added `goqu.Array` / `exp.ArrayExpression` for array values elsewhere (e.g. `C("tags").Eq(goqu.Array(...))`), and the errors `sqlgen.ErrEmptyNestedArray` and `sqlgen.ErrRaggedArray` for arrays Postgres cannot store. A composite (row type) column written with a slice now needs `goqu.L("ROW(...)")` or a `driver.Valuer`. Scanning arrays is up to the driver (`pq.StringArray`, `pgtype`) [#387](https://github.com/doug-martin/goqu/issues/387), [#215](https://github.com/doug-martin/goqu/issues/215)
