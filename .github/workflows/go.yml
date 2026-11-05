@@ -5,35 +5,52 @@ on:
       - master     # Push events on master branch
       - releases/* # Push events to branches matching refs/heads/releases/*
   pull_request:  # Specify a second event with pattern matching
+  schedule:
+    # Weekly, so golang:latest and the *-latest database images are tested even without new commits.
+    - cron: "0 6 * * 1"
 jobs:
   test:
-    name: Test go - ${{ matrix.go_version }} mysql - ${{ matrix.db_versions.mysql_version}} postgres - ${{ matrix.db_versions.postgres_version}} sqlserver- ${{ matrix.db_versions.sqlserver_version}}
+    name: Test go - ${{ matrix.go_version }} mysql - ${{ matrix.mysql_version }} postgres - ${{ matrix.postgres_version }} sqlserver - ${{ matrix.sqlserver_version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        go_version: ["1.26", "latest"]
-        db_versions:
-          - mysql_version: 5.7
-            postgres_version: 9
+        # Each supported Postgres and SQL Server major runs once; the oldest servers run on the
+        # minimum Go version from go.mod and the newest on the latest Go release. MySQL 5.7 covers
+        # the mysql (5.x) dialect while RDS/Aurora still offer extended support for it (June 2029).
+        include:
+          - go_version: "1.26"
+            mysql_version: "5.7"
+            postgres_version: "15"
             sqlserver_version: "2017-latest"
-          - mysql_version: "8.0"
-            postgres_version: 10
+          - go_version: "latest"
+            mysql_version: "8.4"
+            postgres_version: "16"
             sqlserver_version: "2019-latest"
-          - mysql_version: 8
-            postgres_version: 11
+          - go_version: "1.26"
+            mysql_version: "8.4"
+            postgres_version: "17"
             sqlserver_version: "2022-latest"
-          - mysql_version: 8
-            postgres_version: 15
-            sqlserver_version: "2022-latest"
+          - go_version: "latest"
+            mysql_version: "9.7"
+            postgres_version: "18"
+            sqlserver_version: "2025-latest"
     env:
       GO_VERSION: ${{ matrix.go_version }}
-      MYSQL_VERSION: ${{ matrix.db_versions.mysql_version }}
-      POSTGRES_VERSION: ${{ matrix.db_versions.postgres_version }}
-      SQLSERVER_VERSION: ${{ matrix.db_versions.sqlserver_version }}
+      MYSQL_VERSION: ${{ matrix.mysql_version }}
+      POSTGRES_VERSION: ${{ matrix.postgres_version }}
+      SQLSERVER_VERSION: ${{ matrix.sqlserver_version }}
     steps:
     - name: checkout
       uses: actions/checkout@v7
+    - name: Pull images
+      run: |
+        for attempt in 1 2 3; do
+          docker compose pull && exit 0
+          echo "docker compose pull failed (attempt $attempt), retrying in 15s"
+          sleep 15
+        done
+        exit 1
     - name: Test
       run: docker compose run goqu-coverage
     - name: Upload coverage to Codecov
