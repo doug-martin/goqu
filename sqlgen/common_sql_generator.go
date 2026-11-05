@@ -26,6 +26,12 @@ func ErrOffsetRequiresOrder(dialect string) error {
 	return errors.New("dialect requires an ORDER BY when using OFFSET [dialect=%s]", dialect)
 }
 
+// ErrFetchZeroNotSupported is set when a dialect that paginates with OFFSET/FETCH (e.g. sqlserver) is given an offset
+// and a limit of 0, which the database does not support (FETCH requires at least one row).
+func ErrFetchZeroNotSupported(dialect string) error {
+	return errors.New("dialect does not support a limit of 0 with an OFFSET [dialect=%s]", dialect)
+}
+
 func ErrReturnNotSupported(dialect string) error {
 	return errors.New("dialect does not support RETURNING clause [dialect=%s]", dialect)
 }
@@ -144,6 +150,12 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 			// the offset (and limit) cannot be rendered without an ORDER BY, silently dropping them returns all rows
 			b.SetError(ErrOffsetRequiresOrder(csg.dialect))
 		}
+		return
+	}
+
+	// without AlwaysOffsetFetch the fragment is for dialects such as sqlserver, where FETCH needs at least one row
+	if zero, ok := limit.(uint); ok && zero == 0 && offset > 0 && !always {
+		b.SetError(ErrFetchZeroNotSupported(csg.dialect))
 		return
 	}
 

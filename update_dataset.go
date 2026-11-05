@@ -176,12 +176,6 @@ func (ud *UpdateDataset) LimitAll() *UpdateDataset {
 	return ud.copy(ud.clauses.SetLimit(L("ALL")))
 }
 
-// Adds a LIMIT 0 clause. Limit(0) removes the LIMIT, use this to force a LIMIT of 0 (e.g. to return no rows). If the
-// LIMIT is currently set it replaces it. See examples.
-func (ud *UpdateDataset) LimitZero() *UpdateDataset {
-	return ud.copy(ud.clauses.SetLimit(uint(0)))
-}
-
 // Removes the LIMIT clause.
 func (ud *UpdateDataset) ClearLimit() *UpdateDataset {
 	return ud.copy(ud.clauses.ClearLimit())

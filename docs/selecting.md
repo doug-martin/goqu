@@ -685,6 +685,10 @@ Output:
 SELECT * FROM "test" LIMIT 0
 ```
 
+`LimitZero` is only available on select datasets (not update or delete, where many dialects do not support a `LIMIT`).
+`ScanVal` and `ScanStruct` keep it, so they report no row. Dialects that paginate with `OFFSET`/`FETCH` (`sqlserver`)
+cannot fetch zero rows after an offset and return an error for that combination.
+
 <a name="offset"></a>
 **[`Offset`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Offset)**
 

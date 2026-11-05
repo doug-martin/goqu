@@ -1,6 +1,6 @@
 # Unreleased
 
-* [FEATURE] Add `LimitZero()` to `SelectDataset`, `UpdateDataset` and `DeleteDataset` to force a `LIMIT 0` (`Limit(0)` still removes the limit) [#194](https://github.com/doug-martin/goqu/issues/194)
+* [FEATURE] Add `LimitZero()` to `SelectDataset` to force a `LIMIT 0` (`Limit(0)` still removes the limit). `ScanVal`/`ScanStruct` keep it instead of replacing it with `LIMIT 1`, and dialects that paginate with `OFFSET`/`FETCH` (`sqlserver`) return an error (`ErrFetchZeroNotSupported`) for a zero limit with an offset, since `FETCH` needs at least one row [#194](https://github.com/doug-martin/goqu/issues/194)
 
 # v9.25.0
 
