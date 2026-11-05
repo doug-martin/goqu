@@ -670,6 +670,25 @@ Output:
 SELECT * FROM "test" LIMIT 10
 ```
 
+`Limit(0)` removes the limit. Use `LimitZero` to force a `LIMIT 0` (for example to get the columns of a query without any
+rows):
+
+```go
+ds := goqu.From("test").LimitZero()
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT * FROM "test" LIMIT 0
+```
+
+`LimitZero` is only available on select datasets (not update or delete, where many dialects do not support a `LIMIT`).
+`ScanVal` and `ScanStruct` keep it, so they report no row. Dialects that paginate with `OFFSET`/`FETCH` (`sqlserver`)
+cannot fetch zero rows after an offset and return an error for that combination.
+
 <a name="offset"></a>
 **[`Offset`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Offset)**
 

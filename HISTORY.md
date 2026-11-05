@@ -1,3 +1,7 @@
+# Unreleased
+
+* [FEATURE] Add `LimitZero()` to `SelectDataset` to force a `LIMIT 0` (`Limit(0)` still removes the limit). `ScanVal`/`ScanStruct` keep it instead of replacing it with `LIMIT 1`, and dialects that paginate with `OFFSET`/`FETCH` (`sqlserver`) return an error (`ErrFetchZeroNotSupported`) for a zero limit with an offset, since `FETCH` needs at least one row [#194](https://github.com/doug-martin/goqu/issues/194)
+
 # v9.25.0
 
 * [FEATURE] Add the `SliceAsArray` dialect option, on for `postgres`. A slice used as an insert or update value is written as one array literal (`'{"a","b"}'`, the value `pq.Array` produces) instead of the row list `('a', 'b')`, so it takes the type of the column (`text[]`, `integer[]`, `uuid[]`, ...) and is bound as a single argument in prepared mode. An empty slice is `'{}'` and a nil slice `NULL`. Slices in predicates (`IN`, ...), `[]byte`, `json.RawMessage`, `driver.Valuer`s and expressions are unchanged. Added `goqu.Array` / `exp.ArrayExpression` for array values elsewhere (e.g. `C("tags").Eq(goqu.Array(...))`), and the errors `sqlgen.ErrEmptyNestedArray` and `sqlgen.ErrRaggedArray` for arrays Postgres cannot store. A composite (row type) column written with a slice now needs `goqu.L("ROW(...)")` or a `driver.Valuer`. Scanning arrays is up to the driver (`pq.StringArray`, `pgtype`) [#387](https://github.com/doug-martin/goqu/issues/387), [#215](https://github.com/doug-martin/goqu/issues/215)

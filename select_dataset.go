@@ -475,6 +475,12 @@ func (sd *SelectDataset) LimitAll() *SelectDataset {
 	return sd.copy(sd.clauses.SetLimit(L("ALL")))
 }
 
+// Adds a LIMIT 0 clause. Limit(0) removes the LIMIT, use this to force a LIMIT of 0 (e.g. to return no rows). If the
+// LIMIT is currently set it replaces it. See examples.
+func (sd *SelectDataset) LimitZero() *SelectDataset {
+	return sd.copy(sd.clauses.SetLimit(uint(0)))
+}
+
 // Removes the LIMIT clause.
 func (sd *SelectDataset) ClearLimit() *SelectDataset {
 	return sd.copy(sd.clauses.ClearLimit())
@@ -679,7 +685,15 @@ func (sd *SelectDataset) ScanStructContext(ctx context.Context, i interface{}) (
 	if sd.GetClauses().IsDefaultSelect() {
 		ds = sd.Select(i)
 	}
-	return ds.Limit(1).Executor().ScanStructContext(ctx, i)
+	return ds.limitOne().Executor().ScanStructContext(ctx, i)
+}
+
+// limitOne limits the single row scans to one row, keeping an explicit LimitZero (which then finds no row).
+func (sd *SelectDataset) limitOne() *SelectDataset {
+	if limit, ok := sd.clauses.Limit().(uint); ok && limit == 0 {
+		return sd
+	}
+	return sd.Limit(1)
 }
 
 // Generates the SELECT sql for this dataset and uses Exec#ScanVals to scan the results into a slice of primitive values
@@ -714,7 +728,7 @@ func (sd *SelectDataset) ScanValContext(ctx context.Context, i interface{}) (boo
 	if sd.queryFactory == nil {
 		return false, ErrQueryFactoryNotFoundError
 	}
-	return sd.Limit(1).Executor().ScanValContext(ctx, i)
+	return sd.limitOne().Executor().ScanValContext(ctx, i)
 }
 
 // Generates the SELECT COUNT(*) sql for this dataset and uses Exec#ScanVal to scan the result into an int64.
