@@ -755,6 +755,31 @@ func (rt *reflectTest) TestGetColumnMap_withStructGoquTags() {
 	}, cm)
 }
 
+func (rt *reflectTest) TestGetColumnMap_withSkipSelect() {
+	type Inner struct {
+		A int64
+	}
+	type TestStruct struct {
+		Str   string `goqu:"skipselect"`
+		Int   int64
+		Inner Inner `goqu:"skipselect"`
+	}
+	var ts TestStruct
+	cm, err := util.GetColumnMap(&ts)
+	rt.NoError(err)
+	rt.Equal(util.ColumnMap{
+		"str": {
+			ColumnName: "str", FieldIndex: []int{0}, ShouldInsert: true, ShouldUpdate: true, SkipSelect: true,
+			GoType: reflect.TypeOf(""),
+		},
+		"int": {ColumnName: "int", FieldIndex: []int{1}, ShouldInsert: true, ShouldUpdate: true, GoType: reflect.TypeOf(int64(1))},
+		"inner.a": {
+			ColumnName: "inner.a", FieldIndex: []int{2, 0}, ShouldInsert: true, ShouldUpdate: true, SkipSelect: true,
+			GoType: reflect.TypeOf(int64(1)),
+		},
+	}, cm)
+}
+
 func (rt *reflectTest) TestGetColumnMap_withStructWithIgnoreUntagged() {
 	defer util.SetIgnoreUntaggedFields(false)
 	util.SetIgnoreUntaggedFields(true)

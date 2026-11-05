@@ -11,6 +11,7 @@ import (
 
 const (
 	skipUpdateTagName     = "skipupdate"
+	skipSelectTagName     = "skipselect"
 	skipInsertTagName     = "skipinsert"
 	defaultIfEmptyTagName = "defaultifempty"
 	omitNilTagName        = "omitnil"

@@ -1,5 +1,6 @@
 # Unreleased
 
+* [FEATURE] Add the `skipselect` struct tag option. A field with `goqu:"skipselect"` (or every column of a nested struct with it) is not added to the columns selected for a struct, e.g. a column that is filled by a join. It only affects `Select`, `SelectAppend` and `SelectDistinct` (not `Cols`, `GroupBy`, `Distinct` or `RETURNING`), and a struct where every column has the tag is an error instead of `SELECT *`. It is still scanned when it is selected explicitly [#433](https://github.com/doug-martin/goqu/issues/433)
 * [FEATURE] Add `LimitZero()` to `SelectDataset` to force a `LIMIT 0` (`Limit(0)` still removes the limit). `ScanVal`/`ScanStruct` keep it instead of replacing it with `LIMIT 1`, and dialects that paginate with `OFFSET`/`FETCH` (`sqlserver`) return an error (`ErrFetchZeroNotSupported`) for a zero limit with an offset, since `FETCH` needs at least one row [#194](https://github.com/doug-martin/goqu/issues/194)
 
 # v9.25.0
