@@ -349,7 +349,10 @@ func (pt *postgresTest) TestInsertArrays() {
 			matrix             string
 			sameTimes          bool
 		)
-		err = pt.db.QueryRow(`SELECT "ints"::text[], "texts", "uuids"::text[], "matrix"::text, "times" = ARRAY['2024-01-02T03:04:05Z'::timestamptz] FROM "arrays" WHERE "id" = $1`, rowID).
+		err = pt.db.QueryRow(`
+			SELECT "ints"::text[], "texts", "uuids"::text[], "matrix"::text,
+				"times" = ARRAY['2024-01-02T03:04:05Z'::timestamptz]
+			FROM "arrays" WHERE "id" = $1`, rowID).
 			Scan(pq.Array(&ints), pq.Array(&texts), pq.Array(&uuids), &matrix, &sameTimes)
 		pt.Require().NoError(err)
 		pt.Equal([]string{"1", "2"}, ints)
