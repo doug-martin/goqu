@@ -15,12 +15,18 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 		o := sqlgen.DefaultDialectOptions()
 		o.FetchFragment = []byte(" FETCH NEXT ")
 		o.AlwaysOffsetFetch = always
-		o.SelectSQLOrder = []sqlgen.SQLFragmentType{
-			sqlgen.SelectSQLFragment,
-			sqlgen.FromSQLFragment,
-			sqlgen.WhereSQLFragment,
-			sqlgen.OrderWithOffsetFetchSQLFragment,
+		// same construction as the docs: the default order with the order fragment swapped
+		order := make([]sqlgen.SQLFragmentType, 0, len(o.SelectSQLOrder))
+		for _, f := range o.SelectSQLOrder {
+			switch f {
+			case sqlgen.OrderSQLFragment:
+				order = append(order, sqlgen.OrderWithOffsetFetchSQLFragment)
+			case sqlgen.LimitSQLFragment, sqlgen.OffsetSQLFragment:
+			default:
+				order = append(order, f)
+			}
 		}
+		o.SelectSQLOrder = order
 		return o
 	}
 	goqu.RegisterDialect("test-always-fetch", newOpts(true))
@@ -57,6 +63,16 @@ func TestAlwaysOffsetFetch(t *testing.T) {
 			func(d goqu.DialectWrapper) *goqu.SelectDataset { return d.From("t").Offset(3) },
 			`SELECT * FROM "t" OFFSET 3 ROWS`,
 			`SELECT * FROM "t"`,
+		},
+		{
+			"keeps join, group by and having",
+			func(d goqu.DialectWrapper) *goqu.SelectDataset {
+				return d.From("t").Join(goqu.T("u"), goqu.On(goqu.I("t.a").Eq(goqu.I("u.a")))).
+					Select(goqu.COUNT("*")).GroupBy("a").Having(goqu.COUNT("*").Gt(1)).Order(ord).Limit(5)
+			},
+			`SELECT COUNT(*) FROM "t" INNER JOIN "u" ON ("t"."a" = "u"."a") GROUP BY "a" HAVING (COUNT(*) > 1) ` +
+				`ORDER BY "a" ASC OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY`,
+			`SELECT COUNT(*) FROM "t" INNER JOIN "u" ON ("t"."a" = "u"."a") GROUP BY "a" HAVING (COUNT(*) > 1) ORDER BY "a" ASC`,
 		},
 		{
 			"neither limit nor offset",
