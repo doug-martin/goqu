@@ -244,6 +244,13 @@ SELECT * FROM "blah" "b"
 `SliceAsArray` writes slices used as insert and update values as an array literal (`'{"a","b"}'`) instead of lists
 (`('a', 'b')`). It is on for `postgres`, see [Insert Slices As Arrays](./inserting.md#insert-arrays).
 
+`UseEqualsForBools` is for databases that do not support `IS` with a boolean, such as Trino. A comparison with a boolean
+is written with `=` / `!=` instead of `IS` / `IS NOT`. `= TRUE` is NULL for a NULL, while `IS TRUE` is false (and
+`IS NOT TRUE` is true), so the comparison is wrapped to give the same value when it is negated or selected:
+`"a" IS TRUE` is `COALESCE(("a" = TRUE), FALSE)` and `"a" IS NOT TRUE` is `COALESCE(("a" != TRUE), TRUE)`. The left hand
+side is written once. In prepared mode the boolean is a bound argument instead of the literal `TRUE`/`FALSE`. `IS NULL`
+and `IS NOT NULL` are not changed. It is off by default.
+
 A database without `LIMIT` or `TOP` (such as Oracle 19c) paginates with `OFFSET n ROWS FETCH NEXT m ROWS ONLY`. Start
 from the default `SelectSQLOrder` (so `WITH`, `JOIN`, `GROUP BY`, `HAVING`, compounds and `FOR` are kept), replace
 `OrderSQLFragment` with `OrderWithOffsetFetchSQLFragment` and drop the separate limit and offset fragments. Set

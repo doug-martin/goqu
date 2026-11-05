@@ -584,19 +584,57 @@ func (esg *expressionSQLGenerator) aliasedExpressionSQL(b sb.SQLBuilder, aliased
 	esg.Generate(b, aliased.GetAs())
 }
 
+// isBoolValue returns true for a bool, a named bool type and a non nil pointer to one (the values that are compared
+// with IS).
+func isBoolValue(val any) bool {
+	if val == nil {
+		return false
+	}
+	if _, ok := val.(bool); ok {
+		return true
+	}
+	return reflect.Indirect(reflect.ValueOf(val)).Kind() == reflect.Bool
+}
+
+// equalsForBoolSQL writes IS / IS NOT with a boolean as a comparison for the UseEqualsForBools dialect option and
+// returns true when it did. IS TRUE is false and IS NOT TRUE is true for a NULL, while = and != are NULL, so a plain
+// comparison would change the result when it is negated or selected. COALESCE keeps it, and writes the left hand side
+// only once.
+func (esg *expressionSQLGenerator) equalsForBoolSQL(b sb.SQLBuilder, operator exp.BooleanExpression) bool {
+	rhs := operator.RHS()
+	if !esg.dialectOptions.UseEqualsForBools || !isBoolValue(rhs) {
+		return false
+	}
+	switch operator.Op() {
+	case exp.IsOp:
+		esg.Generate(b, exp.NewSQLFunctionExpression(
+			"COALESCE", exp.NewBooleanExpression(exp.EqOp, operator.LHS(), rhs), FalseLiteral))
+		return true
+	case exp.IsNotOp:
+		esg.Generate(b, exp.NewSQLFunctionExpression(
+			"COALESCE", exp.NewBooleanExpression(exp.NeqOp, operator.LHS(), rhs), TrueLiteral))
+		return true
+	default:
+		return false
+	}
+}
+
 // Generates SQL for a BooleanExpresion (e.g. I("a").Eq(2) -> "a" = 2)
 func (esg *expressionSQLGenerator) booleanExpressionSQL(b sb.SQLBuilder, operator exp.BooleanExpression) {
+	operatorOp := operator.Op()
+	rhs := operator.RHS()
+	if esg.equalsForBoolSQL(b, operator) {
+		return
+	}
 	b.WriteRunes(esg.dialectOptions.LeftParenRune)
 	esg.Generate(b, operator.LHS())
 	b.WriteRunes(esg.dialectOptions.SpaceRune)
-	operatorOp := operator.Op()
 	if val, ok := esg.dialectOptions.BooleanOperatorLookup[operatorOp]; ok {
 		b.Write(val)
 	} else {
 		b.SetError(errUnsupportedBooleanExpressionOperator(operatorOp))
 		return
 	}
-	rhs := operator.RHS()
 
 	if (operatorOp == exp.IsOp || operatorOp == exp.IsNotOp) && rhs != nil && !esg.dialectOptions.BooleanDataTypeSupported {
 		b.SetError(errors.New("boolean data type is not supported by dialect %q", esg.dialect))
