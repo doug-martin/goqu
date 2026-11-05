@@ -218,7 +218,7 @@ func (esg *expressionSQLGenerator) appendArrayElement(
 func byteValues(rv reflect.Value) []byte {
 	bs := make([]byte, rv.Len())
 	for i := range bs {
-		bs[i] = byte(rv.Index(i).Uint())
+		bs[i] = byte(rv.Index(i).Uint() & math.MaxUint8)
 	}
 	return bs
 }
