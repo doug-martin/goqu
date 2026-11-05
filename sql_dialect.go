@@ -105,3 +105,25 @@ func (d *sqlDialect) ToDeleteSQL(b sb.SQLBuilder, clauses exp.DeleteClauses) {
 func (d *sqlDialect) ToTruncateSQL(b sb.SQLBuilder, clauses exp.TruncateClauses) {
 	d.truncateGen.Generate(b, clauses)
 }
+
+// nestedDialect returns the dialect a nested dataset (subquery, CTE, compound, insert source) must render with so the
+// whole statement uses a single dialect.
+//   - A custom SQLDialect implementation is left alone, since goqu cannot know how to re-target it.
+//   - When own already uses the enclosing statement's options it is returned as is (the common case, no lookup).
+//   - Otherwise the registered dialect with the enclosing name is used when it shares the options, falling back to a
+//     dialect built from the options.
+func nestedDialect(own SQLDialect, name string, do *SQLDialectOptions) SQLDialect {
+	osd, ok := own.(*sqlDialect)
+	if !ok || osd.dialectOptions == do {
+		return own
+	}
+	dialectsMu.RLock()
+	d, found := dialects[strings.ToLower(name)]
+	dialectsMu.RUnlock()
+	if found {
+		if sd, isSQLDialect := d.(*sqlDialect); isSQLDialect && sd.dialectOptions == do {
+			return d
+		}
+	}
+	return newDialect(name, do)
+}

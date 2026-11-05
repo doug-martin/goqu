@@ -327,7 +327,7 @@ func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}
 // Generates creates the sql for a sub select on a Dataset
 func (esg *expressionSQLGenerator) appendableExpressionSQL(b sb.SQLBuilder, a exp.AppendableExpression) {
 	b.WriteRunes(esg.dialectOptions.LeftParenRune)
-	a.AppendSQL(b)
+	appendNested(b, a, esg.dialect, esg.dialectOptions)
 	b.WriteRunes(esg.dialectOptions.RightParenRune)
 	if a.GetAs() != nil {
 		b.Write(esg.dialectOptions.AsFragment)
@@ -1009,10 +1009,10 @@ func (esg *expressionSQLGenerator) compoundExpressionSQL(b sb.SQLBuilder, compou
 	}
 	if esg.dialectOptions.WrapCompoundsInParens {
 		b.WriteRunes(esg.dialectOptions.LeftParenRune)
-		compound.RHS().AppendSQL(b)
+		appendNested(b, compound.RHS(), esg.dialect, esg.dialectOptions)
 		b.WriteRunes(esg.dialectOptions.RightParenRune)
 	} else {
-		compound.RHS().AppendSQL(b)
+		appendNested(b, compound.RHS(), esg.dialect, esg.dialectOptions)
 	}
 }
 
