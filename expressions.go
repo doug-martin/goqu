@@ -34,6 +34,15 @@ func Collate(e exp.Expression, collation any) exp.CollateExpression {
 	return exp.NewCollateExpression(e, collation)
 }
 
+// Creates a new array expression, rendering a slice as an array value instead of a list. Use it where a slice must be
+// an array outside of insert and update values (e.g. comparisons).
+//
+//	Array([]string{"a", "b"}) -> ARRAY['a', 'b']
+//	C("tags").Eq(Array([]string{"a"})) -> "tags" = ARRAY['a']
+func Array(elems interface{}) exp.ArrayExpression {
+	return exp.NewArrayExpression(elems)
+}
+
 // Creates a new Casted expression
 //
 //	Cast(I("a"), "NUMERIC") -> CAST("a" AS NUMERIC)

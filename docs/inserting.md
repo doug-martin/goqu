@@ -6,6 +6,7 @@
   * [Insert `goqu.Record`](#insert-record)
   * [Insert Structs](#insert-structs)
   * [Insert Map](#insert-map)
+  * [Insert Slices As Arrays](#insert-arrays)
   * [Insert From Query](#insert-from-query)
   * [On Conflict](#onconflict)
   * [Returning](#returning)
@@ -355,6 +356,41 @@ Output:
 ```
 INSERT INTO "user" ("first_name", "last_name") VALUES ('Greg', 'Farley'), ('Jimmy', 'Stewart'), ('Jeff', 'Jeffers') []
 ```
+
+<a name="insert-arrays"></a>
+**Insert Slices As Arrays**
+
+With the `postgres` dialect a slice used as an insert (or update) value is written as an array. Set `SliceAsArray` in
+the `SQLDialectOptions` of another dialect to get the same behavior. `[]byte`, `json.RawMessage`, `driver.Valuer`s
+(e.g. `pq.Array`) and expressions are written as before. An empty slice is written as `'{}'` and a nil slice as `NULL`.
+
+```go
+ds := goqu.Dialect("postgres").Insert("posts").Rows(
+    goqu.Record{"title": "New Post", "tags": []string{"a", "b"}},
+)
+insertSQL, _, _ := ds.ToSQL()
+fmt.Println(insertSQL)
+```
+
+Output:
+```
+INSERT INTO "posts" ("tags", "title") VALUES (ARRAY['a', 'b'], 'New Post')
+```
+
+Slices in predicates (e.g. `In`) keep rendering as a list. Use `goqu.Array` where an array value is needed elsewhere:
+
+```go
+sql, _, _ := goqu.Dialect("postgres").From("posts").
+    Where(goqu.C("tags").Eq(goqu.Array([]string{"a"}))).ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM "posts" WHERE ("tags" = ARRAY['a'])
+```
+
+Scanning `text[]` columns is up to the driver: scan into `pq.StringArray` (`github.com/lib/pq`) or a `pgtype` type.
 
 <a name="insert-from-query"></a>
 **Insert from query**
