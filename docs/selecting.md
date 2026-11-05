@@ -670,6 +670,21 @@ Output:
 SELECT * FROM "test" LIMIT 10
 ```
 
+`Limit(0)` removes the limit. Use `LimitZero` to force a `LIMIT 0` (for example to get the columns of a query without any
+rows):
+
+```go
+ds := goqu.From("test").LimitZero()
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+SELECT * FROM "test" LIMIT 0
+```
+
 <a name="offset"></a>
 **[`Offset`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Offset)**
 

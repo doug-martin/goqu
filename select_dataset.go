@@ -475,6 +475,12 @@ func (sd *SelectDataset) LimitAll() *SelectDataset {
 	return sd.copy(sd.clauses.SetLimit(L("ALL")))
 }
 
+// Adds a LIMIT 0 clause. Limit(0) removes the LIMIT, use this to force a LIMIT of 0 (e.g. to return no rows). If the
+// LIMIT is currently set it replaces it. See examples.
+func (sd *SelectDataset) LimitZero() *SelectDataset {
+	return sd.copy(sd.clauses.SetLimit(uint(0)))
+}
+
 // Removes the LIMIT clause.
 func (sd *SelectDataset) ClearLimit() *SelectDataset {
 	return sd.copy(sd.clauses.ClearLimit())

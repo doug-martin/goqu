@@ -174,6 +174,12 @@ func (dd *DeleteDataset) LimitAll() *DeleteDataset {
 	return dd.copy(dd.clauses.SetLimit(L("ALL")))
 }
 
+// Adds a LIMIT 0 clause. Limit(0) removes the LIMIT, use this to force a LIMIT of 0 (e.g. to return no rows). If the
+// LIMIT is currently set it replaces it. See examples.
+func (dd *DeleteDataset) LimitZero() *DeleteDataset {
+	return dd.copy(dd.clauses.SetLimit(uint(0)))
+}
+
 // Removes the LIMIT clause.
 func (dd *DeleteDataset) ClearLimit() *DeleteDataset {
 	return dd.copy(dd.clauses.ClearLimit())

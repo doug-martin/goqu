@@ -347,6 +347,24 @@ func (uds *updateDatasetSuite) TestLimitAll() {
 	)
 }
 
+func (uds *updateDatasetSuite) TestLimitZero() {
+	bd := goqu.Update("items")
+	uds.assertCases(
+		updateTestCase{
+			ds:      bd.LimitZero(),
+			clauses: exp.NewUpdateClauses().SetTable(goqu.C("items")).SetLimit(uint(0)),
+		},
+		updateTestCase{
+			ds:      bd.Limit(10).LimitZero(),
+			clauses: exp.NewUpdateClauses().SetTable(goqu.C("items")).SetLimit(uint(0)),
+		},
+		updateTestCase{
+			ds:      bd.LimitZero().Limit(0),
+			clauses: exp.NewUpdateClauses().SetTable(goqu.C("items")),
+		},
+	)
+}
+
 func (uds *updateDatasetSuite) TestClearLimit() {
 	bd := goqu.Update("items")
 	uds.assertCases(
