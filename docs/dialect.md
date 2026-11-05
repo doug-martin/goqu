@@ -147,6 +147,15 @@ Output:
 SELECT * FROM "test" WHERE "id" = 10 []
 ```
 
+### Subqueries, CTEs and compound queries
+
+A statement is always rendered with a single dialect. Subqueries, CTEs, compound queries (`UNION` etc.) and the
+select used by `Insert().FromQuery` are rendered with the dialect of the statement that contains them, whatever
+dialect they were built with. For example a subquery created with `goqu.From` inside a `postgres` prepared statement
+uses `$1` placeholders and double quoted identifiers. A dataset with a custom `SQLDialect` set through `SetDialect`
+keeps rendering with that dialect. `Insert().FromQuery` still panics if the select explicitly uses a different
+registered dialect than the insert.
+
 ### Executing Queries 
 
 You can also create a `goqu.Database` instance to query records.

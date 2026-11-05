@@ -222,13 +222,14 @@ func (dd *DeleteDataset) AppendSQL(b sb.SQLBuilder) {
 }
 
 // AppendSQLWithDialect renders this dataset with the dialect of the enclosing statement, so a nested dataset built
-// with a different dialect (e.g. the default one) never mixes dialects in a single statement.
+// with a different dialect (e.g. the default one) never mixes dialects in a single statement. It implements
+// sqlgen.DialectAppender and is used internally by the SQL generators; it is not meant to be called directly.
 func (dd *DeleteDataset) AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *SQLDialectOptions) {
 	if dd.err != nil {
 		b.SetError(dd.err)
 		return
 	}
-	dialectFor(dialect, do).ToDeleteSQL(b, dd.GetClauses())
+	nestedDialect(dd.dialect, dialect, do).ToDeleteSQL(b, dd.GetClauses())
 }
 
 func (dd *DeleteDataset) GetAs() exp.IdentifierExpression {

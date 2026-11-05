@@ -224,13 +224,14 @@ func (ud *UpdateDataset) AppendSQL(b sb.SQLBuilder) {
 }
 
 // AppendSQLWithDialect renders this dataset with the dialect of the enclosing statement, so a nested dataset built
-// with a different dialect (e.g. the default one) never mixes dialects in a single statement.
+// with a different dialect (e.g. the default one) never mixes dialects in a single statement. It implements
+// sqlgen.DialectAppender and is used internally by the SQL generators; it is not meant to be called directly.
 func (ud *UpdateDataset) AppendSQLWithDialect(b sb.SQLBuilder, dialect string, do *SQLDialectOptions) {
 	if ud.err != nil {
 		b.SetError(ud.err)
 		return
 	}
-	dialectFor(dialect, do).ToUpdateSQL(b, ud.GetClauses())
+	nestedDialect(ud.dialect, dialect, do).ToUpdateSQL(b, ud.GetClauses())
 }
 
 func (ud *UpdateDataset) GetAs() exp.IdentifierExpression {
