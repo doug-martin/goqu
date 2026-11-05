@@ -295,16 +295,18 @@ If you find an issue you want to work on please comment on it letting other peop
 If want to work on an issue but dont know where to start just leave a comment and I'll be more than happy to point you in the right direction.
 
 ### Running tests
-The test suite requires a postgres, mysql and sqlserver databases. You can override the connection strings with the [`MYSQL_URI`, `PG_URI`, `SQLSERVER_URI` environment variables](https://github.com/doug-martin/goqu/blob/2fe3349/docker-compose.yml#L26)*
+The test suite uses postgres, mysql and sqlserver databases. You can override the connection strings with the [`MYSQL_URI`, `PG_URI`, `SQLSERVER_URI` environment variables](https://github.com/doug-martin/goqu/blob/2fe3349/docker-compose.yml#L26)*
 
 ```sh
 go test -v -race ./...
 ```
 
-You can also run the tests in a container using [Docker Compose](https://docs.docker.com/compose/) (v2, the `docker compose` command). These are the versions CI uses:
+When one of these variables is not set and no database answers at the default local address, that dialect's database suite is skipped. When the variable is set, an unreachable database fails the tests. The postgres examples in the root package always need a postgres database.
+
+You can also run the tests in a container using [Docker Compose](https://docs.docker.com/compose/) (v2, the `docker compose` command). This uses the newest versions CI tests; see [`.github/workflows/go.yml`](.github/workflows/go.yml) for the full matrix:
 
 ```sh
-MYSQL_VERSION=8 POSTGRES_VERSION=15 SQLSERVER_VERSION=2022-latest GO_VERSION=latest docker compose run --rm goqu
+MYSQL_VERSION=9.7 POSTGRES_VERSION=18 SQLSERVER_VERSION=2025-latest GO_VERSION=latest docker compose run --rm goqu
 ```
 
 When you are done, stop the databases with `docker compose down`.

@@ -1,6 +1,7 @@
 package sqlserver_test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -81,12 +82,22 @@ func (sst *sqlserverTest) assertEntries(cases ...entryTestCase) {
 
 func (sst *sqlserverTest) SetupSuite() {
 	dbURI := os.Getenv("SQLSERVER_URI")
-	if dbURI == "" {
+	usingDefault := dbURI == ""
+	if usingDefault {
 		dbURI = defaultDBURI
 	}
 	db, err := sql.Open("sqlserver", dbURI)
 	if err != nil {
 		panic(err.Error())
+	}
+	// Only skip when SQLSERVER_URI is unset, so CI fails if its database did not come up.
+	if usingDefault {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			_ = db.Close()
+			sst.T().Skipf("SQLSERVER_URI is not set and no database answered at %s: %v", defaultDBURI, err)
+		}
 	}
 	sst.db = goqu.New("sqlserver", db)
 }

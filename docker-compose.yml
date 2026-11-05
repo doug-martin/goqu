@@ -25,6 +25,7 @@ services:
     environment:
       - "ACCEPT_EULA=Y"
       - "SA_PASSWORD=qwe123QWE"
+      - "MSSQL_SA_PASSWORD=qwe123QWE"
     expose:
       - "1433"
     ports:
