@@ -250,7 +250,7 @@ type (
 	ArrayExpression interface {
 		Expression
 		// The slice (or array) being rendered
-		Elements() interface{}
+		Elements() any
 	}
 
 	// An Expression that represents another Expression casted to a SQL type

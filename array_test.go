@@ -91,9 +91,8 @@ func TestSliceAsArray(t *testing.T) {
 	})
 
 	t.Run("pointer to a slice", func(t *testing.T) {
-		tags := []string{"a"}
 		var none *[]string
-		sql, _, err := pg.Insert("posts").Rows(goqu.Record{"a": &tags, "b": none}).ToSQL()
+		sql, _, err := pg.Insert("posts").Rows(goqu.Record{"a": new([]string{"a"}), "b": none}).ToSQL()
 		require.NoError(t, err)
 		require.Equal(t, `INSERT INTO "posts" ("a", "b") VALUES ('{"a"}', NULL)`, sql)
 	})
@@ -134,8 +133,7 @@ func TestSliceAsArray(t *testing.T) {
 	})
 
 	t.Run("pointer and Go array", func(t *testing.T) {
-		s := []string{"a"}
-		sql, _, err := pg.Update("posts").Set(goqu.Record{"p": goqu.Array(&s), "q": goqu.Array([2]int{1, 2})}).ToSQL()
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"p": goqu.Array(new([]string{"a"})), "q": goqu.Array([2]int{1, 2})}).ToSQL()
 		require.NoError(t, err)
 		require.Equal(t, `UPDATE "posts" SET "p"='{"a"}',"q"='{1,2}'`, sql)
 	})
@@ -236,8 +234,7 @@ func TestSliceAsArrayElements(t *testing.T) {
 	})
 
 	t.Run("pointer elements and named types", func(t *testing.T) {
-		n, s := 5, "x"
-		sql, _, err := pg.Update("posts").Set(goqu.Record{"a": []*int{&n}, "b": []*string{&s}, "c": []namedUint{1}}).ToSQL()
+		sql, _, err := pg.Update("posts").Set(goqu.Record{"a": []*int{new(5)}, "b": []*string{new("x")}, "c": []namedUint{1}}).ToSQL()
 		require.NoError(t, err)
 		require.Contains(t, sql, `"a"='{5}'`)
 		require.Contains(t, sql, `"b"='{"x"}'`)

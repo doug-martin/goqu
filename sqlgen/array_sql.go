@@ -16,7 +16,7 @@ import (
 
 // isArrayValue returns true for slices and arrays that should render as an array value: []byte (and other byte
 // slices), json.RawMessage and values that render themselves (expressions, driver.Valuers) never do.
-func isArrayValue(val interface{}) bool {
+func isArrayValue(val any) bool {
 	switch val.(type) {
 	case string, bool, int, int32, int64, uint64, float32, float64, time.Time, *time.Time:
 		// the common scalars, skip the reflection below
@@ -36,7 +36,7 @@ func isArrayValue(val interface{}) bool {
 }
 
 // asArrayValue wraps val in an array expression when SliceAsArray is set and val is a slice.
-func (do *SQLDialectOptions) asArrayValue(val interface{}) interface{} {
+func (do *SQLDialectOptions) asArrayValue(val any) any {
 	if do.SliceAsArray && isArrayValue(val) {
 		return exp.NewArrayExpression(val)
 	}
@@ -44,17 +44,17 @@ func (do *SQLDialectOptions) asArrayValue(val interface{}) interface{} {
 }
 
 // asArrayRow returns the row with its slices wrapped in array expressions. The row is only copied when needed.
-func (do *SQLDialectOptions) asArrayRow(row []interface{}) []interface{} {
+func (do *SQLDialectOptions) asArrayRow(row []any) []any {
 	if !do.SliceAsArray {
 		return row
 	}
-	var out []interface{}
+	var out []any
 	for i, v := range row {
 		if !isArrayValue(v) {
 			continue
 		}
 		if out == nil {
-			out = make([]interface{}, len(row))
+			out = make([]any, len(row))
 			copy(out, row)
 		}
 		out[i] = exp.NewArrayExpression(v)
@@ -74,7 +74,7 @@ var ErrEmptyNestedArray = errors.New("empty nested arrays are not supported")
 // is assigned to or compared with, ARRAY['1', '2'] is always text[] and fails for an integer[] or uuid[] column. When
 // an element cannot be written in the text form (e.g. an expression) the array is written as ARRAY[e1, e2, ...].
 // A nil slice is NULL, an empty slice is '{}'.
-func (esg *expressionSQLGenerator) arraySQL(b sb.SQLBuilder, elems interface{}) {
+func (esg *expressionSQLGenerator) arraySQL(b sb.SQLBuilder, elems any) {
 	rv := reflect.Indirect(reflect.ValueOf(elems))
 	if !rv.IsValid() || (rv.Kind() == reflect.Slice && rv.IsNil()) {
 		esg.literalNil(b)
@@ -105,7 +105,7 @@ func (esg *expressionSQLGenerator) arrayConstructorSQL(b sb.SQLBuilder, rv refle
 	}
 	b.Write([]byte("ARRAY"))
 	b.WriteRunes('[')
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if i > 0 {
 			b.WriteRunes(esg.dialectOptions.CommaRune, esg.dialectOptions.SpaceRune)
 		}
@@ -149,7 +149,7 @@ func (esg *expressionSQLGenerator) appendArrayLiteral(
 	}
 	buf = append(buf, '{')
 	subLen := -1
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if i > 0 {
 			buf = append(buf, ',')
 		}
@@ -168,7 +168,7 @@ func (esg *expressionSQLGenerator) appendArrayLiteral(
 }
 
 func (esg *expressionSQLGenerator) appendArrayElement(
-	buf []byte, v interface{}, depth int,
+	buf []byte, v any, depth int,
 ) (out []byte, ok bool, err error) {
 	rv := reflect.ValueOf(v)
 	if !rv.IsValid() || ((rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface) && rv.IsNil()) {
@@ -250,7 +250,7 @@ func appendScalarElement(buf []byte, rv reflect.Value) ([]byte, bool) {
 // appendQuotedElement appends s as a double quoted array element, escaping backslashes and double quotes.
 func appendQuotedElement(buf []byte, s string) []byte {
 	buf = append(buf, '"')
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] == '\\' || s[i] == '"' {
 			buf = append(buf, '\\')
 		}

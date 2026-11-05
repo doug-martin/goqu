@@ -40,7 +40,7 @@ func Collate(e exp.Expression, collation any) exp.CollateExpression {
 //
 //	Array([]string{"a", "b"}) -> '{"a","b"}'
 //	C("tags").Eq(Array([]string{"a"})) -> "tags" = '{"a"}'
-func Array(elems interface{}) exp.ArrayExpression {
+func Array(elems any) exp.ArrayExpression {
 	return exp.NewArrayExpression(elems)
 }
 
