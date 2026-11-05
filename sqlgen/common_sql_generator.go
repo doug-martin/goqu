@@ -137,7 +137,9 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 	limit interface{},
 ) {
 	always := csg.dialectOptions.AlwaysOffsetFetch
-	if order == nil && !always {
+	// an empty order list (e.g. Order() with no arguments) is the same as no ORDER BY
+	hasOrder := order != nil && len(order.Columns()) > 0
+	if !hasOrder && !always {
 		if offset > 0 {
 			// the offset (and limit) cannot be rendered without an ORDER BY, silently dropping them returns all rows
 			b.SetError(ErrOffsetRequiresOrder(csg.dialect))
@@ -145,7 +147,7 @@ func (csg *commonSQLGenerator) OrderWithOffsetFetchSQL(
 		return
 	}
 
-	if order != nil {
+	if hasOrder {
 		csg.OrderSQL(b, order)
 	}
 	// without AlwaysOffsetFetch only a positive offset is rendered (OFFSET 0 is the same as no offset)

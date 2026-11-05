@@ -539,6 +539,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOrderWithOffsetFetch() {
 	base := exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test"))
 	noOrderOffset := base.SetOffset(3).SetLimit(5)
 	noOrderLimit := base.SetLimit(5)
+	emptyOrderOffset := noOrderOffset.SetOrder() // Order() with no arguments
 	orderedOffset := base.SetOrder(exp.NewIdentifierExpression("", "", "a").Asc()).SetOffset(3).SetLimit(5)
 	offsetErr := "goqu: dialect requires an ORDER BY when using OFFSET [dialect=test]"
 
@@ -547,6 +548,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOrderWithOffsetFetch() {
 		// an offset without ORDER BY cannot be rendered, it must not be silently dropped
 		selectTestCase{clause: noOrderOffset, err: offsetErr},
 		selectTestCase{clause: noOrderOffset, err: offsetErr, isPrepared: true},
+		selectTestCase{clause: emptyOrderOffset, err: offsetErr},
 		// a limit without an offset is not rendered without AlwaysOffsetFetch
 		selectTestCase{clause: noOrderLimit, sql: `SELECT * FROM "test"`},
 		selectTestCase{clause: orderedOffset, sql: `SELECT * FROM "test" ORDER BY "a" ASC OFFSET 3 ROWS FETCH NEXT 5 ROWS ONLY`},
@@ -554,6 +556,7 @@ func (ssgs *selectSQLGeneratorSuite) TestGenerate_withOrderWithOffsetFetch() {
 	ssgs.assertCases(
 		sqlgen.NewSelectSQLGenerator("test", newOpts(true)),
 		selectTestCase{clause: noOrderOffset, sql: `SELECT * FROM "test" OFFSET 3 ROWS FETCH NEXT 5 ROWS ONLY`},
+		selectTestCase{clause: emptyOrderOffset, sql: `SELECT * FROM "test" OFFSET 3 ROWS FETCH NEXT 5 ROWS ONLY`},
 		selectTestCase{clause: noOrderLimit, sql: `SELECT * FROM "test" OFFSET 0 ROWS FETCH NEXT 5 ROWS ONLY`},
 	)
 }

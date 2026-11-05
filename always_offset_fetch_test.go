@@ -114,6 +114,7 @@ func TestOffsetWithoutOrderIsAnError(t *testing.T) {
 	for name, ds := range map[string]*goqu.SelectDataset{
 		"offset only":      d.From("t").Offset(3),
 		"limit and offset": d.From("t").Limit(5).Offset(3),
+		"empty order":      d.From("t").Order().Limit(5).Offset(3),
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, _, err := ds.ToSQL()
