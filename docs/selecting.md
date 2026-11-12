@@ -7,6 +7,7 @@
   * [`From`](#from)
   * [`Join`](#joins)
   * [`Where`](#where)
+  * [`Order`](#order)
   * [`Limit`](#limit)
   * [`Offset`](#offset)
   * [`GroupBy`](#group_by)
