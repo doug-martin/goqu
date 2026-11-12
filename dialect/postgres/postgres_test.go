@@ -639,15 +639,15 @@ func (pt *postgresTest) TestInsert_OnConflictTargetWherePrepared() {
 
 	insertSQL, args, err := pt.db.Insert("partial_targets").Prepared(true).
 		Rows(goqu.Record{"slug": "a", "kind": "live"}).
-		OnConflict(goqu.DoUpdate("", goqu.Record{"slug": goqu.L("EXCLUDED.slug")}).
-			SetCols(exp.NewColumnListExpression("slug")).
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"slug": goqu.L("EXCLUDED.slug")}).
+			TargetCols("slug").
 			TargetWhere(goqu.C("kind").Eq("live"))).
 		ToSQL()
 	pt.Require().NoError(err)
 	pt.Equal(`INSERT INTO "partial_targets" ("kind", "slug") VALUES ($1, $2) ON CONFLICT ("slug") WHERE ("kind" = 'live') `+
 		`DO UPDATE SET "slug"=EXCLUDED.slug`, insertSQL)
 
-	ctx := context.Background()
+	ctx := pt.T().Context()
 	stmt, err := pt.db.PrepareContext(ctx, insertSQL)
 	pt.Require().NoError(err)
 	defer stmt.Close()

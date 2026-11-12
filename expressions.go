@@ -51,22 +51,49 @@ func Cast(e exp.Expression, t string) exp.CastExpression {
 	return exp.NewCastExpression(e, t)
 }
 
-// Creates a conflict struct to be passed to InsertConflict to ignore constraint errors
+// Creates a conflict struct to be passed to OnConflict to ignore constraint errors.
 //
-//	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
+// The builder methods (TargetCols, SetCols, OnConstraint, TargetWhere) modify and return the receiver. Note that
+// values in TargetWhere are always interpolated as SQL literals even when Prepared(true) is set; never pass untrusted
+// user input to TargetWhere.
+//
+//	OnConflict(DoNothing()) -> INSERT INTO ... ON CONFLICT DO NOTHING
+//	OnConflict(DoNothing().TargetCols("a", "b")) -> INSERT INTO ... ON CONFLICT ("a", "b") DO NOTHING
+//	OnConflict(DoNothing().OnConstraint("k")) -> INSERT INTO ... ON CONFLICT ON CONSTRAINT "k" DO NOTHING
 func DoNothing() exp.ConflictNothingExpression {
 	return exp.NewDoNothingConflictExpression()
 }
 
-// Creates a ConflictUpdate struct to be passed to InsertConflict
-// Represents a ON CONFLICT DO UPDATE portion of an INSERT statement (ON DUPLICATE KEY UPDATE for mysql)
+// Creates a ConflictUpdate struct to be passed to OnConflict with a raw conflict target string.
+// Represents an ON CONFLICT DO UPDATE portion of an INSERT statement (ON DUPLICATE KEY UPDATE for mysql).
 //
-//	InsertConflict(DoUpdate("target_column", update),...) ->
-//		INSERT INTO ... ON CONFLICT DO UPDATE SET a=b
-//	InsertConflict(DoUpdate("target_column", update).Where(Ex{"a": 1},...) ->
-//		INSERT INTO ... ON CONFLICT DO UPDATE SET a=b WHERE a=1
-func DoUpdate(target string, update interface{}) exp.ConflictUpdateExpression {
+// Prefer DoUpdateSet with TargetCols or OnConstraint so identifiers are quoted and multiple columns are supported.
+// The builder methods (TargetCols, SetCols, OnConstraint, TargetWhere, Where) modify and return the receiver. Note
+// that values in TargetWhere are always interpolated as SQL literals even when Prepared(true) is set; never pass
+// untrusted user input to TargetWhere (use Where to filter updated rows with bind parameters).
+//
+//	OnConflict(DoUpdate("target_column", update)) ->
+//		INSERT INTO ... ON CONFLICT (target_column) DO UPDATE SET a=b
+//	OnConflict(DoUpdate("target_column", update).Where(Ex{"a": 1})) ->
+//		INSERT INTO ... ON CONFLICT (target_column) DO UPDATE SET a=b WHERE ("a" = 1)
+func DoUpdate(target string, update any) exp.ConflictUpdateExpression {
 	return exp.NewDoUpdateConflictExpression(target, update)
+}
+
+// Creates a ConflictUpdate struct to be passed to OnConflict without a raw target string. Chain TargetCols or
+// OnConstraint to specify a conflict target on dialects that require one (e.g. Postgres, SQLite), or pass directly on
+// dialects without conflict targets (e.g. MySQL ON DUPLICATE KEY UPDATE).
+//
+// The builder methods (TargetCols, SetCols, OnConstraint, TargetWhere, Where) modify and return the receiver. Note
+// that values in TargetWhere are always interpolated as SQL literals even when Prepared(true) is set; never pass
+// untrusted user input to TargetWhere (use Where to filter updated rows with bind parameters).
+//
+//	OnConflict(DoUpdateSet(update).TargetCols("a", "b")) ->
+//		INSERT INTO ... ON CONFLICT ("a", "b") DO UPDATE SET ...
+//	OnConflict(DoUpdateSet(update).OnConstraint("users_email_key")) ->
+//		INSERT INTO ... ON CONFLICT ON CONSTRAINT "users_email_key" DO UPDATE SET ...
+func DoUpdateSet(update any) exp.ConflictUpdateExpression {
+	return exp.NewDoUpdateConflictExpression("", update)
 }
 
 // A list of expressions that should be ORed together

@@ -304,7 +304,8 @@ type (
 
 		// The SQL fragment to use for CONFLICT (Default=[]byte(" ON CONFLICT"))
 		ConflictFragment []byte
-		// The SQL fragment to use for a CONFLICT ON CONSTRAINT target (Default=[]byte(" ON CONSTRAINT "))
+		// The SQL fragment to use for a CONFLICT ON CONSTRAINT target, falling back to " ON CONSTRAINT " when empty
+		// (Default=[]byte(" ON CONSTRAINT "))
 		ConflictOnConstraintFragment []byte
 		// The SQL fragment to use for CONFLICT DO NOTHING (Default=[]byte(" DO NOTHING"))
 		ConflictDoNothingFragment []byte

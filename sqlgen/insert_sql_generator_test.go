@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/internal/errors"
 	"github.com/doug-martin/goqu/v9/internal/sb"
 	"github.com/doug-martin/goqu/v9/sqlgen"
 	"github.com/stretchr/testify/suite"
@@ -425,8 +426,17 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key")),
 			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ON CONSTRAINT "test_key" do nothing`,
 		},
+		// Dots are not split into schema.col and embedded quotes are doubled.
 		insertTestCase{
-			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).TargetWhere(exp.Ex{"c": nil})),
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("my.key")),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ON CONSTRAINT "my.key" do nothing`,
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint(`a"b`)),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ON CONSTRAINT "a""b" do nothing`,
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().TargetCols("a", "b").TargetWhere(exp.Ex{"c": nil})),
 			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") WHERE ("c" IS NULL) do nothing`,
 		},
 		insertTestCase{
@@ -436,7 +446,7 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 			args:       []any{"a1"},
 		},
 		insertTestCase{
-			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols)),
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).TargetCols("a", "b")),
 			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") do update set "a"='b'`,
 		},
 		insertTestCase{
@@ -444,15 +454,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ON CONSTRAINT "test_key" do update set "a"='b'`,
 		},
 		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("email", upd).TargetWhere(exp.Ex{"c": nil})),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict (email) WHERE ("c" IS NULL) do update set "a"='b'`,
+		},
+		insertTestCase{
 			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols).
 				TargetWhere(exp.Ex{"c": nil}).Where(exp.Ex{"d": true})),
 			sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") WHERE ("c" IS NULL) ` +
 				`do update set "a"='b' WHERE ("d" IS TRUE)`,
-		},
-		// SetCols takes precedence over the legacy string target
-		insertTestCase{
-			clause: set(exp.NewDoUpdateConflictExpression("legacy", upd).SetCols(cols)),
-			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") do update set "a"='b'`,
 		},
 		insertTestCase{
 			clause: set(exp.NewDoUpdateConflictExpression("", exp.Record{"a": "u"}).SetCols(cols).
@@ -461,26 +470,6 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 				`do update set "a"=? WHERE ("d" = ?)`,
 			isPrepared: true,
 			args:       []any{"a1", "u", "w"},
-		},
-		insertTestCase{
-			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).OnConstraint("test_key")),
-			err:    "goqu: conflict target cannot specify both columns and a constraint",
-		},
-		insertTestCase{
-			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols).OnConstraint("test_key")),
-			err:    "goqu: conflict target cannot specify both columns and a constraint",
-		},
-		insertTestCase{
-			clause: set(exp.NewDoNothingConflictExpression().TargetWhere(exp.Ex{"c": nil})),
-			err:    "goqu: conflict target WHERE requires target columns (see SetCols)",
-		},
-		insertTestCase{
-			clause: set(exp.NewDoUpdateConflictExpression("", upd).TargetWhere(exp.Ex{"c": nil})),
-			err:    "goqu: conflict target WHERE requires target columns (see SetCols)",
-		},
-		insertTestCase{
-			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key").TargetWhere(exp.Ex{"c": nil})),
-			err:    "goqu: conflict target WHERE requires target columns (see SetCols)",
 		},
 	)
 
@@ -493,6 +482,79 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 		insertTestCase{
 			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key")),
 			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict on constraint "test_key" do nothing`,
+		},
+	)
+
+	// Custom options with an unset ConflictOnConstraintFragment fall back to " ON CONSTRAINT ".
+	emptyFrag := sqlgen.DefaultDialectOptions()
+	emptyFrag.ConflictOnConstraintFragment = nil
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", emptyFrag),
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key")),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') ON CONFLICT ON CONSTRAINT "test_key" DO NOTHING`,
+		},
+	)
+}
+
+func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargetErrors() {
+	ic := exp.NewInsertClauses().
+		SetInto(exp.NewIdentifierExpression("", "test", "")).
+		SetCols(exp.NewColumnListExpression("a")).
+		SetVals([][]any{{"a1"}})
+	cols := exp.NewColumnListExpression("a", "b")
+	upd := exp.Record{"a": "b"}
+	set := func(c exp.ConflictExpression) exp.InsertClauses { return ic.SetOnConflict(c) }
+	badSub := newTestAppendableExpression("select 1", nil, errors.New("subquery boom"), nil)
+	bindSub := newTestAppendableExpression("select ?", []any{1}, nil, nil)
+
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).OnConstraint("test_key")),
+			err:    "goqu: conflict target cannot specify multiple targets",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols).OnConstraint("test_key")),
+			err:    "goqu: conflict target cannot specify multiple targets",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("legacy", upd).SetCols(cols)),
+			err:    "goqu: conflict target cannot specify multiple targets",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("legacy", upd).OnConstraint("test_key")),
+			err:    "goqu: conflict target cannot specify multiple targets",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns (see TargetCols or SetCols)",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns (see TargetCols or SetCols)",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key").TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns (see TargetCols or SetCols)",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).OnConstraint("test_key").TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns (see TargetCols or SetCols)",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("on constraint test", upd).TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns (see TargetCols or SetCols)",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).
+				TargetWhere(exp.NewIdentifierExpression("", "", "c").In(badSub))),
+			err: "goqu: subquery boom",
+		},
+		insertTestCase{
+			clause:     set(exp.NewDoNothingConflictExpression().SetCols(cols).TargetWhere(exp.NewIdentifierExpression("", "", "c").In(bindSub))),
+			isPrepared: true,
+			err:        "goqu: conflict target WHERE cannot contain bind parameters",
 		},
 	)
 
@@ -515,6 +577,10 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 		sqlgen.NewInsertSQLGenerator("test", noTarget),
 		insertTestCase{
 			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols)),
+			err:    "goqu: dialect does not support Conflict Target clause [dialect=test]",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("email", upd).TargetWhere(exp.Ex{"c": nil})),
 			err:    "goqu: dialect does not support Conflict Target clause [dialect=test]",
 		},
 	)

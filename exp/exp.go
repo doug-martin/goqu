@@ -322,6 +322,7 @@ type (
 		ConflictExpression
 		ConflictTargetExpression
 		SetCols(cl ColumnListExpression) ConflictNothingExpression
+		TargetCols(cols ...any) ConflictNothingExpression
 		OnConstraint(name string) ConflictNothingExpression
 		TargetWhere(expressions ...Expression) ConflictNothingExpression
 	}
@@ -329,12 +330,13 @@ type (
 		ConflictExpression
 		ConflictTargetExpression
 		SetCols(cl ColumnListExpression) ConflictUpdateExpression
+		TargetCols(cols ...any) ConflictUpdateExpression
 		OnConstraint(name string) ConflictUpdateExpression
 		TargetWhere(expressions ...Expression) ConflictUpdateExpression
 		TargetColumn() string
 		Where(expressions ...Expression) ConflictUpdateExpression
 		WhereClause() ExpressionList
-		Update() interface{}
+		Update() any
 	}
 	CommonTableExpression interface {
 		Expression

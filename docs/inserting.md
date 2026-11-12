@@ -458,14 +458,14 @@ Output:
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT DO NOTHING
 ```
 
-To specify the conflict target columns, use `SetCols`. This is supported by dialects that support a conflict target
-(Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead of silently
-ignoring the target.
+To specify the conflict target columns, use `TargetCols` (or `SetCols`). This is supported by dialects that support a
+conflict target (Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead
+of silently ignoring the target.
 
 ```go
 sql, _, _ := goqu.Insert("test").
 	Rows(goqu.Record{"a": "a", "b": "b"}).
-	OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a", "b"))).
+	OnConflict(goqu.DoNothing().TargetCols("a", "b")).
 	ToSQL()
 fmt.Println(sql)
 ```
@@ -476,15 +476,16 @@ Output:
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a", "b") DO NOTHING
 ```
 
-`SetCols`, `OnConstraint` and `TargetWhere` are available on both `DoNothing()` and `DoUpdate()`.
+`TargetCols`, `SetCols`, `OnConstraint` and `TargetWhere` are available on both `DoNothing()` and `DoUpdateSet()` (as
+well as `DoUpdate()`).
 
-To target a named constraint (Postgres), use `OnConstraint`. The name is quoted as an identifier and cannot be
-combined with `SetCols`.
+To update rows on conflict across multiple columns, or on a named constraint (Postgres), pair `DoUpdateSet` with
+`TargetCols` or `OnConstraint`. Constraint names are quoted as identifiers and cannot be combined with `TargetCols`.
 
 ```go
 sql, _, _ := goqu.Insert("test").
 	Rows(goqu.Record{"a": "a", "b": "b"}).
-	OnConflict(goqu.DoUpdate("", goqu.Record{"b": goqu.L("EXCLUDED.b")}).OnConstraint("test_a_key")).
+	OnConflict(goqu.DoUpdateSet(goqu.Record{"b": goqu.L("EXCLUDED.b")}).OnConstraint("test_a_key")).
 	ToSQL()
 fmt.Println(sql)
 ```
@@ -495,16 +496,18 @@ Output:
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ON CONSTRAINT "test_a_key" DO UPDATE SET "b"=EXCLUDED.b
 ```
 
-To target a partial unique index, add the index predicate with `TargetWhere` (it requires `SetCols`). This is not the
-same as `DoUpdate(...).Where(...)`, which filters the rows that get updated.
-The predicate's values are always interpolated, even for prepared statements, because Postgres cannot match a
-parameterized predicate to a partial index once a reused statement switches to a generic plan.
+To target a partial unique index, add the index predicate with `TargetWhere` (it requires target columns). This is not
+the same as `DoUpdateSet(...).Where(...)`, which filters the rows that get updated.
+
+**NOTE** Values inside `TargetWhere` are always interpolated as SQL literals, even when `Prepared(true)` is set, because
+neither SQLite nor Postgres (once a reused statement switches to a generic plan) can match a parameterized predicate to
+a partial index definition. Only pass static schema constants to `TargetWhere` — never untrusted user input.
 
 ```go
 sql, _, _ := goqu.Insert("test").
 	Rows(goqu.Record{"a": "a", "b": "b"}).
 	OnConflict(goqu.DoNothing().
-		SetCols(exp.NewColumnListExpression("a")).
+		TargetCols("a").
 		TargetWhere(goqu.C("deleted_at").IsNull())).
 	ToSQL()
 fmt.Println(sql)
@@ -516,9 +519,9 @@ Output:
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a") WHERE ("deleted_at" IS NULL) DO NOTHING
 ```
 
-`DoUpdate`'s first argument is still accepted as a raw target string (e.g. `"a"` or `"on constraint name"`) and is
-written as is. Pass `""` and use `SetCols`/`OnConstraint` for quoted identifiers and multiple columns; they take
-precedence over the raw string.
+`DoUpdate(target, update)` is still accepted for a raw target string (e.g. `"a"` or `"on constraint name"`), written as
+is when no `TargetCols`/`OnConstraint` is set. Combining a non-empty `DoUpdate` target string with `TargetCols`,
+`SetCols`, or `OnConstraint` returns an error; use `DoUpdateSet(update)` instead.
 
 <a name="returning"></a>
 **Returning Clause**

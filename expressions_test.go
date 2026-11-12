@@ -30,6 +30,10 @@ func (ges *goquExpressionsSuite) TestDoUpdate() {
 	ges.Equal(exp.NewDoUpdateConflictExpression("test", goqu.Record{"a": "b"}), goqu.DoUpdate("test", goqu.Record{"a": "b"}))
 }
 
+func (ges *goquExpressionsSuite) TestDoUpdateSet() {
+	ges.Equal(exp.NewDoUpdateConflictExpression("", goqu.Record{"a": "b"}), goqu.DoUpdateSet(goqu.Record{"a": "b"}))
+}
+
 func (ges *goquExpressionsSuite) TestOr() {
 	e1 := goqu.C("a").Eq("b")
 	e2 := goqu.C("b").Eq(2)

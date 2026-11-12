@@ -605,7 +605,7 @@ func ExampleInsertDataset_OnConflict_doNothingWithPartialIndexTarget() {
 	insertSQL, args, _ := goqu.Insert("items").
 		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
 		OnConflict(goqu.DoNothing().
-			SetCols(exp.NewColumnListExpression("name", "address")).
+			TargetCols("name", "address").
 			TargetWhere(goqu.C("deleted_at").IsNull())).
 		ToSQL()
 	fmt.Println(insertSQL, args)
@@ -617,8 +617,8 @@ func ExampleInsertDataset_OnConflict_doNothingWithPartialIndexTarget() {
 func ExampleInsertDataset_OnConflict_doUpdateWithMultipleColumnTarget() {
 	insertSQL, args, _ := goqu.Insert("items").
 		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
-		OnConflict(goqu.DoUpdate("", goqu.Record{"address": goqu.L("EXCLUDED.address")}).
-			SetCols(exp.NewColumnListExpression("name", "tenant_id"))).
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"address": goqu.L("EXCLUDED.address")}).
+			TargetCols("name", "tenant_id")).
 		ToSQL()
 	fmt.Println(insertSQL, args)
 
@@ -629,7 +629,7 @@ func ExampleInsertDataset_OnConflict_doUpdateWithMultipleColumnTarget() {
 func ExampleInsertDataset_OnConflict_doUpdateWithConstraint() {
 	insertSQL, args, _ := goqu.Insert("items").
 		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
-		OnConflict(goqu.DoUpdate("", goqu.Record{"address": goqu.L("EXCLUDED.address")}).
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"address": goqu.L("EXCLUDED.address")}).
 			OnConstraint("items_name_key")).
 		ToSQL()
 	fmt.Println(insertSQL, args)

@@ -24,8 +24,9 @@ type (
 )
 
 var (
-	ErrConflictUpdateValuesRequired = errors.New("values are required for on conflict update expression")
-	ErrNoSourceForInsert            = errors.New("no source found when generating insert sql")
+	ErrConflictUpdateValuesRequired     = errors.New("values are required for on conflict update expression")
+	ErrNoSourceForInsert                = errors.New("no source found when generating insert sql")
+	defaultConflictOnConstraintFragment = []byte(" ON CONSTRAINT ")
 )
 
 func errMisMatchedRowLength(expectedL, actualL int) error {
@@ -168,23 +169,9 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 	b.Write(isg.DialectOptions().ConflictFragment)
 	switch t := o.(type) {
 	case exp.ConflictUpdateExpression:
-		if hasConflictTarget(t) {
-			isg.conflictTargetSQL(b, t)
-			if b.Error() != nil {
-				return
-			}
-		} else if target := t.TargetColumn(); isg.DialectOptions().SupportsConflictTarget && target != "" {
-			// legacy: the target is a raw string written as is
-			wrapParens := !strings.HasPrefix(strings.ToLower(target), "on constraint")
-
-			b.WriteRunes(isg.DialectOptions().SpaceRune)
-			if wrapParens {
-				b.WriteRunes(isg.DialectOptions().LeftParenRune).
-					WriteStrings(target).
-					WriteRunes(isg.DialectOptions().RightParenRune)
-			} else {
-				b.Write([]byte(target))
-			}
+		isg.conflictUpdateTargetSQL(b, t)
+		if b.Error() != nil {
+			return
 		}
 		isg.onConflictDoUpdateSQL(b, t)
 	case exp.ConflictNothingExpression:
@@ -203,6 +190,48 @@ func hasConflictTarget(t exp.ConflictTargetExpression) bool {
 		(t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty())
 }
 
+func (isg *insertSQLGenerator) conflictUpdateTargetSQL(b sb.SQLBuilder, t exp.ConflictUpdateExpression) {
+	target := t.TargetColumn()
+	if target == "" {
+		if hasConflictTarget(t) {
+			isg.conflictTargetSQL(b, t)
+		}
+		return
+	}
+	hasCols := t.Cols() != nil && len(t.Cols().Columns()) > 0
+	if hasCols || t.Constraint() != "" {
+		b.SetError(ErrConflictTargetAmbiguous())
+		return
+	}
+	isRawConstraint := strings.HasPrefix(strings.ToLower(strings.TrimSpace(target)), "on constraint")
+	if t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty() {
+		if isRawConstraint {
+			b.SetError(ErrConflictTargetWhereRequiresCols())
+			return
+		}
+		if !isg.DialectOptions().SupportsConflictTarget {
+			b.SetError(ErrConflictTargetNotSupported(isg.Dialect()))
+			return
+		}
+		b.WriteRunes(isg.DialectOptions().SpaceRune, isg.DialectOptions().LeftParenRune).
+			WriteStrings(target).
+			WriteRunes(isg.DialectOptions().RightParenRune)
+		isg.conflictTargetWhereSQL(b, t.TargetWhereClause())
+		return
+	}
+	// legacy: the target is a raw string written as is when the dialect supports conflict targets
+	if isg.DialectOptions().SupportsConflictTarget {
+		b.WriteRunes(isg.DialectOptions().SpaceRune)
+		if isRawConstraint {
+			b.WriteStrings(target)
+		} else {
+			b.WriteRunes(isg.DialectOptions().LeftParenRune).
+				WriteStrings(target).
+				WriteRunes(isg.DialectOptions().RightParenRune)
+		}
+	}
+}
+
 // Generates the target of an ON CONFLICT clause: (cols) [WHERE predicate] or ON CONSTRAINT name
 func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.ConflictTargetExpression) {
 	hasCols := t.Cols() != nil && len(t.Cols().Columns()) > 0
@@ -217,7 +246,11 @@ func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.Conflict
 		case hasWhere:
 			b.SetError(ErrConflictTargetWhereRequiresCols())
 		default:
-			b.Write(isg.DialectOptions().ConflictOnConstraintFragment)
+			fragment := isg.DialectOptions().ConflictOnConstraintFragment
+			if len(fragment) == 0 {
+				fragment = defaultConflictOnConstraintFragment
+			}
+			b.Write(fragment)
 			isg.ExpressionSQLGenerator().Generate(b, exp.NewIdentifierExpression("", "", t.Constraint()))
 		}
 	case hasCols:
@@ -231,14 +264,19 @@ func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.Conflict
 }
 
 // Writes the partial index predicate of a conflict target with its values interpolated, even for prepared
-// statements: Postgres cannot match a parameterized predicate to a partial index once it switches to a generic plan.
+// statements: neither SQLite nor Postgres (once a reused statement switches to a generic plan) can match a
+// parameterized predicate to a partial index definition.
 func (isg *insertSQLGenerator) conflictTargetWhereSQL(b sb.SQLBuilder, where exp.ExpressionList) {
 	lb := sb.NewSQLBuilder(false)
 	defer sb.ReleaseSQLBuilder(lb)
 	isg.WhereSQL(lb, where)
-	sql, _, err := lb.ToSQL()
+	sql, args, err := lb.ToSQL()
 	if err != nil {
 		b.SetError(err)
+		return
+	}
+	if len(args) > 0 {
+		b.SetError(ErrConflictTargetWhereBindArgs())
 		return
 	}
 	b.WriteStrings(sql)

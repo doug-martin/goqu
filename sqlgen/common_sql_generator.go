@@ -39,11 +39,15 @@ func ErrConflictOnConstraintNotSupported(dialect string) error {
 }
 
 func ErrConflictTargetAmbiguous() error {
-	return errors.New("conflict target cannot specify both columns and a constraint")
+	return errors.New("conflict target cannot specify multiple targets")
 }
 
 func ErrConflictTargetWhereRequiresCols() error {
-	return errors.New("conflict target WHERE requires target columns (see SetCols)")
+	return errors.New("conflict target WHERE requires target columns (see TargetCols or SetCols)")
+}
+
+func ErrConflictTargetWhereBindArgs() error {
+	return errors.New("conflict target WHERE cannot contain bind parameters")
 }
 
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {

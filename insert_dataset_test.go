@@ -371,6 +371,14 @@ func (ids *insertDatasetSuite) TestOnConflict() {
 			clauses: exp.NewInsertClauses().SetInto(goqu.C("items")),
 		},
 	)
+
+	// Mutating a ConflictExpression after passing it to OnConflict must not mutate the InsertDataset.
+	shared := goqu.DoNothing().TargetCols("a")
+	ds1 := bd.Rows(goqu.Record{"a": 1}).OnConflict(shared)
+	shared.TargetCols("b")
+	sql, _, err := ds1.ToSQL()
+	ids.NoError(err)
+	ids.Equal(`INSERT INTO "items" ("a") VALUES (1) ON CONFLICT ("a") DO NOTHING`, sql)
 }
 
 func (ids *insertDatasetSuite) TestAs() {
