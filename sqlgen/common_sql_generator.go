@@ -43,7 +43,7 @@ func ErrConflictTargetAmbiguous() error {
 }
 
 func ErrConflictTargetWhereRequiresCols() error {
-	return errors.New("conflict target WHERE requires target columns")
+	return errors.New("conflict target WHERE requires target columns (see SetCols)")
 }
 
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {

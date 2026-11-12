@@ -628,6 +628,37 @@ func (pt *postgresTest) TestInsert_OnConflictTargets() {
 	pt.Equal(int64(1), count)
 }
 
+// Postgres switches a reused prepared statement to a generic plan after five executions; a partial index predicate
+// written as a bind parameter can no longer be matched at that point, so the predicate must be interpolated.
+func (pt *postgresTest) TestInsert_OnConflictTargetWherePrepared() {
+	_, err := pt.db.Exec(`
+		DROP TABLE IF EXISTS "partial_targets";
+		CREATE TABLE "partial_targets" ("id" SERIAL PRIMARY KEY, "slug" TEXT NOT NULL, "kind" TEXT NOT NULL);
+		CREATE UNIQUE INDEX "partial_targets_live" ON "partial_targets" ("slug") WHERE "kind" = 'live'`)
+	pt.Require().NoError(err)
+
+	insertSQL, args, err := pt.db.Insert("partial_targets").Prepared(true).
+		Rows(goqu.Record{"slug": "a", "kind": "live"}).
+		OnConflict(goqu.DoUpdate("", goqu.Record{"slug": goqu.L("EXCLUDED.slug")}).
+			SetCols(exp.NewColumnListExpression("slug")).
+			TargetWhere(goqu.C("kind").Eq("live"))).
+		ToSQL()
+	pt.Require().NoError(err)
+	pt.Equal(`INSERT INTO "partial_targets" ("kind", "slug") VALUES ($1, $2) ON CONFLICT ("slug") WHERE ("kind" = 'live') `+
+		`DO UPDATE SET "slug"=EXCLUDED.slug`, insertSQL)
+
+	stmt, err := pt.db.Prepare(insertSQL)
+	pt.Require().NoError(err)
+	defer stmt.Close()
+	for i := range 8 {
+		_, err = stmt.Exec(args...)
+		pt.Require().NoError(err, "execution %d", i+1)
+	}
+	count, err := pt.db.From("partial_targets").Count()
+	pt.NoError(err)
+	pt.Equal(int64(1), count)
+}
+
 func (pt *postgresTest) TestWindowFunction() {
 	ds := pt.db.From("entry").
 		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).

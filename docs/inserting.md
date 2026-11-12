@@ -497,6 +497,8 @@ INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ON CONSTRAINT "test_
 
 To target a partial unique index, add the index predicate with `TargetWhere` (it requires `SetCols`). This is not the
 same as `DoUpdate(...).Where(...)`, which filters the rows that get updated.
+The predicate's values are always interpolated, even for prepared statements, because Postgres cannot match a
+parameterized predicate to a partial index once a reused statement switches to a generic plan.
 
 ```go
 sql, _, _ := goqu.Insert("test").

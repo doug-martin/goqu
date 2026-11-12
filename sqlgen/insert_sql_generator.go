@@ -217,17 +217,31 @@ func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.Conflict
 		case hasWhere:
 			b.SetError(ErrConflictTargetWhereRequiresCols())
 		default:
-			b.Write([]byte(" ON CONSTRAINT "))
+			b.Write(isg.DialectOptions().ConflictOnConstraintFragment)
 			isg.ExpressionSQLGenerator().Generate(b, exp.NewIdentifierExpression("", "", t.Constraint()))
 		}
 	case hasCols:
 		isg.ConflictTargetSQL(b, t.Cols())
 		if b.Error() == nil && hasWhere {
-			isg.WhereSQL(b, t.TargetWhereClause())
+			isg.conflictTargetWhereSQL(b, t.TargetWhereClause())
 		}
 	case hasWhere:
 		b.SetError(ErrConflictTargetWhereRequiresCols())
 	}
+}
+
+// Writes the partial index predicate of a conflict target with its values interpolated, even for prepared
+// statements: Postgres cannot match a parameterized predicate to a partial index once it switches to a generic plan.
+func (isg *insertSQLGenerator) conflictTargetWhereSQL(b sb.SQLBuilder, where exp.ExpressionList) {
+	lb := sb.NewSQLBuilder(false)
+	defer sb.ReleaseSQLBuilder(lb)
+	isg.WhereSQL(lb, where)
+	sql, _, err := lb.ToSQL()
+	if err != nil {
+		b.SetError(err)
+		return
+	}
+	b.WriteStrings(sql)
 }
 
 func (isg *insertSQLGenerator) onConflictDoUpdateSQL(b sb.SQLBuilder, o exp.ConflictUpdateExpression) {

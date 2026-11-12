@@ -431,9 +431,9 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 		},
 		insertTestCase{
 			clause:     set(exp.NewDoNothingConflictExpression().SetCols(cols).TargetWhere(exp.Ex{"c": 1})),
-			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") WHERE ("c" = ?) do nothing`,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") WHERE ("c" = 1) do nothing`,
 			isPrepared: true,
-			args:       []any{"a1", int64(1)},
+			args:       []any{"a1"},
 		},
 		insertTestCase{
 			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols)),
@@ -457,10 +457,10 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 		insertTestCase{
 			clause: set(exp.NewDoUpdateConflictExpression("", exp.Record{"a": "u"}).SetCols(cols).
 				TargetWhere(exp.Ex{"c": "t"}).Where(exp.Ex{"d": "w"})),
-			sql: `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") WHERE ("c" = ?) ` +
+			sql: `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") WHERE ("c" = 't') ` +
 				`do update set "a"=? WHERE ("d" = ?)`,
 			isPrepared: true,
-			args:       []any{"a1", "t", "u", "w"},
+			args:       []any{"a1", "u", "w"},
 		},
 		insertTestCase{
 			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).OnConstraint("test_key")),
@@ -472,15 +472,27 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 		},
 		insertTestCase{
 			clause: set(exp.NewDoNothingConflictExpression().TargetWhere(exp.Ex{"c": nil})),
-			err:    "goqu: conflict target WHERE requires target columns",
+			err:    "goqu: conflict target WHERE requires target columns (see SetCols)",
 		},
 		insertTestCase{
 			clause: set(exp.NewDoUpdateConflictExpression("", upd).TargetWhere(exp.Ex{"c": nil})),
-			err:    "goqu: conflict target WHERE requires target columns",
+			err:    "goqu: conflict target WHERE requires target columns (see SetCols)",
 		},
 		insertTestCase{
 			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key").TargetWhere(exp.Ex{"c": nil})),
-			err:    "goqu: conflict target WHERE requires target columns",
+			err:    "goqu: conflict target WHERE requires target columns (see SetCols)",
+		},
+	)
+
+	lower := sqlgen.DefaultDialectOptions()
+	lower.ConflictFragment = []byte(" on conflict")
+	lower.ConflictOnConstraintFragment = []byte(" on constraint ")
+	lower.ConflictDoNothingFragment = []byte(" do nothing")
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", lower),
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key")),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict on constraint "test_key" do nothing`,
 		},
 	)
 
