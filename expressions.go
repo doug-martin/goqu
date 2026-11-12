@@ -361,6 +361,16 @@ func Range(start, end interface{}) exp.RangeVal {
 	return exp.NewRangeVal(start, end)
 }
 
+// Creates an ordered expression from a literal that is written as is, without an appended ASC or DESC. Use it for
+// ORDER BY forms that goqu does not model, or when the direction is part of the literal.
+//
+//	Order(OrderLiteral("a ASC WITH FILL FROM ? TO ? STEP ?", 0, 10, 2)) -> ORDER BY a ASC WITH FILL FROM 0 TO 10 STEP 2
+//
+// The SQL is not escaped, so never build it from untrusted input. Values passed as args are escaped or bound as usual.
+func OrderLiteral(sql string, args ...any) exp.OrderedExpression {
+	return exp.NewOrderLiteral(sql, args...)
+}
+
 // Creates a literal *
 func Star() exp.LiteralExpression { return exp.Star() }
 

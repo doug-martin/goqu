@@ -1823,3 +1823,16 @@ func TestExpressionSQLGenerator(t *testing.T) {
 }
 
 func ptrTo[T any](v T) *T { return &v }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderLiteral() {
+	lit := exp.NewOrderLiteral("a ASC WITH FILL FROM ? TO ? STEP ?", 0, 10, 2)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: lit, sql: `a ASC WITH FILL FROM 0 TO 10 STEP 2`},
+		expressionTestCase{
+			val: lit, sql: `a ASC WITH FILL FROM ? TO ? STEP ?`, isPrepared: true, args: []any{int64(0), int64(10), int64(2)},
+		},
+		expressionTestCase{val: lit.NullsFirst(), sql: `a ASC WITH FILL FROM 0 TO 10 STEP 2 NULLS FIRST`},
+		expressionTestCase{val: lit.Clone(), sql: `a ASC WITH FILL FROM 0 TO 10 STEP 2`},
+	)
+}
