@@ -197,16 +197,32 @@ func TestDatasetAdapterSuite(t *testing.T) {
 }
 
 func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
-	_, _, err := goqu.Dialect("mysql").Insert("test").
-		Rows(goqu.Record{"a": "a"}).
-		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).
-		ToSQL()
-	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=mysql]")
+	upd := goqu.Record{"b": goqu.L("VALUES(`b`)")}
+	for _, dialect := range []string{"mysql", "mysql8"} {
+		ds := goqu.Dialect(dialect).Insert("test").Rows(goqu.Record{"a": "a"})
 
-	// no target is still fine
-	_, _, err = goqu.Dialect("mysql").Insert("test").
-		Rows(goqu.Record{"a": "a"}).
-		OnConflict(goqu.DoNothing()).
-		ToSQL()
-	assert.NoError(t, err)
+		_, _, err := ds.OnConflict(goqu.DoNothing().TargetCols("a")).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect="+dialect+"]")
+
+		_, _, err = ds.OnConflict(goqu.DoUpdateSet(upd).TargetCols("a", "b")).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect="+dialect+"]")
+
+		_, _, err = ds.OnConflict(goqu.DoUpdate("a", upd).TargetWhere(goqu.C("c").IsNull())).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect="+dialect+"]")
+
+		_, _, err = ds.OnConflict(goqu.DoNothing().OnConstraint("k")).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support ON CONFLICT ON CONSTRAINT [dialect="+dialect+"]")
+
+		_, _, err = ds.OnConflict(goqu.DoUpdateSet(upd).OnConstraint("k")).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support ON CONFLICT ON CONSTRAINT [dialect="+dialect+"]")
+
+		// targetless DoNothing and DoUpdateSet are supported
+		sql, _, err := ds.OnConflict(goqu.DoNothing()).ToSQL()
+		assert.NoError(t, err)
+		assert.Equal(t, "INSERT IGNORE INTO `test` (`a`) VALUES ('a')", sql)
+
+		sql, _, err = ds.OnConflict(goqu.DoUpdateSet(upd)).ToSQL()
+		assert.NoError(t, err)
+		assert.Equal(t, "INSERT INTO `test` (`a`) VALUES ('a') ON DUPLICATE KEY UPDATE `b`=VALUES(`b`)", sql)
+	}
 }

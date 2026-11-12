@@ -33,3 +33,64 @@ func TestDoNothingConflictClone(t *testing.T) {
 	_, ok = dn.Expression().(exp.ConflictNothingExpression)
 	assert.True(t, ok)
 }
+
+func TestConflictTargetBuilders(t *testing.T) {
+	cols := exp.NewColumnListExpression("a", "b")
+	where := exp.Ex{"c": nil}
+
+	dn := exp.NewDoNothingConflictExpression()
+	assert.Empty(t, dn.Constraint())
+	assert.Nil(t, dn.TargetWhereClause())
+	assert.Same(t, dn, dn.TargetCols("a", "b").OnConstraint("k").TargetWhere(where))
+	assert.Equal(t, cols, dn.Cols())
+	assert.Equal(t, "k", dn.Constraint())
+	assert.NotNil(t, dn.TargetWhereClause())
+	dnClone := dn.Clone().(exp.ConflictNothingExpression)
+	assert.Equal(t, dn.Cols(), dnClone.Cols())
+	assert.Equal(t, "k", dnClone.Constraint())
+	assert.Equal(t, dn.TargetWhereClause(), dnClone.TargetWhereClause())
+
+	du := exp.NewDoUpdateConflictExpression("t", exp.Record{"a": 1})
+	assert.Nil(t, du.Cols())
+	assert.Empty(t, du.Constraint())
+	assert.Nil(t, du.TargetWhereClause())
+	assert.Same(t, du, du.TargetCols("a", "b").OnConstraint("k").TargetWhere(where).TargetWhere(exp.Ex{"d": 1}))
+	assert.Equal(t, cols, du.Cols())
+	assert.Equal(t, "k", du.Constraint())
+	assert.Equal(t, "t", du.TargetColumn())
+	assert.Len(t, du.TargetWhereClause().Expressions(), 2)
+	duClone := du.Clone().(exp.ConflictUpdateExpression)
+	assert.Equal(t, du.Cols(), duClone.Cols())
+	assert.Equal(t, "k", duClone.Constraint())
+	assert.Equal(t, du.TargetWhereClause(), duClone.TargetWhereClause())
+	assert.Nil(t, duClone.WhereClause())
+}
+
+func TestDoUpdateConflictCloneWithWhere(t *testing.T) {
+	du := exp.NewDoUpdateConflictExpression("t", exp.Record{"a": 1}).Where(exp.Ex{"b": 1})
+	clone := du.Clone().(exp.ConflictUpdateExpression)
+	assert.Equal(t, du.WhereClause(), clone.WhereClause())
+}
+
+func TestConflictCloneIsIndependent(t *testing.T) {
+	dn := exp.NewDoNothingConflictExpression().SetCols(exp.NewColumnListExpression("a")).TargetWhere(exp.Ex{"c": 1})
+	dnClone := dn.Clone().(exp.ConflictNothingExpression)
+	dn.TargetWhere(exp.Ex{"d": 2}).OnConstraint("k")
+	assert.Len(t, dnClone.TargetWhereClause().Expressions(), 1)
+	assert.Empty(t, dnClone.Constraint())
+
+	du := exp.NewDoUpdateConflictExpression("", exp.Record{"a": 1}).TargetWhere(exp.Ex{"c": 1}).Where(exp.Ex{"e": 1})
+	duClone := du.Clone().(exp.ConflictUpdateExpression)
+	du.TargetWhere(exp.Ex{"d": 2}).Where(exp.Ex{"f": 2})
+	assert.Len(t, duClone.TargetWhereClause().Expressions(), 1)
+	assert.Len(t, duClone.WhereClause().Expressions(), 1)
+}
+
+func TestConflict_cloneWithNilWhere(t *testing.T) {
+	du := exp.NewDoUpdateConflictExpression("a", exp.Record{"a": "b"}).Where(nil).TargetWhere(nil)
+	assert.NotPanics(t, func() { du.Clone() })
+	dn := exp.NewDoNothingConflictExpression().TargetCols("a").TargetWhere(nil)
+	assert.NotPanics(t, func() {
+		exp.NewInsertClauses().SetOnConflict(dn).SetOnConflict(du)
+	})
+}

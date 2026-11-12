@@ -78,3 +78,9 @@ Functions, channels and complex numbers can never be bound by a driver, so they 
 Interpolated `[]byte` values are written as a string literal when they are valid UTF-8, and as a binary (hex) literal otherwise, using the dialect's `BinaryLiteralPrefix` and `BinaryLiteralSuffix` (`X'28fa'` by default, `decode('28fa', 'hex')` for `postgres`, `0x28fa` for `sqlserver`). The `postgres` and `sqlserver` dialects also use a binary literal when the bytes contain a NUL byte, as it cannot be part of a text literal.
 
 **NOTE** Binary data that is valid UTF-8 and has no NUL byte is still written as a string, so a value containing a backslash is read by PostgreSQL as a `bytea` escape sequence. When you store arbitrary binary data in a `bytea` column, use `Prepared(true)` or pass the value as a hex literal yourself.
+
+## Conflict target predicates (`TargetWhere`)
+
+Partial unique index predicates passed to `TargetWhere` on `DoNothing()` or `DoUpdateSet()` / `DoUpdate()` are always interpolated as SQL literals, even when `Prepared(true)` is set on the dataset. Neither SQLite nor PostgreSQL (once a reused prepared statement switches to a generic plan) can match bind parameters to a `CREATE UNIQUE INDEX ... WHERE ...` definition.
+
+Only pass static schema constants to `TargetWhere` — never untrusted user input. To filter which rows are updated at runtime using bind parameters, use `DoUpdateSet(...).Where(...)`.

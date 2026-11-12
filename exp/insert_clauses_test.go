@@ -203,8 +203,13 @@ func (ics *insertClausesSuite) TestSetOnConflict() {
 	c2 := c.SetOnConflict(ce2)
 
 	ics.Equal(ce, c.OnConflict())
-
 	ics.Equal(ce2, c2.OnConflict())
+
+	// Mutating the conflict expression after SetOnConflict must not mutate existing clauses.
+	ce.TargetCols("mutated")
+	ics.Nil(c.OnConflict().(exp.ConflictNothingExpression).Cols())
+	ce2.Where(exp.Ex{"x": 1})
+	ics.Nil(c2.OnConflict().(exp.ConflictUpdateExpression).WhereClause())
 }
 
 func (ics *insertClausesSuite) TestReturning() {

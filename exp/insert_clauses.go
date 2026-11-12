@@ -62,6 +62,14 @@ func (ic *insertClauses) HasInto() bool {
 }
 
 func (ic *insertClauses) clone() *insertClauses {
+	var conflict ConflictExpression
+	if ic.conflict != nil {
+		if cloned, ok := ic.conflict.Clone().(ConflictExpression); ok {
+			conflict = cloned
+		} else {
+			conflict = ic.conflict
+		}
+	}
 	return &insertClauses{
 		commonTables: ic.commonTables,
 		cols:         ic.cols,
@@ -71,7 +79,7 @@ func (ic *insertClauses) clone() *insertClauses {
 		rows:         ic.rows,
 		values:       ic.values,
 		from:         ic.from,
-		conflict:     ic.conflict,
+		conflict:     conflict,
 	}
 }
 
@@ -200,6 +208,12 @@ func (ic *insertClauses) OnConflict() ConflictExpression {
 
 func (ic *insertClauses) SetOnConflict(expression ConflictExpression) InsertClauses {
 	ret := ic.clone()
-	ret.conflict = expression
+	if expression == nil {
+		ret.conflict = nil
+	} else if cloned, ok := expression.Clone().(ConflictExpression); ok {
+		ret.conflict = cloned
+	} else {
+		ret.conflict = expression
+	}
 	return ret
 }

@@ -602,6 +602,65 @@ func (st *sqlite3Suite) TestInsert_OnConflict() {
 	st.Equal("upsert", entryActual.String)
 }
 
+func (st *sqlite3Suite) TestInsert_OnConflictTargets() {
+	_, err := st.db.Exec(`
+		DROP TABLE IF EXISTS conflict_targets;
+		CREATE TABLE conflict_targets (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			a INTEGER NOT NULL,
+			b INTEGER NOT NULL,
+			val TEXT NOT NULL,
+			slug TEXT,
+			kind TEXT,
+			UNIQUE (a, b)
+		);
+		CREATE UNIQUE INDEX conflict_targets_slug_live ON conflict_targets (slug) WHERE kind = 'live'`)
+	st.Require().NoError(err)
+
+	ds := st.db.From("conflict_targets")
+	for i, prepared := range []bool{false, true} {
+		a := i + 1
+		ins := ds.Prepared(prepared).Insert()
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "initial"}).Executor().Exec()
+		st.Require().NoError(err)
+
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "ignored"}).
+			OnConflict(goqu.DoNothing().TargetCols("a", "b")).Executor().Exec()
+		st.NoError(err)
+
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "updated"}).
+			OnConflict(goqu.DoUpdateSet(goqu.Record{"val": goqu.L("EXCLUDED.val")}).TargetCols("a", "b")).
+			Executor().Exec()
+		st.NoError(err)
+
+		var got string
+		_, err = ds.Select("val").Where(goqu.Ex{"a": a, "b": 1}).ScanVal(&got)
+		st.NoError(err)
+		st.Equal("updated", got)
+
+		// Partial unique index predicate (SQLite rejects bind parameters in ON CONFLICT ... WHERE ...).
+		slug := fmt.Sprintf("slug-%d", a)
+		_, err = ins.Rows(goqu.Record{"a": a + 10, "b": 1, "val": "v1", "slug": slug, "kind": "live"}).
+			Executor().Exec()
+		st.Require().NoError(err)
+
+		_, err = ins.Rows(goqu.Record{"a": a + 20, "b": 1, "val": "v2", "slug": slug, "kind": "live"}).
+			OnConflict(goqu.DoNothing().TargetCols("slug").TargetWhere(goqu.C("kind").Eq("live"))).
+			Executor().Exec()
+		st.NoError(err)
+
+		_, err = ins.Rows(goqu.Record{"a": a + 20, "b": 1, "val": "v3", "slug": slug, "kind": "live"}).
+			OnConflict(goqu.DoUpdateSet(goqu.Record{"val": "v3"}).
+				TargetCols("slug").TargetWhere(goqu.C("kind").Eq("live"))).
+			Executor().Exec()
+		st.NoError(err)
+
+		_, err = ds.Select("val").Where(goqu.Ex{"slug": slug, "kind": "live"}).ScanVal(&got)
+		st.NoError(err)
+		st.Equal("v3", got)
+	}
+}
+
 func TestSqlite3Suite(t *testing.T) {
 	suite.Run(t, new(sqlite3Suite))
 }

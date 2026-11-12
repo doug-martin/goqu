@@ -156,16 +156,22 @@ func TestDatasetAdapterSuite(t *testing.T) {
 }
 
 func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
-	_, _, err := goqu.Dialect("sqlserver").Insert("test").
-		Rows(goqu.Record{"a": "a"}).
-		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).
-		ToSQL()
+	upd := goqu.Record{"b": 2}
+	ds := goqu.Dialect("sqlserver").Insert("test").Rows(goqu.Record{"a": "a"})
+
+	_, _, err := ds.OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a"))).ToSQL()
 	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=sqlserver]")
 
+	_, _, err = ds.OnConflict(goqu.DoUpdateSet(upd).TargetCols("a", "b")).ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support Conflict Target clause [dialect=sqlserver]")
+
+	_, _, err = ds.OnConflict(goqu.DoNothing().OnConstraint("k")).ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support ON CONFLICT ON CONSTRAINT [dialect=sqlserver]")
+
+	_, _, err = ds.OnConflict(goqu.DoUpdateSet(upd).OnConstraint("k")).ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support ON CONFLICT ON CONSTRAINT [dialect=sqlserver]")
+
 	// no target is still fine
-	_, _, err = goqu.Dialect("sqlserver").Insert("test").
-		Rows(goqu.Record{"a": "a"}).
-		OnConflict(goqu.DoNothing()).
-		ToSQL()
+	_, _, err = ds.OnConflict(goqu.DoNothing()).ToSQL()
 	assert.NoError(t, err)
 }

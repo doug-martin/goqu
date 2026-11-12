@@ -38,6 +38,10 @@ func NewExpressionList(operator ExpressionListType, expressions ...Expression) E
 func (el expressionList) Clone() Expression {
 	newExps := make([]Expression, 0, len(el.expressions))
 	for _, exp := range el.expressions {
+		if exp == nil {
+			newExps = append(newExps, nil)
+			continue
+		}
 		newExps = append(newExps, exp.Clone())
 	}
 	return expressionList{operator: el.operator, expressions: newExps}

@@ -40,6 +40,26 @@ func ErrConflictTargetNotSupported(dialect string) error {
 	return errors.New("dialect does not support Conflict Target clause [dialect=%s]", dialect)
 }
 
+func ErrConflictOnConstraintNotSupported(dialect string) error {
+	return errors.New("dialect does not support ON CONFLICT ON CONSTRAINT [dialect=%s]", dialect)
+}
+
+func ErrConflictTargetAmbiguous() error {
+	return errors.New("conflict target cannot specify multiple targets")
+}
+
+func ErrConflictTargetWhereRequiresCols() error {
+	return errors.New("conflict target WHERE requires target columns (see TargetCols or SetCols)")
+}
+
+func ErrConflictTargetWhereBindArgs() error {
+	return errors.New("conflict target WHERE cannot contain bind parameters")
+}
+
+func ErrConflictTargetBindArgs() error {
+	return errors.New("conflict target columns cannot contain bind parameters")
+}
+
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {
 	return errors.New("unsupported %s SQL fragment %s", sqlType, f)
 }

@@ -561,6 +561,105 @@ func (pt *postgresTest) TestInsert_OnConflict() {
 	pt.Equal("upsert", entry9.String)
 }
 
+func (pt *postgresTest) TestInsert_OnConflictTargets() {
+	_, err := pt.db.Exec(`
+		DROP TABLE IF EXISTS "targets";
+		CREATE TABLE "targets" (
+			"id" SERIAL PRIMARY KEY, "a" INT NOT NULL, "b" INT NOT NULL, "val" TEXT NOT NULL, "slug" TEXT, "deleted_at" TIMESTAMP,
+			CONSTRAINT "targets_a_b_key" UNIQUE ("a", "b")
+		);
+		CREATE UNIQUE INDEX "targets_slug_live" ON "targets" ("slug") WHERE "deleted_at" IS NULL`)
+	pt.Require().NoError(err)
+	ds := pt.db.From("targets")
+	cols := exp.NewColumnListExpression("a", "b")
+	valueOf := func(a, b int) string {
+		var v string
+		_, err := ds.Select("val").Where(goqu.Ex{"a": a, "b": b}).ScanVal(&v)
+		pt.Require().NoError(err)
+		return v
+	}
+
+	for _, prepared := range []bool{false, true} {
+		ins := ds.Prepared(prepared).Insert()
+		a := int(1)
+		if prepared {
+			a = 2
+		}
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "first"}).Executor().Exec()
+		pt.Require().NoError(err)
+
+		// multi column target
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "dup"}).
+			OnConflict(goqu.DoNothing().SetCols(cols)).Executor().Exec()
+		pt.NoError(err)
+		pt.Equal("first", valueOf(a, 1))
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "multi"}).
+			OnConflict(goqu.DoUpdate("", goqu.Record{"val": goqu.L("EXCLUDED.val")}).SetCols(cols)).Executor().Exec()
+		pt.NoError(err)
+		pt.Equal("multi", valueOf(a, 1))
+
+		// named constraint
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "dup"}).
+			OnConflict(goqu.DoNothing().OnConstraint("targets_a_b_key")).Executor().Exec()
+		pt.NoError(err)
+		pt.Equal("multi", valueOf(a, 1))
+		_, err = ins.Rows(goqu.Record{"a": a, "b": 1, "val": "constraint"}).
+			OnConflict(goqu.DoUpdate("", goqu.Record{"val": goqu.L("EXCLUDED.val")}).
+				OnConstraint("targets_a_b_key")).Executor().Exec()
+		pt.NoError(err)
+		pt.Equal("constraint", valueOf(a, 1))
+	}
+
+	// partial index target
+	partial := goqu.C("deleted_at").IsNull()
+	_, err = ds.Insert().Rows(goqu.Record{"a": 10, "b": 10, "val": "x", "slug": "live"}).Executor().Exec()
+	pt.Require().NoError(err)
+	_, err = ds.Insert().Rows(goqu.Record{"a": 11, "b": 11, "val": "x", "slug": "live"}).
+		OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("slug")).TargetWhere(partial)).
+		Executor().Exec()
+	pt.NoError(err)
+	_, err = ds.Insert().Rows(goqu.Record{"a": 11, "b": 11, "val": "x", "slug": "live"}).
+		OnConflict(goqu.DoUpdate("", goqu.Record{"a": 12}).
+			SetCols(exp.NewColumnListExpression("slug")).TargetWhere(partial)).
+		Executor().Exec()
+	pt.NoError(err)
+	count, err := ds.Where(goqu.C("slug").Eq("live")).Count()
+	pt.NoError(err)
+	pt.Equal(int64(1), count)
+}
+
+// Postgres switches a reused prepared statement to a generic plan after five executions; a partial index predicate
+// written as a bind parameter can no longer be matched at that point, so the predicate must be interpolated.
+func (pt *postgresTest) TestInsert_OnConflictTargetWherePrepared() {
+	_, err := pt.db.Exec(`
+		DROP TABLE IF EXISTS "partial_targets";
+		CREATE TABLE "partial_targets" ("id" SERIAL PRIMARY KEY, "slug" TEXT NOT NULL, "kind" TEXT NOT NULL);
+		CREATE UNIQUE INDEX "partial_targets_live" ON "partial_targets" ("slug") WHERE "kind" = 'live'`)
+	pt.Require().NoError(err)
+
+	insertSQL, args, err := pt.db.Insert("partial_targets").Prepared(true).
+		Rows(goqu.Record{"slug": "a", "kind": "live"}).
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"slug": goqu.L("EXCLUDED.slug")}).
+			TargetCols("slug").
+			TargetWhere(goqu.C("kind").Eq("live"))).
+		ToSQL()
+	pt.Require().NoError(err)
+	pt.Equal(`INSERT INTO "partial_targets" ("kind", "slug") VALUES ($1, $2) ON CONFLICT ("slug") WHERE ("kind" = 'live') `+
+		`DO UPDATE SET "slug"=EXCLUDED.slug`, insertSQL)
+
+	ctx := pt.T().Context()
+	stmt, err := pt.db.PrepareContext(ctx, insertSQL)
+	pt.Require().NoError(err)
+	defer stmt.Close()
+	for i := range 8 {
+		_, err = stmt.ExecContext(ctx, args...)
+		pt.Require().NoError(err, "execution %d", i+1)
+	}
+	count, err := pt.db.From("partial_targets").Count()
+	pt.NoError(err)
+	pt.Equal(int64(1), count)
+}
+
 func (pt *postgresTest) TestWindowFunction() {
 	ds := pt.db.From("entry").
 		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).

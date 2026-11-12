@@ -614,6 +614,24 @@ func ExampleDoUpdate_where() {
 	// INSERT INTO "items" ("address") VALUES (?) ON CONFLICT (address) DO UPDATE SET "address"="excluded"."address" WHERE ("items"."updated" IS NULL) [111 Address]
 }
 
+func ExampleDoUpdateSet() {
+	ds := goqu.Insert("items").Rows(goqu.Record{"name": "bob", "address": "111 Address"})
+
+	sql, args, _ := ds.
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"address": goqu.I("excluded.address")}).TargetCols("name")).
+		ToSQL()
+	fmt.Println(sql, args)
+
+	sql, args, _ = ds.Prepared(true).
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"address": goqu.I("excluded.address")}).OnConstraint("items_name_key")).
+		ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Address', 'bob') ON CONFLICT ("name") DO UPDATE SET "address"="excluded"."address" []
+	// INSERT INTO "items" ("address", "name") VALUES (?, ?) ON CONFLICT ON CONSTRAINT "items_name_key" DO UPDATE SET "address"="excluded"."address" [111 Address bob]
+}
+
 func ExampleFIRST() {
 	ds := goqu.From("test").Select(goqu.FIRST("col"))
 	sql, args, _ := ds.ToSQL()

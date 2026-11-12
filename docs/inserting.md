@@ -458,17 +458,14 @@ Output:
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT DO NOTHING
 ```
 
-To specify the conflict target columns, use `SetCols`. This is supported by dialects that support a conflict target
-(Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead of silently
-ignoring the target.
-
-`SetCols` only supports a list of columns. To target a named constraint (`ON CONSTRAINT name`), use
-`DoUpdate` with a constraint target instead.
+To specify the conflict target columns, use `TargetCols` (or `SetCols`). This is supported by dialects that support a
+conflict target (Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead
+of silently ignoring the target.
 
 ```go
 sql, _, _ := goqu.Insert("test").
 	Rows(goqu.Record{"a": "a", "b": "b"}).
-	OnConflict(goqu.DoNothing().SetCols(exp.NewColumnListExpression("a", "b"))).
+	OnConflict(goqu.DoNothing().TargetCols("a", "b")).
 	ToSQL()
 fmt.Println(sql)
 ```
@@ -478,6 +475,53 @@ Output:
 ```
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a", "b") DO NOTHING
 ```
+
+`TargetCols`, `SetCols`, `OnConstraint` and `TargetWhere` are available on both `DoNothing()` and `DoUpdateSet()` (as
+well as `DoUpdate()`).
+
+To update rows on conflict across multiple columns, or on a named constraint (Postgres), pair `DoUpdateSet` with
+`TargetCols` or `OnConstraint`. Constraint names are quoted as identifiers and cannot be combined with `TargetCols`.
+
+```go
+sql, _, _ := goqu.Insert("test").
+	Rows(goqu.Record{"a": "a", "b": "b"}).
+	OnConflict(goqu.DoUpdateSet(goqu.Record{"b": goqu.L("EXCLUDED.b")}).OnConstraint("test_a_key")).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ON CONSTRAINT "test_a_key" DO UPDATE SET "b"=EXCLUDED.b
+```
+
+To target a partial unique index, add the index predicate with `TargetWhere` (it requires target columns). This is not
+the same as `DoUpdateSet(...).Where(...)`, which filters the rows that get updated.
+
+**NOTE** Values inside `TargetWhere` are always interpolated as SQL literals, even when `Prepared(true)` is set, because
+neither SQLite nor Postgres (once a reused statement switches to a generic plan) can match a parameterized predicate to
+a partial index definition. Only pass static schema constants to `TargetWhere` — never untrusted user input.
+
+```go
+sql, _, _ := goqu.Insert("test").
+	Rows(goqu.Record{"a": "a", "b": "b"}).
+	OnConflict(goqu.DoNothing().
+		TargetCols("a").
+		TargetWhere(goqu.C("deleted_at").IsNull())).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a") WHERE ("deleted_at" IS NULL) DO NOTHING
+```
+
+`DoUpdate(target, update)` is still accepted for a raw target string (e.g. `"a"` or `"on constraint name"`), written as
+is when no `TargetCols`/`OnConstraint` is set. Combining a non-empty `DoUpdate` target string with `TargetCols`,
+`SetCols`, or `OnConstraint` returns an error; use `DoUpdateSet(update)` instead.
 
 <a name="returning"></a>
 **Returning Clause**
