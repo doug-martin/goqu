@@ -199,7 +199,8 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 }
 
 func hasConflictTarget(t exp.ConflictTargetExpression) bool {
-	return (t.Cols() != nil && len(t.Cols().Columns()) > 0) || t.Constraint() != ""
+	return (t.Cols() != nil && len(t.Cols().Columns()) > 0) || t.Constraint() != "" ||
+		(t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty())
 }
 
 // Generates the target of an ON CONFLICT clause: (cols) [WHERE predicate] or ON CONSTRAINT name

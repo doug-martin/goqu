@@ -467,6 +467,10 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 			err:    "goqu: conflict target WHERE requires target columns",
 		},
 		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns",
+		},
+		insertTestCase{
 			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key").TargetWhere(exp.Ex{"c": nil})),
 			err:    "goqu: conflict target WHERE requires target columns",
 		},
