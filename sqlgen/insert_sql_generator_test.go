@@ -405,6 +405,97 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictDoNothingTarget() {
 	)
 }
 
+func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.ConflictFragment = []byte(" on conflict")
+	opts.ConflictDoNothingFragment = []byte(" do nothing")
+	opts.ConflictDoUpdateFragment = []byte(" do update set ")
+
+	ic := exp.NewInsertClauses().
+		SetInto(exp.NewIdentifierExpression("", "test", "")).
+		SetCols(exp.NewColumnListExpression("a")).
+		SetVals([][]any{{"a1"}})
+	cols := exp.NewColumnListExpression("a", "b")
+	upd := exp.Record{"a": "b"}
+	set := func(c exp.ConflictExpression) exp.InsertClauses { return ic.SetOnConflict(c) }
+
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", opts),
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key")),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ON CONSTRAINT "test_key" do nothing`,
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).TargetWhere(exp.Ex{"c": nil})),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") WHERE ("c" IS NULL) do nothing`,
+		},
+		insertTestCase{
+			clause:     set(exp.NewDoNothingConflictExpression().SetCols(cols).TargetWhere(exp.Ex{"c": 1})),
+			sql:        `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") WHERE ("c" = ?) do nothing`,
+			isPrepared: true,
+			args:       []any{"a1", int64(1)},
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols)),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") do update set "a"='b'`,
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).OnConstraint("test_key")),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ON CONSTRAINT "test_key" do update set "a"='b'`,
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols).
+				TargetWhere(exp.Ex{"c": nil}).Where(exp.Ex{"d": true})),
+			sql: `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") WHERE ("c" IS NULL) ` +
+				`do update set "a"='b' WHERE ("d" IS TRUE)`,
+		},
+		// SetCols takes precedence over the legacy string target
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("legacy", upd).SetCols(cols)),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") do update set "a"='b'`,
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).OnConstraint("test_key")),
+			err:    "goqu: conflict target cannot specify both columns and a constraint",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols).OnConstraint("test_key")),
+			err:    "goqu: conflict target cannot specify both columns and a constraint",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key").TargetWhere(exp.Ex{"c": nil})),
+			err:    "goqu: conflict target WHERE requires target columns",
+		},
+	)
+
+	noConstraint := sqlgen.DefaultDialectOptions()
+	noConstraint.SupportsConflictOnConstraint = false
+	noTarget := sqlgen.DefaultDialectOptions()
+	noTarget.SupportsConflictTarget = false
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", noConstraint),
+		insertTestCase{
+			clause: set(exp.NewDoNothingConflictExpression().OnConstraint("test_key")),
+			err:    "goqu: dialect does not support ON CONFLICT ON CONSTRAINT [dialect=test]",
+		},
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).OnConstraint("test_key")),
+			err:    "goqu: dialect does not support ON CONFLICT ON CONSTRAINT [dialect=test]",
+		},
+	)
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", noTarget),
+		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", upd).SetCols(cols)),
+			err:    "goqu: dialect does not support Conflict Target clause [dialect=test]",
+		},
+	)
+}
+
 // MySQL style: plain INSERT for upserts, INSERT IGNORE only for DO NOTHING.
 func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictOnDuplicateKey() {
 	opts := sqlgen.DefaultDialectOptions()

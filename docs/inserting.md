@@ -462,9 +462,6 @@ To specify the conflict target columns, use `SetCols`. This is supported by dial
 (Postgres, SQLite3). Using it with a dialect that does not (MySQL, SQL Server) returns an error instead of silently
 ignoring the target.
 
-`SetCols` only supports a list of columns. To target a named constraint (`ON CONSTRAINT name`), use
-`DoUpdate` with a constraint target instead.
-
 ```go
 sql, _, _ := goqu.Insert("test").
 	Rows(goqu.Record{"a": "a", "b": "b"}).
@@ -478,6 +475,48 @@ Output:
 ```
 INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a", "b") DO NOTHING
 ```
+
+`SetCols`, `OnConstraint` and `TargetWhere` are available on both `DoNothing()` and `DoUpdate()`.
+
+To target a named constraint (Postgres), use `OnConstraint`. The name is quoted as an identifier and cannot be
+combined with `SetCols`.
+
+```go
+sql, _, _ := goqu.Insert("test").
+	Rows(goqu.Record{"a": "a", "b": "b"}).
+	OnConflict(goqu.DoUpdate("", goqu.Record{"b": goqu.L("EXCLUDED.b")}).OnConstraint("test_a_key")).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ON CONSTRAINT "test_a_key" DO UPDATE SET "b"=EXCLUDED.b
+```
+
+To target a partial unique index, add the index predicate with `TargetWhere` (it requires `SetCols`). This is not the
+same as `DoUpdate(...).Where(...)`, which filters the rows that get updated.
+
+```go
+sql, _, _ := goqu.Insert("test").
+	Rows(goqu.Record{"a": "a", "b": "b"}).
+	OnConflict(goqu.DoNothing().
+		SetCols(exp.NewColumnListExpression("a")).
+		TargetWhere(goqu.C("deleted_at").IsNull())).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+
+```
+INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a") WHERE ("deleted_at" IS NULL) DO NOTHING
+```
+
+`DoUpdate`'s first argument is still accepted as a raw target string (e.g. `"a"` or `"on constraint name"`) and is
+written as is. Pass `""` and use `SetCols`/`OnConstraint` for quoted identifiers and multiple columns; they take
+precedence over the raw string.
 
 <a name="returning"></a>
 **Returning Clause**

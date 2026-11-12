@@ -308,13 +308,29 @@ type (
 		Expression
 		Action() ConflictAction
 	}
+	// ConflictTargetExpression exposes the (optional) target of an ON CONFLICT clause: either a list of columns
+	// (optionally narrowed by a partial index predicate) or the name of a constraint.
+	ConflictTargetExpression interface {
+		// The target columns, or nil if none were set.
+		Cols() ColumnListExpression
+		// The target constraint name, or "" if none was set.
+		Constraint() string
+		// The partial index predicate of the target (ON CONFLICT (cols) WHERE ...), or nil if none was set.
+		TargetWhereClause() ExpressionList
+	}
 	ConflictNothingExpression interface {
 		ConflictExpression
+		ConflictTargetExpression
 		SetCols(cl ColumnListExpression) ConflictNothingExpression
-		Cols() ColumnListExpression
+		OnConstraint(name string) ConflictNothingExpression
+		TargetWhere(expressions ...Expression) ConflictNothingExpression
 	}
 	ConflictUpdateExpression interface {
 		ConflictExpression
+		ConflictTargetExpression
+		SetCols(cl ColumnListExpression) ConflictUpdateExpression
+		OnConstraint(name string) ConflictUpdateExpression
+		TargetWhere(expressions ...Expression) ConflictUpdateExpression
 		TargetColumn() string
 		Where(expressions ...Expression) ConflictUpdateExpression
 		WhereClause() ExpressionList

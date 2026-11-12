@@ -18,6 +18,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.SupportsConflictUpdateWhere = true
 	opts.SupportsInsertIgnoreSyntax = true
 	opts.SupportsConflictTarget = true
+	opts.SupportsConflictOnConstraint = false
 	opts.SupportsMultipleUpdateTables = true
 	opts.WrapCompoundsInParens = false
 	opts.SupportsDistinctOn = false

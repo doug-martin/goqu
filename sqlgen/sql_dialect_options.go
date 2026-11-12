@@ -27,6 +27,8 @@ type (
 		SupportsReturn bool
 		// Set to true if the dialect supports Conflict Target (DEFAULT=true)
 		SupportsConflictTarget bool
+		// Set to true if the dialect supports ON CONFLICT ON CONSTRAINT <name> (DEFAULT=true)
+		SupportsConflictOnConstraint bool
 		// Set to true if the dialect supports Conflict Target (DEFAULT=true)
 		SupportsConflictUpdateWhere bool
 		// Set to true if the dialect supports Insert Ignore syntax (DEFAULT=false)
@@ -454,22 +456,23 @@ func (sf SQLFragmentType) String() string {
 //nolint:funlen
 func DefaultDialectOptions() *SQLDialectOptions {
 	return &SQLDialectOptions{
-		SupportsOrderByOnDelete:     false,
-		SupportsDeleteTableHint:     false,
-		SupportsOrderByOnUpdate:     false,
-		SupportsLimitOnDelete:       false,
-		SupportsLimitOnUpdate:       false,
-		SupportsReturn:              true,
-		SupportsConflictUpdateWhere: true,
-		SupportsInsertIgnoreSyntax:  false,
-		SupportsConflictTarget:      true,
-		SupportsWithCTE:             true,
-		SupportsWithCTERecursive:    true,
-		SupportsDistinctOn:          true,
-		WrapCompoundsInParens:       true,
-		SupportsWindowFunction:      true,
-		SupportsLateral:             true,
-		SupportsQualify:             false,
+		SupportsOrderByOnDelete:      false,
+		SupportsDeleteTableHint:      false,
+		SupportsOrderByOnUpdate:      false,
+		SupportsLimitOnDelete:        false,
+		SupportsLimitOnUpdate:        false,
+		SupportsReturn:               true,
+		SupportsConflictUpdateWhere:  true,
+		SupportsInsertIgnoreSyntax:   false,
+		SupportsConflictTarget:       true,
+		SupportsConflictOnConstraint: true,
+		SupportsWithCTE:              true,
+		SupportsWithCTERecursive:     true,
+		SupportsDistinctOn:           true,
+		WrapCompoundsInParens:        true,
+		SupportsWindowFunction:       true,
+		SupportsLateral:              true,
+		SupportsQualify:              false,
 
 		SupportsMultipleUpdateTables:         true,
 		UseFromClauseForMultipleUpdateTables: true,

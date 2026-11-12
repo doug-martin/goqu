@@ -77,7 +77,7 @@ func (isg *insertSQLGenerator) InsertBeginSQL(b sb.SQLBuilder, o exp.ConflictExp
 	// violations of every constraint, not just the targeted one.
 	hasTarget := false
 	if dn, ok := o.(exp.ConflictNothingExpression); ok {
-		hasTarget = dn.Cols() != nil && len(dn.Cols().Columns()) > 0
+		hasTarget = hasConflictTarget(dn)
 	}
 	if isg.DialectOptions().SupportsInsertIgnoreSyntax && o != nil && !isNotDoNothingConflictExpression && !hasTarget {
 		b.Write(isg.DialectOptions().InsertIgnoreClause)
@@ -168,8 +168,13 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 	b.Write(isg.DialectOptions().ConflictFragment)
 	switch t := o.(type) {
 	case exp.ConflictUpdateExpression:
-		target := t.TargetColumn()
-		if isg.DialectOptions().SupportsConflictTarget && target != "" {
+		if hasConflictTarget(t) {
+			isg.conflictTargetSQL(b, t)
+			if b.Error() != nil {
+				return
+			}
+		} else if target := t.TargetColumn(); isg.DialectOptions().SupportsConflictTarget && target != "" {
+			// legacy: the target is a raw string written as is
 			wrapParens := !strings.HasPrefix(strings.ToLower(target), "on constraint")
 
 			b.WriteRunes(isg.DialectOptions().SpaceRune)
@@ -183,13 +188,44 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 		}
 		isg.onConflictDoUpdateSQL(b, t)
 	case exp.ConflictNothingExpression:
-		isg.ConflictTargetSQL(b, t.Cols())
+		isg.conflictTargetSQL(b, t)
 		if b.Error() != nil {
 			return
 		}
 		b.Write(isg.DialectOptions().ConflictDoNothingFragment)
 	default:
 		b.Write(isg.DialectOptions().ConflictDoNothingFragment)
+	}
+}
+
+func hasConflictTarget(t exp.ConflictTargetExpression) bool {
+	return (t.Cols() != nil && len(t.Cols().Columns()) > 0) || t.Constraint() != ""
+}
+
+// Generates the target of an ON CONFLICT clause: (cols) [WHERE predicate] or ON CONSTRAINT name
+func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.ConflictTargetExpression) {
+	hasCols := t.Cols() != nil && len(t.Cols().Columns()) > 0
+	hasWhere := t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty()
+	switch {
+	case hasCols && t.Constraint() != "":
+		b.SetError(ErrConflictTargetAmbiguous())
+	case t.Constraint() != "":
+		switch {
+		case !isg.DialectOptions().SupportsConflictOnConstraint:
+			b.SetError(ErrConflictOnConstraintNotSupported(isg.Dialect()))
+		case hasWhere:
+			b.SetError(ErrConflictTargetWhereRequiresCols())
+		default:
+			b.Write([]byte(" ON CONSTRAINT "))
+			isg.ExpressionSQLGenerator().Generate(b, exp.NewIdentifierExpression("", "", t.Constraint()))
+		}
+	case hasCols:
+		isg.ConflictTargetSQL(b, t.Cols())
+		if b.Error() == nil && hasWhere {
+			isg.WhereSQL(b, t.TargetWhereClause())
+		}
+	case hasWhere:
+		b.SetError(ErrConflictTargetWhereRequiresCols())
 	}
 }
 

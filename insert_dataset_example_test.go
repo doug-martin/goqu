@@ -590,6 +590,54 @@ func ExampleInsertDataset_OnConflict_doNothingWithTarget() {
 	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1') ON CONFLICT ("name") DO NOTHING []
 }
 
+func ExampleInsertDataset_OnConflict_doNothingWithConstraint() {
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
+		OnConflict(goqu.DoNothing().OnConstraint("items_name_key")).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1') ON CONFLICT ON CONSTRAINT "items_name_key" DO NOTHING []
+}
+
+func ExampleInsertDataset_OnConflict_doNothingWithPartialIndexTarget() {
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
+		OnConflict(goqu.DoNothing().
+			SetCols(exp.NewColumnListExpression("name", "address")).
+			TargetWhere(goqu.C("deleted_at").IsNull())).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1') ON CONFLICT ("name", "address") WHERE ("deleted_at" IS NULL) DO NOTHING []
+}
+
+func ExampleInsertDataset_OnConflict_doUpdateWithMultipleColumnTarget() {
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
+		OnConflict(goqu.DoUpdate("", goqu.Record{"address": goqu.L("EXCLUDED.address")}).
+			SetCols(exp.NewColumnListExpression("name", "tenant_id"))).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1') ON CONFLICT ("name", "tenant_id") DO UPDATE SET "address"=EXCLUDED.address []
+}
+
+func ExampleInsertDataset_OnConflict_doUpdateWithConstraint() {
+	insertSQL, args, _ := goqu.Insert("items").
+		Rows(goqu.Record{"name": "Test1", "address": "111 Test Addr"}).
+		OnConflict(goqu.DoUpdate("", goqu.Record{"address": goqu.L("EXCLUDED.address")}).
+			OnConstraint("items_name_key")).
+		ToSQL()
+	fmt.Println(insertSQL, args)
+
+	// Output:
+	// INSERT INTO "items" ("address", "name") VALUES ('111 Test Addr', 'Test1') ON CONFLICT ON CONSTRAINT "items_name_key" DO UPDATE SET "address"=EXCLUDED.address []
+}
+
 func ExampleInsertDataset_OnConflict_doUpdate() {
 	insertSQL, args, _ := goqu.Insert("items").
 		Rows(
