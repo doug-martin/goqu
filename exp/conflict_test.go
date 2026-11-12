@@ -85,3 +85,12 @@ func TestConflictCloneIsIndependent(t *testing.T) {
 	assert.Len(t, duClone.TargetWhereClause().Expressions(), 1)
 	assert.Len(t, duClone.WhereClause().Expressions(), 1)
 }
+
+func TestConflict_cloneWithNilWhere(t *testing.T) {
+	du := exp.NewDoUpdateConflictExpression("a", exp.Record{"a": "b"}).Where(nil).TargetWhere(nil)
+	assert.NotPanics(t, func() { du.Clone() })
+	dn := exp.NewDoNothingConflictExpression().TargetCols("a").TargetWhere(nil)
+	assert.NotPanics(t, func() {
+		exp.NewInsertClauses().SetOnConflict(dn).SetOnConflict(du)
+	})
+}

@@ -73,12 +73,12 @@ func (isg *insertSQLGenerator) Generate(
 
 // Adds the correct fragment to being an INSERT statement
 func (isg *insertSQLGenerator) InsertBeginSQL(b sb.SQLBuilder, o exp.ConflictExpression) {
-	_, isNotDoNothingConflictExpression := o.(exp.ConflictUpdateExpression)
+	_, isNotDoNothingConflictExpression := o.(conflictUpdater)
 	// A conflict target requires a real ON CONFLICT clause: INSERT IGNORE / INSERT OR IGNORE would swallow
 	// violations of every constraint, not just the targeted one.
 	hasTarget := false
-	if dn, ok := o.(exp.ConflictNothingExpression); ok {
-		hasTarget = hasConflictTarget(dn)
+	if dn, ok := o.(conflictDoNothing); ok {
+		hasTarget = targetOf(dn).present()
 	}
 	if isg.DialectOptions().SupportsInsertIgnoreSyntax && o != nil && !isNotDoNothingConflictExpression && !hasTarget {
 		b.Write(isg.DialectOptions().InsertIgnoreClause)
@@ -168,14 +168,14 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 	}
 	b.Write(isg.DialectOptions().ConflictFragment)
 	switch t := o.(type) {
-	case exp.ConflictUpdateExpression:
+	case conflictUpdater:
 		isg.conflictUpdateTargetSQL(b, t)
 		if b.Error() != nil {
 			return
 		}
 		isg.onConflictDoUpdateSQL(b, t)
-	case exp.ConflictNothingExpression:
-		isg.conflictTargetSQL(b, t)
+	case conflictDoNothing:
+		isg.conflictTargetSQL(b, targetOf(t))
 		if b.Error() != nil {
 			return
 		}
@@ -185,26 +185,62 @@ func (isg *insertSQLGenerator) onConflictSQL(b sb.SQLBuilder, o exp.ConflictExpr
 	}
 }
 
-func hasConflictTarget(t exp.ConflictTargetExpression) bool {
-	return (t.Cols() != nil && len(t.Cols().Columns()) > 0) || t.Constraint() != "" ||
-		(t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty())
+// conflictUpdater and conflictDoNothing are the minimal contracts the generator dispatches on, so custom
+// exp.ConflictExpression implementations written against the original interfaces keep working. The target
+// features are discovered through optional interfaces.
+type (
+	conflictUpdater interface {
+		exp.ConflictExpression
+		TargetColumn() string
+		WhereClause() exp.ExpressionList
+		Update() any
+	}
+	conflictDoNothing interface {
+		exp.ConflictExpression
+		Cols() exp.ColumnListExpression
+	}
+	conflictTarget struct {
+		cols       exp.ColumnListExpression
+		constraint string
+		where      exp.ExpressionList
+	}
+)
+
+func targetOf(o exp.ConflictExpression) conflictTarget {
+	var t conflictTarget
+	if c, ok := o.(interface {
+		Cols() exp.ColumnListExpression
+	}); ok {
+		t.cols = c.Cols()
+	}
+	if c, ok := o.(interface{ Constraint() string }); ok {
+		t.constraint = c.Constraint()
+	}
+	if c, ok := o.(interface{ TargetWhereClause() exp.ExpressionList }); ok {
+		t.where = c.TargetWhereClause()
+	}
+	return t
 }
 
-func (isg *insertSQLGenerator) conflictUpdateTargetSQL(b sb.SQLBuilder, t exp.ConflictUpdateExpression) {
-	target := t.TargetColumn()
+func (t conflictTarget) hasCols() bool  { return t.cols != nil && len(t.cols.Columns()) > 0 }
+func (t conflictTarget) hasWhere() bool { return t.where != nil && !t.where.IsEmpty() }
+func (t conflictTarget) present() bool  { return t.hasCols() || t.constraint != "" || t.hasWhere() }
+
+func (isg *insertSQLGenerator) conflictUpdateTargetSQL(b sb.SQLBuilder, u conflictUpdater) {
+	target := u.TargetColumn()
+	t := targetOf(u)
 	if target == "" {
-		if hasConflictTarget(t) {
+		if t.present() {
 			isg.conflictTargetSQL(b, t)
 		}
 		return
 	}
-	hasCols := t.Cols() != nil && len(t.Cols().Columns()) > 0
-	if hasCols || t.Constraint() != "" {
+	if t.hasCols() || t.constraint != "" {
 		b.SetError(ErrConflictTargetAmbiguous())
 		return
 	}
 	isRawConstraint := strings.HasPrefix(strings.ToLower(strings.TrimSpace(target)), "on constraint")
-	if t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty() {
+	if t.hasWhere() {
 		if isRawConstraint {
 			b.SetError(ErrConflictTargetWhereRequiresCols())
 			return
@@ -216,7 +252,7 @@ func (isg *insertSQLGenerator) conflictUpdateTargetSQL(b sb.SQLBuilder, t exp.Co
 		b.WriteRunes(isg.DialectOptions().SpaceRune, isg.DialectOptions().LeftParenRune).
 			WriteStrings(target).
 			WriteRunes(isg.DialectOptions().RightParenRune)
-		isg.conflictTargetWhereSQL(b, t.TargetWhereClause())
+		isg.conflictTargetWhereSQL(b, t.where)
 		return
 	}
 	// legacy: the target is a raw string written as is when the dialect supports conflict targets
@@ -233,17 +269,15 @@ func (isg *insertSQLGenerator) conflictUpdateTargetSQL(b sb.SQLBuilder, t exp.Co
 }
 
 // Generates the target of an ON CONFLICT clause: (cols) [WHERE predicate] or ON CONSTRAINT name
-func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.ConflictTargetExpression) {
-	hasCols := t.Cols() != nil && len(t.Cols().Columns()) > 0
-	hasWhere := t.TargetWhereClause() != nil && !t.TargetWhereClause().IsEmpty()
+func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t conflictTarget) {
 	switch {
-	case hasCols && t.Constraint() != "":
+	case t.hasCols() && t.constraint != "":
 		b.SetError(ErrConflictTargetAmbiguous())
-	case t.Constraint() != "":
+	case t.constraint != "":
 		switch {
 		case !isg.DialectOptions().SupportsConflictOnConstraint:
 			b.SetError(ErrConflictOnConstraintNotSupported(isg.Dialect()))
-		case hasWhere:
+		case t.hasWhere():
 			b.SetError(ErrConflictTargetWhereRequiresCols())
 		default:
 			fragment := isg.DialectOptions().ConflictOnConstraintFragment
@@ -251,16 +285,36 @@ func (isg *insertSQLGenerator) conflictTargetSQL(b sb.SQLBuilder, t exp.Conflict
 				fragment = defaultConflictOnConstraintFragment
 			}
 			b.Write(fragment)
-			isg.ExpressionSQLGenerator().Generate(b, exp.NewIdentifierExpression("", "", t.Constraint()))
+			// always a quoted identifier, never a wildcard or expression
+			q := string(isg.DialectOptions().QuoteRune)
+			b.WriteStrings(q, strings.ReplaceAll(t.constraint, q, q+q), q)
 		}
-	case hasCols:
-		isg.ConflictTargetSQL(b, t.Cols())
-		if b.Error() == nil && hasWhere {
-			isg.conflictTargetWhereSQL(b, t.TargetWhereClause())
+	case t.hasCols():
+		isg.conflictTargetColsSQL(b, t.cols)
+		if b.Error() == nil && t.hasWhere() {
+			isg.conflictTargetWhereSQL(b, t.where)
 		}
-	case hasWhere:
+	case t.hasWhere():
 		b.SetError(ErrConflictTargetWhereRequiresCols())
 	}
+}
+
+// Writes the target columns with values interpolated, even for prepared statements: an index expression has to
+// match the index definition textually, so bind parameters are not allowed.
+func (isg *insertSQLGenerator) conflictTargetColsSQL(b sb.SQLBuilder, cols exp.ColumnListExpression) {
+	lb := sb.NewSQLBuilder(false)
+	defer sb.ReleaseSQLBuilder(lb)
+	isg.ConflictTargetSQL(lb, cols)
+	sql, args, err := lb.ToSQL()
+	if err != nil {
+		b.SetError(err)
+		return
+	}
+	if len(args) > 0 {
+		b.SetError(ErrConflictTargetBindArgs())
+		return
+	}
+	b.WriteStrings(sql)
 }
 
 // Writes the partial index predicate of a conflict target with its values interpolated, even for prepared
@@ -282,7 +336,7 @@ func (isg *insertSQLGenerator) conflictTargetWhereSQL(b sb.SQLBuilder, where exp
 	b.WriteStrings(sql)
 }
 
-func (isg *insertSQLGenerator) onConflictDoUpdateSQL(b sb.SQLBuilder, o exp.ConflictUpdateExpression) {
+func (isg *insertSQLGenerator) onConflictDoUpdateSQL(b sb.SQLBuilder, o conflictUpdater) {
 	b.Write(isg.DialectOptions().ConflictDoUpdateFragment)
 	update := o.Update()
 	if update == nil {

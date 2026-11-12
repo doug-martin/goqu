@@ -50,6 +50,10 @@ func ErrConflictTargetWhereBindArgs() error {
 	return errors.New("conflict target WHERE cannot contain bind parameters")
 }
 
+func ErrConflictTargetBindArgs() error {
+	return errors.New("conflict target columns cannot contain bind parameters")
+}
+
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {
 	return errors.New("unsupported %s SQL fragment %s", sqlType, f)
 }

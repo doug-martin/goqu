@@ -556,6 +556,11 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargetErrors() {
 			isPrepared: true,
 			err:        "goqu: conflict target WHERE cannot contain bind parameters",
 		},
+		insertTestCase{
+			clause:     set(exp.NewDoNothingConflictExpression().TargetCols(exp.NewIdentifierExpression("", "", "c").In(bindSub))),
+			isPrepared: true,
+			err:        "goqu: conflict target columns cannot contain bind parameters",
+		},
 	)
 
 	noConstraint := sqlgen.DefaultDialectOptions()
@@ -712,4 +717,67 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_withReturning() {
 
 func TestInsertSQLGenerator(t *testing.T) {
 	suite.Run(t, new(insertSQLGeneratorSuite))
+}
+
+func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargetInterpolatedAndQuoted() {
+	ic := exp.NewInsertClauses().
+		SetInto(exp.NewIdentifierExpression("", "test", "")).
+		SetCols(exp.NewColumnListExpression("a")).
+		SetVals([][]any{{"a1"}})
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		insertTestCase{
+			clause: ic.SetOnConflict(exp.NewDoNothingConflictExpression().
+				TargetCols(exp.NewLiteralExpression("(lower(a) || ?)", "-x"))),
+			isPrepared: true,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) ON CONFLICT ((lower(a) || '-x')) DO NOTHING`,
+			args:       []any{"a1"},
+		},
+		insertTestCase{
+			clause:     ic.SetOnConflict(exp.NewDoNothingConflictExpression().OnConstraint("*")),
+			isPrepared: true,
+			sql:        `INSERT INTO "test" ("a") VALUES (?) ON CONFLICT ON CONSTRAINT "*" DO NOTHING`,
+			args:       []any{"a1"},
+		},
+		insertTestCase{
+			clause: ic.SetOnConflict(exp.NewDoUpdateConflictExpression("", exp.Record{"a": "b"}).OnConstraint(`we"ird`)),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') ON CONFLICT ON CONSTRAINT "we""ird" DO UPDATE SET "a"='b'`,
+		},
+	)
+}
+
+// legacyDoNothing and legacyDoUpdate implement only the original conflict interfaces.
+type (
+	legacyDoNothing struct{ exp.ConflictExpression }
+	legacyDoUpdate  struct {
+		exp.ConflictExpression
+		update any
+	}
+)
+
+func (l legacyDoNothing) Clone() exp.Expression                             { return l }
+func (l legacyDoUpdate) Clone() exp.Expression                              { return l }
+func (legacyDoNothing) Cols() exp.ColumnListExpression                      { return nil }
+func (legacyDoUpdate) TargetColumn() string                                 { return "a" }
+func (legacyDoUpdate) WhereClause() exp.ExpressionList                      { return nil }
+func (l legacyDoUpdate) Update() any                                        { return l.update }
+func (legacyDoUpdate) Where(...exp.Expression) exp.ConflictUpdateExpression { return nil }
+
+func (igs *insertSQLGeneratorSuite) TestGenerate_legacyConflictImplementations() {
+	ic := exp.NewInsertClauses().
+		SetInto(exp.NewIdentifierExpression("", "test", "")).
+		SetCols(exp.NewColumnListExpression("a")).
+		SetVals([][]any{{"a1"}})
+	base := exp.NewDoNothingConflictExpression()
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		insertTestCase{
+			clause: ic.SetOnConflict(legacyDoNothing{base}),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') ON CONFLICT DO NOTHING`,
+		},
+		insertTestCase{
+			clause: ic.SetOnConflict(legacyDoUpdate{base, exp.Record{"a": "b"}}),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1') ON CONFLICT (a) DO UPDATE SET "a"='b'`,
+		},
+	)
 }
