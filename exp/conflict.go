@@ -54,6 +54,9 @@ func (t *conflictTarget) appendWhere(expressions ...Expression) {
 
 // Creates a conflict struct to be passed to InsertConflict to ignore constraint errors
 //
+// The builder methods (SetCols, OnConstraint, TargetWhere) modify and return the receiver. Create a new expression for
+// each statement rather than deriving variants from a shared one.
+//
 //	InsertConflict(DoNothing(),...) -> INSERT INTO ... ON CONFLICT DO NOTHING
 func NewDoNothingConflictExpression() ConflictNothingExpression {
 	return &doNothingConflict{}
@@ -82,7 +85,7 @@ func (c *doNothingConflict) SetCols(cl ColumnListExpression) ConflictNothingExpr
 
 // Sets the name of the constraint to use as the conflict target. Only supported by dialects that support
 // ON CONSTRAINT (e.g. Postgres); other dialects return an error when generating SQL. It cannot be combined with
-// SetCols.
+// SetCols. An empty name clears the constraint.
 //
 //	DoNothing().OnConstraint("users_email_key") -> ON CONFLICT ON CONSTRAINT "users_email_key" DO NOTHING
 func (c *doNothingConflict) OnConstraint(name string) ConflictNothingExpression {
@@ -149,7 +152,7 @@ func (c *conflictUpdate) SetCols(cl ColumnListExpression) ConflictUpdateExpressi
 
 // Sets the name of the constraint to use as the conflict target. Only supported by dialects that support
 // ON CONSTRAINT (e.g. Postgres); other dialects return an error when generating SQL. It cannot be combined with
-// SetCols.
+// SetCols. An empty name clears the constraint.
 //
 //	DoUpdate("", update).OnConstraint("users_email_key") ->
 //		ON CONFLICT ON CONSTRAINT "users_email_key" DO UPDATE SET ...

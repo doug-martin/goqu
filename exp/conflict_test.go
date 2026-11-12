@@ -69,3 +69,17 @@ func TestDoUpdateConflictCloneWithWhere(t *testing.T) {
 	clone := du.Clone().(exp.ConflictUpdateExpression)
 	assert.Equal(t, du.WhereClause(), clone.WhereClause())
 }
+
+func TestConflictCloneIsIndependent(t *testing.T) {
+	dn := exp.NewDoNothingConflictExpression().SetCols(exp.NewColumnListExpression("a")).TargetWhere(exp.Ex{"c": 1})
+	dnClone := dn.Clone().(exp.ConflictNothingExpression)
+	dn.TargetWhere(exp.Ex{"d": 2}).OnConstraint("k")
+	assert.Len(t, dnClone.TargetWhereClause().Expressions(), 1)
+	assert.Empty(t, dnClone.Constraint())
+
+	du := exp.NewDoUpdateConflictExpression("", exp.Record{"a": 1}).TargetWhere(exp.Ex{"c": 1}).Where(exp.Ex{"e": 1})
+	duClone := du.Clone().(exp.ConflictUpdateExpression)
+	du.TargetWhere(exp.Ex{"d": 2}).Where(exp.Ex{"f": 2})
+	assert.Len(t, duClone.TargetWhereClause().Expressions(), 1)
+	assert.Len(t, duClone.WhereClause().Expressions(), 1)
+}

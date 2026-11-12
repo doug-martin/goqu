@@ -455,6 +455,14 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_onConflictTargets() {
 			sql:    `INSERT INTO "test" ("a") VALUES ('a1') on conflict ("a", "b") do update set "a"='b'`,
 		},
 		insertTestCase{
+			clause: set(exp.NewDoUpdateConflictExpression("", exp.Record{"a": "u"}).SetCols(cols).
+				TargetWhere(exp.Ex{"c": "t"}).Where(exp.Ex{"d": "w"})),
+			sql: `INSERT INTO "test" ("a") VALUES (?) on conflict ("a", "b") WHERE ("c" = ?) ` +
+				`do update set "a"=? WHERE ("d" = ?)`,
+			isPrepared: true,
+			args:       []any{"a1", "t", "u", "w"},
+		},
+		insertTestCase{
 			clause: set(exp.NewDoNothingConflictExpression().SetCols(cols).OnConstraint("test_key")),
 			err:    "goqu: conflict target cannot specify both columns and a constraint",
 		},
