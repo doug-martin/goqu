@@ -525,8 +525,9 @@ is when no `TargetCols`/`OnConstraint` is set. Combining a non-empty `DoUpdate` 
 
 **MySQL row alias**
 
-MySQL 8.0.19+ deprecates `VALUES(col)` in `ON DUPLICATE KEY UPDATE` in favor of a row alias. Use `As` to name the
-inserted row and reference it with an identifier in the update.
+MySQL 8.0.19 added row aliases for `INSERT ... ON DUPLICATE KEY UPDATE`, and 8.0.20 deprecated `VALUES(col)` in favor
+of them. Use `As` to name the inserted row and reference it with an identifier in the update. The alias requires
+MySQL 8.0.19 or later; `As` is rendered as written on every dialect, so older servers will reject the statement.
 
 ```go
 sql, _, _ := goqu.Dialect("mysql8").Insert("t1").
