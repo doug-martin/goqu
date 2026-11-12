@@ -523,6 +523,27 @@ INSERT INTO "test" ("a", "b") VALUES ('a', 'b') ON CONFLICT ("a") WHERE ("delete
 is when no `TargetCols`/`OnConstraint` is set. Combining a non-empty `DoUpdate` target string with `TargetCols`,
 `SetCols`, or `OnConstraint` returns an error; use `DoUpdateSet(update)` instead.
 
+**MySQL row alias**
+
+MySQL 8.0.19 added row aliases for `INSERT ... ON DUPLICATE KEY UPDATE`, and 8.0.20 deprecated `VALUES(col)` in favor
+of them. Use `As` to name the inserted row and reference it with an identifier in the update. The alias requires
+MySQL 8.0.19 or later; `As` is rendered as written on every dialect, so older servers will reject the statement.
+
+```go
+sql, _, _ := goqu.Dialect("mysql8").Insert("t1").
+	Cols("a", "b").
+	Vals([]any{1, 2}, []any{4, 5}).
+	As("new").
+	OnConflict(goqu.DoUpdateSet(goqu.Record{"a": goqu.I("new.a"), "b": goqu.I("new.b")})).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+INSERT INTO `t1` (`a`, `b`) VALUES (1, 2), (4, 5) AS `new` ON DUPLICATE KEY UPDATE `a`=`new`.`a`,`b`=`new`.`b`
+```
+
 <a name="returning"></a>
 **Returning Clause**
 

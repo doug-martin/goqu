@@ -226,3 +226,23 @@ func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
 		assert.Equal(t, "INSERT INTO `test` (`a`) VALUES ('a') ON DUPLICATE KEY UPDATE `b`=VALUES(`b`)", sql)
 	}
 }
+
+func TestInsertOnDuplicateKeyRowAlias(t *testing.T) {
+	ds := goqu.Dialect("mysql8").Insert("t1").
+		Cols("a", "b").
+		Vals([]any{1, 2}, []any{4, 5}).
+		As("new").
+		OnConflict(goqu.DoUpdateSet(goqu.Record{"a": goqu.I("new.a"), "b": goqu.I("new.b")}))
+
+	sql, args, err := ds.ToSQL()
+	assert.NoError(t, err)
+	assert.Empty(t, args)
+	assert.Equal(t, "INSERT INTO `t1` (`a`, `b`) VALUES (1, 2), (4, 5) AS `new` "+
+		"ON DUPLICATE KEY UPDATE `a`=`new`.`a`,`b`=`new`.`b`", sql)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, []any{int64(1), int64(2), int64(4), int64(5)}, args)
+	assert.Equal(t, "INSERT INTO `t1` (`a`, `b`) VALUES (?, ?), (?, ?) AS `new` "+
+		"ON DUPLICATE KEY UPDATE `a`=`new`.`a`,`b`=`new`.`b`", sql)
+}
