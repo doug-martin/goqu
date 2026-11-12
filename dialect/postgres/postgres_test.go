@@ -647,11 +647,12 @@ func (pt *postgresTest) TestInsert_OnConflictTargetWherePrepared() {
 	pt.Equal(`INSERT INTO "partial_targets" ("kind", "slug") VALUES ($1, $2) ON CONFLICT ("slug") WHERE ("kind" = 'live') `+
 		`DO UPDATE SET "slug"=EXCLUDED.slug`, insertSQL)
 
-	stmt, err := pt.db.Prepare(insertSQL)
+	ctx := context.Background()
+	stmt, err := pt.db.PrepareContext(ctx, insertSQL)
 	pt.Require().NoError(err)
 	defer stmt.Close()
 	for i := range 8 {
-		_, err = stmt.Exec(args...)
+		_, err = stmt.ExecContext(ctx, args...)
 		pt.Require().NoError(err, "execution %d", i+1)
 	}
 	count, err := pt.db.From("partial_targets").Count()
