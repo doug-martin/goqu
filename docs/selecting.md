@@ -7,6 +7,7 @@
   * [`From`](#from)
   * [`Join`](#joins)
   * [`Where`](#where)
+  * [`Order`](#order)
   * [`Limit`](#limit)
   * [`Offset`](#offset)
   * [`GroupBy`](#group_by)
@@ -654,6 +655,29 @@ Output:
 ```
 SELECT * FROM "test" WHERE (("a" > 10) OR (("b" < 10) AND ("c" IS NULL)))
 ```
+
+<a name="order"></a>
+**[`Order`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Order)**
+
+`Order`, `OrderAppend` and `OrderPrepend` take ordered expressions such as `goqu.C("a").Asc()`. When the ORDER BY term
+is something goqu does not model (for example ClickHouse's `WITH FILL`), or the direction is part of the SQL, use
+`goqu.OrderLiteral`. It is written as is, without an appended `ASC` or `DESC`; values passed as arguments are escaped or
+bound as usual.
+
+```go
+sql, _, _ := goqu.From("events").
+	Select("timestamp").
+	Order(goqu.OrderLiteral("timestamp ASC WITH FILL FROM ? TO ? STEP ?", 0, 600, 60)).
+	ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT "timestamp" FROM "events" ORDER BY timestamp ASC WITH FILL FROM 0 TO 600 STEP 60
+```
+
+NOTE: the SQL string is not escaped, so never build it from untrusted input.
 
 <a name="limit"></a>
 **[`Limit`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Limit)**

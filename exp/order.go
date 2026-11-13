@@ -23,6 +23,17 @@ func NewOrderedExpression(exp Expression, direction SortDirection, sortType Null
 	return orderedExpression{sortExpression: exp, direction: direction, nullSortType: sortType}
 }
 
+// Used internally to create an OrderedExpression that renders the expression without ASC or DESC
+func unordered(exp Expression) OrderedExpression {
+	return NewOrderedExpression(exp, NoSortDir, NoNullsSortType)
+}
+
+// Creates an OrderedExpression from a literal that is written as is, without an appended ASC or DESC. Use it when the
+// literal contains the direction itself or another ORDER BY form (e.g. ClickHouse WITH FILL).
+func NewOrderLiteral(sql string, args ...any) OrderedExpression {
+	return unordered(NewLiteralExpression(sql, args...))
+}
+
 func (oe orderedExpression) Clone() Expression {
 	return NewOrderedExpression(oe.sortExpression, oe.direction, oe.nullSortType)
 }
@@ -41,6 +52,11 @@ func (oe orderedExpression) IsAsc() bool {
 
 func (oe orderedExpression) NullSortType() NullSortType {
 	return oe.nullSortType
+}
+
+// Returns false when the expression carries its own sort direction (see NoSortDir) so none should be rendered.
+func (oe orderedExpression) HasDirection() bool {
+	return oe.direction != NoSortDir
 }
 
 func (oe orderedExpression) NullsFirst() OrderedExpression {
