@@ -21,6 +21,10 @@ func TestExportedEnumValuesAreStable(t *testing.T) {
 	assert.Equal(t, 48, int(exp.BitwiseInversionOp))
 }
 
+func TestNoSortDir(t *testing.T) {
+	assert.Equal(t, exp.DescSortDir+1, exp.NoSortDir)
+}
+
 func TestStraightJoinType(t *testing.T) {
 	assert.Equal(t, exp.CrossJoinType+1, exp.StraightJoinType)
 	assert.Equal(t, "StraightJoinType", exp.StraightJoinType.String())

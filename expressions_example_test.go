@@ -2012,3 +2012,14 @@ func ExampleCase_valueElse() {
 	// SELECT "col", CASE "str" WHEN 'foo' THEN 'FOO' WHEN 'bar' THEN 'BAR' ELSE 'Baz' END AS "foo_bar_upper" FROM "test" []
 	// SELECT "col", CASE "str" WHEN ? THEN ? WHEN ? THEN ? ELSE ? END AS "foo_bar_upper" FROM "test" [foo FOO bar BAR Baz]
 }
+
+func ExampleOrderLiteral() {
+	sql, _, _ := goqu.From("events").
+		Select("timestamp").
+		Order(goqu.OrderLiteral("timestamp ASC WITH FILL FROM ? TO ? STEP ?", 0, 600, 60)).
+		ToSQL()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT "timestamp" FROM "events" ORDER BY timestamp ASC WITH FILL FROM 0 TO 600 STEP 60
+}

@@ -709,9 +709,14 @@ func (esg *expressionSQLGenerator) rangeExpressionSQL(b sb.SQLBuilder, operator 
 // Generates SQL for an OrderedExpression (e.g. I("a").Asc() -> "a" ASC)
 func (esg *expressionSQLGenerator) orderedExpressionSQL(b sb.SQLBuilder, order exp.OrderedExpression) {
 	esg.Generate(b, order.SortExpression())
-	if order.IsAsc() {
+	// optional so custom OrderedExpression implementations keep rendering a direction
+	d, ok := order.(interface{ HasDirection() bool })
+	switch {
+	case ok && !d.HasDirection():
+		// the expression carries its own direction (see goqu.OrderLiteral)
+	case order.IsAsc():
 		b.Write(esg.dialectOptions.AscFragment)
-	} else {
+	default:
 		b.Write(esg.dialectOptions.DescFragment)
 	}
 	switch order.NullSortType() {

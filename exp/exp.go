@@ -669,6 +669,10 @@ const StraightJoinType = CrossJoinType + 1
 // outside the iota block for the same reason as StraightJoinType.
 const CustomJoinType = CrossJoinType + 2
 
+// NoSortDir is a sort direction for an OrderedExpression that renders no ASC or DESC (see goqu.OrderLiteral). It is
+// declared outside the iota block for the same reason as StraightJoinType.
+const NoSortDir = DescSortDir + 1
+
 var (
 	ConditionedJoinTypes = map[JoinType]bool{
 		InnerJoinType:      true,
