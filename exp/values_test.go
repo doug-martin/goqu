@@ -37,8 +37,24 @@ func TestValuesExpression(t *testing.T) {
 }
 
 func TestValuesExpression_CloneInCTE(t *testing.T) {
-	cte := exp.NewCommonTableExpression(false, "v(id)", exp.NewValuesExpression([]any{1}))
-	assert.NotPanics(t, func() {
-		assert.Equal(t, cte, cte.Clone())
-	})
+	rows := [][]any{{1, "a"}}
+	original := exp.NewCommonTableExpression(true, "v(id, name)", exp.NewValuesExpression(rows...).As("v"))
+
+	clone, ok := original.Clone().(exp.CommonTableExpression)
+	if !assert.True(t, ok, "clone must still be a CommonTableExpression") {
+		return
+	}
+	assert.True(t, clone.IsRecursive())
+	assert.Equal(t, original.Name(), clone.Name())
+
+	cloneBody, ok := clone.SubQuery().(exp.ValuesExpression)
+	if !assert.True(t, ok, "clone must keep a VALUES body, got %T", clone.SubQuery()) {
+		return
+	}
+	assert.Equal(t, [][]any{{1, "a"}}, cloneBody.Rows())
+	assert.Equal(t, exp.ParseIdentifier("v"), cloneBody.GetAs())
+
+	// the clone owns its rows: changing the source rows after cloning does not reach it
+	rows[0][0] = 99
+	assert.Equal(t, 1, cloneBody.Rows()[0][0])
 }
