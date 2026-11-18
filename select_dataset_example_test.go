@@ -10,6 +10,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	_ "github.com/doug-martin/goqu/v9/dialect/sqlserver"
 	"github.com/doug-martin/goqu/v9/exp"
 	_ "github.com/lib/pq"
 )
@@ -1769,4 +1770,20 @@ func ExampleForUpdate_ofMultiple() {
 
 	// Output:
 	// SELECT * FROM "table1" INNER JOIN "table2" ON ("table2"."id" = "table1"."id") FOR UPDATE OF "table1", "table2"  []
+}
+
+func ExampleSelectDataset_From_withTableHints() {
+	// SQL Server writes the hints as WITH (...)
+	sql, _, _ := goqu.Dialect("sqlserver").From(goqu.Hinted("test", "NOLOCK")).ToSQL()
+	fmt.Println(sql)
+
+	// MySQL writes each hint as its own clause, and the hints also work on a join
+	sql, _, _ = goqu.Dialect("mysql").From("a").
+		InnerJoin(goqu.Hinted("b", "USE INDEX (idx)"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))).
+		ToSQL()
+	fmt.Println(sql)
+
+	// Output:
+	// SELECT * FROM "test" WITH (NOLOCK)
+	// SELECT * FROM `a` INNER JOIN `b` USE INDEX (idx) ON (`a`.`id` = `b`.`id`)
 }

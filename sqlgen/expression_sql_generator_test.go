@@ -1898,3 +1898,88 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ValuesExpression() {
 		expressionTestCase{val: v, sql: `(VALUES ROW('a', 1), ROW('b', NULL))`},
 	)
 }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_HintedExpression() {
+	table := exp.NewIdentifierExpression("", "test", "")
+	aliased := exp.NewIdentifierExpression("", "test", "").As("t")
+
+	inParens := sqlgen.DefaultDialectOptions()
+	inParens.SupportsTableHints = true
+	inParens.TableHintsInParens = true
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", inParens),
+		expressionTestCase{val: exp.NewHintedExpression(table, "NOLOCK"), sql: `"test" WITH (NOLOCK)`},
+		expressionTestCase{
+			val: exp.NewHintedExpression(aliased, "NOLOCK", "INDEX(ix)"),
+			sql: `"test" AS "t" WITH (NOLOCK, INDEX(ix))`,
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(aliased, "NOLOCK"), sql: `"test" AS "t" WITH (NOLOCK)`, isPrepared: true,
+		},
+		// no hints writes only the table
+		expressionTestCase{val: exp.NewHintedExpression(table), sql: `"test"`},
+	)
+
+	clauses := sqlgen.DefaultDialectOptions()
+	clauses.SupportsTableHints = true
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", clauses),
+		expressionTestCase{val: exp.NewHintedExpression(table, "USE INDEX (a)"), sql: `"test" USE INDEX (a)`},
+		expressionTestCase{
+			val: exp.NewHintedExpression(aliased, "USE INDEX (a)", "IGNORE INDEX FOR ORDER BY (b)"),
+			sql: `"test" AS "t" USE INDEX (a) IGNORE INDEX FOR ORDER BY (b)`,
+		},
+	)
+
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{
+			val: exp.NewHintedExpression(table, "NOLOCK"), err: "goqu: dialect does not support table hints [dialect=test]",
+		},
+		expressionTestCase{val: exp.NewHintedExpression(table), sql: `"test"`},
+	)
+}
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_HintedExpressionNotATable() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsTableHints = true
+
+	sub := newTestAppendableExpression(`SELECT * FROM "b"`, nil, nil, nil)
+	values := exp.NewValuesExpression([]any{1}).As("v")
+	lateral := exp.NewLateralExpression(sub)
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{
+			val: exp.NewHintedExpression(sub, "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
+		},
+		// blank hints still reject non-table sources instead of emitting an unaliased derived table
+		expressionTestCase{
+			val: exp.NewHintedExpression(sub),
+			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
+		},
+		// aliased derived and lateral sources are unwrapped and rejected
+		expressionTestCase{
+			val: exp.NewHintedExpression(exp.NewAliasExpression(sub, "s"), "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(values, "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on exp.valuesExpression",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(exp.NewAliasExpression(values, "v2")),
+			err: "goqu: table hints can only be used on a table, not on exp.valuesExpression",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(lateral, "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on exp.lateral",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(lateral.As("l"), "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on exp.lateral",
+		},
+		// a literal table name is allowed
+		expressionTestCase{val: exp.NewHintedExpression(exp.NewLiteralExpression("my_table"), "x"), sql: `my_table x`},
+	)
+}

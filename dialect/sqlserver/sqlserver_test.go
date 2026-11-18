@@ -512,6 +512,20 @@ func (sst *sqlserverTest) TestInsertIgnoreNotSupported() {
 	sst.Equal(count, int64(10))
 }
 
+func (sst *sqlserverTest) TestTableHints() {
+	var e entry
+	found, err := sst.db.From(goqu.Hinted("entry", "NOLOCK")).
+		Where(goqu.C("id").Eq(1)).ScanStruct(&e)
+	sst.Require().NoError(err)
+	sst.True(found)
+	sst.Equal(uint32(1), e.ID)
+
+	_, err = sst.db.Update(goqu.Hinted("entry", "ROWLOCK")).
+		Set(goqu.Record{"string": "hinted"}).
+		Where(goqu.C("id").Eq(1)).Executor().Exec()
+	sst.Require().NoError(err)
+}
+
 func TestSqlServerSuite(t *testing.T) {
 	suite.Run(t, new(sqlserverTest))
 }

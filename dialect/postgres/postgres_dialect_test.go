@@ -121,3 +121,8 @@ func TestDeleteUsingSelectedSubquery(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `DELETE FROM "a" USING (SELECT "id" FROM "b") AS "t1"`, sql)
 }
+
+func TestTableHintsNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("postgres").From(goqu.Hinted("test", "NOLOCK")).ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support table hints [dialect=postgres]")
+}

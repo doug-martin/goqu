@@ -116,6 +116,24 @@ func (tsgs *truncateSQLGeneratorSuite) TestGenerate_WithCascade() {
 	)
 }
 
+func (tsgs *truncateSQLGeneratorSuite) TestGenerate_tableHintsNotSupported() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsTableHints = true
+
+	table := exp.NewIdentifierExpression("", "a", "")
+	hinted := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(exp.NewHintedExpression(table, "NOLOCK")))
+	blank := exp.NewTruncateClauses().SetTable(exp.NewColumnListExpression(exp.NewHintedExpression(table)))
+
+	tsgs.assertCases(
+		sqlgen.NewTruncateSQLGenerator("test", opts),
+		truncateTestCase{
+			clause: hinted,
+			err:    "goqu: dialect does not support table hints on TRUNCATE [dialect=test]",
+		},
+		truncateTestCase{clause: blank, sql: `TRUNCATE "a"`},
+	)
+}
+
 func TestTruncateSQLGenerator(t *testing.T) {
 	suite.Run(t, new(truncateSQLGeneratorSuite))
 }

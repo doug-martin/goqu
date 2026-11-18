@@ -3,6 +3,8 @@ package goqu_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/doug-martin/goqu/v9"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/stretchr/testify/suite"
@@ -206,4 +208,12 @@ func (ges *goquExpressionsSuite) TestExists() {
 
 func TestGoquExpressions(t *testing.T) {
 	suite.Run(t, new(goquExpressionsSuite))
+}
+
+func TestHinted(t *testing.T) {
+	assert.Equal(t, exp.NewHintedExpression(exp.ParseIdentifier("a.b"), "NOLOCK"), goqu.Hinted("a.b", "NOLOCK"))
+	assert.Equal(t, exp.NewHintedExpression(goqu.T("a").As("x"), "x", "y"), goqu.Hinted(goqu.T("a").As("x"), "x", "y"))
+	assert.PanicsWithError(t, "goqu: unsupported Hinted source int, a string or expression is required", func() {
+		goqu.Hinted(1, "NOLOCK")
+	})
 }

@@ -49,6 +49,11 @@ func (isg *insertSQLGenerator) Generate(
 		b.SetError(ErrNoSourceForInsert)
 		return
 	}
+	if isg.DialectOptions().SupportsTableHints && !isg.DialectOptions().SupportsInsertTableHints &&
+		hasTableHints(clauses.Into()) {
+		b.SetError(ErrInsertTableHintsNotSupported(isg.Dialect()))
+		return
+	}
 	for _, f := range isg.DialectOptions().InsertSQLOrder {
 		if b.Error() != nil {
 			return

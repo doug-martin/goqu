@@ -246,6 +246,26 @@ Output:
 SELECT * FROM (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")
 ```
 
+With table hints ([`Hinted`](https://godoc.org/github.com/doug-martin/goqu/#Hinted)), for `sqlserver` and `mysql`
+
+The hints are written as is after the table and its alias, so never build them from untrusted input. `sqlserver` writes them as `WITH (...)`, `mysql` and `mysql8` write each hint as its own clause (`USE INDEX`, `IGNORE INDEX`, `FORCE INDEX`), and the other dialects return an error. It also works on joins and `Update` tables. Blank hints are dropped, nested `Hinted` calls flatten into a single hint list, and wrapping a dataset, `goqu.Values` or `goqu.Lateral` source is an error because hints only apply to a table. `sqlserver` also accepts hints on an `Insert` table, whereas `mysql` rejects them on `Insert`, `Truncate` rejects hinted tables, and `Delete` does not accept a hinted table.
+
+```go
+sql, _, _ := goqu.Dialect("sqlserver").From(goqu.Hinted("test", "NOLOCK")).ToSQL()
+fmt.Println(sql)
+
+sql, _, _ = goqu.Dialect("mysql").From("a").
+    InnerJoin(goqu.Hinted("b", "USE INDEX (idx)"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))).
+    ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+SELECT * FROM "test" WITH (NOLOCK)
+SELECT * FROM `a` INNER JOIN `b` USE INDEX (idx) ON (`a`.`id` = `b`.`id`)
+```
+
 From another dataset
 
 ```go

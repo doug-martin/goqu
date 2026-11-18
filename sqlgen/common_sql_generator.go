@@ -60,6 +60,33 @@ func ErrConflictTargetBindArgs() error {
 	return errors.New("conflict target columns cannot contain bind parameters")
 }
 
+func ErrTableHintsNotSupported(dialect string) error {
+	return errors.New("dialect does not support table hints [dialect=%s]", dialect)
+}
+
+func ErrInsertTableHintsNotSupported(dialect string) error {
+	return errors.New("dialect does not support table hints on INSERT [dialect=%s]", dialect)
+}
+
+func ErrTruncateTableHintsNotSupported(dialect string) error {
+	return errors.New("dialect does not support table hints on TRUNCATE [dialect=%s]", dialect)
+}
+
+func ErrTableHintsSourceNotTable(source exp.Expression) error {
+	return errors.New("table hints can only be used on a table, not on %T", source)
+}
+
+func hasTableHints(val any) bool {
+	for {
+		if aliased, ok := val.(exp.AliasedExpression); ok {
+			val = aliased.Aliased()
+			continue
+		}
+		h, ok := val.(exp.HintedExpression)
+		return ok && len(h.Hints()) > 0
+	}
+}
+
 func ErrValuesTableNotSupported(dialect string) error {
 	return errors.New("dialect does not support a VALUES table [dialect=%s]", dialect)
 }
