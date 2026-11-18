@@ -105,6 +105,8 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 	switch v := val.(type) {
 	case exp.OpaqueExpression:
 		esg.opaqueExpressionSQL(b, v)
+	case exp.ValuesExpression:
+		esg.valuesExpressionSQL(b, v)
 	case exp.Expression:
 		esg.expressionSQL(b, v)
 	case driver.Valuer:
@@ -326,6 +328,48 @@ func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}
 		b.WriteInt(int64(b.CurrentArgPosition()))
 	}
 	b.WriteArg(i)
+}
+
+// Generates SQL for a VALUES table: (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")
+func (esg *expressionSQLGenerator) valuesExpressionSQL(b sb.SQLBuilder, v exp.ValuesExpression) {
+	do := esg.dialectOptions
+	rows := v.Rows()
+	hasCols := v.Cols() != nil && len(v.Cols().Columns()) > 0
+	switch {
+	case !do.SupportsValuesTable:
+		b.SetError(ErrValuesTableNotSupported(esg.dialect))
+		return
+	case len(rows) == 0:
+		b.SetError(ErrValuesTableRowsRequired)
+		return
+	case hasCols && !do.SupportsValuesTableColumnAliases:
+		b.SetError(ErrValuesTableColumnAliasesNotSupported(esg.dialect))
+		return
+	}
+	b.WriteRunes(do.LeftParenRune)
+	b.Write(bytes.TrimLeft(do.ValuesFragment, " "))
+	rowLen := len(rows[0])
+	for i, row := range rows {
+		if len(row) != rowLen {
+			b.SetError(errMisMatchedRowLength(rowLen, len(row)))
+			return
+		}
+		if i > 0 {
+			b.WriteRunes(do.CommaRune, do.SpaceRune)
+		}
+		b.Write(do.ValuesTableRowFragment)
+		esg.Generate(b, do.asArrayRow(row))
+	}
+	b.WriteRunes(do.RightParenRune)
+	if v.GetAs() != nil {
+		b.Write(do.AsFragment)
+		esg.Generate(b, v.GetAs())
+		if hasCols {
+			b.WriteRunes(do.LeftParenRune)
+			esg.Generate(b, v.Cols())
+			b.WriteRunes(do.RightParenRune)
+		}
+	}
 }
 
 // Generates SQL for an opaque value: bound unchanged in prepared mode, otherwise written with its driver.Valuer.

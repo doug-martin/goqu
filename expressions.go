@@ -371,6 +371,20 @@ func OrderLiteral(sql string, args ...any) exp.OrderedExpression {
 	return exp.NewOrderLiteral(sql, args...)
 }
 
+// Creates a VALUES table from rows of values, for use anywhere a table is accepted (From, Update().From, joins, CTEs).
+// Chain As to name the table and its columns; Postgres and SQL Server need both to refer to the columns.
+//
+//	Update("test").Set(Record{"foo": I("c.foo")}).
+//		From(Values([]any{"123", 1}, []any{"345", 2}).As("c", "id", "foo")).
+//		Where(I("test.id").Eq(I("c.id"))) ->
+//		UPDATE "test" SET "foo"="c"."foo" FROM (VALUES ('123', 1), ('345', 2)) AS "c"("id", "foo") WHERE ("test"."id" = "c"."id")
+//
+// Every row must have the same number of values. Values are bound as arguments in prepared mode, and Postgres cannot
+// infer the type of a bound value in a VALUES list, so cast them (Cast(V(1), "int")) when it matters.
+func Values(rows ...[]any) exp.ValuesExpression {
+	return exp.NewValuesExpression(rows...)
+}
+
 // Creates a literal *
 func Star() exp.LiteralExpression { return exp.Star() }
 

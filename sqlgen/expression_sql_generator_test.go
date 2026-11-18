@@ -1848,3 +1848,49 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OpaqueExpression() {
 		expressionTestCase{val: exp.NewOpaqueExpression(slice).Clone(), sql: `?`, isPrepared: true, args: []any{slice}},
 	)
 }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_ValuesExpression() {
+	v := exp.NewValuesExpression([]any{"a", 1}, []any{"b", nil})
+	named := v.As("t", "id", "n")
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: v, sql: `(VALUES ('a', 1), ('b', NULL))`},
+		expressionTestCase{val: v.As("t"), sql: `(VALUES ('a', 1), ('b', NULL)) AS "t"`},
+		expressionTestCase{val: named, sql: `(VALUES ('a', 1), ('b', NULL)) AS "t"("id", "n")`},
+		expressionTestCase{
+			val: named, sql: `(VALUES (?, ?), (?, ?)) AS "t"("id", "n")`, isPrepared: true,
+			args: []any{"a", int64(1), "b", nil},
+		},
+		// no rows and rows of different lengths are errors
+		expressionTestCase{val: exp.NewValuesExpression(), err: "goqu: a VALUES table requires at least one row"},
+		expressionTestCase{
+			val: exp.NewValuesExpression([]any{1, 2}, []any{3}),
+			err: "goqu: rows with different value length expected 2 got 1",
+		},
+	)
+
+	unsupported := sqlgen.DefaultDialectOptions()
+	unsupported.SupportsValuesTable = false
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", unsupported),
+		expressionTestCase{val: v, err: "goqu: dialect does not support a VALUES table [dialect=test]"},
+	)
+
+	noCols := sqlgen.DefaultDialectOptions()
+	noCols.SupportsValuesTableColumnAliases = false
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", noCols),
+		expressionTestCase{val: v.As("t"), sql: `(VALUES ('a', 1), ('b', NULL)) AS "t"`},
+		expressionTestCase{
+			val: named,
+			err: "goqu: dialect does not support naming the columns of a VALUES table [dialect=test]",
+		},
+	)
+
+	row := sqlgen.DefaultDialectOptions()
+	row.ValuesTableRowFragment = []byte("ROW")
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", row),
+		expressionTestCase{val: v, sql: `(VALUES ROW('a', 1), ROW('b', NULL))`},
+	)
+}

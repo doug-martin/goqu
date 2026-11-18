@@ -243,3 +243,14 @@ func TestIdentifierEscapesBackticks(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "SELECT * FROM `a``b`", sql)
 }
+
+func TestValuesTable(t *testing.T) {
+	dialect := goqu.Dialect("sqlite3")
+
+	sql, _, err := dialect.From(goqu.Values([]any{1, "a"}).As("t")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, "SELECT * FROM (VALUES (1, 'a')) AS `t`", sql)
+
+	_, _, err = dialect.From(goqu.Values([]any{1, "a"}).As("t", "id", "name")).ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support naming the columns of a VALUES table [dialect=sqlite3]")
+}

@@ -384,6 +384,32 @@ Output:
 UPDATE `table_one`,`table_two` SET `foo`=`table_two`.`bar` WHERE (`table_one`.`id` = `table_two`.`id`)
 ```
 
+A table of literal rows can be joined with `goqu.Values`. The alias and the column names are given with `As`.
+
+```go
+dialect := goqu.Dialect("postgres")
+
+values := goqu.Values(
+    []interface{}{"a", 1},
+    []interface{}{"b", 2},
+).As("c", "id", "foo")
+
+ds := dialect.Update("table_one").
+    Set(goqu.Record{"foo": goqu.I("c.foo")}).
+    From(values).
+    Where(goqu.Ex{"table_one.id": goqu.I("c.id")})
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```sql
+UPDATE "table_one" SET "foo"="c"."foo" FROM (VALUES ('a', 1), ('b', 2)) AS "c"("id", "foo") WHERE ("table_one"."id" = "c"."id")
+```
+
+**NOTE** `mysql` does not support a `VALUES` table, `mysql8` (8.0.19+) writes each row as `ROW(...)`, and `sqlite3` does not support naming the columns (it names them `column1`, `column2`, ...). With `Postgres` and `Prepared(true)` the server cannot infer the type of a bound value in a `VALUES` list, so cast it, e.g. `goqu.Cast(goqu.V(1), "int")`.
+
 <a name="where"></a>
 **[Where](https://godoc.org/github.com/doug-martin/goqu/#UpdateDataset.Where)**
 

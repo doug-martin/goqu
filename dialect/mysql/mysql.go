@@ -71,6 +71,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	}
 	opts.JoinTypeLookup[exp.StraightJoinType] = []byte(" STRAIGHT_JOIN ")
 	opts.InsertIgnoreClause = []byte("INSERT IGNORE INTO")
+	// MySQL 8.0.19+ supports VALUES tables (written with ROW), see DialectOptionsV8
+	opts.SupportsValuesTable = false
 	opts.ConflictFragment = []byte("")
 	opts.ConflictDoUpdateFragment = []byte(" ON DUPLICATE KEY UPDATE ")
 	opts.ConflictDoNothingFragment = []byte("")
@@ -83,6 +85,9 @@ func DialectOptionsV8() *goqu.SQLDialectOptions {
 	// MySQL 8.0 supports WITH and WITH RECURSIVE common table expressions.
 	opts.SupportsWithCTE = true
 	opts.SupportsWithCTERecursive = true
+	// VALUES ROW(1, 'a'), ROW(2, 'b') (MySQL 8.0.19+)
+	opts.SupportsValuesTable = true
+	opts.ValuesTableRowFragment = []byte("ROW")
 	return opts
 }
 

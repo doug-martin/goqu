@@ -45,3 +45,13 @@ func TestInsertOnConflictTargets(t *testing.T) {
 	)
 	assert.Equal(t, []any{"a", "b", "u", int64(1)}, args)
 }
+
+func TestValuesTable(t *testing.T) {
+	values := goqu.Values([]any{"a", goqu.Cast(goqu.V(1), "int")}).As("c", "id", "foo")
+	sql, args, err := goqu.Dialect("postgres").Update("t").Set(goqu.Record{"foo": goqu.I("c.foo")}).From(values).
+		Where(goqu.I("t.id").Eq(goqu.I("c.id"))).Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `UPDATE "t" SET "foo"="c"."foo" FROM (VALUES ($1, CAST($2 AS int))) AS "c"("id", "foo") `+
+		`WHERE ("t"."id" = "c"."id")`, sql)
+	assert.Equal(t, []any{"a", int64(1)}, args)
+}
