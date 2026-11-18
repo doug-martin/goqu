@@ -1,8 +1,6 @@
 package goqu
 
 import (
-	"fmt"
-
 	"github.com/doug-martin/goqu/v9/exec"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
@@ -141,17 +139,7 @@ func (dd *DeleteDataset) From(table interface{}) *DeleteDataset {
 //
 // Dialects without DELETE ... USING return an error when it is set. See examples.
 func (dd *DeleteDataset) Using(tables ...interface{}) *DeleteDataset {
-	sources := make([]interface{}, 0, len(tables))
-	numSources := 0
-	for _, source := range tables {
-		if ds, ok := source.(*SelectDataset); ok && !ds.clauses.HasAlias() {
-			numSources++
-			sources = append(sources, ds.As(fmt.Sprintf("t%d", numSources)))
-		} else {
-			sources = append(sources, source)
-		}
-	}
-	return dd.copy(dd.clauses.SetUsing(exp.NewColumnListExpression(sources...)))
+	return dd.copy(dd.clauses.SetUsing(exp.NewColumnListExpression(aliasSelectSources(tables)...)))
 }
 
 // Adds a WHERE clause. See examples.

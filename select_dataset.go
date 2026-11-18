@@ -290,6 +290,11 @@ func (sd *SelectDataset) Distinct(on ...interface{}) *SelectDataset {
 //	Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
 //	LiteralExpression: (See Literal) Will use the literal SQL
 func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
+	return sd.copy(sd.clauses.SetFrom(exp.NewColumnListExpression(aliasSelectSources(from)...)))
+}
+
+// Aliases every unaliased SelectDataset as t1, t2, ... so it can be used as a table source.
+func aliasSelectSources(from []interface{}) []interface{} {
 	var sources []interface{}
 	numSources := 0
 	for _, source := range from {
@@ -300,7 +305,7 @@ func (sd *SelectDataset) From(from ...interface{}) *SelectDataset {
 			sources = append(sources, source)
 		}
 	}
-	return sd.copy(sd.clauses.SetFrom(exp.NewColumnListExpression(sources...)))
+	return sources
 }
 
 // Returns a new Dataset with the current one as an source. If the current Dataset is not aliased (See Dataset#As) then

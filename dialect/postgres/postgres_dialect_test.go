@@ -114,3 +114,10 @@ func TestDeleteUsingSubqueryValuesAndCTE(t *testing.T) {
 	assert.Equal(t, `WITH keep(id) AS (VALUES (1), (2)) DELETE FROM "a" USING (VALUES (3)) AS "v"("id") `+
 		`WHERE ("a"."id" = "v"."id")`, sql)
 }
+
+func TestDeleteUsingSelectedSubquery(t *testing.T) {
+	d := goqu.Dialect("postgres")
+	sql, _, err := d.Delete("a").Using(d.From("b").Select("id")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `DELETE FROM "a" USING (SELECT "id" FROM "b") AS "t1"`, sql)
+}
