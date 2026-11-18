@@ -445,6 +445,14 @@ type (
 		// Returns a copy with the table alias and, optionally, the column names
 		As(alias any, cols ...any) ValuesExpression
 	}
+	// A table source with table hints written after it, e.g. "test" WITH (NOLOCK) or `test` USE INDEX (idx)
+	HintedExpression interface {
+		Expression
+		// The table the hints apply to (an identifier, optionally aliased)
+		Source() Expression
+		// The hints, written as is
+		Hints() []string
+	}
 	// A value that is sent as is: bound unchanged in prepared mode, written with its driver.Valuer when interpolated
 	OpaqueExpression interface {
 		Expression

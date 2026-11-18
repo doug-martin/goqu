@@ -1898,3 +1898,44 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ValuesExpression() {
 		expressionTestCase{val: v, sql: `(VALUES ROW('a', 1), ROW('b', NULL))`},
 	)
 }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_HintedExpression() {
+	table := exp.NewIdentifierExpression("", "test", "")
+	aliased := exp.NewIdentifierExpression("", "test", "").As("t")
+
+	inParens := sqlgen.DefaultDialectOptions()
+	inParens.SupportsTableHints = true
+	inParens.TableHintsInParens = true
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", inParens),
+		expressionTestCase{val: exp.NewHintedExpression(table, "NOLOCK"), sql: `"test" WITH (NOLOCK)`},
+		expressionTestCase{
+			val: exp.NewHintedExpression(aliased, "NOLOCK", "INDEX(ix)"),
+			sql: `"test" AS "t" WITH (NOLOCK, INDEX(ix))`,
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(aliased, "NOLOCK"), sql: `"test" AS "t" WITH (NOLOCK)`, isPrepared: true,
+		},
+		// no hints writes only the table
+		expressionTestCase{val: exp.NewHintedExpression(table), sql: `"test"`},
+	)
+
+	clauses := sqlgen.DefaultDialectOptions()
+	clauses.SupportsTableHints = true
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", clauses),
+		expressionTestCase{val: exp.NewHintedExpression(table, "USE INDEX (a)"), sql: `"test" USE INDEX (a)`},
+		expressionTestCase{
+			val: exp.NewHintedExpression(aliased, "USE INDEX (a)", "IGNORE INDEX FOR ORDER BY (b)"),
+			sql: `"test" AS "t" USE INDEX (a) IGNORE INDEX FOR ORDER BY (b)`,
+		},
+	)
+
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{
+			val: exp.NewHintedExpression(table, "NOLOCK"), err: "goqu: dialect does not support table hints [dialect=test]",
+		},
+		expressionTestCase{val: exp.NewHintedExpression(table), sql: `"test"`},
+	)
+}

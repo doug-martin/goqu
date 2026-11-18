@@ -60,6 +60,10 @@ func ErrConflictTargetBindArgs() error {
 	return errors.New("conflict target columns cannot contain bind parameters")
 }
 
+func ErrTableHintsNotSupported(dialect string) error {
+	return errors.New("dialect does not support table hints [dialect=%s]", dialect)
+}
+
 func ErrValuesTableNotSupported(dialect string) error {
 	return errors.New("dialect does not support a VALUES table [dialect=%s]", dialect)
 }

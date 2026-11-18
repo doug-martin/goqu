@@ -107,6 +107,8 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		esg.opaqueExpressionSQL(b, v)
 	case exp.ValuesExpression:
 		esg.valuesExpressionSQL(b, v)
+	case exp.HintedExpression:
+		esg.hintedExpressionSQL(b, v)
 	case exp.Expression:
 		esg.expressionSQL(b, v)
 	case driver.Valuer:
@@ -328,6 +330,27 @@ func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}
 		b.WriteInt(int64(b.CurrentArgPosition()))
 	}
 	b.WriteArg(i)
+}
+
+// Generates SQL for a table with table hints: "test" WITH (NOLOCK) (SQL Server) or `test` USE INDEX (idx) (MySQL)
+func (esg *expressionSQLGenerator) hintedExpressionSQL(b sb.SQLBuilder, h exp.HintedExpression) {
+	do := esg.dialectOptions
+	hints := h.Hints()
+	if len(hints) > 0 && !do.SupportsTableHints {
+		b.SetError(ErrTableHintsNotSupported(esg.dialect))
+		return
+	}
+	esg.Generate(b, h.Source())
+	switch {
+	case len(hints) == 0:
+	case do.TableHintsInParens:
+		b.Write([]byte(" WITH ("))
+		b.Write([]byte(strings.Join(hints, ", ")))
+		b.WriteRunes(do.RightParenRune)
+	default:
+		b.WriteRunes(do.SpaceRune)
+		b.Write([]byte(strings.Join(hints, " ")))
+	}
 }
 
 // Generates SQL for a VALUES table: (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")

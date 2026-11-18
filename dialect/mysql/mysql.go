@@ -71,6 +71,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	}
 	opts.JoinTypeLookup[exp.StraightJoinType] = []byte(" STRAIGHT_JOIN ")
 	opts.InsertIgnoreClause = []byte("INSERT IGNORE INTO")
+	// USE INDEX, IGNORE INDEX and FORCE INDEX are written after a table, see goqu.Hinted
+	opts.SupportsTableHints = true
 	// MySQL 8.0.19+ supports VALUES tables (written with ROW), see DialectOptionsV8
 	opts.SupportsValuesTable = false
 	opts.ConflictFragment = []byte("")

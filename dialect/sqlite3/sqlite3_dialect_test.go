@@ -259,3 +259,8 @@ func TestDeleteUsingNotSupported(t *testing.T) {
 	_, _, err := goqu.Dialect("sqlite3").Delete("a").Using("b").ToSQL()
 	assert.EqualError(t, err, "goqu: dialect does not support USING on DELETE [dialect=sqlite3]")
 }
+
+func TestTableHintsNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("sqlite3").From(goqu.Hinted("test", "NOLOCK")).ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support table hints [dialect=sqlite3]")
+}

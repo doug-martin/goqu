@@ -319,6 +319,12 @@ type (
 		// The SQL fragment written before each row of a VALUES table, e.g. ROW for MySQL (Default=[]byte(""))
 		ValuesTableRowFragment []byte
 
+		// If true table hints can be written after a table source (see goqu.Hinted) (Default=false)
+		SupportsTableHints bool
+		// If true the hints are written as one WITH (hint, hint) list, as SQL Server does, otherwise each hint is
+		// written as its own clause separated by a space, as MySQL does (Default=false)
+		TableHintsInParens bool
+
 		// The SQL fragment to use for CONFLICT (Default=[]byte(" ON CONFLICT"))
 		ConflictFragment []byte
 		// The SQL fragment to use for a CONFLICT ON CONSTRAINT target, falling back to " ON CONSTRAINT " when empty
@@ -553,6 +559,8 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		UnionAllFragment:                 []byte(" UNION ALL "),
 		IntersectFragment:                []byte(" INTERSECT "),
 		IntersectAllFragment:             []byte(" INTERSECT ALL "),
+		SupportsTableHints:               false,
+		TableHintsInParens:               false,
 		SupportsValuesTable:              true,
 		SupportsValuesTableColumnAliases: true,
 		ValuesTableRowFragment:           []byte(""),

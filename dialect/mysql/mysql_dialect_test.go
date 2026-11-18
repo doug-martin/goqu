@@ -267,3 +267,22 @@ func TestDeleteUsingNotSupported(t *testing.T) {
 	_, _, err := goqu.Dialect("mysql").Delete("a").Using("b").ToSQL()
 	assert.EqualError(t, err, "goqu: dialect does not support USING on DELETE [dialect=mysql]")
 }
+
+func TestTableHints(t *testing.T) {
+	for _, dialect := range []string{"mysql", "mysql8"} {
+		d := goqu.Dialect(dialect)
+
+		sql, _, err := d.From(goqu.Hinted("test", "USE INDEX (idx)")).Where(goqu.Ex{"id": 10}).ToSQL()
+		assert.NoError(t, err, dialect)
+		assert.Equal(t, "SELECT * FROM `test` USE INDEX (idx) WHERE (`id` = 10)", sql, dialect)
+
+		sql, _, err = d.From(goqu.Hinted(goqu.T("test").As("t"), "USE INDEX (a)", "IGNORE INDEX FOR ORDER BY (b)")).ToSQL()
+		assert.NoError(t, err, dialect)
+		assert.Equal(t, "SELECT * FROM `test` AS `t` USE INDEX (a) IGNORE INDEX FOR ORDER BY (b)", sql, dialect)
+
+		sql, _, err = d.From("a").
+			InnerJoin(goqu.Hinted("b", "FORCE INDEX (i)"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))).ToSQL()
+		assert.NoError(t, err, dialect)
+		assert.Equal(t, "SELECT * FROM `a` INNER JOIN `b` FORCE INDEX (i) ON (`a`.`id` = `b`.`id`)", sql, dialect)
+	}
+}

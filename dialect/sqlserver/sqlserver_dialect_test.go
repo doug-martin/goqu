@@ -187,3 +187,22 @@ func TestDeleteUsingNotSupported(t *testing.T) {
 	_, _, err := goqu.Dialect("sqlserver").Delete("a").Using("b").ToSQL()
 	assert.EqualError(t, err, "goqu: dialect does not support USING on DELETE [dialect=sqlserver]")
 }
+
+func TestTableHints(t *testing.T) {
+	d := goqu.Dialect("sqlserver")
+
+	sql, _, err := d.From(goqu.Hinted("test", "NOLOCK")).Where(goqu.Ex{"id": 10}).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM "test" WITH (NOLOCK) WHERE ("id" = 10)`, sql)
+
+	sql, args, err := d.From(goqu.Hinted(goqu.T("test").As("t"), "NOLOCK", "INDEX(ix)")).
+		Where(goqu.Ex{"id": 10}).Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM "test" AS "t" WITH (NOLOCK, INDEX(ix)) WHERE ("id" = @p1)`, sql)
+	assert.Equal(t, []any{int64(10)}, args)
+
+	sql, _, err = d.From("a").
+		InnerJoin(goqu.Hinted("b", "NOLOCK"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM "a" INNER JOIN "b" WITH (NOLOCK) ON ("a"."id" = "b"."id")`, sql)
+}

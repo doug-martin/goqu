@@ -2,6 +2,7 @@ package goqu
 
 import (
 	"github.com/doug-martin/goqu/v9/exp"
+	"github.com/doug-martin/goqu/v9/internal/errors"
 )
 
 type (
@@ -384,6 +385,31 @@ func OrderLiteral(sql string, args ...any) exp.OrderedExpression {
 // infer the type of a bound value in a VALUES list, so cast them (Cast(V(1), "int")) when it matters.
 func Values(rows ...[]any) exp.ValuesExpression {
 	return exp.NewValuesExpression(rows...)
+}
+
+// Creates a table source with table hints for use in From or a join. The hints are written as is after the table (and
+// its alias), so never build them from untrusted input. Which hints are valid depends on the database, and a dialect
+// without table hints returns an error. source is a string (parsed like From does) or an expression.
+//
+// SQL Server writes the hints as WITH (...):
+//
+//	From(Hinted("test", "NOLOCK")) -> SELECT * FROM "test" WITH (NOLOCK)
+//	From(Hinted(T("test").As("t"), "NOLOCK", "INDEX(ix)")) -> SELECT * FROM "test" AS "t" WITH (NOLOCK, INDEX(ix))
+//
+// MySQL writes each hint as its own clause:
+//
+//	From(Hinted("test", "USE INDEX (idx)")) -> SELECT * FROM `test` USE INDEX (idx)
+//	From("a").InnerJoin(Hinted("b", "FORCE INDEX (i)"), On(I("a.id").Eq(I("b.id")))) ->
+//		SELECT * FROM `a` INNER JOIN `b` FORCE INDEX (i) ON (`a`.`id` = `b`.`id`)
+func Hinted(source interface{}, hints ...string) exp.HintedExpression {
+	switch s := source.(type) {
+	case string:
+		return exp.NewHintedExpression(exp.ParseIdentifier(s), hints...)
+	case exp.Expression:
+		return exp.NewHintedExpression(s, hints...)
+	default:
+		panic(errors.New("unsupported Hinted source %T, a string or expression is required", source))
+	}
 }
 
 // Creates a literal *
