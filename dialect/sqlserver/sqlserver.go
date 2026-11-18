@@ -12,6 +12,7 @@ func DialectOptions() *goqu.SQLDialectOptions {
 	opts.BooleanDataTypeSupported = false
 	// WITH (NOLOCK, INDEX(ix)) is written after a table, see goqu.Hinted
 	opts.SupportsTableHints = true
+	opts.SupportsInsertTableHints = true
 	opts.TableHintsInParens = true
 	opts.UseLiteralIsBools = false
 

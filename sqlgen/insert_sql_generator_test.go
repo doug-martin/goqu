@@ -781,3 +781,42 @@ func (igs *insertSQLGeneratorSuite) TestGenerate_legacyConflictImplementations()
 		},
 	)
 }
+
+func (igs *insertSQLGeneratorSuite) TestGenerate_tableHints() {
+	table := exp.NewIdentifierExpression("", "test", "")
+	hinted := exp.NewHintedExpression(table, "TABLOCK")
+	aliasedHinted := exp.NewAliasExpression(hinted, "t")
+	blankHinted := exp.NewHintedExpression(table)
+
+	base := exp.NewInsertClauses().SetCols(exp.NewColumnListExpression("a")).SetVals([][]any{{"a1"}})
+
+	noInsertHints := sqlgen.DefaultDialectOptions()
+	noInsertHints.SupportsTableHints = true
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", noInsertHints),
+		insertTestCase{
+			clause: base.SetInto(hinted),
+			err:    "goqu: dialect does not support table hints on INSERT [dialect=test]",
+		},
+		insertTestCase{
+			clause: base.SetInto(aliasedHinted),
+			err:    "goqu: dialect does not support table hints on INSERT [dialect=test]",
+		},
+		insertTestCase{
+			clause: base.SetInto(blankHinted),
+			sql:    `INSERT INTO "test" ("a") VALUES ('a1')`,
+		},
+	)
+
+	withInsertHints := sqlgen.DefaultDialectOptions()
+	withInsertHints.SupportsTableHints = true
+	withInsertHints.SupportsInsertTableHints = true
+	withInsertHints.TableHintsInParens = true
+	igs.assertCases(
+		sqlgen.NewInsertSQLGenerator("test", withInsertHints),
+		insertTestCase{
+			clause: base.SetInto(hinted),
+			sql:    `INSERT INTO "test" WITH (TABLOCK) ("a") VALUES ('a1')`,
+		},
+	)
+}

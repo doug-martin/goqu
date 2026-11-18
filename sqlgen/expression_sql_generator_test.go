@@ -1946,15 +1946,38 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_HintedExpressionNotATable(
 
 	sub := newTestAppendableExpression(`SELECT * FROM "b"`, nil, nil, nil)
 	values := exp.NewValuesExpression([]any{1}).As("v")
+	lateral := exp.NewLateralExpression(sub)
 	esgs.assertCases(
 		sqlgen.NewExpressionSQLGenerator("test", opts),
 		expressionTestCase{
 			val: exp.NewHintedExpression(sub, "NOLOCK"),
 			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
 		},
+		// blank hints still reject non-table sources instead of emitting an unaliased derived table
+		expressionTestCase{
+			val: exp.NewHintedExpression(sub),
+			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
+		},
+		// aliased derived and lateral sources are unwrapped and rejected
+		expressionTestCase{
+			val: exp.NewHintedExpression(exp.NewAliasExpression(sub, "s"), "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
+		},
 		expressionTestCase{
 			val: exp.NewHintedExpression(values, "NOLOCK"),
 			err: "goqu: table hints can only be used on a table, not on exp.valuesExpression",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(exp.NewAliasExpression(values, "v2")),
+			err: "goqu: table hints can only be used on a table, not on exp.valuesExpression",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(lateral, "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on exp.lateral",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(lateral.As("l"), "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on exp.lateral",
 		},
 		// a literal table name is allowed
 		expressionTestCase{val: exp.NewHintedExpression(exp.NewLiteralExpression("my_table"), "x"), sql: `my_table x`},

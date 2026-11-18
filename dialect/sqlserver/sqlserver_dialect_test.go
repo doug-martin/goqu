@@ -205,6 +205,11 @@ func TestTableHints(t *testing.T) {
 		InnerJoin(goqu.Hinted("b", "NOLOCK"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))).ToSQL()
 	assert.NoError(t, err)
 	assert.Equal(t, `SELECT * FROM "a" INNER JOIN "b" WITH (NOLOCK) ON ("a"."id" = "b"."id")`, sql)
+
+	// nested Hinted calls combine into one WITH (...) clause instead of emitting two
+	sql, _, err = d.From(goqu.Hinted(goqu.Hinted("test", "NOLOCK"), "INDEX(ix)")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM "test" WITH (NOLOCK, INDEX(ix))`, sql)
 }
 
 func TestTableHintsOnUpdateAndInsert(t *testing.T) {
@@ -218,17 +223,28 @@ func TestTableHintsOnUpdateAndInsert(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `INSERT INTO "test" WITH (TABLOCK) ("a") VALUES (1)`, sql)
 
+	_, _, err = d.From(goqu.Hinted("test", "NOLOCK")).Truncate().ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support table hints on TRUNCATE [dialect=sqlserver]")
+
 	// a DELETE target has to be a plain table
 	assert.Panics(t, func() { d.Delete(goqu.Hinted("test", "ROWLOCK")) })
 }
 
 func TestTableHintsNotOnADataset(t *testing.T) {
 	d := goqu.Dialect("sqlserver")
-	_, _, err := d.From(goqu.Hinted(d.From("b"), "NOLOCK")).ToSQL()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "table hints can only be used on a table")
+	for _, bad := range []exp.Expression{
+		goqu.Hinted(d.From("b"), "NOLOCK"),
+		goqu.Hinted(d.From("b").As("s"), "NOLOCK"),
+		goqu.Hinted(d.From("b"), ""),
+		goqu.Hinted(goqu.Values([]any{1}).As("v", "id"), "NOLOCK"),
+		goqu.Hinted(goqu.Lateral(d.From("b")).As("l"), "NOLOCK"),
+	} {
+		_, _, err := d.From(bad).ToSQL()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "table hints can only be used on a table")
+	}
 
-	// blank hints are dropped
+	// blank hints on a table are dropped
 	sql, _, err := d.From(goqu.Hinted("test", "")).ToSQL()
 	assert.NoError(t, err)
 	assert.Equal(t, `SELECT * FROM "test"`, sql)

@@ -36,3 +36,14 @@ func TestHintedExpression_dropsBlankHints(t *testing.T) {
 	assert.Equal(t, []string{"NOLOCK"}, exp.NewHintedExpression(source, "", "NOLOCK", "  ").Hints())
 	assert.Empty(t, exp.NewHintedExpression(source, "", " ").Hints())
 }
+
+func TestHintedExpression_flattensNestedHints(t *testing.T) {
+	source := exp.NewIdentifierExpression("", "test", "")
+	inner := exp.NewHintedExpression(source, "NOLOCK")
+	outer := exp.NewHintedExpression(inner, "", "INDEX(ix)")
+
+	assert.Equal(t, source, outer.Source())
+	assert.Equal(t, []string{"NOLOCK", "INDEX(ix)"}, outer.Hints())
+	assert.Equal(t, []string{"NOLOCK"}, inner.Hints())
+	assert.Empty(t, exp.NewHintedExpression(exp.NewHintedExpression(source, ""), " ").Hints())
+}

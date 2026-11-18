@@ -321,6 +321,8 @@ type (
 
 		// If true table hints can be written after a table source (see goqu.Hinted) (Default=false)
 		SupportsTableHints bool
+		// If true table hints are also allowed on an INSERT target, e.g. INSERT INTO "t" WITH (TABLOCK) (Default=false)
+		SupportsInsertTableHints bool
 		// If true the hints are written as one WITH (hint, hint) list, as SQL Server does, otherwise each hint is
 		// written as its own clause separated by a space, as MySQL does (Default=false)
 		TableHintsInParens bool
@@ -560,6 +562,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 		IntersectFragment:                []byte(" INTERSECT "),
 		IntersectAllFragment:             []byte(" INTERSECT ALL "),
 		SupportsTableHints:               false,
+		SupportsInsertTableHints:         false,
 		TableHintsInParens:               false,
 		SupportsValuesTable:              true,
 		SupportsValuesTableColumnAliases: true,

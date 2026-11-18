@@ -387,11 +387,12 @@ func Values(rows ...[]any) exp.ValuesExpression {
 	return exp.NewValuesExpression(rows...)
 }
 
-// Creates a table source with table hints for use in From or a join. The hints are written as is after the table (and
-// its alias), so never build them from untrusted input. Which hints are valid depends on the database, and a dialect
-// without table hints returns an error. source is a string (parsed like From does) or a table expression, a dataset
-// or VALUES table is an error. Hints are meant for From and joins; SQL Server also accepts them on an UPDATE and
-// INSERT target, but MySQL does not, and DeleteDataset does not accept a hinted table.
+// Creates a table source with table hints for use in From, joins or Update. The hints are written as is after the table
+// (and its alias), so never build them from untrusted input. Blank hints are dropped, and nesting Hinted combines the
+// hints into a single list. Which hints are valid depends on the database, and a dialect without table hints returns an
+// error. source is a string (parsed like From does) or a table expression; a dataset, VALUES table or LATERAL source is
+// an error (even when aliased or when hints are blank). SQL Server also accepts hints on an INSERT target, whereas
+// MySQL rejects them on INSERT, Truncate rejects hinted tables, and DeleteDataset does not accept a hinted table.
 //
 // SQL Server writes the hints as WITH (...):
 //

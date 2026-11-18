@@ -554,6 +554,20 @@ func (mt *mysqlTest) TestInsertFromSelect() {
 	mt.NoError(err)
 }
 
+func (mt *mysqlTest) TestTableHints() {
+	var e entry
+	found, err := mt.db.From(goqu.Hinted("entry", "USE INDEX (PRIMARY)")).
+		Where(goqu.C("id").Eq(1)).ScanStruct(&e)
+	mt.Require().NoError(err)
+	mt.True(found)
+	mt.Equal(uint32(1), e.ID)
+
+	_, err = mt.db.Update(goqu.Hinted("entry", "USE INDEX (PRIMARY)")).
+		Set(goqu.Record{"string": "hinted"}).
+		Where(goqu.C("id").Eq(1)).Executor().Exec()
+	mt.Require().NoError(err)
+}
+
 func TestMysqlSuite(t *testing.T) {
 	suite.Run(t, new(mysqlTest))
 }

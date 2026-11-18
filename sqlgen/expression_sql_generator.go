@@ -335,17 +335,14 @@ func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}
 // Generates SQL for a table with table hints: "test" WITH (NOLOCK) (SQL Server) or `test` USE INDEX (idx) (MySQL)
 func (esg *expressionSQLGenerator) hintedExpressionSQL(b sb.SQLBuilder, h exp.HintedExpression) {
 	do := esg.dialectOptions
+	if src := nonTableHintSource(h.Source()); src != nil {
+		b.SetError(ErrTableHintsSourceNotTable(src))
+		return
+	}
 	hints := h.Hints()
 	if len(hints) > 0 && !do.SupportsTableHints {
 		b.SetError(ErrTableHintsNotSupported(esg.dialect))
 		return
-	}
-	switch src := h.Source().(type) {
-	case exp.AppendableExpression, exp.ValuesExpression:
-		if len(hints) > 0 {
-			b.SetError(ErrTableHintsSourceNotTable(src))
-			return
-		}
 	}
 	esg.Generate(b, h.Source())
 	switch {
@@ -357,6 +354,23 @@ func (esg *expressionSQLGenerator) hintedExpressionSQL(b sb.SQLBuilder, h exp.Hi
 	default:
 		b.WriteRunes(do.SpaceRune)
 		b.Write([]byte(strings.Join(hints, " ")))
+	}
+}
+
+// nonTableHintSource returns the inner derived/lateral source when src is not a table reference (even if aliased),
+// or nil when src is a valid table source.
+func nonTableHintSource(src exp.Expression) exp.Expression {
+	for {
+		if aliased, ok := src.(exp.AliasedExpression); ok {
+			src = aliased.Aliased()
+			continue
+		}
+		switch src.(type) {
+		case exp.AppendableExpression, exp.ValuesExpression, exp.LateralExpression:
+			return src
+		default:
+			return nil
+		}
 	}
 }
 

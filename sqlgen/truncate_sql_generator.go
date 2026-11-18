@@ -34,6 +34,14 @@ func (tsg *truncateSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.TruncateC
 		b.SetError(errNoSourceForTruncate)
 		return
 	}
+	if tsg.DialectOptions().SupportsTableHints {
+		for _, col := range clauses.Table().Columns() {
+			if hasTableHints(col) {
+				b.SetError(ErrTruncateTableHintsNotSupported(tsg.Dialect()))
+				return
+			}
+		}
+	}
 	for _, f := range tsg.DialectOptions().TruncateSQLOrder {
 		if b.Error() != nil {
 			return

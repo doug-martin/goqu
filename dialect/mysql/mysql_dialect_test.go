@@ -284,5 +284,23 @@ func TestTableHints(t *testing.T) {
 			InnerJoin(goqu.Hinted("b", "FORCE INDEX (i)"), goqu.On(goqu.I("a.id").Eq(goqu.I("b.id")))).ToSQL()
 		assert.NoError(t, err, dialect)
 		assert.Equal(t, "SELECT * FROM `a` INNER JOIN `b` FORCE INDEX (i) ON (`a`.`id` = `b`.`id`)", sql, dialect)
+
+		// MySQL supports index hints on UPDATE and on SELECT sources in INSERT ... SELECT, but not on INSERT/TRUNCATE targets
+		sql, _, err = d.Update(goqu.Hinted("test", "USE INDEX (idx)")).Set(goqu.Record{"a": 1}).ToSQL()
+		assert.NoError(t, err, dialect)
+		assert.Equal(t, "UPDATE `test` USE INDEX (idx) SET `a`=1", sql, dialect)
+
+		sql, _, err = d.Insert("dest").FromQuery(d.From(goqu.Hinted("src", "USE INDEX (idx)"))).ToSQL()
+		assert.NoError(t, err, dialect)
+		assert.Equal(t, "INSERT INTO `dest` SELECT * FROM `src` USE INDEX (idx)", sql, dialect)
+
+		_, _, err = d.Insert(goqu.Hinted("test", "USE INDEX (idx)")).Rows(goqu.Record{"a": 1}).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support table hints on INSERT [dialect="+dialect+"]")
+
+		_, _, err = d.From(goqu.Hinted("test", "USE INDEX (idx)")).Insert().Rows(goqu.Record{"a": 1}).ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support table hints on INSERT [dialect="+dialect+"]")
+
+		_, _, err = d.From(goqu.Hinted("test", "USE INDEX (idx)")).Truncate().ToSQL()
+		assert.EqualError(t, err, "goqu: dialect does not support table hints on TRUNCATE [dialect="+dialect+"]")
 	}
 }
