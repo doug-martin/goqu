@@ -37,6 +37,7 @@ func (sfts *sqlFragmentTypeSuite) TestOptions_SQLFragmentType() {
 		{typ: sqlgen.ReturningSQLFragment, expectedStr: "ReturningSQLFragment"},
 		{typ: sqlgen.InsertBeingSQLFragment, expectedStr: "InsertBeingSQLFragment"},
 		{typ: sqlgen.DeleteBeginSQLFragment, expectedStr: "DeleteBeginSQLFragment"},
+		{typ: sqlgen.DeleteUsingSQLFragment, expectedStr: "DeleteUsingSQLFragment"},
 		{typ: sqlgen.TruncateSQLFragment, expectedStr: "TruncateSQLFragment"},
 		{typ: sqlgen.WindowSQLFragment, expectedStr: "WindowSQLFragment"},
 		{typ: sqlgen.SQLFragmentType(10000), expectedStr: "10000"},

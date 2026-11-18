@@ -307,3 +307,23 @@ func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withUsingNotSupported() {
 		deleteTestCase{clause: dc, err: "goqu: dialect does not support USING on DELETE [dialect=test]", isPrepared: true},
 	)
 }
+
+func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withUsingMissingFromOrder() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsDeleteUsing = true
+	opts.DeleteSQLOrder = []sqlgen.SQLFragmentType{
+		sqlgen.DeleteBeginSQLFragment,
+		sqlgen.FromSQLFragment,
+		sqlgen.WhereSQLFragment,
+	}
+
+	dsgs.assertCases(
+		sqlgen.NewDeleteSQLGenerator("test", opts),
+		deleteTestCase{
+			clause: exp.NewDeleteClauses().
+				SetFrom(exp.NewIdentifierExpression("", "a", "")).
+				SetUsing(exp.NewColumnListExpression("b")),
+			err: "goqu: dialect does not support USING on DELETE [dialect=test]",
+		},
+	)
+}

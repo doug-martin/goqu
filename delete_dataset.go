@@ -1,6 +1,8 @@
 package goqu
 
 import (
+	"fmt"
+
 	"github.com/doug-martin/goqu/v9/exec"
 	"github.com/doug-martin/goqu/v9/exp"
 	"github.com/doug-martin/goqu/v9/internal/errors"
@@ -130,11 +132,26 @@ func (dd *DeleteDataset) From(table interface{}) *DeleteDataset {
 }
 
 // Adds a USING clause with the extra tables the WHERE and RETURNING clauses can refer to (PostgreSQL
-// DELETE ... USING). This returns a new dataset with the original USING sources replaced. It takes the same arguments
-// as SelectDataset.From: strings, identifiers, datasets, literals and VALUES tables. Dialects without DELETE ... USING
-// return an error when it is set. See examples.
+// DELETE ... USING). This returns a new dataset with the original USING sources replaced. You can pass in the following.
+//
+//	string: Will automatically be turned into an identifier
+//	Dataset: Will be added as a sub select. If the Dataset is not aliased it will automatically be aliased
+//	LiteralExpression: (See Literal) Will use the literal SQL
+//	VALUES table: (See Values) Name it with As
+//
+// Dialects without DELETE ... USING return an error when it is set. See examples.
 func (dd *DeleteDataset) Using(tables ...interface{}) *DeleteDataset {
-	return dd.copy(dd.clauses.SetUsing(exp.NewColumnListExpression(tables...)))
+	sources := make([]interface{}, 0, len(tables))
+	numSources := 0
+	for _, source := range tables {
+		if ds, ok := source.(*SelectDataset); ok && !ds.clauses.HasAlias() {
+			numSources++
+			sources = append(sources, ds.As(fmt.Sprintf("t%d", numSources)))
+		} else {
+			sources = append(sources, source)
+		}
+	}
+	return dd.copy(dd.clauses.SetUsing(exp.NewColumnListExpression(sources...)))
 }
 
 // Adds a WHERE clause. See examples.

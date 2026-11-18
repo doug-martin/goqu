@@ -143,7 +143,7 @@ DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" I
 <a name="using"></a>
 **[`Using`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Using)**
 
-Adds tables that the `WHERE` and `RETURNING` clauses can refer to (`DELETE ... USING`). It takes the same arguments as `From` on a select, and calling it again replaces the previous tables.
+Adds tables that the `WHERE` and `RETURNING` clauses can refer to (`DELETE ... USING`). It takes the same arguments as `From` on a select (an unaliased dataset is aliased `t1`, `t2`, ...; name a `goqu.Values` table with `As`), and calling it again replaces the previous tables.
 
 **NOTE** Only the `postgres` dialect supports `USING` on a `DELETE`; the other built-in dialects return an error when it is set. Rewrite the condition as `IN (subquery)` if you do not need columns of the other table in `RETURNING`.
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/mysql"
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 )
 
 func ExampleDelete() {
@@ -309,4 +310,17 @@ func ExampleDeleteDataset_Returning() {
 	// Output:
 	// DELETE FROM "items" RETURNING "id" []
 	// DELETE FROM "items" WHERE ("id" IS NOT NULL) RETURNING "id" []
+}
+
+func ExampleDeleteDataset_Using() {
+	// PostgreSQL only; the WHERE and RETURNING clauses can use columns of the USING tables
+	ds := goqu.Dialect("postgres").Delete("a").
+		Using("b").
+		Where(goqu.Ex{"a.cluster": goqu.I("b.cluster")}).
+		Returning("a.id", "b.val")
+	sql, args, _ := ds.ToSQL()
+	fmt.Println(sql, args)
+
+	// Output:
+	// DELETE FROM "a" USING "b" WHERE ("a"."cluster" = "b"."cluster") RETURNING "a"."id", "b"."val" []
 }

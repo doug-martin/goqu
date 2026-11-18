@@ -15,7 +15,8 @@ type (
 		// Set to true to return an error, instead of silently dropping the clause, when ORDER BY is used on a
 		// DELETE and SupportsOrderByOnDelete is false (DEFAULT=false)
 		ErrorOnUnsupportedOrderByOnDelete bool
-		// Set to true if the dialect supports DELETE ... USING (DEFAULT=false)
+		// Set to true if the dialect supports DELETE ... USING (DEFAULT=false). DeleteSQLOrder must also contain
+		// DeleteUsingSQLFragment, otherwise the clause is rejected with an error instead of being dropped.
 		SupportsDeleteUsing bool
 		// The SQL USING fragment for DELETE statements (DEFAULT=[]byte(" USING"))
 		DeleteUsingFragment []byte

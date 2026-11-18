@@ -40,7 +40,7 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 		b.SetError(ErrNoSourceForDelete)
 		return
 	}
-	if clauses.HasUsing() && !dsg.DialectOptions().SupportsDeleteUsing {
+	if clauses.HasUsing() && !dsg.supportsUsing() {
 		b.SetError(ErrUsingOnDeleteNotSupported(dsg.Dialect()))
 		return
 	}
@@ -90,4 +90,19 @@ func (dsg *deleteSQLGenerator) DeleteBeginSQL(b sb.SQLBuilder, from exp.ColumnLi
 	if multiTable && dsg.DialectOptions().SupportsDeleteTableHint {
 		dsg.SourcesSQL(b, from)
 	}
+}
+
+// A USING clause is only supported when the dialect enables it and its DeleteSQLOrder writes it, so the clause is
+// never dropped silently (which would delete more rows than intended).
+func (dsg *deleteSQLGenerator) supportsUsing() bool {
+	do := dsg.DialectOptions()
+	if !do.SupportsDeleteUsing {
+		return false
+	}
+	for _, f := range do.DeleteSQLOrder {
+		if f == DeleteUsingSQLFragment {
+			return true
+		}
+	}
+	return false
 }
