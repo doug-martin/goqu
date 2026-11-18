@@ -15,6 +15,11 @@ type (
 		// Set to true to return an error, instead of silently dropping the clause, when ORDER BY is used on a
 		// DELETE and SupportsOrderByOnDelete is false (DEFAULT=false)
 		ErrorOnUnsupportedOrderByOnDelete bool
+		// Set to true if the dialect supports DELETE ... USING (DEFAULT=false). DeleteSQLOrder must also contain
+		// DeleteUsingSQLFragment, otherwise the clause is rejected with an error instead of being dropped.
+		SupportsDeleteUsing bool
+		// The SQL USING fragment for DELETE statements (DEFAULT=[]byte(" USING"))
+		DeleteUsingFragment []byte
 		// Set to true if the dialect supports table hint for DELETE statements (DELETE t FROM t ...), DEFAULT=false
 		SupportsDeleteTableHint bool
 		// Set to true if the dialect supports ORDER BY expressions in UPDATE statements (DEFAULT=false)
@@ -370,6 +375,7 @@ type (
 		// 		CommonTableSQLFragment,
 		// 		DeleteBeginSQLFragment,
 		// 		FromSQLFragment,
+		// 		DeleteUsingSQLFragment,
 		// 		WhereSQLFragment,
 		// 		OrderSQLFragment,
 		// 		LimitSQLFragment,
@@ -413,6 +419,7 @@ const (
 	WindowSQLFragment
 	// New fragment types are appended here so the values of the existing ones do not change.
 	QualifySQLFragment
+	DeleteUsingSQLFragment
 )
 
 //nolint:gocyclo // simple type to string conversion
@@ -464,6 +471,8 @@ func (sf SQLFragmentType) String() string {
 		return "TruncateSQLFragment"
 	case WindowSQLFragment:
 		return "WindowSQLFragment"
+	case DeleteUsingSQLFragment:
+		return "DeleteUsingSQLFragment"
 	}
 	return fmt.Sprintf("%d", sf)
 }
@@ -473,6 +482,8 @@ func DefaultDialectOptions() *SQLDialectOptions {
 	return &SQLDialectOptions{
 		SupportsOrderByOnDelete:      false,
 		SupportsDeleteTableHint:      false,
+		SupportsDeleteUsing:          false,
+		DeleteUsingFragment:          []byte(" USING"),
 		SupportsOrderByOnUpdate:      false,
 		SupportsLimitOnDelete:        false,
 		SupportsLimitOnUpdate:        false,
@@ -669,6 +680,7 @@ func DefaultDialectOptions() *SQLDialectOptions {
 			CommonTableSQLFragment,
 			DeleteBeginSQLFragment,
 			FromSQLFragment,
+			DeleteUsingSQLFragment,
 			WhereSQLFragment,
 			OrderSQLFragment,
 			LimitSQLFragment,

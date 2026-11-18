@@ -67,3 +67,57 @@ func TestValuesTableCTE(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `SELECT * FROM "x" INNER JOIN (VALUES (1)) AS "v"("a") ON ("v"."a" = "x"."a")`, sql)
 }
+
+func TestDeleteUsing(t *testing.T) {
+	ds := goqu.Dialect("postgres").Delete("a").
+		Using("b").
+		Where(goqu.I("a.cluster").Eq(goqu.I("b.cluster")), goqu.I("a.cluster").Eq(10)).
+		Returning("a.id", "b.val")
+
+	sql, args, err := ds.ToSQL()
+	assert.NoError(t, err)
+	assert.Empty(t, args)
+	assert.Equal(t, `DELETE FROM "a" USING "b" WHERE (("a"."cluster" = "b"."cluster") AND ("a"."cluster" = 10)) `+
+		`RETURNING "a"."id", "b"."val"`, sql)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, []any{int64(10)}, args)
+	assert.Equal(t, `DELETE FROM "a" USING "b" WHERE (("a"."cluster" = "b"."cluster") AND ("a"."cluster" = $1)) `+
+		`RETURNING "a"."id", "b"."val"`, sql)
+}
+
+func TestDeleteUsingSubqueryValuesAndCTE(t *testing.T) {
+	d := goqu.Dialect("postgres")
+
+	// an unaliased dataset is aliased like SelectDataset.From does, and its args come before the WHERE args
+	sql, args, err := d.Delete("a").
+		Using(d.From("b").Where(goqu.C("x").Eq(1)), d.From("c")).
+		Where(goqu.I("a.id").Eq(goqu.I("t1.id")), goqu.I("a.y").Eq(2)).
+		Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `DELETE FROM "a" USING (SELECT * FROM "b" WHERE ("x" = $1)) AS "t1", (SELECT * FROM "c") AS "t2" `+
+		`WHERE (("a"."id" = "t1"."id") AND ("a"."y" = $2))`, sql)
+	assert.Equal(t, []any{int64(1), int64(2)}, args)
+
+	// an aliased dataset keeps its alias
+	sql, _, err = d.Delete("a").Using(d.From("b").As("s")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `DELETE FROM "a" USING (SELECT * FROM "b") AS "s"`, sql)
+
+	// a VALUES table and a CTE
+	sql, _, err = d.Delete("a").
+		With("keep(id)", goqu.Values([]any{1}, []any{2})).
+		Using(goqu.Values([]any{3}).As("v", "id")).
+		Where(goqu.I("a.id").Eq(goqu.I("v.id"))).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `WITH keep(id) AS (VALUES (1), (2)) DELETE FROM "a" USING (VALUES (3)) AS "v"("id") `+
+		`WHERE ("a"."id" = "v"."id")`, sql)
+}
+
+func TestDeleteUsingSelectedSubquery(t *testing.T) {
+	d := goqu.Dialect("postgres")
+	sql, _, err := d.Delete("a").Using(d.From("b").Select("id")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `DELETE FROM "a" USING (SELECT "id" FROM "b") AS "t1"`, sql)
+}

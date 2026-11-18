@@ -254,3 +254,8 @@ func TestValuesTable(t *testing.T) {
 	_, _, err = dialect.From(goqu.Values([]any{1, "a"}).As("t", "id", "name")).ToSQL()
 	assert.EqualError(t, err, "goqu: dialect does not support naming the columns of a VALUES table [dialect=sqlite3]")
 }
+
+func TestDeleteUsingNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("sqlite3").Delete("a").Using("b").ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support USING on DELETE [dialect=sqlite3]")
+}

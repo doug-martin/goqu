@@ -254,3 +254,18 @@ func (dcs *deleteClausesSuite) TestSetReturning() {
 
 	dcs.Equal(cl2, c2.Returning())
 }
+
+func (dcs *deleteClausesSuite) TestUsing() {
+	c := exp.NewDeleteClauses()
+	using := exp.NewColumnListExpression("b", "c")
+	c2 := c.SetUsing(using)
+
+	dcs.Nil(c.Using())
+	dcs.False(c.HasUsing())
+	dcs.Equal(using, c2.Using())
+	dcs.True(c2.HasUsing())
+
+	// an empty list is not a USING clause, and the setting survives other clones
+	dcs.False(c.SetUsing(exp.NewColumnListExpression()).HasUsing())
+	dcs.True(c2.SetFrom(exp.NewIdentifierExpression("", "a", "")).HasUsing())
+}

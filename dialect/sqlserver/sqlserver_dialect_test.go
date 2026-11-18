@@ -182,3 +182,8 @@ func TestValuesTable(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `SELECT * FROM (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")`, sql)
 }
+
+func TestDeleteUsingNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("sqlserver").Delete("a").Using("b").ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support USING on DELETE [dialect=sqlserver]")
+}

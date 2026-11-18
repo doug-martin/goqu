@@ -509,3 +509,27 @@ func (dds *deleteDatasetSuite) TestSetError() {
 func TestDeleteDataset(t *testing.T) {
 	suite.Run(t, new(deleteDatasetSuite))
 }
+
+func (dds *deleteDatasetSuite) TestUsing() {
+	bd := goqu.Delete("items")
+	dds.assertCases(
+		deleteTestCase{
+			ds:      bd.Using("other"),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")).SetUsing(exp.NewColumnListExpression("other")),
+		},
+		// replaces the previous USING tables
+		deleteTestCase{
+			ds:      bd.Using("other").Using("a", goqu.T("b")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")).SetUsing(exp.NewColumnListExpression("a", goqu.T("b"))),
+		},
+		// unaliased datasets are aliased like SelectDataset.From does
+		deleteTestCase{
+			ds: bd.Using(goqu.From("a"), goqu.From("b").As("named"), goqu.From("c")),
+			clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items")).SetUsing(exp.NewColumnListExpression(
+				goqu.From("a").As("t1"), goqu.From("b").As("named"), goqu.From("c").As("t2"),
+			)),
+		},
+		// the original dataset is not modified
+		deleteTestCase{ds: bd, clauses: exp.NewDeleteClauses().SetFrom(goqu.C("items"))},
+	)
+}

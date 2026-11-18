@@ -11,6 +11,10 @@ type (
 		From() IdentifierExpression
 		SetFrom(table IdentifierExpression) DeleteClauses
 
+		Using() ColumnListExpression
+		HasUsing() bool
+		SetUsing(tables ColumnListExpression) DeleteClauses
+
 		Where() ExpressionList
 		ClearWhere() DeleteClauses
 		WhereAppend(expressions ...Expression) DeleteClauses
@@ -34,6 +38,7 @@ type (
 	deleteClauses struct {
 		commonTables []CommonTableExpression
 		from         IdentifierExpression
+		using        ColumnListExpression
 		where        ExpressionList
 		order        ColumnListExpression
 		limit        interface{}
@@ -53,6 +58,7 @@ func (dc *deleteClauses) clone() *deleteClauses {
 	return &deleteClauses{
 		commonTables: dc.commonTables,
 		from:         dc.from,
+		using:        dc.using,
 
 		where:     dc.where,
 		order:     dc.order,
@@ -78,6 +84,20 @@ func (dc *deleteClauses) From() IdentifierExpression {
 func (dc *deleteClauses) SetFrom(table IdentifierExpression) DeleteClauses {
 	ret := dc.clone()
 	ret.from = table
+	return ret
+}
+
+func (dc *deleteClauses) Using() ColumnListExpression {
+	return dc.using
+}
+
+func (dc *deleteClauses) HasUsing() bool {
+	return dc.using != nil && !dc.using.IsEmpty()
+}
+
+func (dc *deleteClauses) SetUsing(tables ColumnListExpression) DeleteClauses {
+	ret := dc.clone()
+	ret.using = tables
 	return ret
 }
 
