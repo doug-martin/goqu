@@ -389,7 +389,9 @@ func Values(rows ...[]any) exp.ValuesExpression {
 
 // Creates a table source with table hints for use in From or a join. The hints are written as is after the table (and
 // its alias), so never build them from untrusted input. Which hints are valid depends on the database, and a dialect
-// without table hints returns an error. source is a string (parsed like From does) or an expression.
+// without table hints returns an error. source is a string (parsed like From does) or a table expression, a dataset
+// or VALUES table is an error. Hints are meant for From and joins; SQL Server also accepts them on an UPDATE and
+// INSERT target, but MySQL does not, and DeleteDataset does not accept a hinted table.
 //
 // SQL Server writes the hints as WITH (...):
 //
@@ -401,7 +403,7 @@ func Values(rows ...[]any) exp.ValuesExpression {
 //	From(Hinted("test", "USE INDEX (idx)")) -> SELECT * FROM `test` USE INDEX (idx)
 //	From("a").InnerJoin(Hinted("b", "FORCE INDEX (i)"), On(I("a.id").Eq(I("b.id")))) ->
 //		SELECT * FROM `a` INNER JOIN `b` FORCE INDEX (i) ON (`a`.`id` = `b`.`id`)
-func Hinted(source interface{}, hints ...string) exp.HintedExpression {
+func Hinted(source any, hints ...string) exp.HintedExpression {
 	switch s := source.(type) {
 	case string:
 		return exp.NewHintedExpression(exp.ParseIdentifier(s), hints...)

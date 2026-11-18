@@ -30,3 +30,9 @@ func TestHintedExpression(t *testing.T) {
 
 	assert.Empty(t, exp.NewHintedExpression(source).Hints())
 }
+
+func TestHintedExpression_dropsBlankHints(t *testing.T) {
+	source := exp.NewIdentifierExpression("", "test", "")
+	assert.Equal(t, []string{"NOLOCK"}, exp.NewHintedExpression(source, "", "NOLOCK", "  ").Hints())
+	assert.Empty(t, exp.NewHintedExpression(source, "", " ").Hints())
+}

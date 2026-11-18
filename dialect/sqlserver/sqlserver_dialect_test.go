@@ -206,3 +206,30 @@ func TestTableHints(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `SELECT * FROM "a" INNER JOIN "b" WITH (NOLOCK) ON ("a"."id" = "b"."id")`, sql)
 }
+
+func TestTableHintsOnUpdateAndInsert(t *testing.T) {
+	d := goqu.Dialect("sqlserver")
+
+	sql, _, err := d.Update(goqu.Hinted("test", "ROWLOCK")).Set(goqu.Record{"a": 1}).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `UPDATE "test" WITH (ROWLOCK) SET "a"=1`, sql)
+
+	sql, _, err = d.Insert(goqu.Hinted("test", "TABLOCK")).Rows(goqu.Record{"a": 1}).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "test" WITH (TABLOCK) ("a") VALUES (1)`, sql)
+
+	// a DELETE target has to be a plain table
+	assert.Panics(t, func() { d.Delete(goqu.Hinted("test", "ROWLOCK")) })
+}
+
+func TestTableHintsNotOnADataset(t *testing.T) {
+	d := goqu.Dialect("sqlserver")
+	_, _, err := d.From(goqu.Hinted(d.From("b"), "NOLOCK")).ToSQL()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "table hints can only be used on a table")
+
+	// blank hints are dropped
+	sql, _, err := d.From(goqu.Hinted("test", "")).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM "test"`, sql)
+}

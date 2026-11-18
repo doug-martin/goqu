@@ -64,6 +64,10 @@ func ErrTableHintsNotSupported(dialect string) error {
 	return errors.New("dialect does not support table hints [dialect=%s]", dialect)
 }
 
+func ErrTableHintsSourceNotTable(source exp.Expression) error {
+	return errors.New("table hints can only be used on a table, not on %T", source)
+}
+
 func ErrValuesTableNotSupported(dialect string) error {
 	return errors.New("dialect does not support a VALUES table [dialect=%s]", dialect)
 }

@@ -1939,3 +1939,24 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_HintedExpression() {
 		expressionTestCase{val: exp.NewHintedExpression(table), sql: `"test"`},
 	)
 }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_HintedExpressionNotATable() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsTableHints = true
+
+	sub := newTestAppendableExpression(`SELECT * FROM "b"`, nil, nil, nil)
+	values := exp.NewValuesExpression([]any{1}).As("v")
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", opts),
+		expressionTestCase{
+			val: exp.NewHintedExpression(sub, "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on *sqlgen_test.testAppendableExpression",
+		},
+		expressionTestCase{
+			val: exp.NewHintedExpression(values, "NOLOCK"),
+			err: "goqu: table hints can only be used on a table, not on exp.valuesExpression",
+		},
+		// a literal table name is allowed
+		expressionTestCase{val: exp.NewHintedExpression(exp.NewLiteralExpression("my_table"), "x"), sql: `my_table x`},
+	)
+}

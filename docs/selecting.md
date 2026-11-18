@@ -248,7 +248,7 @@ SELECT * FROM (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")
 
 With table hints ([`Hinted`](https://godoc.org/github.com/doug-martin/goqu/#Hinted)), for `sqlserver` and `mysql`
 
-The hints are written as is after the table and its alias, so never build them from untrusted input. `sqlserver` writes them as `WITH (...)`, `mysql` and `mysql8` write each hint as its own clause (`USE INDEX`, `IGNORE INDEX`, `FORCE INDEX`), and the other dialects return an error. It also works on a join.
+The hints are written as is after the table and its alias, so never build them from untrusted input. `sqlserver` writes them as `WITH (...)`, `mysql` and `mysql8` write each hint as its own clause (`USE INDEX`, `IGNORE INDEX`, `FORCE INDEX`), and the other dialects return an error. It also works on a join. Blank hints are dropped, and a dataset or `goqu.Values` table is an error because hints only apply to a table. Hints are meant for `From` and joins: `sqlserver` also accepts them on an `Update` or `Insert` table, `mysql` does not accept them there, and `Delete` does not accept a hinted table.
 
 ```go
 sql, _, _ := goqu.Dialect("sqlserver").From(goqu.Hinted("test", "NOLOCK")).ToSQL()

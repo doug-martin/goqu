@@ -340,6 +340,13 @@ func (esg *expressionSQLGenerator) hintedExpressionSQL(b sb.SQLBuilder, h exp.Hi
 		b.SetError(ErrTableHintsNotSupported(esg.dialect))
 		return
 	}
+	switch src := h.Source().(type) {
+	case exp.AppendableExpression, exp.ValuesExpression:
+		if len(hints) > 0 {
+			b.SetError(ErrTableHintsSourceNotTable(src))
+			return
+		}
+	}
 	esg.Generate(b, h.Source())
 	switch {
 	case len(hints) == 0:
