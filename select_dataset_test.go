@@ -170,6 +170,14 @@ func (sds *selectDatasetSuite) TestWith() {
 				SetFrom(exp.NewColumnListExpression("test")).
 				CommonTablesAppend(exp.NewCommonTableExpression(false, "test-cte", from)),
 		},
+		// unaliased datasets are numbered in order and skip the aliased ones; other sources are untouched
+		selectTestCase{
+			ds: bd.From(goqu.From("a"), goqu.From("b").As("named"), "plain", goqu.From("c")),
+			clauses: exp.NewSelectClauses().
+				SetFrom(exp.NewColumnListExpression(
+					goqu.From("a").As("t1"), goqu.From("b").As("named"), "plain", goqu.From("c").As("t2"),
+				)),
+		},
 		selectTestCase{
 			ds:      bd,
 			clauses: exp.NewSelectClauses().SetFrom(exp.NewColumnListExpression("test")),
