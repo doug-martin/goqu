@@ -56,11 +56,16 @@ goqu.RegisterOpaqueType(reflect.TypeOf(Payload{}))
 
 How the value is sent:
 
-* **Prepared statements** pass the value to the driver as an argument, unchanged, so a driver that can encode the type
-  natively receives it as is. Whether the driver accepts it is up to the driver.
+* **Prepared statements** pass the value to `database/sql` as an argument, unchanged. `database/sql` only accepts it if
+  the driver can handle the type (a driver that implements `driver.NamedValueChecker`, or a type that is a
+  `driver.Valuer`); otherwise the call fails with an unsupported type error from the driver.
 * **Interpolated statements** use the value's `driver.Valuer` when it has one, and return an encode error otherwise (a
   native binary encoding cannot be written as a SQL literal).
-* **Scanning** passes a pointer to the field to the driver, so the driver (or `sql.Scanner`) decodes it.
+* **Scanning** goes through `database/sql`: the column is scanned into a value of the field's type and copied onto the
+  struct, so the driver must return a value assignable to that type (as a driver that decodes its own types does), or
+  the type must implement `sql.Scanner`. A driver that returns plain `driver.Value`s (strings, bytes, ...) does not
+  call a type's own binary decoder, such as pgx's `BinaryDecoder`; for those, wrap the type with a `sql.Scanner`/
+  `driver.Valuer` or use the driver's native API.
 
 Notes:
 
@@ -68,6 +73,8 @@ Notes:
   with its `Value()`.
 * Registering a type resets goqu's cached struct column maps, so it also applies to structs that were already used. Register
   types once at start up rather than while queries are running.
+* `opaque` on an embedded field of an unexported type leaves the field out, because its value cannot be read.
+* Only one pointer level is unwrapped (`T` and `*T`, not `**T`), like `sql.Scanner` detection.
 * The struct you pass as a row (`Rows(row)`, `Set(row)`, `ScanStruct(&row)`) is always expanded into its columns; opaque
   only applies to the fields inside it.
 

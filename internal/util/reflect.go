@@ -130,6 +130,18 @@ func RegisterOpaqueType(t reflect.Type) {
 	structMapCache = make(map[interface{}]ColumnMap)
 }
 
+// ResetOpaqueTypes clears the registered opaque types and the struct column map cache. It exists so tests can undo a
+// registration.
+func ResetOpaqueTypes() {
+	opaqueTypesLock.Lock()
+	opaqueTypes = make(map[reflect.Type]struct{})
+	opaqueTypesLock.Unlock()
+
+	structMapCacheLock.Lock()
+	defer structMapCacheLock.Unlock()
+	structMapCache = make(map[interface{}]ColumnMap)
+}
+
 func isOpaqueType(t reflect.Type) bool {
 	if IsPointer(t.Kind()) {
 		t = t.Elem()

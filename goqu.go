@@ -85,8 +85,11 @@ func SetColumnRenameFunction(renameFunc func(string) string) {
 // encodes itself. Pointers to the type are covered too, and the goqu:"opaque" struct tag does the same for a single
 // field.
 //
-// Prepared statements pass the value to the driver as is. Interpolated statements use the value's driver.Valuer, and
-// return an encode error for a type that does not implement it. Register types once, at start up.
+// Prepared statements pass the value to database/sql as is (the driver has to accept it). Interpolated statements use
+// the value's driver.Valuer, and return an encode error for a type that does not implement it. Scanning goes through
+// database/sql, so the driver must return a value assignable to the type or the type must be a sql.Scanner.
+//
+// It applies to struct fields, not to a struct that is passed directly as a row. Register types once, at start up.
 func RegisterOpaqueType(t reflect.Type) {
 	util.RegisterOpaqueType(t)
 }

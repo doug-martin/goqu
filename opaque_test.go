@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/internal/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,6 +80,7 @@ func TestOpaqueEmbeddedTag(t *testing.T) {
 }
 
 func TestRegisterOpaqueType(t *testing.T) {
+	t.Cleanup(util.ResetOpaqueTypes)
 	row := opaqueRegistered{ID: 1, N: opaqueRegisteredType{1, 2}, P: &opaqueRegisteredType{3, 4}}
 
 	// before registration the type is flattened
@@ -145,13 +147,16 @@ func (r *nativeRows) Next(dest []driver.Value) error {
 	return nil
 }
 
+var registerNativeDriver sync.Once
+
 func TestOpaqueScan(t *testing.T) {
 	type row struct {
 		ID     int
 		Native opaqueNative `goqu:"opaque"`
 	}
 	want := opaqueNative{Text: "a", Valid: true}
-	dbsql.Register("goqu_opaque_native", nativeDriver{val: want})
+	// registering the same driver name twice panics, e.g. with go test -count=2
+	registerNativeDriver.Do(func() { dbsql.Register("goqu_opaque_native", nativeDriver{val: want}) })
 	db, err := dbsql.Open("goqu_opaque_native", "")
 	require.NoError(t, err)
 	defer db.Close()
@@ -168,6 +173,7 @@ func TestOpaqueScan(t *testing.T) {
 }
 
 func TestRegisterOpaqueTypeConcurrent(t *testing.T) {
+	t.Cleanup(util.ResetOpaqueTypes)
 	type concurrentType struct{ V int }
 	type row struct {
 		ID int
@@ -186,4 +192,17 @@ func TestRegisterOpaqueTypeConcurrent(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+}
+
+type opaqueUnexported struct{ Text string }
+
+func TestOpaqueTagOnUnexportedEmbeddedType(t *testing.T) {
+	type row struct {
+		ID               int
+		opaqueUnexported `goqu:"opaque"`
+	}
+	// the value of an unexported embedded field cannot be read, so the field is left out instead of flattened
+	query, _, err := goqu.Insert("t").Rows(row{ID: 1}).ToSQL()
+	require.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "t" ("id") VALUES (1)`, query)
 }
