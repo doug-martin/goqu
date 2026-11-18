@@ -236,7 +236,7 @@ SELECT * FROM "test2"
 From a table of literal rows ([`Values`](https://godoc.org/github.com/doug-martin/goqu/#Values))
 
 ```go
-values := goqu.Values([]interface{}{1, "a"}, []interface{}{2, "b"}).As("t", "id", "name")
+values := goqu.Values([]any{1, "a"}, []any{2, "b"}).As("t", "id", "name")
 sql, _, _ := goqu.From(values).ToSQL()
 fmt.Println(sql)
 ```

@@ -390,8 +390,8 @@ A table of literal rows can be joined with `goqu.Values`. The alias and the colu
 dialect := goqu.Dialect("postgres")
 
 values := goqu.Values(
-    []interface{}{"a", 1},
-    []interface{}{"b", 2},
+    []any{"a", 1},
+    []any{"b", 2},
 ).As("c", "id", "foo")
 
 ds := dialect.Update("table_one").
