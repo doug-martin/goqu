@@ -60,6 +60,16 @@ func ErrConflictTargetBindArgs() error {
 	return errors.New("conflict target columns cannot contain bind parameters")
 }
 
+func ErrValuesTableNotSupported(dialect string) error {
+	return errors.New("dialect does not support a VALUES table [dialect=%s]", dialect)
+}
+
+func ErrValuesTableColumnAliasesNotSupported(dialect string) error {
+	return errors.New("dialect does not support naming the columns of a VALUES table [dialect=%s]", dialect)
+}
+
+var ErrValuesTableRowsRequired = errors.New("a VALUES table requires at least one row with at least one value")
+
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {
 	return errors.New("unsupported %s SQL fragment %s", sqlType, f)
 }

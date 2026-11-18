@@ -246,3 +246,19 @@ func TestInsertOnDuplicateKeyRowAlias(t *testing.T) {
 	assert.Equal(t, "INSERT INTO `t1` (`a`, `b`) VALUES (?, ?), (?, ?) AS `new` "+
 		"ON DUPLICATE KEY UPDATE `a`=`new`.`a`,`b`=`new`.`b`", sql)
 }
+
+func TestValuesTable(t *testing.T) {
+	values := goqu.Values([]any{"a", 1}, []any{"b", 2}).As("c", "id", "foo")
+	update := func(dialect string) *goqu.UpdateDataset {
+		return goqu.Dialect(dialect).Update("t").Set(goqu.Record{"foo": goqu.I("c.foo")}).From(values).
+			Where(goqu.I("t.id").Eq(goqu.I("c.id")))
+	}
+
+	_, _, err := update("mysql").ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support a VALUES table [dialect=mysql]")
+
+	sql, _, err := update("mysql8").ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, "UPDATE `t`,(VALUES ROW('a', 1), ROW('b', 2)) AS `c`(`id`, `foo`) SET `foo`=`c`.`foo` "+
+		"WHERE (`t`.`id` = `c`.`id`)", sql)
+}

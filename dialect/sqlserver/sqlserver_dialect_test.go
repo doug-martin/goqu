@@ -175,3 +175,10 @@ func TestInsertOnConflictDoNothingTargetNotSupported(t *testing.T) {
 	_, _, err = ds.OnConflict(goqu.DoNothing()).ToSQL()
 	assert.NoError(t, err)
 }
+
+func TestValuesTable(t *testing.T) {
+	values := goqu.Values([]any{1, "a"}, []any{2, "b"}).As("t", "id", "name")
+	sql, _, err := goqu.Dialect("sqlserver").From(values).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")`, sql)
+}

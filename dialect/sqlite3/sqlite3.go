@@ -68,6 +68,8 @@ func DialectOptions() *goqu.SQLDialectOptions {
 		'\'': []byte("''"),
 	}
 	opts.InsertIgnoreClause = []byte("INSERT OR IGNORE INTO ")
+	// SQLite names the columns of a VALUES table column1, column2, ... and has no AS t(a, b) form
+	opts.SupportsValuesTableColumnAliases = false
 	opts.ConflictFragment = []byte(" ON CONFLICT ")
 	opts.ConflictDoUpdateFragment = []byte(" DO UPDATE SET ")
 	opts.ConflictDoNothingFragment = []byte(" DO NOTHING ")

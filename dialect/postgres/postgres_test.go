@@ -660,6 +660,40 @@ func (pt *postgresTest) TestInsert_OnConflictTargetWherePrepared() {
 	pt.Equal(int64(1), count)
 }
 
+func (pt *postgresTest) TestUpdateFromValues() {
+	_, err := pt.db.Exec(`
+		DROP TABLE IF EXISTS "values_targets";
+		CREATE TABLE "values_targets" ("id" TEXT PRIMARY KEY, "foo" INT NOT NULL);
+		INSERT INTO "values_targets" VALUES ('a', 0), ('b', 0), ('c', 0)`)
+	pt.Require().NoError(err)
+
+	values := goqu.Values(
+		[]any{"a", goqu.Cast(goqu.V(1), "int")},
+		[]any{"b", goqu.Cast(goqu.V(2), "int")},
+	).As("c", "id", "foo")
+	ds := pt.db.Update("values_targets").
+		Set(goqu.Record{"foo": goqu.I("c.foo")}).
+		From(values).
+		Where(goqu.I("values_targets.id").Eq(goqu.I("c.id")))
+
+	for _, prepared := range []bool{false, true} {
+		_, err = pt.db.Exec(`UPDATE "values_targets" SET "foo" = 0`)
+		pt.Require().NoError(err)
+		res, err := ds.Prepared(prepared).Executor().Exec()
+		pt.Require().NoError(err, "prepared=%v", prepared)
+		n, _ := res.RowsAffected()
+		pt.Equal(int64(2), n)
+
+		var foos []int
+		pt.Require().NoError(pt.db.From("values_targets").Select("foo").Order(goqu.C("id").Asc()).ScanVals(&foos))
+		pt.Equal([]int{1, 2, 0}, foos)
+	}
+
+	var ids []string
+	pt.Require().NoError(pt.db.From(goqu.Values([]any{"x"}, []any{"y"}).As("t", "id")).Select("id").ScanVals(&ids))
+	pt.Equal([]string{"x", "y"}, ids)
+}
+
 func (pt *postgresTest) TestWindowFunction() {
 	ds := pt.db.From("entry").
 		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).

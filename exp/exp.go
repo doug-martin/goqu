@@ -433,15 +433,27 @@ type (
 		Table() AppendableExpression
 	}
 
-	// Expression for representing "literal" sql.
-	//  L("col = 1") -> col = 1)
-	//  L("? = ?", I("col"), 1) -> "col" = 1
+	// A VALUES table, e.g. (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")
+	ValuesExpression interface {
+		Expression
+		// The rows of values
+		Rows() [][]any
+		// The table alias, nil when not set
+		GetAs() IdentifierExpression
+		// The column names given with the alias, nil when not set
+		Cols() ColumnListExpression
+		// Returns a copy with the table alias and, optionally, the column names
+		As(alias any, cols ...any) ValuesExpression
+	}
 	// A value that is sent as is: bound unchanged in prepared mode, written with its driver.Valuer when interpolated
 	OpaqueExpression interface {
 		Expression
 		// The wrapped value
 		Value() any
 	}
+	// Expression for representing "literal" sql.
+	//  L("col = 1") -> col = 1)
+	//  L("? = ?", I("col"), 1) -> "col" = 1
 	LiteralExpression interface {
 		Expression
 		Aliaseable
