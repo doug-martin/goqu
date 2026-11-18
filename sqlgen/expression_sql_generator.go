@@ -103,6 +103,8 @@ func (esg *expressionSQLGenerator) Generate(b sb.SQLBuilder, val interface{}) {
 		return
 	}
 	switch v := val.(type) {
+	case exp.OpaqueExpression:
+		esg.opaqueExpressionSQL(b, v)
 	case exp.Expression:
 		esg.expressionSQL(b, v)
 	case driver.Valuer:
@@ -324,6 +326,24 @@ func (esg *expressionSQLGenerator) placeHolderSQL(b sb.SQLBuilder, i interface{}
 		b.WriteInt(int64(b.CurrentArgPosition()))
 	}
 	b.WriteArg(i)
+}
+
+// Generates SQL for an opaque value: bound unchanged in prepared mode, otherwise written with its driver.Valuer.
+func (esg *expressionSQLGenerator) opaqueExpressionSQL(b sb.SQLBuilder, o exp.OpaqueExpression) {
+	v := o.Value()
+	if b.IsPrepared() {
+		esg.placeHolderSQL(b, v)
+		return
+	}
+	if util.IsNil(reflect.ValueOf(v)) {
+		esg.literalNil(b)
+		return
+	}
+	if _, ok := v.(driver.Valuer); ok {
+		esg.Generate(b, v)
+		return
+	}
+	b.SetError(errors.NewEncodeError(v))
 }
 
 // Generates creates the sql for a sub select on a Dataset

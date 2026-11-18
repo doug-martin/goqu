@@ -436,6 +436,12 @@ type (
 	// Expression for representing "literal" sql.
 	//  L("col = 1") -> col = 1)
 	//  L("? = ?", I("col"), 1) -> "col" = 1
+	// A value that is sent as is: bound unchanged in prepared mode, written with its driver.Valuer when interpolated
+	OpaqueExpression interface {
+		Expression
+		// The wrapped value
+		Value() any
+	}
 	LiteralExpression interface {
 		Expression
 		Aliaseable
