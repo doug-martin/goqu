@@ -262,3 +262,8 @@ func TestValuesTable(t *testing.T) {
 	assert.Equal(t, "UPDATE `t`,(VALUES ROW('a', 1), ROW('b', 2)) AS `c`(`id`, `foo`) SET `foo`=`c`.`foo` "+
 		"WHERE (`t`.`id` = `c`.`id`)", sql)
 }
+
+func TestDeleteUsingNotSupported(t *testing.T) {
+	_, _, err := goqu.Dialect("mysql").Delete("a").Using("b").ToSQL()
+	assert.EqualError(t, err, "goqu: dialect does not support USING on DELETE [dialect=mysql]")
+}

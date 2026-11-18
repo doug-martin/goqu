@@ -129,6 +129,14 @@ func (dd *DeleteDataset) From(table interface{}) *DeleteDataset {
 	}
 }
 
+// Adds a USING clause with the extra tables the WHERE and RETURNING clauses can refer to (PostgreSQL
+// DELETE ... USING). This returns a new dataset with the original USING sources replaced. It takes the same arguments
+// as SelectDataset.From: strings, identifiers, datasets, literals and VALUES tables. Dialects without DELETE ... USING
+// return an error when it is set. See examples.
+func (dd *DeleteDataset) Using(tables ...interface{}) *DeleteDataset {
+	return dd.copy(dd.clauses.SetUsing(exp.NewColumnListExpression(tables...)))
+}
+
 // Adds a WHERE clause. See examples.
 func (dd *DeleteDataset) Where(expressions ...exp.Expression) *DeleteDataset {
 	return dd.copy(dd.clauses.WhereAppend(expressions...))

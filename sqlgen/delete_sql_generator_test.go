@@ -252,3 +252,58 @@ func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withReturning() {
 func TestDeleteSQLGenerator(t *testing.T) {
 	suite.Run(t, new(deleteSQLGeneratorSuite))
 }
+
+func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withUsing() {
+	opts := sqlgen.DefaultDialectOptions()
+	opts.SupportsDeleteUsing = true
+
+	dc := exp.NewDeleteClauses().
+		SetFrom(exp.NewIdentifierExpression("", "a", "")).
+		SetUsing(exp.NewColumnListExpression("b", exp.NewIdentifierExpression("", "c", "").As("cc"))).
+		WhereAppend(exp.NewIdentifierExpression("a", "", "id").Eq(exp.NewIdentifierExpression("b", "", "id"))).
+		SetReturning(exp.NewColumnListExpression(exp.NewIdentifierExpression("b", "", "val")))
+
+	dsgs.assertCases(
+		sqlgen.NewDeleteSQLGenerator("test", opts),
+		deleteTestCase{
+			clause: dc,
+			sql:    `DELETE FROM "a" USING "b", "c" AS "cc" WHERE ("a"."id" = "b"."id") RETURNING "b"."val"`,
+		},
+		deleteTestCase{
+			clause: exp.NewDeleteClauses().
+				SetFrom(exp.NewIdentifierExpression("", "a", "")).
+				SetUsing(exp.NewColumnListExpression("b")).
+				WhereAppend(exp.NewIdentifierExpression("", "", "n").Eq(1)),
+			sql:        `DELETE FROM "a" USING "b" WHERE ("n" = ?)`,
+			isPrepared: true,
+			args:       []interface{}{int64(1)},
+		},
+		// an empty USING list writes nothing
+		deleteTestCase{
+			clause: exp.NewDeleteClauses().
+				SetFrom(exp.NewIdentifierExpression("", "a", "")).
+				SetUsing(exp.NewColumnListExpression()),
+			sql: `DELETE FROM "a"`,
+		},
+	)
+
+	custom := sqlgen.DefaultDialectOptions()
+	custom.SupportsDeleteUsing = true
+	custom.DeleteUsingFragment = []byte(" JOIN")
+	dsgs.assertCases(
+		sqlgen.NewDeleteSQLGenerator("test", custom),
+		deleteTestCase{clause: dc, sql: `DELETE FROM "a" JOIN "b", "c" AS "cc" WHERE ("a"."id" = "b"."id") RETURNING "b"."val"`},
+	)
+}
+
+func (dsgs *deleteSQLGeneratorSuite) TestGenerate_withUsingNotSupported() {
+	dc := exp.NewDeleteClauses().
+		SetFrom(exp.NewIdentifierExpression("", "a", "")).
+		SetUsing(exp.NewColumnListExpression("b"))
+
+	dsgs.assertCases(
+		sqlgen.NewDeleteSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		deleteTestCase{clause: dc, err: "goqu: dialect does not support USING on DELETE [dialect=test]"},
+		deleteTestCase{clause: dc, err: "goqu: dialect does not support USING on DELETE [dialect=test]", isPrepared: true},
+	)
+}

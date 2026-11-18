@@ -27,6 +27,10 @@ func ErrOrderByOnDeleteNotSupported(dialect string) error {
 	return errors.New("dialect does not support ORDER BY on DELETE [dialect=%s]", dialect)
 }
 
+func ErrUsingOnDeleteNotSupported(dialect string) error {
+	return errors.New("dialect does not support USING on DELETE [dialect=%s]", dialect)
+}
+
 func NewDeleteSQLGenerator(dialect string, do *SQLDialectOptions) DeleteSQLGenerator {
 	return &deleteSQLGenerator{NewCommonSQLGenerator(dialect, do)}
 }
@@ -34,6 +38,10 @@ func NewDeleteSQLGenerator(dialect string, do *SQLDialectOptions) DeleteSQLGener
 func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClauses) {
 	if !clauses.HasFrom() {
 		b.SetError(ErrNoSourceForDelete)
+		return
+	}
+	if clauses.HasUsing() && !dsg.DialectOptions().SupportsDeleteUsing {
+		b.SetError(ErrUsingOnDeleteNotSupported(dsg.Dialect()))
 		return
 	}
 	for _, f := range dsg.DialectOptions().DeleteSQLOrder {
@@ -49,6 +57,11 @@ func (dsg *deleteSQLGenerator) Generate(b sb.SQLBuilder, clauses exp.DeleteClaus
 			)
 		case FromSQLFragment:
 			dsg.FromSQL(b, exp.NewColumnListExpression(clauses.From()))
+		case DeleteUsingSQLFragment:
+			if clauses.HasUsing() {
+				b.Write(dsg.DialectOptions().DeleteUsingFragment)
+				dsg.SourcesSQL(b, clauses.Using())
+			}
 		case WhereSQLFragment:
 			dsg.WhereSQL(b, clauses.Where())
 		case OrderSQLFragment:

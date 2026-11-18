@@ -67,3 +67,22 @@ func TestValuesTableCTE(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, `SELECT * FROM "x" INNER JOIN (VALUES (1)) AS "v"("a") ON ("v"."a" = "x"."a")`, sql)
 }
+
+func TestDeleteUsing(t *testing.T) {
+	ds := goqu.Dialect("postgres").Delete("a").
+		Using("b").
+		Where(goqu.I("a.cluster").Eq(goqu.I("b.cluster")), goqu.I("a.cluster").Eq(10)).
+		Returning("a.id", "b.val")
+
+	sql, args, err := ds.ToSQL()
+	assert.NoError(t, err)
+	assert.Empty(t, args)
+	assert.Equal(t, `DELETE FROM "a" USING "b" WHERE (("a"."cluster" = "b"."cluster") AND ("a"."cluster" = 10)) `+
+		`RETURNING "a"."id", "b"."val"`, sql)
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, []any{int64(10)}, args)
+	assert.Equal(t, `DELETE FROM "a" USING "b" WHERE (("a"."cluster" = "b"."cluster") AND ("a"."cluster" = $1)) `+
+		`RETURNING "a"."id", "b"."val"`, sql)
+}

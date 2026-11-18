@@ -694,6 +694,36 @@ func (pt *postgresTest) TestUpdateFromValues() {
 	pt.Equal([]string{"x", "y"}, ids)
 }
 
+func (pt *postgresTest) TestDeleteUsing() {
+	_, err := pt.db.Exec(`
+		DROP TABLE IF EXISTS "using_a"; DROP TABLE IF EXISTS "using_b";
+		CREATE TABLE "using_a" ("id" SERIAL PRIMARY KEY, "cluster" INT NOT NULL);
+		CREATE TABLE "using_b" ("cluster" INT PRIMARY KEY, "val" TEXT NOT NULL);
+		INSERT INTO "using_b" VALUES (10, 'ten'), (20, 'twenty')`)
+	pt.Require().NoError(err)
+
+	type deleted struct {
+		ID  int    `db:"id"`
+		Val string `db:"val"`
+	}
+	for _, prepared := range []bool{false, true} {
+		_, err = pt.db.Exec(`TRUNCATE "using_a" RESTART IDENTITY; INSERT INTO "using_a" ("cluster") VALUES (10), (10), (20)`)
+		pt.Require().NoError(err)
+
+		var rows []deleted
+		pt.Require().NoError(pt.db.Delete("using_a").Prepared(prepared).
+			Using("using_b").
+			Where(goqu.I("using_a.cluster").Eq(goqu.I("using_b.cluster")), goqu.I("using_a.cluster").Eq(10)).
+			Returning(goqu.I("using_a.id"), goqu.I("using_b.val")).
+			Executor().ScanStructs(&rows), "prepared=%v", prepared)
+		pt.ElementsMatch([]deleted{{ID: 1, Val: "ten"}, {ID: 2, Val: "ten"}}, rows)
+
+		count, err := pt.db.From("using_a").Count()
+		pt.Require().NoError(err)
+		pt.Equal(int64(1), count)
+	}
+}
+
 func (pt *postgresTest) TestWindowFunction() {
 	ds := pt.db.From("entry").
 		Select("int", goqu.ROW_NUMBER().OverName(goqu.I("w")).As("id")).

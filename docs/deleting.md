@@ -5,6 +5,7 @@
   * [Delete All](#delete-all)
   * [Prepared](#prepared)
   * [Where](#where)
+  * [Using](#using)
   * [Order](#order)
   * [Limit](#limit)
   * [Returning](#returning)
@@ -137,6 +138,27 @@ fmt.Println(sql)
 Output:
 ```
 DELETE FROM "test" WHERE (("a" > 10) AND ("b" < 10) AND ("c" IS NULL) AND ("d" IN ('a', 'b', 'c')))
+```
+
+<a name="using"></a>
+**[`Using`](https://godoc.org/github.com/doug-martin/goqu/#DeleteDataset.Using)**
+
+Adds tables that the `WHERE` and `RETURNING` clauses can refer to (`DELETE ... USING`). It takes the same arguments as `From` on a select, and calling it again replaces the previous tables.
+
+**NOTE** Only the `postgres` dialect supports `USING` on a `DELETE`; the other built-in dialects return an error when it is set. Rewrite the condition as `IN (subquery)` if you do not need columns of the other table in `RETURNING`.
+
+```go
+sql, _, _ := goqu.Dialect("postgres").Delete("a").
+    Using("b").
+    Where(goqu.Ex{"a.cluster": goqu.I("b.cluster")}).
+    Returning("a.id", "b.val").
+    ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```sql
+DELETE FROM "a" USING "b" WHERE ("a"."cluster" = "b"."cluster") RETURNING "a"."id", "b"."val"
 ```
 
 <a name="order"></a>
