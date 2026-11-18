@@ -55,3 +55,15 @@ func TestValuesTable(t *testing.T) {
 		`WHERE ("t"."id" = "c"."id")`, sql)
 	assert.Equal(t, []any{"a", int64(1)}, args)
 }
+
+func TestValuesTableCTE(t *testing.T) {
+	sql, _, err := goqu.Dialect("postgres").From("t").
+		With("t(a, b)", goqu.Values([]any{1, "x"})).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `WITH t(a, b) AS (VALUES (1, 'x')) SELECT * FROM "t"`, sql)
+
+	sql, _, err = goqu.Dialect("postgres").From("x").
+		InnerJoin(goqu.Values([]any{1}).As("v", "a"), goqu.On(goqu.I("v.a").Eq(goqu.I("x.a")))).ToSQL()
+	assert.NoError(t, err)
+	assert.Equal(t, `SELECT * FROM "x" INNER JOIN (VALUES (1)) AS "v"("a") ON ("v"."a" = "x"."a")`, sql)
+}

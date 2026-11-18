@@ -68,7 +68,7 @@ func ErrValuesTableColumnAliasesNotSupported(dialect string) error {
 	return errors.New("dialect does not support naming the columns of a VALUES table [dialect=%s]", dialect)
 }
 
-var ErrValuesTableRowsRequired = errors.New("a VALUES table requires at least one row")
+var ErrValuesTableRowsRequired = errors.New("a VALUES table requires at least one row with at least one value")
 
 func ErrNotSupportedFragment(sqlType string, f SQLFragmentType) error {
 	return errors.New("unsupported %s SQL fragment %s", sqlType, f)

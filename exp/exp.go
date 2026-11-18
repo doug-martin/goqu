@@ -433,9 +433,6 @@ type (
 		Table() AppendableExpression
 	}
 
-	// Expression for representing "literal" sql.
-	//  L("col = 1") -> col = 1)
-	//  L("? = ?", I("col"), 1) -> "col" = 1
 	// A VALUES table, e.g. (VALUES (1, 'a'), (2, 'b')) AS "t"("id", "name")
 	ValuesExpression interface {
 		Expression
@@ -454,6 +451,9 @@ type (
 		// The wrapped value
 		Value() any
 	}
+	// Expression for representing "literal" sql.
+	//  L("col = 1") -> col = 1)
+	//  L("? = ?", I("col"), 1) -> "col" = 1
 	LiteralExpression interface {
 		Expression
 		Aliaseable

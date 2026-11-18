@@ -339,7 +339,7 @@ func (esg *expressionSQLGenerator) valuesExpressionSQL(b sb.SQLBuilder, v exp.Va
 	case !do.SupportsValuesTable:
 		b.SetError(ErrValuesTableNotSupported(esg.dialect))
 		return
-	case len(rows) == 0:
+	case len(rows) == 0 || len(rows[0]) == 0:
 		b.SetError(ErrValuesTableRowsRequired)
 		return
 	case hasCols && !do.SupportsValuesTableColumnAliases:

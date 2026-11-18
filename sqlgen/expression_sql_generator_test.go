@@ -1862,7 +1862,11 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_ValuesExpression() {
 			args: []any{"a", int64(1), "b", nil},
 		},
 		// no rows and rows of different lengths are errors
-		expressionTestCase{val: exp.NewValuesExpression(), err: "goqu: a VALUES table requires at least one row"},
+		expressionTestCase{val: exp.NewValuesExpression(), err: "goqu: a VALUES table requires at least one row with at least one value"},
+		expressionTestCase{
+			val: exp.NewValuesExpression([]any{}),
+			err: "goqu: a VALUES table requires at least one row with at least one value",
+		},
 		expressionTestCase{
 			val: exp.NewValuesExpression([]any{1, 2}, []any{3}),
 			err: "goqu: rows with different value length expected 2 got 1",

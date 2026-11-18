@@ -15,7 +15,7 @@ func NewCommonTableExpression(recursive bool, name string, subQuery Expression) 
 func (ce commonExpr) Expression() Expression { return ce }
 
 func (ce commonExpr) Clone() Expression {
-	return commonExpr{recursive: ce.recursive, name: ce.name, subQuery: ce.subQuery.Clone().(SQLExpression)}
+	return commonExpr{recursive: ce.recursive, name: ce.name, subQuery: ce.subQuery.Clone()}
 }
 
 func (ce commonExpr) IsRecursive() bool       { return ce.recursive }

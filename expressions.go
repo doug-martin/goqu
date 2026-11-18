@@ -372,7 +372,8 @@ func OrderLiteral(sql string, args ...any) exp.OrderedExpression {
 }
 
 // Creates a VALUES table from rows of values, for use anywhere a table is accepted (From, Update().From, joins, CTEs).
-// Chain As to name the table and its columns; Postgres and SQL Server need both to refer to the columns.
+// Chain As to name the table and its columns; most databases require the alias, and Postgres and SQL Server need both
+// to refer to the columns. In a CTE the name goes on the CTE instead: With("t(id, foo)", Values(...)) without As.
 //
 //	Update("test").Set(Record{"foo": I("c.foo")}).
 //		From(Values([]any{"123", 1}, []any{"345", 2}).As("c", "id", "foo")).

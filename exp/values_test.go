@@ -35,3 +35,10 @@ func TestValuesExpression(t *testing.T) {
 	assert.Equal(t, 1, v.Rows()[0][0])
 	assert.Equal(t, 1, clone.Rows()[0][0])
 }
+
+func TestValuesExpression_CloneInCTE(t *testing.T) {
+	cte := exp.NewCommonTableExpression(false, "v(id)", exp.NewValuesExpression([]any{1}))
+	assert.NotPanics(t, func() {
+		assert.Equal(t, cte, cte.Clone())
+	})
+}
