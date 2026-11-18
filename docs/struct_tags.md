@@ -24,10 +24,52 @@ type User struct {
 | `defaultifempty` | INSERT        | When the field is the zero value, `DEFAULT` is used instead of the value. See [Inserting](./inserting.md). |
 | `omitnil`        | INSERT/UPDATE | The field is skipped when it is a nil pointer. Useful for partial updates. |
 | `omitempty`      | INSERT/UPDATE | The field is skipped when it is the zero value (including nil pointers). |
+| `opaque`         | all           | The field is one column and is never flattened into the columns of its struct type. See [Opaque types](#opaque-types). |
 
 Options can be combined, e.g. `goqu:"skipinsert,skipupdate"`.
 
 `skipinsert`, `skipupdate` and `skipselect` on a nested struct field apply to every column flattened out of that struct (e.g. `Bar Bar `goqu:"skipinsert"`` skips `"bar"."b"` on insert).
+
+## Opaque types
+
+A struct-typed field is flattened into one column per field (`Address Address` becomes `"address"."street"`, ...)
+unless its type implements `sql.Scanner`. A type that is meant to be a single value but is not a `sql.Scanner`
+(a driver specific type such as a pgx type that only implements `pgtype.BinaryEncoder`/`BinaryDecoder`, or a struct that
+is stored as JSON) can be marked as opaque, so it is one column.
+
+For one field, use the `opaque` option (it also works on an embedded field of an exported type):
+
+```go
+type Event struct {
+	ID      int
+	Payload Payload `db:"payload" goqu:"opaque"`
+}
+```
+
+For a type used in many structs, register it once at start up. Pointers to the type are covered too:
+
+```go
+goqu.RegisterOpaque[Payload]()
+// or, with a reflect.Type:
+goqu.RegisterOpaqueType(reflect.TypeOf(Payload{}))
+```
+
+How the value is sent:
+
+* **Prepared statements** pass the value to the driver as an argument, unchanged, so a driver that can encode the type
+  natively receives it as is. Whether the driver accepts it is up to the driver.
+* **Interpolated statements** use the value's `driver.Valuer` when it has one, and return an encode error otherwise (a
+  native binary encoding cannot be written as a SQL literal).
+* **Scanning** passes a pointer to the field to the driver, so the driver (or `sql.Scanner`) decodes it.
+
+Notes:
+
+* A type that implements `driver.Valuer` but not `sql.Scanner` is still flattened by default. Mark it opaque to write it
+  with its `Value()`.
+* Registering a type resets goqu's cached struct column maps, so it also applies to structs that were already used. Register
+  types once at start up rather than while queries are running.
+* The struct you pass as a row (`Rows(row)`, `Set(row)`, `ScanStruct(&row)`) is always expanded into its columns; opaque
+  only applies to the fields inside it.
 
 ## Notes
 

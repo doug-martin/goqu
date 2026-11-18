@@ -12,6 +12,7 @@ Please see https://github.com/doug-martin/goqu for an introduction to goqu.
 package goqu
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/doug-martin/goqu/v9/internal/util"
@@ -76,6 +77,23 @@ func SetIgnoreUntaggedFields(ignore bool) {
 // By default all struct fields that do not have a db tag will be converted lowercase
 func SetColumnRenameFunction(renameFunc func(string) string) {
 	util.SetColumnRenameFunction(renameFunc)
+}
+
+// Marks a type as a single value, so a struct field of that type is one column instead of being flattened into one
+// column per field when a struct is used for inserts, updates and scans. Use it for struct types that are not a
+// sql.Scanner, such as pgx types that only implement pgtype.BinaryEncoder/BinaryDecoder, or a type the driver
+// encodes itself. Pointers to the type are covered too, and the goqu:"opaque" struct tag does the same for a single
+// field.
+//
+// Prepared statements pass the value to the driver as is. Interpolated statements use the value's driver.Valuer, and
+// return an encode error for a type that does not implement it. Register types once, at start up.
+func RegisterOpaqueType(t reflect.Type) {
+	util.RegisterOpaqueType(t)
+}
+
+// Generic form of RegisterOpaqueType: goqu.RegisterOpaque[pgtype.Text]()
+func RegisterOpaque[T any]() {
+	util.RegisterOpaqueType(reflect.TypeFor[T]())
 }
 
 // Set the location to use when interpolating time.Time instances. See https://golang.org/pkg/time/#LoadLocation

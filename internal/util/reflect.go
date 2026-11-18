@@ -16,6 +16,7 @@ const (
 	defaultIfEmptyTagName = "defaultifempty"
 	omitNilTagName        = "omitnil"
 	omitEmptyTagName      = "omitempty"
+	opaqueTagName         = "opaque"
 )
 
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
@@ -102,6 +103,41 @@ func SetIgnoreUntaggedFields(ignore bool) {
 
 		structMapCache = make(map[interface{}]ColumnMap)
 	}
+}
+
+var (
+	opaqueTypes     = make(map[reflect.Type]struct{})
+	opaqueTypesLock sync.RWMutex
+)
+
+// RegisterOpaqueType marks t (or the type a pointer to it points to) as a single value: a struct field of this type
+// is one column instead of being flattened into one column per field. The struct column map cache is reset so types
+// registered after a struct was first used still apply.
+func RegisterOpaqueType(t reflect.Type) {
+	if t == nil {
+		return
+	}
+	if IsPointer(t.Kind()) {
+		t = t.Elem()
+	}
+	opaqueTypesLock.Lock()
+	opaqueTypes[t] = struct{}{}
+	opaqueTypesLock.Unlock()
+
+	// the registry lock is released first: GetColumnMap holds the cache lock while it reads the registry
+	structMapCacheLock.Lock()
+	defer structMapCacheLock.Unlock()
+	structMapCache = make(map[interface{}]ColumnMap)
+}
+
+func isOpaqueType(t reflect.Type) bool {
+	if IsPointer(t.Kind()) {
+		t = t.Elem()
+	}
+	opaqueTypesLock.RLock()
+	defer opaqueTypesLock.RUnlock()
+	_, ok := opaqueTypes[t]
+	return ok
 }
 
 func SetColumnRenameFunction(newFunction func(string) string) {

@@ -30,7 +30,9 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 	var subColMaps []ColumnMap
 	for i := 0; i < n; i++ {
 		f := t.Field(i)
-		if f.Anonymous && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
+		// opaque fields (the opaque tag or a registered type) are one column, never flattened
+		opaque := tag.New("goqu", f.Tag).Contains(opaqueTagName) || isOpaqueType(f.Type)
+		if f.Anonymous && !opaque && (f.Type.Kind() == reflect.Struct || f.Type.Kind() == reflect.Ptr) {
 			goquTag := tag.New("db", f.Tag)
 			if !goquTag.Contains("-") {
 				subCm := getStructColumnMap(&f, fieldIndex, goquTag.Values(), prefixes)
@@ -41,7 +43,7 @@ func newColumnMap(t reflect.Type, fieldIndex []int, prefixes []string) ColumnMap
 			// if PkgPath is empty then it is an exported field
 			columnName := getColumnName(&f, dbTag)
 			if !shouldIgnoreField(dbTag) {
-				if !implementsScanner(f.Type) {
+				if !opaque && !implementsScanner(f.Type) {
 					subCm := getStructColumnMap(&f, fieldIndex, []string{columnName}, prefixes)
 					if len(subCm) != 0 {
 						subColMaps = append(subColMaps, subCm.inheritSkipTags(tag.New("goqu", f.Tag)))
