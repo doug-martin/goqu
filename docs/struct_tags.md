@@ -35,7 +35,8 @@ Options can be combined, e.g. `goqu:"skipinsert,skipupdate"`.
 A struct-typed field is flattened into one column per field (`Address Address` becomes `"address"."street"`, ...)
 unless its type implements `sql.Scanner`. A type that is meant to be a single value but is not a `sql.Scanner`
 (a driver specific type such as a pgx type that only implements `pgtype.BinaryEncoder`/`BinaryDecoder`, or a struct that
-is stored as JSON) can be marked as opaque, so it is one column.
+is stored as JSON) can be marked as opaque, so it is one column. The tag also works on a slice field (e.g. `[]string`
+for a JSON column) to send it as one value instead of a list.
 
 For one field, use the `opaque` option (it also works on an embedded field of an exported type):
 
@@ -56,7 +57,8 @@ goqu.RegisterOpaqueType(reflect.TypeOf(Payload{}))
 
 How the value is sent:
 
-* **Prepared statements** pass the value to `database/sql` as an argument, unchanged. `database/sql` only accepts it if
+* **Prepared statements** pass the value to `database/sql` as one argument, unchanged: a slice is not expanded into a
+  list and a `driver.Valuer` is not unwrapped. `database/sql` only accepts it if
   the driver can handle the type (a driver that implements `driver.NamedValueChecker`, or a type that is a
   `driver.Valuer`); otherwise the call fails with an unsupported type error from the driver.
 * **Interpolated statements** use the value's `driver.Valuer` when it has one, and return an encode error otherwise (a

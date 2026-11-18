@@ -206,3 +206,38 @@ func TestOpaqueTagOnUnexportedEmbeddedType(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, `INSERT INTO "t" ("id") VALUES (1)`, query)
 }
+
+func TestOpaqueValuesAreSentAsOneValue(t *testing.T) {
+	type row struct {
+		ID   int
+		Tags []string      `goqu:"opaque"`
+		V    opaqueValuer  `goqu:"opaque"`
+		P    *opaqueNative `goqu:"opaque"`
+	}
+	in := row{ID: 1, Tags: []string{"a", "b"}}
+
+	// prepared: each value is bound once and unchanged, a slice is not expanded and a Valuer is not unwrapped
+	query, args, err := goqu.Insert("t").Rows(in).Prepared(true).ToSQL()
+	require.NoError(t, err)
+	assert.Equal(t, `INSERT INTO "t" ("id", "p", "tags", "v") VALUES (?, ?, ?, ?)`, query)
+	assert.Equal(t, []any{int64(1), (*opaqueNative)(nil), []string{"a", "b"}, opaqueValuer{}}, args)
+
+	query, args, err = goqu.Update("t").Set(in).Prepared(true).ToSQL()
+	require.NoError(t, err)
+	assert.Equal(t, `UPDATE "t" SET "id"=?,"p"=?,"tags"=?,"v"=?`, query)
+	assert.Equal(t, []any{int64(1), (*opaqueNative)(nil), []string{"a", "b"}, opaqueValuer{}}, args)
+
+	// interpolated: a Valuer and nil are written, a value without a Valuer is an encode error, never a list
+	_, _, err = goqu.Insert("t").Rows(in).ToSQL()
+	assert.Error(t, err)
+
+	in.Tags = nil
+	type noSlice struct {
+		V opaqueValuer  `goqu:"opaque"`
+		P *opaqueNative `goqu:"opaque"`
+	}
+	query, args, err = goqu.Insert("t").Rows(noSlice{}).ToSQL()
+	require.NoError(t, err)
+	assert.Empty(t, args)
+	assert.Equal(t, `INSERT INTO "t" ("p", "v") VALUES (NULL, 'valuer')`, query)
+}

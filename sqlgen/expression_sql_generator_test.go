@@ -1836,3 +1836,15 @@ func (esgs *expressionSQLGeneratorSuite) TestGenerate_OrderLiteral() {
 		expressionTestCase{val: lit.Clone(), sql: `a ASC WITH FILL FROM 0 TO 10 STEP 2`},
 	)
 }
+
+func (esgs *expressionSQLGeneratorSuite) TestGenerate_OpaqueExpression() {
+	slice := []string{"a", "b"}
+	esgs.assertCases(
+		sqlgen.NewExpressionSQLGenerator("test", sqlgen.DefaultDialectOptions()),
+		expressionTestCase{val: exp.NewOpaqueExpression(slice), sql: `?`, isPrepared: true, args: []any{slice}},
+		expressionTestCase{val: exp.NewOpaqueExpression(nil), sql: `NULL`},
+		expressionTestCase{val: exp.NewOpaqueExpression(nil), sql: `?`, isPrepared: true, args: []any{nil}},
+		expressionTestCase{val: exp.NewOpaqueExpression(slice), err: "goqu_encode_error: Unable to encode value [a b]"},
+		expressionTestCase{val: exp.NewOpaqueExpression(slice).Clone(), sql: `?`, isPrepared: true, args: []any{slice}},
+	)
+}

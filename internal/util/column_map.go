@@ -20,7 +20,9 @@ type (
 		DefaultIfEmpty bool
 		OmitNil        bool
 		OmitEmpty      bool
-		GoType         reflect.Type
+		// Opaque is set by the opaque tag or a registered type, the value is sent as a single value
+		Opaque bool
+		GoType reflect.Type
 	}
 	ColumnMap map[string]ColumnData
 )
@@ -125,6 +127,7 @@ func newColumnData(f *reflect.StructField, columnName string, fieldIndex []int, 
 		DefaultIfEmpty: goquTag.Contains(defaultIfEmptyTagName),
 		OmitNil:        goquTag.Contains(omitNilTagName),
 		OmitEmpty:      goquTag.Contains(omitEmptyTagName),
+		Opaque:         goquTag.Contains(opaqueTagName) || isOpaqueType(f.Type),
 		FieldIndex:     concatFieldIndexes(fieldIndex, f.Index),
 		GoType:         f.Type,
 	}
