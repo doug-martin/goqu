@@ -21,7 +21,7 @@ type User struct {
 | `skipinsert`     | INSERT        | The field is not included in `INSERT` statements. See [Inserting](./inserting.md#insert-structs). |
 | `skipupdate`     | UPDATE        | The field is not included in `UPDATE` statements. See [Updating](./updating.md). |
 | `skipselect`     | SELECT        | The field is not added to the columns selected for the struct (`Select(&s)` and `ScanStruct`/`ScanStructs` without an explicit `Select`). The column is still scanned when it is selected, e.g. a column that comes from a join. |
-| `defaultifempty` | INSERT        | When the field is the zero value, `DEFAULT` is used instead of the value. See [Inserting](./inserting.md). |
+| `defaultifempty` | INSERT/UPDATE | When the field is the zero value, `DEFAULT` is used instead of the value (`sqlite3` does not support `DEFAULT` in `UPDATE ... SET`). See [Inserting](./inserting.md) and [Updating](./updating.md). |
 | `omitnil`        | INSERT/UPDATE | The field is skipped when it is a nil pointer. Useful for partial updates. |
 | `omitempty`      | INSERT/UPDATE | The field is skipped when it is the zero value (including nil pointers). |
 | `opaque`         | all           | The field is one column and is never flattened into the columns of its struct type. See [Opaque types](#opaque-types). |
@@ -85,3 +85,4 @@ Notes:
 * Tags are read from exported fields, including fields of embedded structs.
 * `skipinsert`, `skipupdate` and `skipselect` change which columns are written or selected; scanning always uses the `db` tag. Only the `SELECT` columns are affected: `INSERT` columns (`Cols(&s)`), `GROUP BY`, `DISTINCT ON` and `RETURNING` still expand to every column. If every column of a struct has `skipselect`, `Select(&s)` returns an error (an empty list would select `*`). To select a field that has `skipselect`, add its column next to the struct: `Select(&user, goqu.I("groups.name").As("group_name"))`.
 * The `db` tag also controls scanning, so fields without a matching column in the result set cause an error. Select the columns your struct needs, or use a struct that matches the query.
+* On `UPDATE`, `defaultifempty` only writes `DEFAULT` when the Go field holds its zero value. If you reuse a struct populated by `ScanStruct` (where e.g. `ModifiedAt` already holds the previous timestamp), zero that field before `Set(row)`, pass `goqu.Default()` in a `goqu.Record`, or manage the column in the database (`ON UPDATE CURRENT_TIMESTAMP` or a trigger) with `goqu:"skipinsert,skipupdate"`.

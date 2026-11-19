@@ -79,7 +79,7 @@ We tried a few other sql builders but each was a thin wrapper around sql fragmen
 * [Struct Tags](./docs/struct_tags.md) - Reference for the `db` and `goqu` struct tags (`skipinsert`, `skipupdate`, `skipselect`, `omitnil`, `omitempty`, `defaultifempty`, `opaque`).
 * [Prepared Statements](./docs/interpolation.md) - Docs about interpolation and prepared statements in `goqu`.
 * [Database](./docs/database.md) - Docs and examples of using a Database to execute queries in `goqu`
-* [Working with time.Time](./docs/time.md) - Docs on how to use alternate time locations.
+* [Working with time.Time and time.Duration](./docs/time.md) - Timezone locations for `time.Time` and encoding `time.Duration` (including PostgreSQL `interval`).
 
 ## Quick Examples
 

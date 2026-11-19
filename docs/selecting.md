@@ -13,7 +13,7 @@
   * [`GroupBy`](#group_by)
   * [`Having`](#having)
   * [`Window`](#window)
-  * [`With`](#with)
+  * [`With` / `WithRecursive`](#with)
   * [`SetError`](#seterror)
   * [`ForUpdate`](#forupdate)
 * Executing Queries
@@ -944,6 +944,36 @@ Output:
 WITH del AS (DELETE FROM "foo" WHERE ("bar" = 'baz') RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id")
 WITH del AS (DELETE FROM "foo" WHERE ("bar" = ?) RETURNING "id") SELECT "bar_name" FROM "bar" WHERE ("bar"."user_id" = "del"."user_id") [baz]
 ```
+
+Recursive CTEs with `WithRecursive` (and dialect-specific CTE clauses via `goqu.L`)
+
+`With` and `WithRecursive` accept any `exp.Expression` as the CTE body. Passing a dataset as a `?` argument to `goqu.L` parenthesizes the subquery and propagates the enclosing dialect and prepared-statement placeholders, so dialect-specific CTE clauses such as PostgreSQL 14+ `CYCLE` or `SEARCH` can be attached without writing the query as raw SQL:
+
+```go
+base := goqu.From(goqu.T("graph").As("g")).
+	Select("g.id", "g.link", goqu.L("1"))
+step := goqu.From(goqu.T("graph").As("g"), goqu.T("search_graph").As("sg")).
+	Select("g.id", "g.link", goqu.L("? + 1", goqu.I("sg.depth"))).
+	Where(goqu.I("g.id").Eq(goqu.I("sg.link")))
+
+ds := goqu.Dialect("postgres").
+	From("search_graph").
+	WithRecursive(
+		"search_graph(id, link, depth)",
+		goqu.L("? CYCLE ? SET ? USING ?", base.UnionAll(step), goqu.C("id"), goqu.C("is_cycle"), goqu.C("path")),
+	).
+	Where(goqu.C("is_cycle").IsFalse())
+
+sql, _, _ := ds.ToSQL()
+fmt.Println(sql)
+```
+
+Output:
+```
+WITH RECURSIVE search_graph(id, link, depth) AS (SELECT "g"."id", "g"."link", 1 FROM "graph" AS "g" UNION ALL (SELECT "g"."id", "g"."link", "sg"."depth" + 1 FROM "graph" AS "g", "search_graph" AS "sg" WHERE ("g"."id" = "sg"."link"))) CYCLE "id" SET "is_cycle" USING "path" SELECT * FROM "search_graph" WHERE ("is_cycle" IS FALSE)
+```
+
+**NOTE** Neither the `goqu.L` template string nor the CTE `name` string is escaped—never build them from untrusted input; pass identifiers via `goqu.C`/`goqu.I` and values as `?` arguments. On PostgreSQL with `Prepared(true)`, a bare bound constant in a tableless base `SELECT` (such as `goqu.V(1)`) may be inferred as `text`, so keep static constants literal (`goqu.L("1")`) or cast bound values (`goqu.Cast(goqu.V(1), "int")`).
 
 <a name="window"></a>
 **[`Window Function`](https://godoc.org/github.com/doug-martin/goqu/#SelectDataset.Window)**
