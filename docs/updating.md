@@ -234,6 +234,8 @@ Output:
 UPDATE "items" SET "address"='111 Test Addr',"name"=DEFAULT []
 ```
 
+**NOTE** `sqlite3` does not support `DEFAULT` in `UPDATE ... SET`. Also, `defaultifempty` only emits `DEFAULT` when the Go field is the zero value: if you reuse a struct populated by `ScanStruct` (for example, a `ModifiedAt time.Time` column that already holds the previous timestamp), zero that field before calling `Set`, pass `goqu.Default()` via `goqu.Record`, or let the database update the column (`ON UPDATE CURRENT_TIMESTAMP` or a `BEFORE UPDATE` trigger) and tag the field `goqu:"skipinsert,skipupdate"`.
+
 `goqu` will also use fields in embedded structs when creating an update.
 
 **NOTE** unexported fields will be ignored!
