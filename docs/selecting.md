@@ -1195,6 +1195,36 @@ for _, u := range users {
 }
 ```
 
+The same pattern scans multiple fields of the same struct type: tag each field with its table alias (`db:"p1"`, `db:"p2"`) when joining a table more than once, or alias flat prefixed columns (such as `p1_name`, `p2_name`) to `"p1.name"`, `"p2.name"` using `goqu.C`:
+
+```go
+type Person struct {
+	Name string `db:"name"`
+	Age  int64  `db:"age"`
+}
+type Pair struct {
+	Person1 Person `db:"p1"`
+	Person2 Person `db:"p2"`
+}
+
+// Joining the same table twice (auto-selects "p1"."name" AS "p1.name", ...):
+var joined []Pair
+err := db.From(goqu.T("person").As("p1")).
+	Join(goqu.T("person").As("p2"), goqu.On(goqu.I("p1.partner_id").Eq(goqu.I("p2.id")))).
+	ScanStructs(&joined)
+
+// Scanning flat prefixed columns from a single table or view:
+var flat []Pair
+err = db.From("pairs").
+	Select(
+		goqu.C("p1_name").As(goqu.C("p1.name")),
+		goqu.C("p1_age").As(goqu.C("p1.age")),
+		goqu.C("p2_name").As(goqu.C("p2.name")),
+		goqu.C("p2_age").As(goqu.C("p2.age")),
+	).
+	ScanStructs(&flat)
+```
+
 <a name="scan-struct"></a>
 **[`ScanStruct`](http://godoc.org/github.com/doug-martin/goqu#SelectDataset.ScanStruct)**
 
