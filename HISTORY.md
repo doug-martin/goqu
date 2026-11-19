@@ -1,6 +1,6 @@
 # Unreleased
 
-* [DOCS] Fix `defaultifempty` scope in the struct tags reference (`INSERT/UPDATE`) and document read-modify-write update patterns, PostgreSQL `interval` options for `time.Duration`, and `WithRecursive` with dialect-specific CTE clauses (`CYCLE`/`SEARCH`) via `goqu.L` [#281](https://github.com/doug-martin/goqu/issues/281), [#298](https://github.com/doug-martin/goqu/issues/298), [#403](https://github.com/doug-martin/goqu/issues/403)
+* [DOCS] Fix `defaultifempty` scope in the struct tags reference (`INSERT/UPDATE`) and document read-modify-write update patterns, PostgreSQL `interval` options for `time.Duration`, `WithRecursive` with dialect-specific CTE clauses (`CYCLE`/`SEARCH`) via `goqu.L`, and scanning multiple nested structs from aliased joins or flat prefixed columns [#281](https://github.com/doug-martin/goqu/issues/281), [#289](https://github.com/doug-martin/goqu/issues/289), [#298](https://github.com/doug-martin/goqu/issues/298), [#403](https://github.com/doug-martin/goqu/issues/403)
 
 # v9.27.0
 
